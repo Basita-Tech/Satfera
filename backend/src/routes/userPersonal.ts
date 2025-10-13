@@ -3,8 +3,8 @@ import {
   createUserPersonalController,
   getUserPersonalController,
   updateUserPersonalController,
-  deleteUserPersonalController,
   addUserFamilyDetails,
+  getUserFamilyDetails,
 } from "../controllers/userPersonal";
 import { CreateUserPersonalValidation } from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
@@ -24,12 +24,13 @@ userPersonalRouter.put(
   CreateUserPersonalValidation,
   updateUserPersonalController
 );
-userPersonalRouter.delete(
-  "/:userId",
-  authenticate,
-  deleteUserPersonalController
-);
 
 userPersonalRouter.post("/family/:userId", authenticate, addUserFamilyDetails);
+userPersonalRouter.get("/family/:userId", authenticate, getUserFamilyDetails);
+userPersonalRouter.put(
+  "/family/:userId",
+  authenticate,
+  updateUserPersonalController
+);
 
 export default userPersonalRouter;

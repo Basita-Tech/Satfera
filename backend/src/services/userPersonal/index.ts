@@ -21,7 +21,13 @@ export const createUserPersonalService = async (
 };
 
 export const getUserPersonalByUserIdService = async (userId: string) => {
-  return UserPersonal.findOne({ userId });
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  return UserPersonal.findOne({ userId }).lean();
 };
 
 export const updateUserPersonalService = async (
@@ -35,32 +41,47 @@ export const updateUserPersonalService = async (
     else delete update.dateOfBirth;
   }
 
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
   return UserPersonal.findOneAndUpdate({ userId }, update, {
     new: true,
     upsert: true,
     setDefaultsOnInsert: true,
+    runValidators: true,
   });
 };
 
-export const deleteUserPersonalService = async (userId: string) => {
-  return UserPersonal.findOneAndDelete({ userId });
-};
-
 export const getUserFamilyDetailsService = async (userId: string) => {
-  if (!Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid userId");
-  }
   if (!userId) {
     throw new Error("userId is required");
   }
-
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
   return UserFamily.findOne({ userId: new Types.ObjectId(userId) });
 };
 
 export const addUserFamilyDetailsService = async (data: IUserFamily) => {
-  const familyDetails = new UserFamily({
-    ...data,
-  });
+  const userId =
+    typeof data.userId === "string"
+      ? data.userId
+      : (data.userId as any)?.toString();
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  
+  const existing = await UserFamily.findOne({ userId });
+  if (existing) {
+    throw new Error("Family details already exist for this user");
+  }
+  const familyDetails = new UserFamily({ ...data, userId });
   return familyDetails.save();
 };
 
@@ -68,11 +89,26 @@ export const updateUserFamilyDetailsService = async (
   userId: string,
   data: Partial<IUserFamily>
 ) => {
-  return UserFamily.findOneAndUpdate(
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  
+  if (data.userId) {
+    delete (data as any).userId;
+  }
+  const updated = await UserFamily.findOneAndUpdate(
     { userId: new Types.ObjectId(userId) },
     data,
     {
-      new: false,
+      new: true,
+      runValidators: true,
     }
   );
+  if (!updated) {
+    throw new Error("Family details not found for this user");
+  }
+  return updated;
 };

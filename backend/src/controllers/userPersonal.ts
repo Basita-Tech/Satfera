@@ -4,7 +4,6 @@ import {
   createUserPersonalService,
   getUserPersonalByUserIdService,
   updateUserPersonalService,
-  deleteUserPersonalService,
   getUserFamilyDetailsService,
   addUserFamilyDetailsService,
   updateUserFamilyDetailsService,
@@ -98,23 +97,66 @@ export const getUserPersonalController = async (
 ) => {
   try {
     const authUser = req.user;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
-      return;
+    const userIdFromParams = req.params.userId;
+    if (!userIdFromParams) {
+      return res.status(400).json({ success: false, message: "User ID is required in params" });
     }
-
-    if (authUser && authUser.role !== "admin" && userId !== authUser.id) {
-      res.status(403).json({ success: false, message: "Forbidden" });
-      return;
+    if (!authUser) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
     }
-    const data = await getUserPersonalByUserIdService(userId);
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const data = await getUserPersonalByUserIdService(userIdFromParams);
     if (!data) {
-      res.status(404).json({ success: false, message: "Record not found" });
-      return;
+      return res.status(404).json({ success: false, message: "Record not found" });
     }
-    res.json({ success: true, data });
+    
+    const {
+      userId,
+      dateOfBirth,
+      timeOfBirth,
+      height,
+      weight,
+      astrologicalSign,
+      BirthPlace,
+      religion,
+      marriedStatus,
+      marryToOtherReligion,
+      full_address,
+      nationality,
+      isResidentOfIndia,
+      isHaveChildren,
+      numberOfChildren,
+      occupation,
+      isChildrenLivingWithYou,
+      isYouLegallySeparated,
+      separatedSince
+    } = data.toObject();
+    res.json({
+      success: true,
+      data: {
+        userId,
+        dateOfBirth,
+        timeOfBirth,
+        height,
+        weight,
+        astrologicalSign,
+        BirthPlace,
+        religion,
+        marriedStatus,
+        marryToOtherReligion,
+        full_address,
+        nationality,
+        isResidentOfIndia,
+        isHaveChildren,
+        numberOfChildren,
+        occupation,
+        isChildrenLivingWithYou,
+        isYouLegallySeparated,
+        separatedSince
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -144,50 +186,64 @@ export const updateUserPersonalController = async (
       });
     }
     const authUser = req.user;
-    const userId = authUser?.id;
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
-      return;
+    const userIdFromParams = req.params.userId;
+    if (!userIdFromParams) {
+      return res.status(400).json({ success: false, message: "User ID is required in params" });
     }
-    if (authUser && authUser.role !== "admin" && userId !== authUser.id) {
-      res.status(403).json({ success: false, message: "Forbidden" });
-      return;
+    if (!authUser) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
     }
     const body = req.body ?? {};
-    const data = await updateUserPersonalService(userId, body);
-    res.json({ success: true, data });
-  } catch (error: any) {
-    if (error?.name === "CastError") {
-      const field = (error as any).path || "value";
-      return res.status(400).json({
-        success: false,
-        message: `${field} must be a valid ${((error as any).kind || "value")
-          .toString()
-          .toLowerCase()}`,
-      });
-    }
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const deleteUserPersonalController = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  try {
-    const authUser = req.user;
-    const userId = authUser?.id;
-
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
-      return;
-    }
-    if (authUser && authUser.role !== "admin" && userId !== authUser.id) {
-      res.status(403).json({ success: false, message: "Forbidden" });
-      return;
-    }
-    await deleteUserPersonalService(userId);
-    res.json({ success: true, message: "Deleted successfully" });
+    const data = await updateUserPersonalService(userIdFromParams, body);
+    
+    const {
+      userId,
+      dateOfBirth,
+      timeOfBirth,
+      height,
+      weight,
+      astrologicalSign,
+      BirthPlace,
+      religion,
+      marriedStatus,
+      marryToOtherReligion,
+      full_address,
+      nationality,
+      isResidentOfIndia,
+      isHaveChildren,
+      numberOfChildren,
+      occupation,
+      isChildrenLivingWithYou,
+      isYouLegallySeparated,
+      separatedSince
+    } = data.toObject();
+    res.json({
+      success: true,
+      data: {
+        userId,
+        dateOfBirth,
+        timeOfBirth,
+        height,
+        weight,
+        astrologicalSign,
+        BirthPlace,
+        religion,
+        marriedStatus,
+        marryToOtherReligion,
+        full_address,
+        nationality,
+        isResidentOfIndia,
+        isHaveChildren,
+        numberOfChildren,
+        occupation,
+        isChildrenLivingWithYou,
+        isYouLegallySeparated,
+        separatedSince
+      }
+    });
   } catch (error: any) {
     if (error?.name === "CastError") {
       const field = (error as any).path || "value";
@@ -207,19 +263,69 @@ export const getUserFamilyDetails = async (
   res: Response
 ) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
-      return;
+    const userIdFromParams = req.params.userId;
+    const authUser = req.user;
+    if (!userIdFromParams) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
     }
-    const data = await getUserFamilyDetailsService(userId);
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const data = await getUserFamilyDetailsService(userIdFromParams);
     if (!data) {
-      res.status(404).json({ success: false, message: "Record not found" });
-      return;
+      return res
+        .status(404)
+        .json({ success: false, message: "Record not found" });
     }
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: (error as any).message });
+
+    const {
+      userId,
+      fatherName,
+      motherName,
+      fatherOccupation,
+      motherOccupation,
+      fatherNativePlace,
+      doYouHaveChildren,
+      grandFatherName,
+      grandMotherName,
+      naniName,
+      nanaName,
+      nanaNativePlace,
+      familyType,
+      haveSibling,
+      howManySiblings,
+      siblingDetails,
+    } = data.toObject();
+    res.json({
+      success: true,
+      data: {
+        userId,
+        fatherName,
+        motherName,
+        fatherOccupation,
+        motherOccupation,
+        fatherNativePlace,
+        doYouHaveChildren,
+        grandFatherName,
+        grandMotherName,
+        naniName,
+        nanaName,
+        nanaNativePlace,
+        familyType,
+        haveSibling,
+        howManySiblings,
+        siblingDetails,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -229,29 +335,72 @@ export const addUserFamilyDetails = async (
 ) => {
   try {
     const userIdFromParams = req.params.userId;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
-      return;
+    const authUser = req.user;
+    if (!userIdFromParams) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
     }
-
-    if (userIdFromParams !== userId) {
-      res.status(403).json({ success: false, message: "Unauthorized" });
-      return;
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
     }
-
-    const user = await User.findById(userId);
-
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const user = await User.findById(userIdFromParams);
     if (!user) {
-      res.status(404).json({ success: false, message: "User not found" });
-      return;
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
+    const data = await addUserFamilyDetailsService({
+      ...req.body,
+      userId: userIdFromParams,
+    });
 
-    const data = await addUserFamilyDetailsService(req.body);
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: (error as any).message });
+    const {
+      userId,
+      fatherName,
+      motherName,
+      fatherOccupation,
+      motherOccupation,
+      fatherNativePlace,
+      doYouHaveChildren,
+      grandFatherName,
+      grandMotherName,
+      naniName,
+      nanaName,
+      nanaNativePlace,
+      familyType,
+      haveSibling,
+      howManySiblings,
+      siblingDetails,
+    } = data.toObject();
+    res.status(201).json({
+      success: true,
+      data: {
+        userId,
+        fatherName,
+        motherName,
+        fatherOccupation,
+        motherOccupation,
+        fatherNativePlace,
+        doYouHaveChildren,
+        grandFatherName,
+        grandMotherName,
+        naniName,
+        nanaName,
+        nanaNativePlace,
+        familyType,
+        haveSibling,
+        howManySiblings,
+        siblingDetails,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -260,14 +409,66 @@ export const updateUserFamilyDetails = async (
   res: Response
 ) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
-      return;
+    const userIdFromParams = req.params.userId;
+    const authUser = req.user;
+    if (!userIdFromParams) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
     }
-    const data = await updateUserFamilyDetailsService(userId, req.body);
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: (error as any).message });
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const data = await updateUserFamilyDetailsService(
+      userIdFromParams,
+      req.body
+    );
+
+    const {
+      userId,
+      fatherName,
+      motherName,
+      fatherOccupation,
+      motherOccupation,
+      fatherNativePlace,
+      doYouHaveChildren,
+      grandFatherName,
+      grandMotherName,
+      naniName,
+      nanaName,
+      nanaNativePlace,
+      familyType,
+      haveSibling,
+      howManySiblings,
+      siblingDetails,
+    } = data.toObject();
+    res.json({
+      success: true,
+      data: {
+        userId,
+        fatherName,
+        motherName,
+        fatherOccupation,
+        motherOccupation,
+        fatherNativePlace,
+        doYouHaveChildren,
+        grandFatherName,
+        grandMotherName,
+        naniName,
+        nanaName,
+        nanaNativePlace,
+        familyType,
+        haveSibling,
+        howManySiblings,
+        siblingDetails,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
