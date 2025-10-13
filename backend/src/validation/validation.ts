@@ -21,7 +21,8 @@ export const LoginValidation = [
   }),
 
   body("password")
-    .exists()
+    .notEmpty()
+    .withMessage("Password is required")
     .bail()
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long"),
@@ -29,7 +30,10 @@ export const LoginValidation = [
 
 export const SignupValidation = [
   body("for_Profile")
-    .exists()
+    .notEmpty()
+    .withMessage(
+      "for_Profile must be one of: myself, son, daughter, brother, sister, friend"
+    )
     .bail()
     .isIn(["myself", "son", "daughter", "brother", "sister", "friend"])
     .withMessage(
@@ -37,30 +41,46 @@ export const SignupValidation = [
     ),
 
   body("firstName")
-    .exists()
+    .notEmpty()
+    .withMessage("First name is required")
     .bail()
     .isString()
-    .withMessage("First name is required"),
+    .withMessage("First name must be a string"),
   body("lastName")
-    .exists()
+    .notEmpty()
+    .withMessage("Last name is required")
     .bail()
     .isString()
-    .withMessage("Last name is required"),
+    .withMessage("Last name must be a string"),
   body("middleName").optional().isString(),
 
   body("phoneNumber")
-    .exists()
+    .notEmpty()
+    .withMessage("Phone number is required")
     .bail()
-    .isMobilePhone("any")
-    .withMessage("Invalid phone number format"),
+    .custom((value) => {
+      const e164 = /^\+[1-9]\d{7,14}$/;
+      const validator = require("validator");
+      if (e164.test(value) || validator.isMobilePhone(value, "any")) {
+        return true;
+      }
+      throw new Error("Invalid phone number format");
+    }),
 
-  body("email").exists().bail().isEmail().withMessage("Invalid email format"),
+  body("email").notEmpty().bail().isEmail().withMessage("Invalid email format"),
 
-  body("isEmailLoginEnabled").optional().isBoolean(),
-  body("isMobileLoginEnabled").optional().isBoolean(),
+  body("isEmailLoginEnabled")
+    .optional()
+    .isBoolean()
+    .withMessage("isEmailLoginEnabled must be a boolean"),
+  body("isMobileLoginEnabled")
+    .optional()
+    .isBoolean()
+    .withMessage("isMobileLoginEnabled must be a boolean"),
 
   body("password")
-    .exists()
+    .notEmpty()
+    .withMessage("Password is required")
     .bail()
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long")
@@ -75,13 +95,19 @@ export const SignupValidation = [
 ];
 
 export const CreateUserPersonalValidation = [
-  body("userId").exists().bail().isString().withMessage("User ID is required"),
+  body("userId")
+    .notEmpty()
+    .withMessage("User ID is required")
+    .bail()
+    .isString()
+    .withMessage("User ID must be a string"),
 
   body("dateOfBirth")
-    .exists()
+    .notEmpty()
+    .withMessage("date Of Birth is required")
     .bail()
     .matches(/^\d{2}-\d{2}-\d{4}$/)
-    .withMessage("date Of Birth is required and must be in DD-MM-YYYY format")
+    .withMessage("date Of Birth must be in DD-MM-YYYY format")
     .custom((value, { req }) => {
       const parts = value.split("-");
       const day = parseInt(parts[0], 10);
@@ -141,6 +167,7 @@ export const CreateUserPersonalValidation = [
     .isFloat()
     .withMessage("Height must be a number")
     .toFloat(),
+
   body("weight")
     .optional()
     .isFloat()
@@ -157,12 +184,12 @@ export const CreateUserPersonalValidation = [
     .withMessage("BirthPlace must be a string"),
 
   body("religion")
-    .exists()
+    .notEmpty()
     .bail()
     .isString()
     .withMessage("Religion is required"),
   body("marriedStatus")
-    .exists()
+    .notEmpty()
     .bail()
     .isString()
     .withMessage("Marital status is required"),
@@ -236,7 +263,12 @@ export const CreateUserPersonalValidation = [
 ];
 
 export const AddUserFamilyDetailsValidation = [
-  body("userId").exists().bail().isString().withMessage("User ID is required"),
+  body("userId")
+    .notEmpty()
+    .withMessage("User ID is required")
+    .bail()
+    .isString()
+    .withMessage("User ID must be a string"),
 
   body("fatherName")
     .optional()
@@ -318,4 +350,33 @@ export const AddUserFamilyDetailsValidation = [
     .optional()
     .isBoolean()
     .withMessage("Each sibling's isElder must be a boolean"),
+];
+
+export const UserEducationDetailsValidation = [
+  body("userId")
+    .notEmpty()
+    .withMessage("User ID is required")
+    .bail()
+    .isString()
+    .withMessage("User ID must be a string"),
+  body("SchoolName")
+    .optional()
+    .isString()
+    .withMessage("School Name must be a string"),
+  body("HighestEducation")
+    .optional()
+    .isString()
+    .withMessage("Highest Education must be a string"),
+  body("FieldOfStudy")
+    .optional()
+    .isString()
+    .withMessage("Field Of Study must be a string"),
+  body("University")
+    .optional()
+    .isString()
+    .withMessage("University must be a string"),
+  body("CountryOfEducation")
+    .optional()
+    .isString()
+    .withMessage("Country Of Education must be a string"),
 ];
