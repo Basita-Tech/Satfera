@@ -28,7 +28,11 @@ export class AuthController {
           message:
             e.msg && e.msg !== "Invalid value"
               ? e.msg
-              : `Invalid value provided${typeof e.value !== "undefined" ? `: ${JSON.stringify(e.value)}` : ""}`,
+              : `Invalid value provided${
+                  typeof e.value !== "undefined"
+                    ? `: ${JSON.stringify(e.value)}`
+                    : ""
+                }`,
           value: e.value,
         })),
       });
@@ -127,7 +131,11 @@ export class AuthController {
           message:
             e.msg && e.msg !== "Invalid value"
               ? e.msg
-              : `Invalid value provided${typeof e.value !== "undefined" ? `: ${JSON.stringify(e.value)}` : ""}`,
+              : `Invalid value provided${
+                  typeof e.value !== "undefined"
+                    ? `: ${JSON.stringify(e.value)}`
+                    : ""
+                }`,
           value: e.value,
         })),
       });

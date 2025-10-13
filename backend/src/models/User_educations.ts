@@ -23,5 +23,5 @@ const userEducationSchema = new Schema(
 );
 
 export const UserEducation =
-  mongoose.models.UserEducation ||
+  mongoose.models.UserEducation as mongoose.Model<IUserEducation> ||
   mongoose.model<IUserEducation>("UserEducation", userEducationSchema);

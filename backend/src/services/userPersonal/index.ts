@@ -3,6 +3,7 @@ import { UserPersonal } from "../../models/User_personal";
 import { IUserFamily, UserFamily } from "../../models/User_family";
 import { CreateUserPersonalInput } from "../../types/types";
 import { parseDDMMYYYYToDate } from "../../lib/lib";
+import { IUserEducation, UserEducation } from "../../models/User_educations";
 
 export const createUserPersonalService = async (
   data: CreateUserPersonalInput
@@ -76,7 +77,7 @@ export const addUserFamilyDetailsService = async (data: IUserFamily) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  
+
   const existing = await UserFamily.findOne({ userId });
   if (existing) {
     throw new Error("Family details already exist for this user");
@@ -95,7 +96,7 @@ export const updateUserFamilyDetailsService = async (
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  
+
   if (data.userId) {
     delete (data as any).userId;
   }
@@ -111,4 +112,86 @@ export const updateUserFamilyDetailsService = async (
     throw new Error("Family details not found for this user");
   }
   return updated;
+};
+
+export const getUserEducationDetailsService = async (userId: string) => {
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  return UserEducation.findOne({ userId }).lean();
+};
+
+export const addUserEducationDetailsService = async (
+  data: Partial<IUserEducation>
+) => {
+  const userId =
+    typeof data.userId === "string"
+      ? data.userId
+      : (data.userId as any)?.toString();
+
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  const existing = await UserEducation.findOne({
+    userId: new Types.ObjectId(userId),
+  });
+  if (existing) {
+    throw new Error("Education details already exist for this user");
+  }
+  const userEducation = new UserEducation({ ...data, userId });
+  return userEducation.save();
+};
+
+export const updateUserEducationDetailsService = async (
+  userId: string,
+  data: Partial<IUserEducation>
+) => {
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+
+  const updateData: Partial<IUserEducation> = { ...data };
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  if (data.userId) {
+    delete (data as any).userId;
+  }
+  const updated = await UserEducation.findOneAndUpdate(
+    { userId: new Types.ObjectId(userId) },
+    data,
+    { new: false, runValidators: true }
+  );
+  if (!updated) {
+    throw new Error("Education details not found for this user");
+  }
+  return updated;
+};
+
+export const createUserEducationDetailsService = async (
+  data: Partial<IUserEducation>
+) => {
+  const userId =
+    typeof data.userId === "string"
+      ? data.userId
+      : (data.userId as any)?.toString();
+
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  const existing = await UserEducation.findOne({ userId });
+  if (existing) {
+    throw new Error("Education details already exist for this user");
+  }
+  const userEducation = new UserEducation({ ...data, userId });
+  return userEducation.save();
 };

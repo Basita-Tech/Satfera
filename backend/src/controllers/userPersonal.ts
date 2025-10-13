@@ -7,6 +7,9 @@ import {
   getUserFamilyDetailsService,
   addUserFamilyDetailsService,
   updateUserFamilyDetailsService,
+  getUserEducationDetailsService,
+  updateUserEducationDetailsService,
+  createUserEducationDetailsService,
 } from "../services/userPersonal";
 import { AuthenticatedRequest } from "../types/types";
 import { User } from "../models/User";
@@ -99,19 +102,25 @@ export const getUserPersonalController = async (
     const authUser = req.user;
     const userIdFromParams = req.params.userId;
     if (!userIdFromParams) {
-      return res.status(400).json({ success: false, message: "User ID is required in params" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
     }
     if (!authUser) {
-      return res.status(401).json({ success: false, message: "Authentication required" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
     }
     if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
     const data = await getUserPersonalByUserIdService(userIdFromParams);
     if (!data) {
-      return res.status(404).json({ success: false, message: "Record not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Record not found" });
     }
-    
+
     const {
       userId,
       dateOfBirth,
@@ -131,7 +140,7 @@ export const getUserPersonalController = async (
       occupation,
       isChildrenLivingWithYou,
       isYouLegallySeparated,
-      separatedSince
+      separatedSince,
     } = data.toObject();
     res.json({
       success: true,
@@ -154,8 +163,8 @@ export const getUserPersonalController = async (
         occupation,
         isChildrenLivingWithYou,
         isYouLegallySeparated,
-        separatedSince
-      }
+        separatedSince,
+      },
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -188,17 +197,21 @@ export const updateUserPersonalController = async (
     const authUser = req.user;
     const userIdFromParams = req.params.userId;
     if (!userIdFromParams) {
-      return res.status(400).json({ success: false, message: "User ID is required in params" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
     }
     if (!authUser) {
-      return res.status(401).json({ success: false, message: "Authentication required" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
     }
     if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
     const body = req.body ?? {};
     const data = await updateUserPersonalService(userIdFromParams, body);
-    
+
     const {
       userId,
       dateOfBirth,
@@ -218,7 +231,7 @@ export const updateUserPersonalController = async (
       occupation,
       isChildrenLivingWithYou,
       isYouLegallySeparated,
-      separatedSince
+      separatedSince,
     } = data.toObject();
     res.json({
       success: true,
@@ -241,8 +254,8 @@ export const updateUserPersonalController = async (
         occupation,
         isChildrenLivingWithYou,
         isYouLegallySeparated,
-        separatedSince
-      }
+        separatedSince,
+      },
     });
   } catch (error: any) {
     if (error?.name === "CastError") {
@@ -468,6 +481,111 @@ export const updateUserFamilyDetails = async (
         siblingDetails,
       },
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getUserEducationDetails = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const userIdFromParams = req.params.userId;
+    const authUser = req.user;
+    if (!userIdFromParams) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
+    }
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const data = await getUserEducationDetailsService(userIdFromParams);
+    if (!data) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Record not found" });
+    }
+    const { educationDetails } = data.toObject();
+    res.json({
+      success: true,
+      data: {
+        educationDetails,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const createUserEducationDetails = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const userIdFromParams = req.params.userId;
+    const authUser = req.user;
+    if (!userIdFromParams) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
+    }
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const user = await User.findById(userIdFromParams);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    const data = await createUserEducationDetailsService({
+      ...req.body,
+      userId: userIdFromParams,
+    });
+    res.status(201).json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateUserEducationDetails = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const userIdFromParams = req.params.userId;
+    const authUser = req.user;
+    if (!userIdFromParams) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required in params" });
+    }
+
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    const data = await updateUserEducationDetailsService(
+      userIdFromParams,
+      req.body
+    );
+    res.json({ success: true, data });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

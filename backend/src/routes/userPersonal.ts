@@ -5,9 +5,13 @@ import {
   updateUserPersonalController,
   addUserFamilyDetails,
   getUserFamilyDetails,
+  getUserEducationDetails,
+  createUserEducationDetails,
+  updateUserEducationDetails,
 } from "../controllers/userPersonal";
 import { CreateUserPersonalValidation } from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
+import { createUserEducationDetailsService } from "../services/userPersonal";
 
 const userPersonalRouter = Router();
 
@@ -31,6 +35,23 @@ userPersonalRouter.put(
   "/family/:userId",
   authenticate,
   updateUserPersonalController
+);
+
+userPersonalRouter.get(
+  "/education/:userId",
+  authenticate,
+  getUserEducationDetails
+);
+userPersonalRouter.post(
+  "/education/:userId",
+  authenticate,
+  createUserEducationDetails
+);
+userPersonalRouter.put(
+  "/education/:userId",
+  createUserEducationDetailsService,
+  authenticate,
+  updateUserEducationDetails
 );
 
 export default userPersonalRouter;
