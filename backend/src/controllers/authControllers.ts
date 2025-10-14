@@ -1,8 +1,20 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import jwt from "jsonwebtoken";
 import { LoginRequest } from "../types/types";
 import { AuthService } from "../services/authServices";
+import { generateOtp } from "../lib/otp";
+import { sendOtpEmail } from "../lib/email";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import {
+  setOtp as setRedisOtp,
+  getOtp as getRedisOtp,
+  incrementResend,
+  getResendCount,
+  OTP_RESEND_LIMIT,
+} from "../lib/otpRedis";
+import { User } from "../models/User";
+import { redisClient } from "../lib/redis";
 
 const authService = new AuthService();
 
@@ -49,11 +61,9 @@ export class AuthController {
 
       if (email && password) {
         const result = await authService.loginWithEmail(email, password);
-
         if (!result) {
           return res.status(401).json({ message: "Invalid credentials" });
         }
-
         const userObj = result.user.toObject
           ? result.user.toObject()
           : result.user;
@@ -65,7 +75,6 @@ export class AuthController {
           isMobileLoginEnabled,
           ...publicUser
         } = userObj as any;
-
         req.cookies = {
           token: result.token,
           httpOnly: true,
@@ -73,7 +82,6 @@ export class AuthController {
           maxAge: 7 * 24 * 60 * 60 * 1000,
           sameSite: "strict",
         };
-
         return res.status(200).json({ user: publicUser, token: result.token });
       }
 
@@ -143,29 +151,109 @@ export class AuthController {
 
     try {
       const data = req.body;
+
+      const resendCount = await getResendCount(data.email, "signup");
+      if (resendCount >= OTP_RESEND_LIMIT) {
+        return res.status(429).json({
+          message: "Resend OTP limit reached for today. Try again tomorrow.",
+        });
+      }
+      await incrementResend(data.email, "signup");
+      const otp = generateOtp(6);
+
+      await setRedisOtp(data.email, otp, "signup");
       const createdUser = await authService.signup(data);
 
-      const token = jwt.sign(
-        {
-          id: (createdUser as any).id || (createdUser as any)._id,
-          email: (createdUser as any).email,
-        },
-        process.env.JWT_SECRET || "secret",
-        { expiresIn: "7d" }
-      );
+      await sendOtpEmail(createdUser.email, otp, "signup");
 
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+      return res.status(201).json({
+        message:
+          "Signup successful. Please verify your email with the OTP sent.",
+        user: { email: createdUser.email, id: createdUser.id },
       });
-
-      return res
-        .status(201)
-        .json({ message: "Signup successful", user: createdUser, token });
     } catch (error: any) {
       const message = error?.message || "Signup failed";
       return res.status(400).json({ message });
     }
+  }
+
+  static async verifySignupOtp(req: Request, res: Response) {
+    const { email, otp, type } = req.body;
+
+    try {
+      if (type === "signup") {
+        const message = await authService.verifySignupOtp(email, otp);
+        return res.status(200).json({ message });
+      } else if (type === "forgot-password") {
+        const message = await authService.verifyForgotPasswordOtp(email, otp);
+        return res.status(200).json({ message });
+      }
+    } catch (error) {
+      const message = (error as any)?.message || "OTP verification failed";
+      return res.status(400).json({ message });
+    }
+  }
+
+  static async forgotPasswordRequest(req: Request, res: Response) {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const resendCount = await getResendCount(email, "forgot-password");
+
+    if (resendCount >= OTP_RESEND_LIMIT) {
+      return res.status(429).json({
+        message: "Resend OTP limit reached for today. Try again tomorrow.",
+      });
+    }
+    await incrementResend(email, "forgot-password");
+
+    const otp = generateOtp(6);
+
+    await setRedisOtp(email, otp, "forgot-password");
+    await sendOtpEmail(user.email, otp, "forgot-password");
+
+    return res
+      .status(200)
+      .json({ message: "OTP sent to email for password reset" });
+  }
+
+  static async resetPassword(req: Request, res: Response) {
+    const token = req.params.token;
+    const { newPassword } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    const decodedTokenValue = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "secret"
+    ) as { id: string; hash: string; iat: number; exp: number };
+
+    const user = await User.findById(decodedTokenValue.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    await redisClient.del(`forgot-password-token:${user.email}`);
+
+    return res.status(200).json({ message: "Password reset successful" });
   }
 }

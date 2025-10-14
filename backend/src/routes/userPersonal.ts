@@ -58,7 +58,7 @@ userPersonalRouter.post(
 );
 
 userPersonalRouter.put(
-  "/health",
+  "/health  ",
   authenticate,
   UserHealthValidation,
   updateUserHealthController

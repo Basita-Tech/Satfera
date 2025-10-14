@@ -21,7 +21,6 @@ export const createUserPersonalController = async (
 ) => {
   try {
     const errors = validationResult(req);
-    console.log(errors);
     if (!errors.isEmpty()) {
       const pretty = (param: string | undefined) => {
         if (!param) return "body";

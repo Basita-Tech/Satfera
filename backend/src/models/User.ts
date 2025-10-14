@@ -15,6 +15,10 @@ export interface IUser extends Document {
   for_Profile?: "myself" | "son" | "daughter" | "brother" | "sister" | "friend";
   isEmailVerified?: boolean;
   isPhoneVerified?: boolean;
+  emailOtp?: string | undefined;
+  emailOtpExpires?: Date | undefined;
+  forgotPasswordOtp?: string | undefined;
+  forgotPasswordOtpExpires?: Date | undefined;
   createdAt: Date;
   lastLoginAt: Date;
 }
