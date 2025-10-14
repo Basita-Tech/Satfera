@@ -53,6 +53,9 @@ const userHealthSchema = new Schema(
     timestamps: true,
   }
 );
+
+userHealthSchema.index({ userId: 1 }, { unique: true });
+
 export const UserHealth =
-  mongoose.models.UserHealth ||
+  (mongoose.models.UserHealth as mongoose.Model<IUserEducation>) ||
   mongoose.model<IUserEducation>("UserHealth", userHealthSchema);

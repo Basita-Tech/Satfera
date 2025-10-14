@@ -380,3 +380,34 @@ export const UserEducationDetailsValidation = [
     .isString()
     .withMessage("Country Of Education must be a string"),
 ];
+
+export const UserHealthValidation = [
+  body("iSAlcoholic")
+    .optional()
+    .isBoolean()
+    .withMessage("iSAlcoholic must be a boolean"),
+  body("isTobaccoUser")
+    .optional()
+    .isBoolean()
+    .withMessage("isTobaccoUser must be a boolean"),
+  body("isHaveTattoos")
+    .optional()
+    .isBoolean()
+    .withMessage("isHaveTattoos must be a boolean"),
+  body("isHaveHIV")
+    .optional()
+    .isBoolean()
+    .withMessage("isHaveHIV must be a boolean"),
+  body("isPostiviInTB")
+    .optional()
+    .isBoolean()
+    .withMessage("isPostiviInTB must be a boolean"),
+  body("isHaveMedicalHistory")
+    .optional()
+    .isBoolean()
+    .withMessage("isHaveMedicalHistory must be a boolean"),
+  body("medicalHistoryDetails")
+    .optional()
+    .isString()
+    .withMessage("medicalHistoryDetails must be a string"),
+];

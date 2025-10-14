@@ -8,8 +8,14 @@ import {
   getUserEducationDetails,
   createUserEducationDetails,
   updateUserEducationDetails,
+  getUserHealthController,
+  updateUserHealthController,
+  addUserHealthController,
 } from "../controllers/userPersonal";
-import { CreateUserPersonalValidation } from "../validation/validation";
+import {
+  CreateUserPersonalValidation,
+  UserHealthValidation,
+} from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
 import { createUserEducationDetailsService } from "../services/userPersonal";
 
@@ -21,37 +27,41 @@ userPersonalRouter.post(
   CreateUserPersonalValidation,
   createUserPersonalController
 );
-userPersonalRouter.get("/:userId", authenticate, getUserPersonalController);
+userPersonalRouter.get("/", authenticate, getUserPersonalController);
 userPersonalRouter.put(
-  "/:userId",
+  "/",
   authenticate,
   CreateUserPersonalValidation,
   updateUserPersonalController
 );
 
-userPersonalRouter.post("/family/:userId", authenticate, addUserFamilyDetails);
-userPersonalRouter.get("/family/:userId", authenticate, getUserFamilyDetails);
-userPersonalRouter.put(
-  "/family/:userId",
-  authenticate,
-  updateUserPersonalController
-);
+userPersonalRouter.post("/family", authenticate, addUserFamilyDetails);
+userPersonalRouter.get("/family", authenticate, getUserFamilyDetails);
+userPersonalRouter.put("/family", authenticate, updateUserPersonalController);
 
-userPersonalRouter.get(
-  "/education/:userId",
-  authenticate,
-  getUserEducationDetails
-);
-userPersonalRouter.post(
-  "/education/:userId",
-  authenticate,
-  createUserEducationDetails
-);
+userPersonalRouter.get("/education", authenticate, getUserEducationDetails);
+userPersonalRouter.post("/education", authenticate, createUserEducationDetails);
 userPersonalRouter.put(
-  "/education/:userId",
+  "/education",
   createUserEducationDetailsService,
   authenticate,
   updateUserEducationDetails
+);
+
+userPersonalRouter.get("/health", authenticate, getUserHealthController);
+
+userPersonalRouter.post(
+  "/health",
+  authenticate,
+  UserHealthValidation,
+  addUserHealthController
+);
+
+userPersonalRouter.put(
+  "/health",
+  authenticate,
+  UserHealthValidation,
+  updateUserHealthController
 );
 
 export default userPersonalRouter;

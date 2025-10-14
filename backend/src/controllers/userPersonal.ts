@@ -12,8 +12,8 @@ import {
   createUserEducationDetailsService,
 } from "../services/userPersonal";
 import { AuthenticatedRequest } from "../types/types";
-import { User } from "../models/User";
 import { UserPersonal } from "../models/User_personal";
+import { UserHealth } from "../models/User_health";
 
 export const createUserPersonalController = async (
   req: AuthenticatedRequest,
@@ -100,25 +100,20 @@ export const getUserPersonalController = async (
 ) => {
   try {
     const authUser = req.user;
-    const userIdFromParams = req.params.userId;
-    if (!userIdFromParams) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required in params" });
-    }
+
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
+    if (authUser.role !== "user") {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
-    const data = await getUserPersonalByUserIdService(userIdFromParams);
+    const data = await getUserPersonalByUserIdService(authUser.id);
     if (!data) {
       return res
         .status(404)
-        .json({ success: false, message: "Record not found" });
+        .json({ success: false, message: "User personal details not found" });
     }
 
     const {
@@ -195,22 +190,25 @@ export const updateUserPersonalController = async (
       });
     }
     const authUser = req.user;
-    const userIdFromParams = req.params.userId;
-    if (!userIdFromParams) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required in params" });
-    }
+
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
+
+    const canUserDetailsExist = await UserPersonal.findOne({
+      userId: authUser.id,
+    });
+
+    if (!canUserDetailsExist) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User personal details not found" });
     }
+
     const body = req.body ?? {};
-    const data = await updateUserPersonalService(userIdFromParams, body);
+    const data = await updateUserPersonalService(authUser.id, body);
 
     const {
       userId,
@@ -276,22 +274,20 @@ export const getUserFamilyDetails = async (
   res: Response
 ) => {
   try {
-    const userIdFromParams = req.params.userId;
     const authUser = req.user;
-    if (!userIdFromParams) {
+    if (!authUser?.id) {
       return res
         .status(400)
-        .json({ success: false, message: "User ID is required in params" });
+        .json({ success: false, message: "User ID is required" });
     }
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    const data = await getUserFamilyDetailsService(userIdFromParams);
+
+    const data = await getUserFamilyDetailsService(authUser.id);
+
     if (!data) {
       return res
         .status(404)
@@ -347,30 +343,16 @@ export const addUserFamilyDetails = async (
   res: Response
 ) => {
   try {
-    const userIdFromParams = req.params.userId;
     const authUser = req.user;
-    if (!userIdFromParams) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required in params" });
-    }
-    if (!authUser) {
+    if (!authUser?.id) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    const user = await User.findById(userIdFromParams);
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
+
     const data = await addUserFamilyDetailsService({
       ...req.body,
-      userId: userIdFromParams,
+      userId: authUser.id,
     });
 
     const {
@@ -491,22 +473,20 @@ export const getUserEducationDetails = async (
   res: Response
 ) => {
   try {
-    const userIdFromParams = req.params.userId;
     const authUser = req.user;
-    if (!userIdFromParams) {
+    if (!authUser?.id) {
       return res
         .status(400)
-        .json({ success: false, message: "User ID is required in params" });
+        .json({ success: false, message: "User ID is required" });
     }
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    const data = await getUserEducationDetailsService(userIdFromParams);
+
+    const data = await getUserEducationDetailsService(authUser.id);
+
     if (!data) {
       return res
         .status(404)
@@ -529,30 +509,21 @@ export const createUserEducationDetails = async (
   res: Response
 ) => {
   try {
-    const userIdFromParams = req.params.userId;
     const authUser = req.user;
-    if (!userIdFromParams) {
+    if (!authUser?.id) {
       return res
         .status(400)
-        .json({ success: false, message: "User ID is required in params" });
+        .json({ success: false, message: "User ID is required" });
     }
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    const user = await User.findById(userIdFromParams);
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
+
     const data = await createUserEducationDetailsService({
       ...req.body,
-      userId: userIdFromParams,
+      userId: authUser.id,
     });
     res.status(201).json({ success: true, data });
   } catch (error: any) {
@@ -565,28 +536,134 @@ export const updateUserEducationDetails = async (
   res: Response
 ) => {
   try {
-    const userIdFromParams = req.params.userId;
     const authUser = req.user;
-    if (!userIdFromParams) {
+    if (!authUser?.id) {
       return res
         .status(400)
-        .json({ success: false, message: "User ID is required in params" });
+        .json({ success: false, message: "User ID is required" });
     }
 
-    if (!authUser) {
+    const data = await updateUserEducationDetailsService(authUser.id, req.body);
+
+    res.json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getUserHealthController = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
+
+    const health = await UserHealth.findOne({ userId: user.id })
+      .select("-__v")
+      .lean();
+
+    if (!health) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Health data not found" });
     }
-    const data = await updateUserEducationDetailsService(
-      userIdFromParams,
-      req.body
-    );
-    res.json({ success: true, data });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(200).json({ success: true, data: health });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+export const addUserHealthController = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array().map((e: any) => ({
+          field: e.param,
+          message: e.msg,
+          value: e.value,
+        })),
+      });
+    }
+    const user = req.user;
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const exists = await UserHealth.findOne({ userId: user.id }).lean();
+
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: "Health data already exists for this user",
+      });
+    }
+    const health = await UserHealth.create({ ...req.body, userId: user.id });
+    return res.status(201).json({ success: true, data: health });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+export const updateUserHealthController = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array().map((e: any) => ({
+          field: e.param,
+          message: e.msg,
+          value: e.value,
+        })),
+      });
+    }
+    const user = req.user;
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const health = await UserHealth.findOneAndUpdate(
+      { userId: user.id },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+        projection: { __v: 0 },
+      }
+    ).lean();
+    if (!health) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Health data not found" });
+    }
+    return res.status(200).json({ success: true, data: health });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
   }
 };
