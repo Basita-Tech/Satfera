@@ -152,28 +152,51 @@ export class AuthController {
     try {
       const data = req.body;
 
-      const resendCount = await getResendCount(data.email, "signup");
-      if (resendCount >= OTP_RESEND_LIMIT) {
-        return res.status(429).json({
-          message: "Resend OTP limit reached for today. Try again tomorrow.",
-        });
-      }
-      await incrementResend(data.email, "signup");
-      const otp = generateOtp(6);
-
-      await setRedisOtp(data.email, otp, "signup");
       const createdUser = await authService.signup(data);
 
-      await sendOtpEmail(createdUser.email, otp, "signup");
-
       return res.status(201).json({
-        message:
-          "Signup successful. Please verify your email with the OTP sent.",
+        message: "Signup successful.",
         user: { email: createdUser.email, id: createdUser.id },
       });
     } catch (error: any) {
       const message = error?.message || "Signup failed";
       return res.status(400).json({ message });
+    }
+  }
+
+  static async sendEmailOtp(req: Request, res: Response) {
+    const { email, type } = req.body;
+
+    try {
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      if (type !== "signup" && type !== "forgot-password") {
+        return res.status(400).json({
+          message: "Type must be either 'signup' or 'forgot-password'",
+        });
+      }
+
+      const resendCount = await getResendCount(email, type);
+      if (resendCount >= OTP_RESEND_LIMIT) {
+        return res.status(429).json({
+          message: "Resend OTP limit reached for today. Try again tomorrow.",
+        });
+      }
+
+      await incrementResend(email, type);
+      const otp = generateOtp(6);
+
+      await setRedisOtp(email, otp, type);
+
+      await sendOtpEmail(email, otp, type);
+
+      return res.status(201).json({
+        message: "OTP sent successfully.",
+      });
+    } catch (error) {
+      const message = (error as any)?.message || "Failed to send OTP";
+      return res.status(500).json({ message });
     }
   }
 

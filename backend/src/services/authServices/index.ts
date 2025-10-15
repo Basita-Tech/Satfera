@@ -182,8 +182,12 @@ export class AuthService {
   }
 
   async verifySignupOtp(email: string, otp: string) {
-    if (!email || !otp) {
-      throw new Error("Email and OTP are required");
+    if (!email) {
+      throw new Error("Email is required");
+    }
+
+    if (!otp) {
+      throw new Error("OTP is required");
     }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });

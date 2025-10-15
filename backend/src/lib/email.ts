@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { buildOtpHtml, buildResetPasswordHtml } from "./email-templates";
 
 const transporter = nodemailer.createTransport({
   service: process.env.SMTP_SERVICE || undefined,
@@ -37,18 +38,37 @@ export async function sendOtpEmail(
   otp: string,
   context: "signup" | "forgot-password"
 ) {
+  const options = {
+    brandName: "Satfera",
+    logoUrl: "https://nodemailer.com/img/nm_logo_200x136.png",
+  };
+
+  const { html, text } = buildOtpHtml(
+    context,
+    otp,
+    options?.brandName,
+    options?.logoUrl
+  );
   const subject =
     context === "signup"
       ? "Your Satfera Signup OTP"
       : "Your Satfera Password Reset OTP";
-  const html = `<p>Your OTP is: <b>${otp}</b></p><p>This OTP is valid for 5 minutes.</p>`;
-  const main = await sendMail({ to, subject, html });
+
+  const main = await sendMail({ to, subject, html, text });
   return main;
 }
 
 export async function sendResetPasswordEmail(to: string, resetLink: string) {
+  const options = {
+    brandName: "Satfera",
+    logoUrl: "https://nodemailer.com/img/nm_logo_200x136.png",
+  };
+  const { html, text } = buildResetPasswordHtml(
+    resetLink,
+    options?.brandName,
+    options?.logoUrl
+  );
   const subject = "Reset Your Satfera Password";
-  const html = `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>This link is valid for 5 minutes.</p>`;
-  const main = await sendMail({ to, subject, html });
+  const main = await sendMail({ to, subject, html, text });
   return main;
 }
