@@ -2,11 +2,16 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserExpectations extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
-  userProfileBio?: string;
-  isConsumeAlcoholic?: string;
-  educationLevel?: string;
-  community?: string;
-  whereIsLiving?: string;
+  age: {
+    from: number;
+    to: number;
+  };
+  maritalStatus: string;
+  isConsumeAlcoholic: string;
+  educationLevel: string;
+  community: string[];
+  livingInCountry: string;
+  livingInState: string;
 }
 
 const userExpectationsSchema = new Schema(
@@ -17,13 +22,27 @@ const userExpectationsSchema = new Schema(
       required: true,
       unique: true,
     },
-    userProfileBio: {
+    age: {
+      from: { type: Number, required: true, min: 18, max: 100 },
+      to: { type: Number, required: true, min: 18, max: 100 },
+    },
+    maritalStatus: {
       type: String,
+      required: true,
       trim: true,
-      maxlength: 500,
+      maxlength: 100,
+      enum: [
+        "Never Married",
+        "Divorced",
+        "Widowed",
+        "Separated",
+        "Awaiting Divorce",
+        "No Preference",
+      ],
     },
     isConsumeAlcoholic: {
       type: String,
+      required: true,
       enum: ["yes", "no", "occasionally"],
     },
     educationLevel: {
@@ -41,13 +60,20 @@ const userExpectationsSchema = new Schema(
       ],
     },
     community: {
-      type: String,
+      type: [String],
+      required: true,
       trim: true,
       maxlength: 100,
-      enum: ["Yes", "No", "Occasionally"],
     },
-    whereIsLiving: {
+    livingInCountry: {
       type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
+    },
+    livingInState: {
+      type: String,
+      required: true,
       trim: true,
       maxlength: 100,
     },
@@ -58,5 +84,5 @@ const userExpectationsSchema = new Schema(
 );
 
 export const UserExpectations =
-  mongoose.models.UserExpectations ||
+  (mongoose.models.UserExpectations as mongoose.Model<IUserExpectations>) ||
   mongoose.model<IUserExpectations>("UserExpectations", userExpectationsSchema);

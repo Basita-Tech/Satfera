@@ -4,6 +4,10 @@ import { IUserFamily, UserFamily } from "../../models/User_family";
 import { CreateUserPersonalInput } from "../../types/types";
 import { parseDDMMYYYYToDate } from "../../lib/lib";
 import { IUserEducation, UserEducation } from "../../models/User_educations";
+import {
+  IUserExpectations,
+  UserExpectations,
+} from "../../models/User_expectations";
 
 export const createUserPersonalService = async (
   data: CreateUserPersonalInput
@@ -194,4 +198,62 @@ export const createUserEducationDetailsService = async (
   }
   const userEducation = new UserEducation({ ...data, userId });
   return userEducation.save();
+};
+
+export const getUserExectationDetailsService = async (userId: string) => {
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  return UserExpectations.findOne({ userId }).lean();
+};
+
+export const addUserExpectationDetailsService = async (
+  data: Partial<IUserExpectations>
+) => {
+  const userId =
+    typeof data.userId === "string"
+      ? data.userId
+      : (data.userId as any)?.toString();
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  const existing = await UserExpectations.findOne({ userId });
+  if (existing) {
+    throw new Error("Expectation details already exist for this user");
+  }
+  const expectationDetails = new UserExpectations({ ...data, userId });
+  return expectationDetails.save();
+};
+
+export const updateUserExpectationDetailsService = async (
+  userId: string,
+  data: Partial<IUserExpectations>
+) => {
+  if (!userId) {
+    throw new Error("userId is required");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+  if (data.userId) {
+    delete (data as any).userId;
+  }
+  const updated = await UserExpectations.findOneAndUpdate(
+    { userId: new Types.ObjectId(userId) },
+    data,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+  if (!updated) {
+    throw new Error("Expectation details not found for this user");
+  }
+  return updated;
 };

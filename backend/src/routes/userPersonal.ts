@@ -11,10 +11,14 @@ import {
   getUserHealthController,
   updateUserHealthController,
   addUserHealthController,
+  getUserExpectationsById,
+  createUserExpectations,
+  updateUserExpectations,
 } from "../controllers/userPersonal";
 import {
   CreateUserPersonalValidation,
   UserHealthValidation,
+  validateUserExpectations,
 } from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
 import { createUserEducationDetailsService } from "../services/userPersonal";
@@ -63,5 +67,16 @@ userPersonalRouter.put(
   UserHealthValidation,
   updateUserHealthController
 );
+
+userPersonalRouter.get("/expectations", authenticate, getUserExpectationsById);
+
+userPersonalRouter.post(
+  "/expectations",
+  authenticate,
+  validateUserExpectations,
+  createUserExpectations
+);
+
+userPersonalRouter.put("/expectations/", authenticate, updateUserExpectations);
 
 export default userPersonalRouter;

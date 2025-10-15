@@ -411,3 +411,54 @@ export const UserHealthValidation = [
     .isString()
     .withMessage("medicalHistoryDetails must be a string"),
 ];
+
+export const validateUserExpectations = [
+  body("userId").notEmpty().withMessage("User ID is required"),
+  body("age.from")
+    .notEmpty()
+    .withMessage("Age 'from' is required")
+    .isInt({ min: 18, max: 100 })
+    .withMessage("Age 'from' must be between 18 and 100"),
+  body("age.to")
+    .notEmpty()
+    .withMessage("Age 'to' is required")
+    .isInt({ min: 18, max: 100 })
+    .withMessage("Age 'to' must be between 18 and 100"),
+  body("maritalStatus")
+    .notEmpty()
+    .withMessage("Marital status is required")
+    .isIn([
+      "Never Married",
+      "Divorced",
+      "Widowed",
+      "Separated",
+      "Awaiting Divorce",
+      "No Preference",
+    ])
+    .withMessage("Invalid marital status"),
+  body("isConsumeAlcoholic")
+    .notEmpty()
+    .withMessage("Alcohol consumption is required")
+    .isIn(["yes", "no", "occasionally"])
+    .withMessage("Invalid value for alcohol consumption"),
+  body("educationLevel")
+    .notEmpty()
+    .withMessage("Education level is required")
+    .isIn([
+      "High School",
+      "Bachelor's Degree",
+      "Graduate",
+      "Post Graduate",
+      "Doctorate",
+      "Professional",
+      "Other",
+    ])
+    .withMessage("Invalid education level"),
+  body("community")
+    .isArray({ min: 1 })
+    .withMessage("Community must be a non-empty array of strings"),
+  body("livingInCountry")
+    .notEmpty()
+    .withMessage("Living in country is required"),
+  body("livingInState").notEmpty().withMessage("Living in state is required"),
+];

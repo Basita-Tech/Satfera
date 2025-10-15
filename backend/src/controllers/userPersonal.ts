@@ -10,6 +10,8 @@ import {
   getUserEducationDetailsService,
   updateUserEducationDetailsService,
   createUserEducationDetailsService,
+  getUserExectationDetailsService,
+  addUserExpectationDetailsService,
 } from "../services/userPersonal";
 import { AuthenticatedRequest } from "../types/types";
 import { UserPersonal } from "../models/User_personal";
@@ -664,5 +666,81 @@ export const updateUserHealthController = async (
     return res
       .status(500)
       .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+export const getUserExpectationsById = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const expectations = await getUserExectationDetailsService(userId);
+    if (!expectations) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Expectations not found" });
+    }
+
+    return res.status(200).json({ success: true, data: expectations });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || "Server error" });
+  }
+};
+
+export const createUserExpectations = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const data = req.body;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const expectations = await addUserExpectationDetailsService({
+      ...data,
+      userId,
+    });
+    return res.status(201).json({ success: true, data: expectations });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || "Server error" });
+  }
+};
+
+export const updateUserExpectations = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const data = req.body;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+    const expectations = await addUserExpectationDetailsService({
+      ...data,
+      userId,
+    });
+    return res.status(200).json({ success: true, data: expectations });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || "Server error" });
   }
 };
