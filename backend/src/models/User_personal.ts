@@ -10,6 +10,8 @@ export interface IUserPersonal extends Document {
   BirthPlace?: string;
   religion: string;
   marriedStatus: string;
+  dosh?: string;
+  subCaste?: string;
   marryToOtherReligion?: boolean;
   full_address?: {
     street1?: string;
@@ -38,6 +40,8 @@ const userPersonalSchema = new Schema(
     astrologicalSign: { type: String },
     BirthPlace: { type: String },
     religion: { type: String, required: true },
+    subCaste: { type: String },
+    dosh: { type: String },
     marriedStatus: { type: String, required: true },
     marryToOtherReligion: { type: Boolean },
     dateOfBirth: { type: Date, required: true },

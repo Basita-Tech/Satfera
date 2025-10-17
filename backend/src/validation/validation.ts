@@ -183,6 +183,13 @@ export const CreateUserPersonalValidation = [
     .isString()
     .withMessage("BirthPlace must be a string"),
 
+  body("dosh").optional().isString().withMessage("dosh must be a string"),
+
+  body("subCaste")
+    .optional()
+    .isString()
+    .withMessage("subCaste must be a string"),
+
   body("religion")
     .notEmpty()
     .bail()

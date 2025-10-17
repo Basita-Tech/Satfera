@@ -32,12 +32,7 @@ userPersonalRouter.post(
   createUserPersonalController
 );
 userPersonalRouter.get("/", authenticate, getUserPersonalController);
-userPersonalRouter.put(
-  "/",
-  authenticate,
-  CreateUserPersonalValidation,
-  updateUserPersonalController
-);
+userPersonalRouter.put("/", authenticate, updateUserPersonalController);
 
 userPersonalRouter.post("/family", authenticate, addUserFamilyDetails);
 userPersonalRouter.get("/family", authenticate, getUserFamilyDetails);
