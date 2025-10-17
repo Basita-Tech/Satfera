@@ -21,7 +21,11 @@ export interface IUserFamily extends Document {
   siblingDetails?: [
     {
       name: string;
-      isElder: boolean;
+      relation:
+        | "Elder Brother"
+        | "Younger Brother"
+        | "Elder Sister"
+        | "Younger Sister";
     }
   ];
 }
@@ -112,9 +116,14 @@ const userFamilySchema = new Schema(
           type: String,
           trim: true,
         },
-        isElder: {
-          type: Boolean,
-          default: false,
+        relation: {
+          type: String,
+          enum: [
+            "Elder Brother",
+            "Younger Brother",
+            "Elder Sister",
+            "Younger Sister",
+          ],
         },
       },
     ],

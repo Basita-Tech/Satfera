@@ -12,6 +12,7 @@ import {
   createUserEducationDetailsService,
   getUserExectationDetailsService,
   addUserExpectationDetailsService,
+  updateUserExpectationDetailsService,
 } from "../services/userPersonal";
 import { AuthenticatedRequest } from "../types/types";
 import { UserPersonal } from "../models/User_personal";
@@ -647,9 +648,7 @@ export const updateUserHealthController = async (
       { userId: user.id },
       req.body,
       {
-        new: true,
         runValidators: true,
-        projection: { __v: 0 },
       }
     ).lean();
     if (!health) {
@@ -729,10 +728,10 @@ export const updateUserExpectations = async (
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    const expectations = await addUserExpectationDetailsService({
-      ...data,
+    const expectations = await updateUserExpectationDetailsService(
       userId,
-    });
+      data
+    );
     return res.status(200).json({ success: true, data: expectations });
   } catch (error: any) {
     return res
