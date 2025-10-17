@@ -17,6 +17,7 @@ import {
 import { AuthenticatedRequest } from "../types/types";
 import { UserPersonal } from "../models/User_personal";
 import { UserHealth } from "../models/User_health";
+import { UserProfession } from "../models/User_professions";
 
 export const createUserPersonalController = async (
   req: AuthenticatedRequest,
@@ -118,50 +119,9 @@ export const getUserPersonalController = async (
         .json({ success: false, message: "User personal details not found" });
     }
 
-    const {
-      userId,
-      dateOfBirth,
-      timeOfBirth,
-      height,
-      weight,
-      astrologicalSign,
-      BirthPlace,
-      religion,
-      marriedStatus,
-      marryToOtherReligion,
-      full_address,
-      nationality,
-      isResidentOfIndia,
-      isHaveChildren,
-      numberOfChildren,
-      occupation,
-      isChildrenLivingWithYou,
-      isYouLegallySeparated,
-      separatedSince,
-    } = data.toObject();
     res.json({
       success: true,
-      data: {
-        userId,
-        dateOfBirth,
-        timeOfBirth,
-        height,
-        weight,
-        astrologicalSign,
-        BirthPlace,
-        religion,
-        marriedStatus,
-        marryToOtherReligion,
-        full_address,
-        nationality,
-        isResidentOfIndia,
-        isHaveChildren,
-        numberOfChildren,
-        occupation,
-        isChildrenLivingWithYou,
-        isYouLegallySeparated,
-        separatedSince,
-      },
+      data,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -210,52 +170,11 @@ export const updateUserPersonalController = async (
     }
 
     const body = req.body ?? {};
-    const data = await updateUserPersonalService(authUser.id, body);
+    const data = await updateUserFamilyDetailsService(authUser.id, body);
 
-    const {
-      userId,
-      dateOfBirth,
-      timeOfBirth,
-      height,
-      weight,
-      astrologicalSign,
-      BirthPlace,
-      religion,
-      marriedStatus,
-      marryToOtherReligion,
-      full_address,
-      nationality,
-      isResidentOfIndia,
-      isHaveChildren,
-      numberOfChildren,
-      occupation,
-      isChildrenLivingWithYou,
-      isYouLegallySeparated,
-      separatedSince,
-    } = data.toObject();
     res.json({
       success: true,
-      data: {
-        userId,
-        dateOfBirth,
-        timeOfBirth,
-        height,
-        weight,
-        astrologicalSign,
-        BirthPlace,
-        religion,
-        marriedStatus,
-        marryToOtherReligion,
-        full_address,
-        nationality,
-        isResidentOfIndia,
-        isHaveChildren,
-        numberOfChildren,
-        occupation,
-        isChildrenLivingWithYou,
-        isYouLegallySeparated,
-        separatedSince,
-      },
+      data,
     });
   } catch (error: any) {
     if (error?.name === "CastError") {
@@ -296,44 +215,9 @@ export const getUserFamilyDetails = async (
         .json({ success: false, message: "Record not found" });
     }
 
-    const {
-      userId,
-      fatherName,
-      motherName,
-      fatherOccupation,
-      motherOccupation,
-      fatherNativePlace,
-      doYouHaveChildren,
-      grandFatherName,
-      grandMotherName,
-      naniName,
-      nanaName,
-      nanaNativePlace,
-      familyType,
-      haveSibling,
-      howManySiblings,
-      siblingDetails,
-    } = data.toObject();
     res.json({
       success: true,
-      data: {
-        userId,
-        fatherName,
-        motherName,
-        fatherOccupation,
-        motherOccupation,
-        fatherNativePlace,
-        doYouHaveChildren,
-        grandFatherName,
-        grandMotherName,
-        naniName,
-        nanaName,
-        nanaNativePlace,
-        familyType,
-        haveSibling,
-        howManySiblings,
-        siblingDetails,
-      },
+      data,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -357,44 +241,9 @@ export const addUserFamilyDetails = async (
       userId: authUser.id,
     });
 
-    const {
-      userId,
-      fatherName,
-      motherName,
-      fatherOccupation,
-      motherOccupation,
-      fatherNativePlace,
-      doYouHaveChildren,
-      grandFatherName,
-      grandMotherName,
-      naniName,
-      nanaName,
-      nanaNativePlace,
-      familyType,
-      haveSibling,
-      howManySiblings,
-      siblingDetails,
-    } = data.toObject();
     res.status(201).json({
       success: true,
-      data: {
-        userId,
-        fatherName,
-        motherName,
-        fatherOccupation,
-        motherOccupation,
-        fatherNativePlace,
-        doYouHaveChildren,
-        grandFatherName,
-        grandMotherName,
-        naniName,
-        nanaName,
-        nanaNativePlace,
-        familyType,
-        haveSibling,
-        howManySiblings,
-        siblingDetails,
-      },
+      data,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -490,12 +339,9 @@ export const getUserEducationDetails = async (
         .status(404)
         .json({ success: false, message: "Record not found" });
     }
-    const { educationDetails } = data.toObject();
     res.json({
       success: true,
-      data: {
-        educationDetails,
-      },
+      data,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -611,7 +457,11 @@ export const addUserHealthController = async (
         message: "Health data already exists for this user",
       });
     }
-    const health = await UserHealth.create({ ...req.body, userId: user.id });
+    const health = await UserHealth.create({
+      ...req.body,
+      userId: user.id,
+    });
+
     return res.status(201).json({ success: true, data: health });
   } catch (err: any) {
     return res
@@ -737,5 +587,104 @@ export const updateUserExpectations = async (
     return res
       .status(500)
       .json({ success: false, message: error.message || "Server error" });
+  }
+};
+
+export const getUserProfessionController = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const personal = await UserProfession.findOne({ userId: user.id })
+      .select("-_id -__v -createdAt -updatedAt -userId")
+      .lean();
+
+    if (!personal) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Personal data not found" });
+    }
+
+    return res.status(200).json({ success: true, data: personal });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+export const addUserProfessionController = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const personal = await UserProfession.findOne({ userId: user.id }).lean();
+
+    if (personal) {
+      return res.status(400).json({
+        success: false,
+        message: "Personal data already exists for this user",
+      });
+    }
+
+    const updatedPersonal = new UserProfession({
+      ...req.body,
+      userId: user.id,
+    });
+
+    await updatedPersonal.save();
+
+    return res.status(200).json({ success: true, data: updatedPersonal });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+export const updateUserProfessionController = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const personal = await UserProfession.findOneAndUpdate(
+      { userId: user.id },
+      req.body,
+      { runValidators: true }
+    ).lean();
+
+    if (!personal) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Personal data not found" });
+    }
+
+    return res.status(200).json({ success: true, data: personal });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
   }
 };

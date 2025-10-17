@@ -32,7 +32,9 @@ export const getUserPersonalByUserIdService = async (userId: string) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  return UserPersonal.findOne({ userId }).lean();
+  return UserPersonal.findOne({ userId })
+    .lean()
+    .select("-userId -createdAt -updatedAt -_id -__v");
 };
 
 export const updateUserPersonalService = async (
@@ -54,10 +56,9 @@ export const updateUserPersonalService = async (
   }
   return UserPersonal.findOneAndUpdate({ userId }, update, {
     new: true,
-    upsert: true,
     setDefaultsOnInsert: true,
     runValidators: true,
-  });
+  }).select("-userId -createdAt -updatedAt -_id -__v");
 };
 
 export const getUserFamilyDetailsService = async (userId: string) => {
@@ -67,7 +68,9 @@ export const getUserFamilyDetailsService = async (userId: string) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  return UserFamily.findOne({ userId: new Types.ObjectId(userId) });
+  return UserFamily.findOne({ userId: new Types.ObjectId(userId) })
+    .select("-_id -__v -userId -createdAt -updatedAt")
+    .lean();
 };
 
 export const addUserFamilyDetailsService = async (data: IUserFamily) => {
@@ -87,7 +90,9 @@ export const addUserFamilyDetailsService = async (data: IUserFamily) => {
     throw new Error("Family details already exist for this user");
   }
   const familyDetails = new UserFamily({ ...data, userId });
-  return familyDetails.save();
+  familyDetails.save();
+
+  return familyDetails;
 };
 
 export const updateUserFamilyDetailsService = async (
@@ -111,7 +116,7 @@ export const updateUserFamilyDetailsService = async (
       new: true,
       runValidators: true,
     }
-  );
+  ).select("-_id -__v -userId -createdAt -updatedAt");
   if (!updated) {
     throw new Error("Family details not found for this user");
   }
@@ -125,7 +130,9 @@ export const getUserEducationDetailsService = async (userId: string) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  return UserEducation.findOne({ userId }).lean();
+  return UserEducation.findOne({ userId })
+    .select("-_id -__v -userId -createdAt -updatedAt")
+    .lean();
 };
 
 export const addUserEducationDetailsService = async (
@@ -171,7 +178,7 @@ export const updateUserEducationDetailsService = async (
     { userId: new Types.ObjectId(userId) },
     data,
     { new: false, runValidators: true }
-  );
+  ).select("-userId -createdAt -updatedAt -_id -__v");
   if (!updated) {
     throw new Error("Education details not found for this user");
   }
@@ -248,7 +255,6 @@ export const updateUserExpectationDetailsService = async (
     { userId: new Types.ObjectId(userId) },
     data,
     {
-      new: true,
       runValidators: true,
     }
   );

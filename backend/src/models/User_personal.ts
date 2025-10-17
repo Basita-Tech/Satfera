@@ -23,6 +23,8 @@ export interface IUserPersonal extends Document {
   };
   nationality?: string;
   isResidentOfIndia?: boolean;
+  residingCountry?: string;
+  visaType?: string;
   isHaveChildren?: boolean;
   numberOfChildren?: number;
   occupation?: string;
@@ -55,6 +57,8 @@ const userPersonalSchema = new Schema(
     },
     nationality: { type: String },
     isResidentOfIndia: { type: Boolean },
+    residingCountry: { type: String },
+    visaType: { type: String },
     isHaveChildren: { type: Boolean },
     numberOfChildren: { type: Number },
     occupation: { type: String },

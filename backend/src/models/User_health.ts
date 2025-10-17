@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserEducation extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
-  iSAlcoholic?: boolean;
+  isAlcoholic?: boolean;
   isTobaccoUser?: boolean;
   isHaveTattoos?: boolean;
   isHaveHIV?: boolean;
@@ -19,34 +19,27 @@ const userHealthSchema = new Schema(
       required: true,
       unique: true,
     },
-    iSAlcoholic: {
+    isAlcoholic: {
       type: Boolean,
-      default: false,
     },
     isTobaccoUser: {
       type: Boolean,
-      default: false,
     },
     isHaveTattoos: {
       type: Boolean,
-      default: false,
     },
     isHaveHIV: {
       type: Boolean,
-      default: false,
     },
     isPostiviInTB: {
       type: Boolean,
-      default: false,
     },
     isHaveMedicalHistory: {
       type: Boolean,
-      default: false,
     },
     medicalHistoryDetails: {
       type: String,
       trim: true,
-      default: "",
     },
   },
   {

@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface IUserEducation extends Document {
+export interface IUserProfession extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
   EmploymentStatus?: string;
   Occupation?: string;
@@ -33,5 +33,5 @@ const userProfessionSchema = new Schema(
 );
 
 export const UserProfession =
-  mongoose.models.UserProfession ||
-  mongoose.model<IUserEducation>("UserProfession", userProfessionSchema);
+  (mongoose.models.UserProfession as mongoose.Model<IUserProfession>) ||
+  mongoose.model<IUserProfession>("UserProfession", userProfessionSchema);

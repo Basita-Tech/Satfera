@@ -163,27 +163,36 @@ export const CreateUserPersonalValidation = [
     .withMessage("timeOfBirth must be a string"),
 
   body("height")
-    .optional()
+    .notEmpty()
+    .withMessage("Height is required")
     .isFloat()
     .withMessage("Height must be a number")
     .toFloat(),
 
   body("weight")
-    .optional()
+    .notEmpty()
+    .withMessage("Weight is required")
     .isFloat()
     .withMessage("Weight must be a number")
     .toFloat(),
 
   body("astrologicalSign")
-    .optional()
+    .notEmpty()
+    .withMessage("astrologicalSign is required")
     .isString()
     .withMessage("astrologicalSign must be a string"),
+
   body("BirthPlace")
-    .optional()
+    .notEmpty()
+    .withMessage("BirthPlace is required")
     .isString()
     .withMessage("BirthPlace must be a string"),
 
-  body("dosh").optional().isString().withMessage("dosh must be a string"),
+  body("dosh")
+    .notEmpty()
+    .withMessage("dosh is required")
+    .isString()
+    .withMessage("dosh must be a string"),
 
   body("subCaste")
     .optional()
@@ -192,14 +201,26 @@ export const CreateUserPersonalValidation = [
 
   body("religion")
     .notEmpty()
+    .withMessage("Religion is required")
     .bail()
     .isString()
-    .withMessage("Religion is required"),
+    .withMessage("Religion must be a string"),
+
   body("marriedStatus")
     .notEmpty()
+    .withMessage("Marital status is required")
     .bail()
-    .isString()
-    .withMessage("Marital status is required"),
+    .isIn([
+      "Never Married",
+      "Divorced",
+      "Widowed",
+      "Separated",
+      "Awaiting Divorce",
+    ])
+    .withMessage(
+      "Marital status must be one of: Never Married, Divorced, Widowed, Separated, Awaiting Divorce"
+    ),
+
   body("marryToOtherReligion")
     .optional()
     .isBoolean()
@@ -209,60 +230,84 @@ export const CreateUserPersonalValidation = [
     .optional()
     .isObject()
     .withMessage("full_address must be an object"),
+
   body("full_address.street1")
     .optional()
     .isString()
     .withMessage("full_address.street1 must be a string"),
+
   body("full_address.street2")
     .optional()
     .isString()
     .withMessage("full_address.street2 must be a string"),
+
   body("full_address.city")
     .optional()
     .isString()
     .withMessage("full_address.city must be a string"),
+
   body("full_address.state")
     .optional()
     .isString()
     .withMessage("full_address.state must be a string"),
+
   body("full_address.zipCode")
     .optional()
     .isString()
     .withMessage("full_address.zipCode must be a string"),
+
   body("full_address.isYourHome")
     .optional()
     .isBoolean()
     .withMessage("full_address.isYourHome must be a boolean"),
 
   body("nationality")
-    .optional()
+    .notEmpty()
+    .withMessage("nationality is required")
     .isString()
     .withMessage("nationality must be a string"),
+
   body("isResidentOfIndia")
     .optional()
     .isBoolean()
     .withMessage("isResidentOfIndia must be a boolean"),
+
+  body("residingCountry")
+    .optional()
+    .isString()
+    .withMessage("residingCountry must be a string"),
+
+  body("visaType")
+    .optional()
+    .isString()
+    .withMessage("visaType must be a string"),
+
   body("isHaveChildren")
     .optional()
     .isBoolean()
     .withMessage("isHaveChildren must be a boolean"),
+
   body("numberOfChildren")
     .optional()
     .isInt()
     .withMessage("numberOfChildren must be an integer")
     .toInt(),
+
   body("occupation")
     .optional()
     .isString()
     .withMessage("occupation must be a string"),
+
   body("isChildrenLivingWithYou")
     .optional()
     .isBoolean()
     .withMessage("isChildrenLivingWithYou must be a boolean"),
+
   body("isYouLegallySeparated")
     .optional()
     .isBoolean()
     .withMessage("isYouLegallySeparated must be a boolean"),
+
   body("separatedSince")
     .optional()
     .isString()
@@ -389,10 +434,10 @@ export const UserEducationDetailsValidation = [
 ];
 
 export const UserHealthValidation = [
-  body("iSAlcoholic")
+  body("isAlcoholic")
     .optional()
     .isBoolean()
-    .withMessage("iSAlcoholic must be a boolean"),
+    .withMessage("isAlcoholic must be a boolean"),
   body("isTobaccoUser")
     .optional()
     .isBoolean()
@@ -468,4 +513,39 @@ export const validateUserExpectations = [
     .notEmpty()
     .withMessage("Living in country is required"),
   body("livingInState").notEmpty().withMessage("Living in state is required"),
+];
+
+export const UserProfessionValidation = [
+  body("userId")
+    .notEmpty()
+    .withMessage("User ID is required")
+    .bail()
+    .isString()
+    .withMessage("User ID must be a string"),
+  body("Occupation")
+    .bail()
+    .isString()
+    .withMessage("Occupation must be a string"),
+  body("AnnualIncome")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Annual income must be a positive number")
+    .toFloat(),
+  body("EmploymentStatus")
+    .optional()
+    .isIn([
+      "Private Sector",
+      "Government",
+      "self-employed",
+      "unemployed",
+      "student",
+      "business",
+    ])
+    .withMessage(
+      'EmploymentStatus must be one of: "Private Sector", "Government", "self-employed", "unemployed", "student", "business"'
+    ),
+  body("OrganizationName")
+    .optional()
+    .isString()
+    .withMessage("Organization Name must be a string"),
 ];

@@ -14,10 +14,14 @@ import {
   getUserExpectationsById,
   createUserExpectations,
   updateUserExpectations,
+  getUserProfessionController,
+  updateUserProfessionController,
+  addUserProfessionController,
 } from "../controllers/userPersonal";
 import {
   CreateUserPersonalValidation,
   UserHealthValidation,
+  UserProfessionValidation,
   validateUserExpectations,
 } from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
@@ -40,12 +44,7 @@ userPersonalRouter.put("/family", authenticate, updateUserPersonalController);
 
 userPersonalRouter.get("/education", authenticate, getUserEducationDetails);
 userPersonalRouter.post("/education", authenticate, createUserEducationDetails);
-userPersonalRouter.put(
-  "/education",
-  createUserEducationDetailsService,
-  authenticate,
-  updateUserEducationDetails
-);
+userPersonalRouter.put("/education", authenticate, updateUserEducationDetails);
 
 userPersonalRouter.get("/health", authenticate, getUserHealthController);
 
@@ -57,10 +56,28 @@ userPersonalRouter.post(
 );
 
 userPersonalRouter.put(
-  "/health  ",
+  "/health",
   authenticate,
   UserHealthValidation,
   updateUserHealthController
+);
+
+userPersonalRouter.get(
+  "/profession",
+  authenticate,
+  getUserProfessionController
+);
+userPersonalRouter.post(
+  "/profession",
+  authenticate,
+  UserProfessionValidation,
+  addUserProfessionController
+);
+userPersonalRouter.put(
+  "/profession",
+  authenticate,
+  UserProfessionValidation,
+  updateUserProfessionController
 );
 
 userPersonalRouter.get("/expectations", authenticate, getUserExpectationsById);
