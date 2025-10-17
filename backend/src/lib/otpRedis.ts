@@ -1,8 +1,8 @@
 import { redisClient } from "./redis";
 
-const OTP_ATTEMPT_LIMIT = 4;
-const OTP_RESEND_LIMIT = 3;
-const OTP_EXPIRY_SECONDS = 5 * 60;
+const OTP_ATTEMPT_LIMIT = 3;
+const OTP_RESEND_LIMIT = 5;
+const OTP_EXPIRY_SECONDS = 3 * 60;
 const ATTEMPT_EXPIRY_SECONDS = 24 * 60 * 60;
 
 function getOtpKey(email: string, context: "signup" | "forgot-password") {

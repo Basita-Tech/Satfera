@@ -38,7 +38,7 @@ const userSchema: Schema = new Schema(
       required: true,
       default: "myself",
     },
-    isEmailVerified: { type: Boolean, default: true },
+    isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     lastLoginAt: { type: Date },
