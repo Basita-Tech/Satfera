@@ -12,11 +12,15 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
   const { countryCode, phoneNumber } = req.body;
   try {
     if (!countryCode) {
-      res.status(400).json({ message: "Country code is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "Country code is required" });
       return;
     }
     if (!phoneNumber) {
-      res.status(400).json({ message: "Phone number is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "Phone number is required" });
       return;
     }
     const verification = await client.verify
@@ -26,9 +30,11 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
         channel: "sms",
       });
     console.log("Verification status:", verification.status);
-    res
-      .status(200)
-      .json({ message: "OTP sent successfully", data: verification });
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully",
+      data: verification,
+    });
   } catch (error) {
     console.error("Error sending OTP:", error);
     throw error;
@@ -39,17 +45,21 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
   const { countryCode, phoneNumber, code } = req.body;
   try {
     if (!countryCode) {
-      res.status(400).json({ message: "Country code is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "Country code is required" });
       return;
     }
 
     if (!phoneNumber) {
-      res.status(400).json({ message: "Phone number is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "Phone number is required" });
       return;
     }
 
     if (!code) {
-      res.status(400).json({ message: "OTP code is required" });
+      res.status(400).json({ success: false, message: "OTP code is required" });
       return;
     }
 
@@ -60,9 +70,11 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
         code: code,
       });
     console.log("Verification check status:", verificationCheck.status);
-    res
-      .status(200)
-      .json({ message: "OTP verified successfully", data: verificationCheck });
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully",
+      data: verificationCheck,
+    });
   } catch (error) {
     console.error("Error verifying OTP:", error);
     throw error;

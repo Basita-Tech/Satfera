@@ -8,10 +8,11 @@ export interface IUserExpectations extends Document {
   };
   maritalStatus: string;
   isConsumeAlcoholic: string;
-  educationLevel: string;
-  community: string[];
-  livingInCountry: string;
-  livingInState: string;
+  educationLevel: string[] | string | object;
+  community: string[] | string | object;
+  livingInCountry: string[] | string | object;
+  livingInState: string[] | string | object;
+  profession?: string[] | string | object;
 }
 
 const userExpectationsSchema = new Schema(
@@ -46,36 +47,27 @@ const userExpectationsSchema = new Schema(
       enum: ["yes", "no", "occasionally"],
     },
     educationLevel: {
-      type: String,
+      type: Schema.Types.Mixed,
       trim: true,
-      maxlength: 100,
-      enum: [
-        "High School",
-        "Bachelor's Degree",
-        "Graduate",
-        "Post Graduate",
-        "Doctorate",
-        "Professional",
-        "Other",
-      ],
     },
     community: {
-      type: [String],
+      type: Schema.Types.Mixed,
       required: true,
       trim: true,
-      maxlength: 100,
     },
     livingInCountry: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
       trim: true,
-      maxlength: 100,
     },
     livingInState: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
       trim: true,
-      maxlength: 100,
+    },
+    profession: {
+      type: Schema.Types.Mixed,
+      trim: true,
     },
   },
   {

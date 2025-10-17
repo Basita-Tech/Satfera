@@ -29,17 +29,24 @@ export const authenticate = async (
         : authHeader || req.cookies?.token;
 
     if (!token)
-      return res.status(401).json({ message: "Authentication required" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
 
     try {
       const decoded = verifyToken(token);
       if (!decoded?.id)
-        return res.status(401).json({ message: "Invalid token" });
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid token" });
 
       const user = await User.findById(decoded.id).select(
         "email role phoneNumber"
       );
-      if (!user) return res.status(401).json({ message: "User not found" });
+      if (!user)
+        return res
+          .status(401)
+          .json({ success: false, message: "User not found" });
 
       const emailFromToken = (decoded as any).email;
       const phoneFromToken = (decoded as any).phoneNumber;
@@ -53,14 +60,17 @@ export const authenticate = async (
     } catch (error) {
       return res
         .status(401)
-        .json({ message: (error as any)?.message || "Invalid token" });
+        .json({
+          success: false,
+          message: (error as any)?.message || "Invalid token",
+        });
     }
 
     return next();
   } catch (e: any) {
     return res
       .status(401)
-      .json({ message: e?.message || "Authentication failed" });
+      .json({ success: false, message: e?.message || "Authentication failed" });
   }
 };
 

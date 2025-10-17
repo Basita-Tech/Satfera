@@ -54,15 +54,18 @@ export class AuthController {
 
     try {
       if (!password || (!email && !phoneNumber)) {
-        return res
-          .status(400)
-          .json({ message: "Email or phone number and password are required" });
+        return res.status(400).json({
+          success: false,
+          message: "Email or phone number and password are required",
+        });
       }
 
       if (email && password) {
         const result = await authService.loginWithEmail(email, password);
         if (!result) {
-          return res.status(401).json({ message: "Invalid credentials" });
+          return res
+            .status(401)
+            .json({ success: false, message: "Invalid credentials" });
         }
         const userObj = result.user.toObject
           ? result.user.toObject()
@@ -88,7 +91,9 @@ export class AuthController {
       if (phoneNumber && password) {
         const result = await authService.loginWithPhone(phoneNumber, password);
         if (!result) {
-          return res.status(401).json({ message: "Invalid credentials" });
+          return res
+            .status(401)
+            .json({ success: false, message: "Invalid credentials" });
         }
         const userObj = result.user.toObject
           ? result.user.toObject()
@@ -114,7 +119,7 @@ export class AuthController {
       }
     } catch (error) {
       const message = (error as Error)?.message || "Login failed";
-      return res.status(500).json({ message });
+      return res.status(500).json({ success: false, message });
     }
   }
 
@@ -153,14 +158,13 @@ export class AuthController {
       const data = req.body;
 
       const createdUser = await authService.signup(data);
-
       return res.status(201).json({
         message: "Signup successful.",
         user: { email: createdUser.email, id: createdUser.id },
       });
     } catch (error: any) {
       const message = error?.message || "Signup failed";
-      return res.status(400).json({ message });
+      return res.status(400).json({ success: false, message });
     }
   }
 
@@ -169,10 +173,13 @@ export class AuthController {
 
     try {
       if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Email is required" });
       }
       if (type !== "signup" && type !== "forgot-password") {
         return res.status(400).json({
+          success: false,
           message: "Type must be either 'signup' or 'forgot-password'",
         });
       }
@@ -192,11 +199,12 @@ export class AuthController {
       await sendOtpEmail(email, otp, type);
 
       return res.status(201).json({
+        success: true,
         message: "OTP sent successfully.",
       });
     } catch (error) {
       const message = (error as any)?.message || "Failed to send OTP";
-      return res.status(500).json({ message });
+      return res.status(500).json({ success: false, message });
     }
   }
 
@@ -206,14 +214,14 @@ export class AuthController {
     try {
       if (type === "signup") {
         const message = await authService.verifySignupOtp(email, otp);
-        return res.status(200).json({ message });
+        return res.status(200).json({ success: true, message });
       } else if (type === "forgot-password") {
         const message = await authService.verifyForgotPasswordOtp(email, otp);
-        return res.status(200).json({ message });
+        return res.status(200).json({ success: true, message });
       }
     } catch (error) {
       const message = (error as any)?.message || "OTP verification failed";
-      return res.status(400).json({ message });
+      return res.status(400).json({ success: false, message });
     }
   }
 
@@ -221,19 +229,24 @@ export class AuthController {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     const resendCount = await getResendCount(email, "forgot-password");
 
     if (resendCount >= OTP_RESEND_LIMIT) {
       return res.status(429).json({
+        success: false,
         message: "Resend OTP limit reached for today. Try again tomorrow.",
       });
     }
@@ -246,7 +259,7 @@ export class AuthController {
 
     return res
       .status(200)
-      .json({ message: "OTP sent to email for password reset" });
+      .json({ success: true, message: "OTP sent to email for password reset" });
   }
 
   static async resetPassword(req: Request, res: Response) {
@@ -254,7 +267,9 @@ export class AuthController {
     const { newPassword } = req.body;
 
     if (!token) {
-      return res.status(400).json({ message: "Token is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Token is required" });
     }
 
     const decodedTokenValue = jwt.verify(
@@ -265,11 +280,15 @@ export class AuthController {
     const user = await User.findById(decodedTokenValue.id);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     if (!newPassword) {
-      return res.status(400).json({ message: "New password is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "New password is required" });
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
@@ -277,6 +296,8 @@ export class AuthController {
 
     await redisClient.del(`forgot-password-token:${user.email}`);
 
-    return res.status(200).json({ message: "Password reset successful" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Password reset successful" });
   }
 }

@@ -405,25 +405,21 @@ export const updateUserFamilyDetails = async (
   res: Response
 ) => {
   try {
-    const userIdFromParams = req.params.userId;
     const authUser = req.user;
-    if (!userIdFromParams) {
+
+    if (!authUser?.id) {
       return res
         .status(400)
-        .json({ success: false, message: "User ID is required in params" });
+        .json({ success: false, message: "User ID is required" });
     }
+
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
-    if (authUser.role !== "admin" && userIdFromParams !== authUser.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    const data = await updateUserFamilyDetailsService(
-      userIdFromParams,
-      req.body
-    );
+
+    const data = await updateUserFamilyDetailsService(authUser.id, req.body);
 
     const {
       userId,

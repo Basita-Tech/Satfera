@@ -15,10 +15,6 @@ export interface IUser extends Document {
   for_Profile?: "myself" | "son" | "daughter" | "brother" | "sister" | "friend";
   isEmailVerified?: boolean;
   isPhoneVerified?: boolean;
-  emailOtp?: string | undefined;
-  emailOtpExpires?: Date | undefined;
-  forgotPasswordOtp?: string | undefined;
-  forgotPasswordOtpExpires?: Date | undefined;
   createdAt: Date;
   lastLoginAt: Date;
 }
@@ -42,7 +38,7 @@ const userSchema: Schema = new Schema(
       required: true,
       default: "myself",
     },
-    isEmailVerified: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: true },
     isPhoneVerified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     lastLoginAt: { type: Date },
