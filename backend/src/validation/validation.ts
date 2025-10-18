@@ -509,10 +509,14 @@ export const validateUserExpectations = [
   body("community")
     .isArray({ min: 1 })
     .withMessage("Community must be a non-empty array of strings"),
+
   body("livingInCountry")
     .notEmpty()
     .withMessage("Living in country is required"),
-  body("livingInState").notEmpty().withMessage("Living in state is required"),
+
+  body("livingInState")
+    .isString()
+    .withMessage("Living in state must be a string"),
 ];
 
 export const UserProfessionValidation = [
