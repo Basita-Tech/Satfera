@@ -62,7 +62,6 @@ const userExpectationsSchema = new Schema(
     },
     livingInState: {
       type: Schema.Types.Mixed,
-      required: true,
       trim: true,
     },
     profession: {

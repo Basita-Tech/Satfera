@@ -10,7 +10,7 @@ import {
   getUserEducationDetailsService,
   updateUserEducationDetailsService,
   createUserEducationDetailsService,
-  getUserExectationDetailsService,
+  getUserExpectationDetailsService,
   addUserExpectationDetailsService,
   updateUserExpectationDetailsService,
 } from "../services/userPersonal";
@@ -271,44 +271,9 @@ export const updateUserFamilyDetails = async (
 
     const data = await updateUserFamilyDetailsService(authUser.id, req.body);
 
-    const {
-      userId,
-      fatherName,
-      motherName,
-      fatherOccupation,
-      motherOccupation,
-      fatherNativePlace,
-      doYouHaveChildren,
-      grandFatherName,
-      grandMotherName,
-      naniName,
-      nanaName,
-      nanaNativePlace,
-      familyType,
-      haveSibling,
-      howManySiblings,
-      siblingDetails,
-    } = data.toObject();
     res.json({
       success: true,
-      data: {
-        userId,
-        fatherName,
-        motherName,
-        fatherOccupation,
-        motherOccupation,
-        fatherNativePlace,
-        doYouHaveChildren,
-        grandFatherName,
-        grandMotherName,
-        naniName,
-        nanaName,
-        nanaNativePlace,
-        familyType,
-        haveSibling,
-        howManySiblings,
-        siblingDetails,
-      },
+      data,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -526,7 +491,7 @@ export const getUserExpectationsById = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const expectations = await getUserExectationDetailsService(userId);
+    const expectations = await getUserExpectationDetailsService(userId);
     if (!expectations) {
       return res
         .status(404)

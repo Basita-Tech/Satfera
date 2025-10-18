@@ -207,14 +207,16 @@ export const createUserEducationDetailsService = async (
   return userEducation.save();
 };
 
-export const getUserExectationDetailsService = async (userId: string) => {
+export const getUserExpectationDetailsService = async (userId: string) => {
   if (!userId) {
     throw new Error("userId is required");
   }
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  return UserExpectations.findOne({ userId }).lean();
+  return UserExpectations.findOne({ userId })
+    .select("-_id -__v -userId -createdAt -updatedAt")
+    .lean();
 };
 
 export const addUserExpectationDetailsService = async (
