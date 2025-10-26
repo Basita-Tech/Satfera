@@ -78,13 +78,12 @@ export class AuthController {
           isMobileLoginEnabled,
           ...publicUser
         } = userObj as any;
-        req.cookies = {
-          token: result.token,
+        res.cookie("token", result.token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           maxAge: 7 * 24 * 60 * 60 * 1000,
           sameSite: "strict",
-        };
+        });
         return res.status(200).json({ user: publicUser, token: result.token });
       }
 
@@ -108,13 +107,12 @@ export class AuthController {
           ...publicUser
         } = userObj as any;
 
-        req.cookies = {
-          token: result.token,
+        res.cookie("token", result.token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
           maxAge: 7 * 24 * 60 * 60 * 1000,
-        };
+        });
         return res.status(200).json({ user: publicUser, token: result.token });
       }
     } catch (error) {
@@ -272,10 +270,20 @@ export class AuthController {
         .json({ success: false, message: "Token is required" });
     }
 
-    const decodedTokenValue = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "secret"
-    ) as { id: string; hash: string; iat: number; exp: number };
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({
+        success: false,
+        message: "JWT_SECRET environment variable is required",
+      });
+    }
+
+    const decodedTokenValue = jwt.verify(token, secret) as {
+      id: string;
+      hash: string;
+      iat: number;
+      exp: number;
+    };
 
     const user = await User.findById(decodedTokenValue.id);
 

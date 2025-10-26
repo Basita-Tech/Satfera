@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface IUserEducation extends Document {
+export interface IUserHealth extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
   isAlcoholic?: boolean;
   isTobaccoUser?: boolean;
@@ -47,8 +47,6 @@ const userHealthSchema = new Schema(
   }
 );
 
-userHealthSchema.index({ userId: 1 }, { unique: true });
-
 export const UserHealth =
-  (mongoose.models.UserHealth as mongoose.Model<IUserEducation>) ||
-  mongoose.model<IUserEducation>("UserHealth", userHealthSchema);
+  (mongoose.models.UserHealth as mongoose.Model<IUserHealth>) ||
+  mongoose.model<IUserHealth>("UserHealth", userHealthSchema);

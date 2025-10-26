@@ -22,6 +22,7 @@ const userExpectationsSchema = new Schema(
       ref: "User",
       required: true,
       unique: true,
+      index: true,
     },
     age: {
       from: { type: Number, required: true, min: 18, max: 100 },

@@ -13,6 +13,7 @@
   "dependencies": {
     "@types/mongoose": "^5.11.96",
     "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
@@ -29,6 +30,7 @@
     "@types/node": "^24.7.1",
     "@types/nodemailer": "^7.0.2",
     "@types/twilio": "^3.19.2",
+    "@types/cors": "^2.8.19",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

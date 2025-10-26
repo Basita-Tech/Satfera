@@ -10,7 +10,12 @@ export interface IUserProfession extends Document {
 
 const userProfessionSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     EmploymentStatus: {
       type: String,
       trim: true,

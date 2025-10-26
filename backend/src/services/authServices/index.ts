@@ -37,13 +37,14 @@ export class AuthService {
         throw new Error("Invalid credentials");
       }
 
-      const token = jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_SECRET || "secret",
-        {
-          expiresIn: "7d",
-        }
-      );
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error("JWT_SECRET environment variable is required");
+      }
+
+      const token = jwt.sign({ id: user._id, email: user.email }, secret, {
+        expiresIn: "7d",
+      });
 
       return { user, token };
     } catch (error: any) {
@@ -77,9 +78,14 @@ export class AuthService {
         throw new Error("Invalid credentials");
       }
 
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error("JWT_SECRET environment variable is required");
+      }
+
       const token = jwt.sign(
         { id: user._id, phoneNumber: user.phoneNumber },
-        process.env.JWT_SECRET || "secret",
+        secret,
         {
           expiresIn: "7d",
         }
@@ -162,13 +168,14 @@ export class AuthService {
       10
     );
 
-    const token = jwt.sign(
-      { id: user._id, hash: randomHash },
-      process.env.JWT_SECRET || "secret",
-      {
-        expiresIn: "5m",
-      }
-    );
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+
+    const token = jwt.sign({ id: user._id, hash: randomHash }, secret, {
+      expiresIn: "5m",
+    });
 
     await redisClient.set(`forgot-password-token:${email}`, token, { EX: 300 });
     const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;

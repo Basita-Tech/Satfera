@@ -1,8 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { ConnectOptions } from "mongoose";
 import { EventEmitter } from "events";
-
-import dotenv from "dotenv";
-dotenv.config();
 
 class DatabaseConnection extends EventEmitter {
   private isConnected: boolean = false;
@@ -12,20 +9,22 @@ class DatabaseConnection extends EventEmitter {
   }
 
   public async connect(): Promise<void> {
-    if (this.isConnected) {
+    if (this.isConnected || mongoose.connection.readyState === 1) {
+      this.isConnected = true;
       return;
     }
 
     try {
       const mongoUrl =
-        process.env.MONGODB_URI || "mongodb://localhost:27017/basita";
+        process.env.MONGO_URI || "mongodb://localhost:27017/basita";
 
-      await mongoose.connect(mongoUrl, {
+      const options: ConnectOptions = {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
-        retryWrites: true as any,
-      } as any);
+      } as ConnectOptions;
+
+      await mongoose.connect(mongoUrl, options);
 
       this.isConnected = true;
 
@@ -33,7 +32,7 @@ class DatabaseConnection extends EventEmitter {
       console.log(`📍 Database: ${mongoose.connection.name}`);
 
       mongoose.connection.on("error", (error: any) => {
-        console.error("❌ MongoDB connection error:", error);
+        console.error("❌ MongoDB connection error:", error?.message || error);
         this.emit("error", error);
       });
 
@@ -42,19 +41,14 @@ class DatabaseConnection extends EventEmitter {
         this.isConnected = false;
         this.emit("disconnected");
       });
-
-      process.on("SIGINT", async () => {
-        await this.disconnect();
-        process.exit(0);
-      });
-    } catch (error) {
-      console.error("❌ MongoDB connection failed:", error);
-      throw error;
+    } catch (error: any) {
+      console.error("❌ MongoDB connection failed:", error?.message || error);
+      throw new Error(error?.message || "MongoDB connection failed");
     }
   }
 
   public async disconnect(): Promise<void> {
-    if (!this.isConnected) {
+    if (!this.isConnected && mongoose.connection.readyState !== 1) {
       return;
     }
 
@@ -63,9 +57,12 @@ class DatabaseConnection extends EventEmitter {
       this.isConnected = false;
       console.log("🔌 MongoDB disconnected gracefully");
       this.emit("disconnected");
-    } catch (error) {
-      console.error("❌ Error disconnecting from MongoDB:", error);
-      throw error;
+    } catch (error: any) {
+      console.error(
+        "❌ Error disconnecting from MongoDB:",
+        error?.message || error
+      );
+      throw new Error(error?.message || "Error disconnecting from MongoDB");
     }
   }
 
@@ -79,4 +76,14 @@ class DatabaseConnection extends EventEmitter {
 }
 
 export const db = new DatabaseConnection();
+
+if (typeof process !== "undefined" && process && process.once) {
+  process.once("SIGINT", async () => {
+    try {
+      await db.disconnect();
+    } catch (e) {}
+    process.exit(0);
+  });
+}
+
 export default mongoose;

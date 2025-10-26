@@ -170,7 +170,7 @@ export const updateUserPersonalController = async (
     }
 
     const body = req.body ?? {};
-    const data = await updateUserFamilyDetailsService(authUser.id, body);
+    const data = await updateUserPersonalService(authUser.id, body);
 
     res.json({
       success: true,

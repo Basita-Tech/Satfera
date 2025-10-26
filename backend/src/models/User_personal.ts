@@ -35,7 +35,12 @@ export interface IUserPersonal extends Document {
 
 const userPersonalSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     timeOfBirth: { type: String },
     height: { type: Number },
     weight: { type: Number },

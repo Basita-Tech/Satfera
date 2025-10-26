@@ -35,9 +35,14 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
       message: "OTP sent successfully",
       data: verification,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending OTP:", error);
-    throw error;
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error?.message || "Failed to send OTP",
+      });
   }
 }
 
@@ -75,9 +80,14 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
       message: "OTP verified successfully",
       data: verificationCheck,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error verifying OTP:", error);
-    throw error;
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error?.message || "Failed to verify OTP",
+      });
   }
 }
 
