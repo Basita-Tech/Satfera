@@ -1,12 +1,13 @@
-import express from "express";
 import dotenv from "dotenv";
+
+dotenv.config();
+
+import express from "express";
 import cors from "cors";
 import { db } from "./config/mongo";
 import type { Request, Response, NextFunction } from "express";
 import authRouter from "./routes/authRouter";
 import userPersonalRouter from "./routes/userPersonal";
-
-dotenv.config();
 
 const app = express();
 
