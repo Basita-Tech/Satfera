@@ -40,68 +40,6 @@ export const SignupValidation = [
       "for_Profile must be one of: myself, son, daughter, brother, sister, friend"
     ),
 
-  body("firstName")
-    .notEmpty()
-    .withMessage("First name is required")
-    .bail()
-    .isString()
-    .withMessage("First name must be a string"),
-  body("lastName")
-    .notEmpty()
-    .withMessage("Last name is required")
-    .bail()
-    .isString()
-    .withMessage("Last name must be a string"),
-  body("middleName").optional().isString(),
-
-  body("phoneNumber")
-    .notEmpty()
-    .withMessage("Phone number is required")
-    .bail()
-    .custom((value) => {
-      const e164 = /^\+[1-9]\d{7,14}$/;
-      const validator = require("validator");
-      if (e164.test(value) || validator.isMobilePhone(value, "any")) {
-        return true;
-      }
-      throw new Error("Invalid phone number format");
-    }),
-
-  body("email").notEmpty().bail().isEmail().withMessage("Invalid email format"),
-
-  body("isEmailLoginEnabled")
-    .optional()
-    .isBoolean()
-    .withMessage("isEmailLoginEnabled must be a boolean"),
-  body("isMobileLoginEnabled")
-    .optional()
-    .isBoolean()
-    .withMessage("isMobileLoginEnabled must be a boolean"),
-
-  body("password")
-    .notEmpty()
-    .withMessage("Password is required")
-    .bail()
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long")
-    .matches(/[A-Z]/)
-    .withMessage("Password must contain at least one uppercase letter")
-    .matches(/[a-z]/)
-    .withMessage("Password must contain at least one lowercase letter")
-    .matches(/[0-9]/)
-    .withMessage("Password must contain at least one number")
-    .matches(/[^A-Za-z0-9]/)
-    .withMessage("Password must contain at least one special character"),
-];
-
-export const CreateUserPersonalValidation = [
-  body("userId")
-    .notEmpty()
-    .withMessage("User ID is required")
-    .bail()
-    .isString()
-    .withMessage("User ID must be a string"),
-
   body("dateOfBirth")
     .notEmpty()
     .withMessage("date Of Birth is required")
@@ -157,6 +95,61 @@ export const CreateUserPersonalValidation = [
       return true;
     }),
 
+  body("firstName")
+    .notEmpty()
+    .withMessage("First name is required")
+    .bail()
+    .isString()
+    .withMessage("First name must be a string"),
+  body("lastName")
+    .notEmpty()
+    .withMessage("Last name is required")
+    .bail()
+    .isString()
+    .withMessage("Last name must be a string"),
+  body("middleName").optional().isString(),
+
+  body("phoneNumber")
+    .notEmpty()
+    .withMessage("Phone number is required")
+    .bail()
+    .custom((value) => {
+      const e164 = /^\+[1-9]\d{7,14}$/;
+      const validator = require("validator");
+      if (e164.test(value) || validator.isMobilePhone(value, "any")) {
+        return true;
+      }
+      throw new Error("Invalid phone number format");
+    }),
+
+  body("email").notEmpty().bail().isEmail().withMessage("Invalid email format"),
+
+  body("isEmailLoginEnabled")
+    .optional()
+    .isBoolean()
+    .withMessage("isEmailLoginEnabled must be a boolean"),
+  body("isMobileLoginEnabled")
+    .optional()
+    .isBoolean()
+    .withMessage("isMobileLoginEnabled must be a boolean"),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .bail()
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter")
+    .matches(/[a-z]/)
+    .withMessage("Password must contain at least one lowercase letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must contain at least one number")
+    .matches(/[^A-Za-z0-9]/)
+    .withMessage("Password must contain at least one special character"),
+];
+
+export const CreateUserPersonalValidation = [
   body("timeOfBirth")
     .optional()
     .isString()
@@ -182,11 +175,11 @@ export const CreateUserPersonalValidation = [
     .isString()
     .withMessage("astrologicalSign must be a string"),
 
-  body("BirthPlace")
+  body("birthPlace")
     .notEmpty()
-    .withMessage("BirthPlace is required")
+    .withMessage("birthPlace is required")
     .isString()
-    .withMessage("BirthPlace must be a string"),
+    .withMessage("birthPlace must be a string"),
 
   body("dosh")
     .notEmpty()

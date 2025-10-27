@@ -29,10 +29,8 @@ export const createUserPersonalController = async (
       const pretty = (param: string | undefined) => {
         if (!param) return "body";
         const map: Record<string, string> = {
-          dateOfBirth: "date Of Birth",
           timeOfBirth: "time Of Birth",
           full_address: "full address",
-          userId: "User ID",
         };
         return map[param] || param;
       };
@@ -63,14 +61,8 @@ export const createUserPersonalController = async (
     }
 
     const body = { ...req.body };
-    if (body.userId !== user.id && user.role !== "admin") {
-      res
-        .status(403)
-        .json({ success: false, message: "Cannot create for another user" });
-      return;
-    }
 
-    const existing = await UserPersonal.findOne({ userId: body.userId });
+    const existing = await UserPersonal.findOne({ userId: user.id });
     if (existing) {
       res.status(409).json({
         success: false,
@@ -79,7 +71,7 @@ export const createUserPersonalController = async (
       return;
     }
 
-    const result = await createUserPersonalService(body);
+    const result = await createUserPersonalService(body, user.id);
 
     const createdDoc = (result as any).document || result;
     res.status(201).json({ success: true, data: createdDoc });

@@ -2,12 +2,12 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserPersonal extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
-  dateOfBirth?: Date;
   timeOfBirth?: string;
   height?: number;
   weight?: number;
   astrologicalSign?: string;
-  BirthPlace?: string;
+  birthPlace?: string;
+  birthState?: string;
   religion: string;
   marriedStatus: string;
   dosh?: string;
@@ -45,13 +45,13 @@ const userPersonalSchema = new Schema(
     height: { type: Number },
     weight: { type: Number },
     astrologicalSign: { type: String },
-    BirthPlace: { type: String },
+    birthPlace: { type: String },
+    birthState: { type: String },
     religion: { type: String, required: true },
     subCaste: { type: String },
     dosh: { type: String },
     marriedStatus: { type: String, required: true },
     marryToOtherReligion: { type: Boolean },
-    dateOfBirth: { type: Date, required: true },
     full_address: {
       street1: { type: String },
       street2: { type: String },

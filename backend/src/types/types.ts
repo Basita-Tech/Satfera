@@ -31,7 +31,7 @@ export type CreateUserPersonalInput = {
   height?: number;
   weight?: number;
   astrologicalSign: string;
-  BirthPlace?: string;
+  birthPlace?: string;
   religion: string;
   marriedStatus: string;
   marryToOtherReligion?: boolean;

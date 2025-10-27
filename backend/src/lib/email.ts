@@ -2,7 +2,6 @@ import nodemailer from "nodemailer";
 import { buildOtpHtml, buildResetPasswordHtml } from "./email-templates";
 
 const transporter = nodemailer.createTransport({
-  service: process.env.SMTP_SERVICE || undefined,
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 465,
   secure: process.env.SMTP_SECURE === "true",
@@ -54,8 +53,7 @@ export async function sendOtpEmail(
       ? "Your Satfera Signup OTP"
       : "Your Satfera Password Reset OTP";
 
-  const main = await sendMail({ to, subject, html, text });
-  return main;
+  return sendMail({ to, subject, html, text });
 }
 
 export async function sendResetPasswordEmail(to: string, resetLink: string) {
@@ -69,6 +67,5 @@ export async function sendResetPasswordEmail(to: string, resetLink: string) {
     options?.logoUrl
   );
   const subject = "Reset Your Satfera Password";
-  const main = await sendMail({ to, subject, html, text });
-  return main;
+  return sendMail({ to, subject, html, text });
 }

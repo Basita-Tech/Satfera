@@ -9,6 +9,7 @@ import {
 } from "../../lib/otpRedis";
 import { redisClient } from "../../lib/redis";
 import { sendResetPasswordEmail } from "../../lib/email";
+import { parseDDMMYYYYToDate } from "../../lib/lib";
 
 export class AuthService {
   async loginWithEmail(email: string, password: string) {
@@ -121,6 +122,12 @@ export class AuthService {
 
       if (byPhone) {
         throw new Error("Phone number already in use");
+      }
+
+      const dob = parseDDMMYYYYToDate((data as any).dateOfBirth as string);
+
+      if (dob) {
+        (data as any).dateOfBirth = dob;
       }
 
       const hashedPassword = await bcrypt.hash(data.password, 10);

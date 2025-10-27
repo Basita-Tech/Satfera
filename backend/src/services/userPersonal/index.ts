@@ -2,26 +2,18 @@ import { Types } from "mongoose";
 import { UserPersonal } from "../../models/User_personal";
 import { IUserFamily, UserFamily } from "../../models/User_family";
 import { CreateUserPersonalInput } from "../../types/types";
-import { parseDDMMYYYYToDate } from "../../lib/lib";
 import { IUserEducation, UserEducation } from "../../models/User_educations";
 import {
   IUserExpectations,
   UserExpectations,
 } from "../../models/User_expectations";
+import { User } from "../../models/User";
 
 export const createUserPersonalService = async (
-  data: CreateUserPersonalInput
+  data: CreateUserPersonalInput,
+  userId: any
 ) => {
-  const userId = new Types.ObjectId(data.userId);
-
-  const dob = parseDDMMYYYYToDate((data as any).dateOfBirth as string);
-  const payload: any = {
-    ...data,
-    userId: userId,
-  };
-  if (dob) payload.dateOfBirth = dob;
-
-  const userPersonal = await UserPersonal.create(payload);
+  const userPersonal = await UserPersonal.create({ ...data, userId });
   return { created: true, document: userPersonal } as const;
 };
 
@@ -32,9 +24,18 @@ export const getUserPersonalByUserIdService = async (userId: string) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
-  return UserPersonal.findOne({ userId })
+
+  const user = await User.findById(userId)
+    .select("firstName middleName lastName dateOfBirth")
+    .lean();
+
+  const userPersonal = await UserPersonal.findOne({ userId })
     .lean()
     .select("-userId -createdAt -updatedAt -_id -__v");
+
+  const result = { ...(user || {}), ...(userPersonal || {}) };
+
+  return result;
 };
 
 export const updateUserPersonalService = async (
@@ -42,11 +43,6 @@ export const updateUserPersonalService = async (
   data: Partial<CreateUserPersonalInput>
 ) => {
   const update: any = { ...data };
-  if (data && (data as any).dateOfBirth) {
-    const dob = parseDDMMYYYYToDate((data as any).dateOfBirth as string);
-    if (dob) update.dateOfBirth = dob;
-    else delete update.dateOfBirth;
-  }
 
   if (!userId) {
     throw new Error("userId is required");

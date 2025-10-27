@@ -157,8 +157,9 @@ export class AuthController {
 
       const createdUser = await authService.signup(data);
       return res.status(201).json({
-        message: "Signup successful.",
-        user: { email: createdUser.email, id: createdUser.id },
+        success: true,
+        message:
+          "Signup successful. Please Verify your email and phone number to login.",
       });
     } catch (error: any) {
       const message = error?.message || "Signup failed";
@@ -185,7 +186,8 @@ export class AuthController {
       const resendCount = await getResendCount(email, type);
       if (resendCount >= OTP_RESEND_LIMIT) {
         return res.status(429).json({
-          message: "Resend OTP limit reached for today. Try again tomorrow.",
+          success: false,
+          message: "OTP limit reached for today. Try again tomorrow.",
         });
       }
 

@@ -1,6 +1,7 @@
 import { Twilio } from "twilio";
 import { AuthenticatedRequest } from "../types/types";
 import { Response } from "express";
+import { User } from "../models/User";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID || "";
 const authToken = process.env.TWILIO_AUTH_TOKEN || "";
@@ -29,7 +30,7 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
         to: `${countryCode}${phoneNumber}`,
         channel: "sms",
       });
-    console.log("Verification status:", verification.status);
+      
     res.status(200).json({
       success: true,
       message: "OTP sent successfully",
@@ -37,12 +38,16 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error: any) {
     console.error("Error sending OTP:", error);
-    return res
-      .status(500)
-      .json({
+    if (error.code === 60203) {
+      return res.status(400).json({
         success: false,
-        message: error?.message || "Failed to send OTP",
+        message: "Too many requests. Please try again later.",
       });
+    }
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to send OTP",
+    });
   }
 }
 
@@ -67,6 +72,13 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
       res.status(400).json({ success: false, message: "OTP code is required" });
       return;
     }
+    const mobileNumber = `${countryCode}${phoneNumber}`;
+    const user = await User.findOne({ phoneNumber: mobileNumber });
+
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
 
     const verificationCheck = await client.verify
       .services(verifyServiceSid)
@@ -74,20 +86,37 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
         to: `${countryCode}${phoneNumber}`,
         code: code,
       });
-    console.log("Verification check status:", verificationCheck.status);
+
+    if (user.isPhoneVerified) {
+      return res.status(200).json({
+        success: true,
+        message: "Phone number is already verified",
+        data: verificationCheck,
+      });
+    }
+
+    if (verificationCheck.status === "approved" && !user.isPhoneVerified) {
+      user.isPhoneVerified = true;
+      await user.save();
+    }
+
+    if (verificationCheck.status === "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP code",
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "OTP verified successfully",
-      data: verificationCheck,
     });
   } catch (error: any) {
     console.error("Error verifying OTP:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: error?.message || "Failed to verify OTP",
-      });
+    return res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to verify OTP",
+    });
   }
 }
 
