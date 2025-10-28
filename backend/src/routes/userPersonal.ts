@@ -25,7 +25,6 @@ import {
   validateUserExpectations,
 } from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
-import { createUserEducationDetailsService } from "../services/userPersonal";
 
 const userPersonalRouter = Router();
 

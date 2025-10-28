@@ -26,6 +26,7 @@ export interface IUserFamily extends Document {
         | "Younger Brother"
         | "Elder Sister"
         | "Younger Sister";
+      maritalStatus?: string;
     }
   ];
 }
@@ -126,6 +127,11 @@ const userFamilySchema = new Schema(
             "Elder Sister",
             "Younger Sister",
           ],
+        },
+        maritalStatus: {
+          type: String,
+          trim: true,
+          enum: ["Married", "Unmarried"],
         },
       },
     ],
