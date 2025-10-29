@@ -535,11 +535,6 @@ export const UserProfessionValidation = [
     .bail()
     .isString()
     .withMessage("Occupation must be a string"),
-  body("AnnualIncome")
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage("Annual income must be a positive number")
-    .toFloat(),
   body("EmploymentStatus")
     .optional()
     .isIn([
