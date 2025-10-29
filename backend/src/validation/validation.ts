@@ -472,6 +472,8 @@ export const validateUserExpectations = [
   body("maritalStatus")
     .notEmpty()
     .withMessage("Marital status is required")
+    .isArray({ min: 1 })
+    .withMessage("Marital status must be a non-empty array")
     .isIn([
       "Never Married",
       "Divorced",
@@ -510,6 +512,16 @@ export const validateUserExpectations = [
   body("livingInState")
     .isString()
     .withMessage("Living in state must be a string"),
+  body("profession")
+    .notEmpty()
+    .withMessage("Profession is required")
+    .isArray({ min: 1 })
+    .withMessage("Profession must be a non-empty array of strings"),
+  body("diet")
+    .notEmpty()
+    .withMessage("Diet is required")
+    .isArray({ min: 1 })
+    .withMessage("Diet must be a non-empty array of strings"),
 ];
 
 export const UserProfessionValidation = [
