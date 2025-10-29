@@ -13,6 +13,7 @@ export interface IUserExpectations extends Document {
   livingInCountry: string[] | string | object;
   livingInState: string[] | string | object;
   profession?: string[] | string | object;
+  diet?: string[] | string | object;
 }
 
 const userExpectationsSchema = new Schema(
@@ -68,6 +69,9 @@ const userExpectationsSchema = new Schema(
     profession: {
       type: Schema.Types.Mixed,
       trim: true,
+    },
+    diet: {
+      type: Schema.Types.Mixed,
     },
   },
   {

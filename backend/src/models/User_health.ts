@@ -9,6 +9,12 @@ export interface IUserHealth extends Document {
   isPostiviInTB?: boolean;
   isHaveMedicalHistory?: boolean;
   medicalHistoryDetails?: string;
+  diet?:
+    | "vegetarian"
+    | "non-vegetarian"
+    | "eggetarian"
+    | "jain"
+    | "swaminarayan";
 }
 
 const userHealthSchema = new Schema(
@@ -40,6 +46,16 @@ const userHealthSchema = new Schema(
     medicalHistoryDetails: {
       type: String,
       trim: true,
+    },
+    diet: {
+      type: String,
+      enum: [
+        "vegetarian",
+        "non-vegetarian",
+        "eggetarian",
+        "jain",
+        "swaminarayan",
+      ],
     },
   },
   {
