@@ -17,6 +17,9 @@ import {
   getUserProfessionController,
   updateUserProfessionController,
   addUserProfessionController,
+  getUserOnboardingStatus,
+  updateUserOnboardingStatus,
+  updateUserFamilyDetails,
 } from "../controllers/userPersonal";
 import {
   CreateUserPersonalValidation,
@@ -39,7 +42,7 @@ userPersonalRouter.put("/", authenticate, updateUserPersonalController);
 
 userPersonalRouter.post("/family", authenticate, addUserFamilyDetails);
 userPersonalRouter.get("/family", authenticate, getUserFamilyDetails);
-userPersonalRouter.put("/family", authenticate, updateUserPersonalController);
+userPersonalRouter.put("/family", authenticate, updateUserFamilyDetails);
 
 userPersonalRouter.get("/education", authenticate, getUserEducationDetails);
 userPersonalRouter.post("/education", authenticate, createUserEducationDetails);
@@ -89,5 +92,8 @@ userPersonalRouter.post(
 );
 
 userPersonalRouter.put("/expectations/", authenticate, updateUserExpectations);
+
+userPersonalRouter.get("/onboarding-status", authenticate, getUserOnboardingStatus);
+userPersonalRouter.put("/onboarding-status", authenticate, updateUserOnboardingStatus);
 
 export default userPersonalRouter;

@@ -9,15 +9,30 @@ import {
   updateUserFamilyDetailsService,
   getUserEducationDetailsService,
   updateUserEducationDetailsService,
-  createUserEducationDetailsService,
   getUserExpectationDetailsService,
   addUserExpectationDetailsService,
   updateUserExpectationDetailsService,
+  getUserOnboardingStatusService,
+  updateUserBoardingStatusService,
+  addUserEducationDetailsService,
 } from "../services/userPersonal";
 import { AuthenticatedRequest } from "../types/types";
 import { UserPersonal } from "../models/User_personal";
 import { UserHealth } from "../models/User_health";
 import { UserProfession } from "../models/User_professions";
+
+const handleCastError = (res: Response, error: any) => {
+  if (error?.name === "CastError") {
+    const field = (error as any).path || "value";
+    return res.status(400).json({
+      success: false,
+      message: `${field} must be a valid ${((error as any).kind || "value")
+        .toString()
+        .toLowerCase()}`,
+    });
+  }
+  return null;
+};
 
 export const createUserPersonalController = async (
   req: AuthenticatedRequest,
@@ -51,41 +66,32 @@ export const createUserPersonalController = async (
         })),
       });
     }
-    const user = req.user;
 
+    const user = req.user;
     if (!user) {
-      res
+      return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
-      return;
     }
 
     const body = { ...req.body };
 
-    const existing = await UserPersonal.findOne({ userId: user.id });
+    const existing = await UserPersonal.findOne({ userId: user.id }).lean();
     if (existing) {
-      res.status(409).json({
+      return res.status(409).json({
         success: false,
         message: "User personal details already exist",
       });
-      return;
     }
 
     const result = await createUserPersonalService(body, user.id);
-
     const createdDoc = (result as any).document || result;
-    res.status(201).json({ success: true, data: createdDoc });
+
+    return res.status(201).json({ success: true, data: createdDoc });
   } catch (error: any) {
-    if (error?.name === "CastError") {
-      const field = (error as any).path || "value";
-      return res.status(400).json({
-        success: false,
-        message: `${field} must be a valid ${((error as any).kind || "value")
-          .toString()
-          .toLowerCase()}`,
-      });
-    }
-    res.status(500).json({ success: false, message: error.message });
+    const castResp = handleCastError(res, error);
+    if (castResp) return castResp;
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -111,12 +117,12 @@ export const getUserPersonalController = async (
         .json({ success: false, message: "User personal details not found" });
     }
 
-    res.json({
+    return res.status(200).json({
       success: true,
       data,
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -143,8 +149,8 @@ export const updateUserPersonalController = async (
         })),
       });
     }
-    const authUser = req.user;
 
+    const authUser = req.user;
     if (!authUser) {
       return res
         .status(401)
@@ -153,7 +159,7 @@ export const updateUserPersonalController = async (
 
     const canUserDetailsExist = await UserPersonal.findOne({
       userId: authUser.id,
-    });
+    }).lean();
 
     if (!canUserDetailsExist) {
       return res
@@ -164,21 +170,16 @@ export const updateUserPersonalController = async (
     const body = req.body ?? {};
     const data = await updateUserPersonalService(authUser.id, body);
 
-    res.json({
+    const updated = (data as any).document || data;
+
+    return res.status(200).json({
       success: true,
-      data,
+      data: updated,
     });
   } catch (error: any) {
-    if (error?.name === "CastError") {
-      const field = (error as any).path || "value";
-      return res.status(400).json({
-        success: false,
-        message: `${field} must be a valid ${((error as any).kind || "value")
-          .toString()
-          .toLowerCase()}`,
-      });
-    }
-    res.status(500).json({ success: false, message: error.message });
+    const castResp = handleCastError(res, error);
+    if (castResp) return castResp;
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -188,16 +189,17 @@ export const getUserFamilyDetails = async (
 ) => {
   try {
     const authUser = req.user;
-    if (!authUser?.id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
+
+    // if (!authUser?.id) {
+    //   return res
+    //     .status(400)
+    //     .json({ success: false, message: "User ID is required" });
+    // }
 
     const data = await getUserFamilyDetailsService(authUser.id);
 
@@ -207,12 +209,12 @@ export const getUserFamilyDetails = async (
         .json({ success: false, message: "Record not found" });
     }
 
-    res.json({
+    return res.status(200).json({
       success: true,
       data,
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -222,7 +224,7 @@ export const addUserFamilyDetails = async (
 ) => {
   try {
     const authUser = req.user;
-    if (!authUser?.id) {
+    if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
@@ -238,7 +240,7 @@ export const addUserFamilyDetails = async (
       data,
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -248,13 +250,6 @@ export const updateUserFamilyDetails = async (
 ) => {
   try {
     const authUser = req.user;
-
-    if (!authUser?.id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
-
     if (!authUser) {
       return res
         .status(401)
@@ -263,12 +258,18 @@ export const updateUserFamilyDetails = async (
 
     const data = await updateUserFamilyDetailsService(authUser.id, req.body);
 
-    res.json({
+    if (!data) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Family details not found" });
+    }
+
+    return res.status(200).json({
       success: true,
       data,
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -278,15 +279,16 @@ export const getUserEducationDetails = async (
 ) => {
   try {
     const authUser = req.user;
-    if (!authUser?.id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
+    }
+
+    if (!authUser?.id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
     const data = await getUserEducationDetailsService(authUser.id);
@@ -296,12 +298,12 @@ export const getUserEducationDetails = async (
         .status(404)
         .json({ success: false, message: "Record not found" });
     }
-    res.json({
+    return res.status(200).json({
       success: true,
       data,
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -311,24 +313,25 @@ export const createUserEducationDetails = async (
 ) => {
   try {
     const authUser = req.user;
-    if (!authUser?.id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
     if (!authUser) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
 
-    const data = await createUserEducationDetailsService({
+    if (!authUser?.id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    const data = await addUserEducationDetailsService({
       ...req.body,
       userId: authUser.id,
     });
-    res.status(201).json({ success: true, data });
+    return res.status(201).json({ success: true, data });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -344,11 +347,17 @@ export const updateUserEducationDetails = async (
         .json({ success: false, message: "User ID is required" });
     }
 
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
     const data = await updateUserEducationDetailsService(authUser.id, req.body);
 
-    res.json({ success: true, data });
+    return res.status(200).json({ success: true, data });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -358,7 +367,6 @@ export const getUserHealthController = async (
 ) => {
   try {
     const user = req.user;
-
     if (!user) {
       return res
         .status(401)
@@ -399,7 +407,6 @@ export const addUserHealthController = async (
       });
     }
     const user = req.user;
-
     if (!user) {
       return res
         .status(401)
@@ -444,7 +451,6 @@ export const updateUserHealthController = async (
       });
     }
     const user = req.user;
-
     if (!user) {
       return res
         .status(401)
@@ -455,9 +461,11 @@ export const updateUserHealthController = async (
       { userId: user.id },
       req.body,
       {
+        new: true,
         runValidators: true,
       }
     ).lean();
+
     if (!health) {
       return res
         .status(404)
@@ -465,6 +473,8 @@ export const updateUserHealthController = async (
     }
     return res.status(200).json({ success: true, data: health });
   } catch (err: any) {
+    const castResp = handleCastError(res, err);
+    if (castResp) return castResp;
     return res
       .status(500)
       .json({ success: false, message: err.message || "Server error" });
@@ -559,17 +569,17 @@ export const getUserProfessionController = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const personal = await UserProfession.findOne({ userId: user.id })
+    const profession = await UserProfession.findOne({ userId: user.id })
       .select("-_id -__v -createdAt -updatedAt -userId")
       .lean();
 
-    if (!personal) {
+    if (!profession) {
       return res
         .status(404)
-        .json({ success: false, message: "Personal data not found" });
+        .json({ success: false, message: "Profession data not found" });
     }
 
-    return res.status(200).json({ success: true, data: personal });
+    return res.status(200).json({ success: true, data: profession });
   } catch (err: any) {
     return res
       .status(500)
@@ -590,23 +600,23 @@ export const addUserProfessionController = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const personal = await UserProfession.findOne({ userId: user.id }).lean();
+    const existing = await UserProfession.findOne({ userId: user.id }).lean();
 
-    if (personal) {
-      return res.status(400).json({
+    if (existing) {
+      return res.status(409).json({
         success: false,
-        message: "Personal data already exists for this user",
+        message: "Profession data already exists for this user",
       });
     }
 
-    const updatedPersonal = new UserProfession({
+    const newProfession = new UserProfession({
       ...req.body,
       userId: user.id,
     });
 
-    await updatedPersonal.save();
+    await newProfession.save();
 
-    return res.status(200).json({ success: true, data: updatedPersonal });
+    return res.status(201).json({ success: true, data: newProfession });
   } catch (err: any) {
     return res
       .status(500)
@@ -626,22 +636,127 @@ export const updateUserProfessionController = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const personal = await UserProfession.findOneAndUpdate(
+    const updated = await UserProfession.findOneAndUpdate(
       { userId: user.id },
       req.body,
-      { runValidators: true }
+      { new: true, runValidators: true }
     ).lean();
 
-    if (!personal) {
+    if (!updated) {
       return res
         .status(404)
-        .json({ success: false, message: "Personal data not found" });
+        .json({ success: false, message: "Profession data not found" });
     }
 
-    return res.status(200).json({ success: true, data: personal });
+    return res.status(200).json({ success: true, data: updated });
   } catch (err: any) {
+    const castResp = handleCastError(res, err);
+    if (castResp) return castResp;
     return res
       .status(500)
       .json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+export const getUserOnboardingStatus = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const authUser = req.user;
+
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const data = await getUserOnboardingStatusService(authUser.id);
+
+    const completedSteps = Array.isArray(data?.completedSteps)
+      ? data!.completedSteps
+      : [];
+
+    const stepsOrder = [
+      "personal",
+      "family",
+      "education",
+      "profession",
+      "health",
+      "expectation",
+    ];
+
+    const nextStep = stepsOrder.find((step) => !completedSteps.includes(step));
+
+    if (!data?.isOnboardingCompleted) {
+      return res.status(200).json({
+        success: false,
+        message: "Onboarding is not completed",
+        redirectTo: `/onboarding/user`,
+        data,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateUserOnboardingStatus = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const authUser = req.user;
+
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const body = req.body ?? {};
+
+    const normalizedBody: any = {
+      ...body,
+    };
+    if (typeof body.isOnboardingCompleted !== "undefined") {
+      normalizedBody.isOnboardingCompleted = body.isOnboardingCompleted;
+    }
+
+    const allowedFields = ["isOnboardingCompleted", "completedSteps"];
+
+    if (
+      Object.keys(normalizedBody).some((key) => !allowedFields.includes(key))
+    ) {
+      const invalidFields = Object.keys(normalizedBody).filter(
+        (key) => !allowedFields.includes(key)
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: `The following field(s) are not allowed to be updated: ${invalidFields.join(
+          ", "
+        )}`,
+        invalidFields,
+      });
+    }
+
+    const data = await updateUserBoardingStatusService(
+      authUser.id,
+      normalizedBody.isOnboardingCompleted,
+      normalizedBody.completedSteps
+    );
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

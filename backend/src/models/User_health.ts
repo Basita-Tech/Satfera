@@ -14,7 +14,9 @@ export interface IUserHealth extends Document {
     | "non-vegetarian"
     | "eggetarian"
     | "jain"
-    | "swaminarayan";
+    | "swaminarayan"
+    | "veg"
+    | "non-veg";
 }
 
 const userHealthSchema = new Schema(
@@ -55,6 +57,8 @@ const userHealthSchema = new Schema(
         "eggetarian",
         "jain",
         "swaminarayan",
+        "veg",
+        "non-veg",
       ],
     },
   },

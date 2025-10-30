@@ -18,6 +18,8 @@ export interface IUser extends Document {
   createdAt: Date;
   dateOfBirth?: Date;
   lastLoginAt: Date;
+  isOnboardingCompleted: boolean;
+  completedSteps?: string[];
 }
 
 const userSchema: Schema = new Schema(
@@ -44,6 +46,8 @@ const userSchema: Schema = new Schema(
     dateOfBirth: { type: Date },
     createdAt: { type: Date, default: Date.now },
     lastLoginAt: { type: Date },
+    isOnboardingCompleted: { type: Boolean, default: false },
+    completedSteps: { type: [String], default: [] },
   },
   { timestamps: true }
 );

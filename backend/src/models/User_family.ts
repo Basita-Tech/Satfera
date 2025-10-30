@@ -100,8 +100,6 @@ const userFamilySchema = new Schema(
     familyType: {
       type: String,
       trim: true,
-      enum: ["Joint", "Nuclear", "Others"],
-      default: "Nuclear",
     },
     haveSibling: {
       type: Boolean,

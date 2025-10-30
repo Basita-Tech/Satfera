@@ -371,8 +371,9 @@ export const AddUserFamilyDetailsValidation = [
 
   body("familyType")
     .optional()
-    .isIn(["Joint", "Nuclear", "Others"])
-    .withMessage('familyType must be one of: "Joint", "Nuclear", "Others"'),
+    .isLowercase()
+    .isIn(["joint", "nuclear", "others"])
+    .withMessage('familyType must be one of: "joint", "nuclear", "others"'),
   body("haveSibling")
     .optional()
     .isBoolean()
