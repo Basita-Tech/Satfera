@@ -11,7 +11,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     tb: "",
     medicalHistory: "",
     medicalHistoryDetails: "",
-    diet: ""
+    
   });
   const [errors, setErrors] = useState({});
   // const [isEditing, setIsEditing] = useState(false);
