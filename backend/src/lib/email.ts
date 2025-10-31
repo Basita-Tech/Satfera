@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
-import { buildOtpHtml, buildResetPasswordHtml } from "./email-templates";
+import {
+  buildOtpHtml,
+  buildResetPasswordHtml,
+  buildWelcomeHtml,
+} from "./email-templates";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -67,5 +71,30 @@ export async function sendResetPasswordEmail(to: string, resetLink: string) {
     options?.logoUrl
   );
   const subject = "Reset Your Satfera Password";
+  return sendMail({ to, subject, html, text });
+}
+
+export async function sendWelcomeEmail(
+  to: string,
+  userName: string,
+  username: string,
+  loginLink: string,
+  supportContact?: string
+) {
+  const options = {
+    brandName: process.env.BRAND_NAME || "SATFERA",
+    logoUrl: process.env.BRAND_LOGO_URL,
+  };
+
+  const { html, text } = buildWelcomeHtml(
+    userName,
+    username,
+    loginLink,
+    supportContact,
+    options.brandName,
+    options.logoUrl
+  );
+
+  const subject = `Welcome to ${options.brandName} – Your Matrimony Journey Begins`;
   return sendMail({ to, subject, html, text });
 }

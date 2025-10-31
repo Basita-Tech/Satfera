@@ -31,6 +31,7 @@ export interface IUserPersonal extends Document {
   isChildrenLivingWithYou?: boolean;
   isYouLegallySeparated?: boolean;
   separatedSince?: string;
+  divorceStatus: string;
 }
 
 const userPersonalSchema = new Schema(
@@ -70,6 +71,9 @@ const userPersonalSchema = new Schema(
     isChildrenLivingWithYou: { type: Boolean },
     isYouLegallySeparated: { type: Boolean },
     separatedSince: { type: String },
+    divorceStatus: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

@@ -427,7 +427,11 @@ const SignUpPage = () => {
     };
 
     const res = await signupUser(payload);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 80be7a6bfc8fb52d09af7289588fee218622af10
     if (res.data.success) {
       const [emailOtpRes, smsOtpRes] = await Promise.all([
         sendEmailOtp({ email: payload.email, type: "signup" }),
