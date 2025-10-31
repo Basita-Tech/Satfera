@@ -11,7 +11,6 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     tb: "",
     medicalHistory: "",
     medicalHistoryDetails: "",
-    
   });
   const [errors, setErrors] = useState({});
   // const [isEditing, setIsEditing] = useState(false);
@@ -123,6 +122,7 @@ console.log("💾 Saving health data:", payload);
           tb: boolToSelect(data.isPostiviInTB),
           medicalHistory: boolToSelect(data.isHaveMedicalHistory),
           medicalHistoryDetails: data.medicalHistoryDetails || "",
+          diet: data.diet
         }));
       })
       .catch((err) => {

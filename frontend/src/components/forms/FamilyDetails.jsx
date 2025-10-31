@@ -152,6 +152,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
         res = await updateUserFamilyDetails(submissionData);
       } else {
         res = await saveUserFamilyDetails(submissionData);
+        alert("data saved successfully")
       }
 
       console.log("✅ Family details API response:", res);

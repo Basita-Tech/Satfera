@@ -22,7 +22,7 @@ const SuccessPage = () => {
   }, [userData, navigate]);
 
   const handleCompleteProfile = () => {
-    navigate("/personal-details", { state: userData }); // ✅ Pass user data to next page
+    navigate("/onboarding/user", { state: userData }); // ✅ Pass user data to next page
   };
 console.log('userData', userData)
   const handleSkip = () => {

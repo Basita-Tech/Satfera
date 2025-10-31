@@ -41,7 +41,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   ];
 
   const castOptions = [
-    "Any",
+    
     "Patel-Desai",
     "Patel-Kadva",
     "Patel-Leva",
@@ -187,38 +187,41 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       payload.livingInCountry = "No preference";
     }
 
-    try {
-      let res;
-      const existing = await getUserExpectations();
-      console.log("Existing expectations:", existing);
-      if (existing?.data) {
-        res = await updateUserExpectations(payload);
-        console.log("✅ Expectations updated:", res);
-        alert("✅ Expectations updated successfully!");
-      } else {
-        res = await saveUserExpectations(payload);
-        console.log("✅ Expectations saved:", res);
-        alert("✅ Expectations saved successfully!");
-      }
-      console.log("🟢 Before onNext()");
-      onNext?.("expectation");
-      console.log("🟢 After onNext()");
-    } catch (err) {
-      const status = err?.response?.status;
+   try {
+  const existing = await getUserExpectations();
+  let res;
 
-      // ✅ If backend returned 201/200 but Axios misread it
-      if (status === 201 || status === 200) {
-        console.warn("⚠️ Axios caught a success response:", status);
-        alert("✅ Expectations saved successfully!");
-        onNext?.("expectation");
-        return;
-      }
+  if (existing?.data) {
+    res = await updateUserExpectations(payload);
+    alert("✅ Expectations updated successfully!");
+  } else {
+    res = await saveUserExpectations(payload);
+    alert("✅ Expectations saved successfully!");
+  }
 
-      console.error("❌ Failed to save expectations", err);
-      const msg = err?.response?.data?.message || "Failed to save expectations.";
-      setErrors((prev) => ({ ...prev, submit: msg }));
-      alert(`❌ ${msg}`);
-    }
+  // 🔄 Re-fetch updated data from backend
+  const updated = await getUserExpectations();
+  if (updated?.data?.data) {
+    const data = updated.data.data;
+    setFormData((prev) => ({
+      ...prev,
+      partnerLocation: data.livingInCountry === "India" ? "India" :
+                       data.livingInCountry === "No preference" ? "No preference" : "Abroad",
+      openToPartnerHabits: data.isConsumeAlcoholic ? "Yes" : "No",
+      partnerEducation: data.educationLevel || [],
+      partnerCommunity: data.community || [],
+      profession: data.profession || [],
+      maritalStatus: data.maritalStatus || [],
+      preferredAgeFrom: data.age?.from || "",
+      preferredAgeTo: data.age?.to || "",
+    }));
+  }
+
+  // 👉 Move to next only after refresh
+  onNext?.("expectation");
+} catch (err) {
+  console.error("❌ Save failed", err);
+}
 
 
   };
@@ -548,99 +551,98 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
 
 
+{/* Community / Caste */}
+<div className="mt-6">
+  <label className="block text-sm font-medium mb-1">
+    Community / Caste
+  </label>
 
-          {/* Community / Caste */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
-              Are you looking for a partner from a specific community or caste?
-            </label>
+  <div className="w-full">
+    <Select
+      isMulti
+      name="partnerCommunity"
+      options={[
+        { value: "Any", label: "Any" },
+        ...castOptions.map((caste) => ({
+          value: caste,
+          label: caste,
+        })),
+      ]}
+      value={formData.partnerCommunity}
+      onChange={(selectedOptions) => {
+        // ✅ If "Any" is selected, keep only that option
+        if (selectedOptions?.some((opt) => opt.value === "Any")) {
+          handleChange("partnerCommunity", [{ value: "Any", label: "Any" }]);
+        } else {
+          handleChange("partnerCommunity", selectedOptions || []);
+        }
+      }}
+      placeholder="Select one or multiple"
+      classNamePrefix="react-select"
+      components={{
+        IndicatorSeparator: () => null, // ✅ removes divider line
+      }}
+      styles={{
+        control: (base, state) => ({
+          ...base,
+          borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+          boxShadow: "none",
+          borderRadius: "0.5rem",
+          backgroundColor: "#fff",
+          minHeight: "50px", // ✅ consistent height
+          display: "flex",
+          alignItems: "center",
+          fontSize: "0.875rem",
+          transition: "all 0.2s ease",
+          "&:hover": {
+            borderColor: "#D4A052",
+          },
+        }),
+        valueContainer: (base) => ({
+          ...base,
+          padding: "0 8px",
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          flexWrap: "wrap",
+        }),
+        input: (base) => ({
+          ...base,
+          margin: 0,
+          padding: 0,
+        }),
+        multiValue: (base) => ({
+          ...base,
+          backgroundColor: "#F9F7F5",
+          borderRadius: "0.5rem",
+          padding: "0 6px",
+        }),
+        multiValueLabel: (base) => ({
+          ...base,
+          color: "#111827",
+          fontSize: "0.875rem",
+        }),
+        multiValueRemove: (base) => ({
+          ...base,
+          color: "#6b7280",
+          ":hover": {
+            backgroundColor: "#D4A052",
+            color: "white",
+          },
+        }),
+        menu: (base) => ({
+          ...base,
+          zIndex: 9999,
+          borderRadius: "0.75rem",
+        }),
+      }}
+    />
+  </div>
 
-            <div className="w-full">
-              <Select
-                isMulti
-                name="partnerCommunity"
-                options={castOptions.map((caste) => ({
-                  value: caste,
-                  label: caste,
-                }))}
-                value={formData.partnerCommunity}
-                onChange={(selectedOptions) => {
-                  if (selectedOptions?.some((opt) => opt.value === "No preference")) {
-                    handleChange("partnerCommunity", [
-                      { value: "No preference", label: "No preference" },
-                    ]);
-                  } else {
-                    handleChange("partnerCommunity", selectedOptions || []);
-                  }
-                }}
-                placeholder="Select"
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null, // ✅ removes only the small slash/line
-                }}
-                styles={{
-                  control: (base, state) => ({
-                    ...base,
-                    borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-                    boxShadow: "none",
-                    borderRadius: "0.5rem", // ✅ same as other selects
-                    backgroundColor: "#fff",
-                    minHeight: "50px",
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: "0.875rem",
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      borderColor: "#D4A052",
-                    },
-                  }),
-                  valueContainer: (base) => ({
-                    ...base,
-                    padding: "0 8px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    flexWrap: "wrap",
-                  }),
-                  input: (base) => ({
-                    ...base,
-                    margin: 0,
-                    padding: 0,
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: "#F9F7F5",
-                    borderRadius: "0.5rem",
-                    padding: "0 6px",
-                  }),
-                  multiValueLabel: (base) => ({
-                    ...base,
-                    color: "#111827",
-                    fontSize: "0.875rem",
-                  }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#6b7280",
-                    ":hover": {
-                      backgroundColor: "#D4A052",
-                      color: "white",
-                    },
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    zIndex: 9999,
-                    borderRadius: "0.75rem",
-                  }),
-                }}
-              />
-            </div>
-
-            {errors.partnerCommunity && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.partnerCommunity}
-              </p>
-            )}
-          </div>
+  {errors.partnerCommunity && (
+    <p className="text-red-500 text-sm mt-1">{errors.partnerCommunity}</p>
+  )}
+</div>
 
           {/* Diet Preference */}
           <div className="mt-6">
@@ -845,89 +847,92 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
 
           {/* Legal / Marital Status */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
-              Legal / Marital Status
-            </label>
+<div className="mt-6">
+  <label className="block text-sm font-medium mb-1">
+    Legal / Marital Status
+  </label>
 
-            <div className="w-full">
-              <Select
-                isMulti
-                name="maritalStatus"
-                options={maritalStatuses.map((status) => ({
-                  value: status,
-                  label: status,
-                }))}
-                value={formData.maritalStatus}
-                onChange={(selectedOptions) =>
-                  handleChange("maritalStatus", selectedOptions || [])
-                }
-                placeholder="Select "
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null, // ✅ removes line between value and arrow
-                }}
-                styles={{
-                  control: (base, state) => ({
-                    ...base,
-                    borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-                    boxShadow: "none",
-                    borderRadius: "0.5rem",
-                    backgroundColor: "#fff",
-                    minHeight: "50px", // ✅ same as other selects
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: "0.875rem",
-                    transition: "all 0.2s ease",
-                    "&:hover": { borderColor: "#D4A052" },
-                  }),
-                  valueContainer: (base) => ({
-                    ...base,
-                    padding: "0 8px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    flexWrap: "wrap",
-                  }),
-                  input: (base) => ({
-                    ...base,
-                    margin: 0,
-                    padding: 0,
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: "#F9F7F5",
-                    borderRadius: "0.5rem",
-                    padding: "0 6px",
-                  }),
-                  multiValueLabel: (base) => ({
-                    ...base,
-                    color: "#111827",
-                    fontSize: "0.875rem",
-                  }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#6b7280",
-                    ":hover": {
-                      backgroundColor: "#D4A052",
-                      color: "white",
-                    },
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    zIndex: 9999,
-                    borderRadius: "0.75rem",
-                  }),
-                }}
-              />
-            </div>
+  <div className="w-full">
+    <Select
+      isMulti
+      name="maritalStatus"
+      options={maritalStatuses.map((status) => ({
+        value: status,
+        label: status,
+      }))}
+      value={formData.maritalStatus}
+      onChange={(selectedOptions) => {
+        // ✅ If "Any" is selected, keep only that option
+        if (selectedOptions?.some((opt) => opt.value === "Any")) {
+          handleChange("maritalStatus", [{ value: "Any", label: "Any" }]);
+        } else {
+          handleChange("maritalStatus", selectedOptions || []);
+        }
+      }}
+      placeholder="Select one or multiple"
+      classNamePrefix="react-select"
+      components={{
+        IndicatorSeparator: () => null, // ✅ removes divider line
+      }}
+      styles={{
+        control: (base, state) => ({
+          ...base,
+          borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+          boxShadow: "none",
+          borderRadius: "0.5rem",
+          backgroundColor: "#fff",
+          minHeight: "50px",
+          display: "flex",
+          alignItems: "center",
+          fontSize: "0.875rem",
+          transition: "all 0.2s ease",
+          "&:hover": { borderColor: "#D4A052" },
+        }),
+        valueContainer: (base) => ({
+          ...base,
+          padding: "0 8px",
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          flexWrap: "wrap",
+        }),
+        input: (base) => ({
+          ...base,
+          margin: 0,
+          padding: 0,
+        }),
+        multiValue: (base) => ({
+          ...base,
+          backgroundColor: "#F9F7F5",
+          borderRadius: "0.5rem",
+          padding: "0 6px",
+        }),
+        multiValueLabel: (base) => ({
+          ...base,
+          color: "#111827",
+          fontSize: "0.875rem",
+        }),
+        multiValueRemove: (base) => ({
+          ...base,
+          color: "#6b7280",
+          ":hover": {
+            backgroundColor: "#D4A052",
+            color: "white",
+          },
+        }),
+        menu: (base) => ({
+          ...base,
+          zIndex: 9999,
+          borderRadius: "0.75rem",
+        }),
+      }}
+    />
+  </div>
 
-            {errors.maritalStatus && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.maritalStatus}
-              </p>
-            )}
-          </div>
+  {errors.maritalStatus && (
+    <p className="text-red-500 text-sm mt-1">{errors.maritalStatus}</p>
+  )}
+</div>
 
 
           {/* Preferred Age */}

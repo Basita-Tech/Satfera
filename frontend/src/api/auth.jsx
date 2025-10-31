@@ -110,7 +110,8 @@ export const getUserPersonal = async () => {
   try {
     const response = await axios.get(`${API}/user-personal/`, {
       headers: getAuthHeaders(),
-    }); return response.data;
+    }); 
+    return response;
   } catch (error) {
     console.error("❌ Get Personal Details Error:", error.response?.data || error.message);
 
@@ -125,14 +126,19 @@ export const updateUserPersonal = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("❌ Update Personal Details Error:", error.response?.data || error.message);
-
+  
   }
 };
 
 export const saveUserExpectations = async (payload) => {
-  return await axios.post(`${API}/user-personal/expectations`, payload, {
+  try{
+  const response= await axios.post(`${API}/user-personal/expectations`, payload, {
     headers: getAuthHeaders(),
   });
+  return response
+}catch(err){
+console.error("❌ Save Expectations Error:", err.response?.data || err.message);
+}
 };
 
 export const getUserExpectations = async () => {
@@ -140,7 +146,7 @@ export const getUserExpectations = async () => {
     const response = await axios.get(`${API}/user-personal/expectations`, {
       headers: getAuthHeaders(),
     });
-    return response.data;
+    return response;
   } catch (error) {
     console.error("❌ Get User Expectations Error:", error.response?.data || error.message);
 
@@ -241,9 +247,14 @@ export const getUserFamilyDetails = async () => {
 };
 
 export const saveUserFamilyDetails = async (payload) => {
-  return await axios.post(`${API}/user-personal/family/`, payload, {
-    headers: getAuthHeaders(),
-  });
+  try {
+    const response = await axios.post(`${API}/user-personal/family/`, payload, {
+      headers: getAuthHeaders(),
+    });
+    return response;
+  } catch (error) {
+    console.error("❌ Save Family Details Error:", error.response?.data || error.message);
+  }
 };
 
 export const updateUserFamilyDetails = async (payload) => {
@@ -270,9 +281,14 @@ export const getEducationalDetails = async () => {
 };
 
 export const saveEducationalDetails = async (data) => {
-  return await axios.post(`${API}/user-personal/education/`, data, {
-    headers: getAuthHeaders(),
-  });
+  try {
+    const response = await axios.post(`${API}/user-personal/education/`, data, {
+      headers: getAuthHeaders(),
+    });
+    return response;
+  } catch (error) {
+    console.error("❌ Save Educational Details Error:", error.response?.data || error.message);
+  }
 };
 
 export const updateEducationalDetails = async (payload) => {

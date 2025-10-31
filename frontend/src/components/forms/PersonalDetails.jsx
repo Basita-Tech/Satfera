@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
 import CreatableSelect from "react-select/creatable";
-import { getUserPersonal, saveUserPersonal ,updateUserHealth, updateUserPersonal} from "../../api/auth";
+import { getOnboardingStatus, getUserPersonal, saveUserPersonal, updateUserPersonal} from "../../api/auth";
 // import "./PersonalDetails.css";
 
 const PersonalDetails = ({ onNext,onPrevious }) => {
@@ -60,7 +60,7 @@ const PersonalDetails = ({ onNext,onPrevious }) => {
 
   const [errorMsg, setErrorMsg] = useState("");
   const [isLegallySeparated, setIsLegallySeparated] = useState("");
-  const [separationYear, setSeparationYear] = useState("");
+  const [separatedSince, setSeparationYear] = useState("");
   const [manualSeparationEntry, setManualSeparationEntry] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("");
 
@@ -74,7 +74,7 @@ const PersonalDetails = ({ onNext,onPrevious }) => {
         setLoading(true);
         const res = await getUserPersonal(); // token passed in headers
         if (res?.data) {
-          const data = res.data || {};
+          const data = res.data?.data || {};
           
           const dateObj = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
 
@@ -183,37 +183,7 @@ const PersonalDetails = ({ onNext,onPrevious }) => {
     700001: { city: "Kolkata", state: "West Bengal" },
     600001: { city: "Chennai", state: "Tamil Nadu" },
   };
-  const indianStates = [
-    { code: "AP", name: "Andhra Pradesh" },
-    { code: "AR", name: "Arunachal Pradesh" },
-    { code: "AS", name: "Assam" },
-    { code: "BR", name: "Bihar" },
-    { code: "CG", name: "Chhattisgarh" },
-    { code: "GA", name: "Goa" },
-    { code: "GJ", name: "Gujarat" },
-    { code: "HR", name: "Haryana" },
-    { code: "HP", name: "Himachal Pradesh" },
-    { code: "JK", name: "Jammu & Kashmir" },
-    { code: "JH", name: "Jharkhand" },
-    { code: "KA", name: "Karnataka" },
-    { code: "KL", name: "Kerala" },
-    { code: "MP", name: "Madhya Pradesh" },
-    { code: "MH", name: "Maharashtra" },
-    { code: "MN", name: "Manipur" },
-    { code: "ML", name: "Meghalaya" },
-    { code: "MZ", name: "Mizoram" },
-    { code: "NL", name: "Nagaland" },
-    { code: "OR", name: "Odisha" },
-    { code: "PB", name: "Punjab" },
-    { code: "RJ", name: "Rajasthan" },
-    { code: "SK", name: "Sikkim" },
-    { code: "TN", name: "Tamil Nadu" },
-    { code: "TG", name: "Telangana" },
-    { code: "TR", name: "Tripura" },
-    { code: "UP", name: "Uttar Pradesh" },
-    { code: "UT", name: "Uttarakhand" },
-    { code: "WB", name: "West Bengal" },
-  ];
+  
 
   //   const heightOptionsFormatted = heightOptions.map(h => ({ label: h, value: h }));
   // const weightOptionsFormatted = weightOptions.map(w => ({ label: w, value: w }));
@@ -769,15 +739,15 @@ const customSelectStyles = (error, value) => ({
 
     let newValue = value;
 
-    if (capitalizeFields.includes(name) && value.trim().length > 0) {
-      newValue = value
-        .trim()
-        .split(/\s+/)
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join(" ");
-    }
+    if (capitalizeFields.includes(name) && value.length > 0) {
+    newValue = value
+      .split(" ") // split on one or more spaces
+      .map(
+        (word) =>
+          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      )
+      .join(" ");
+  }
 
     setFormData((prev) => ({ ...prev, [name]: newValue }));
 
@@ -901,9 +871,9 @@ const customSelectStyles = (error, value) => ({
     if (
       formData.legalStatus === "Separated" &&
       isLegallySeparated === "Yes" &&
-      !separationYear
+      !separatedSince
     ) {
-      newErrors.separationYear = "Separation year is required";
+      newErrors.separatedSince = "Separation year is required";
     }
 
     // Residing in India
@@ -923,54 +893,58 @@ const customSelectStyles = (error, value) => ({
   };
 
   const handleSavePersonalDetails = async () => {
-    const payload = {
-      timeOfBirth: `${formData.birthHour}:${formData.birthMinute}`,
-      birthPlace: formData.birthCity,
-      birthState: formData.birthState,
-      height: parseInt(formData.height) || null,
-      weight: parseInt(formData.weight) || null,
-      astrologicalSign: formData.rashi,
-      dosh: formData.dosh,
-      religion: formData.religion,
-      subCaste: formData.caste,
-      marryToOtherReligion: formData.interCommunity === "Yes",
-      nationality: formData.nationality,
-      full_address: {
-        street1: formData.street1,
-        street2: formData.street2,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.pincode,
-        isYourHome: true,
-      },
-      marriedStatus: formData.legalStatus,
-      isResidentOfIndia: formData.residingInIndia === "yes",
-      residingCountry: formData.residingCountry || "India",
-      visaType: formData.visaCategory || "N/A",
-      divorceStatus: formData.divorceStatus,
-      isHaveChildren: formData.hasChildren === "Yes",
-      numberOfChildren: parseInt(formData.numChildren) || 0,
-      isChildrenLivingWithYou: formData.livingWith === "With Me",
-      isYouLegallySeparated: formData.legalStatus === "Separated",
-      separatedSince: formData.separatedSince || "",
-    };
+    if(!validate()) return 
+  const payload = {
+    timeOfBirth: `${formData.birthHour}:${formData.birthMinute}`,
+    birthPlace: formData.birthCity,
+    birthState: formData.birthState,
+    height: parseInt(formData.height) || null,
+    weight: parseInt(formData.weight) || null,
+    astrologicalSign: formData.rashi,
+    dosh: formData.dosh,
+    religion: formData.religion,
+    subCaste: formData.caste,
+    marryToOtherReligion: formData.interCommunity === "Yes",
+    nationality: formData.nationality,
+    full_address: {
+      street1: formData.street1,
+      street2: formData.street2,
+      city: formData.city,
+      state: formData.state,
+      zipCode: formData.pincode,
+      isYourHome: true,
+    },
+    marriedStatus: formData.legalStatus,
+    isResidentOfIndia: formData.residingInIndia === "yes",
+    residingCountry: formData.residingCountry || "India",
+    visaType: formData.visaCategory || "N/A",
+    divorceStatus: formData.divorceStatus,
+    isHaveChildren: formData.hasChildren === "Yes",
+    numberOfChildren: parseInt(formData.numChildren) || 0,
+    isChildrenLivingWithYou: formData.livingWith === "With Me",
+    isYouLegallySeparated: formData.legalStatus === "Separated",
+    separatedSince: separatedSince,
+  };
 
-    try {
+  try {
     console.log("📤 Sending Payload:", payload);
     setLoading(true);
 
     // ✅ Step 1: Check if personal details already exist
-    const existing = await getUserPersonal();
-
+    
+    const personalStep = await getOnboardingStatus();
+    console.log('personalStep', personalStep)
+    console.log("🔍 Existing Record Check:", personalStep.data.completedSteps.includes("personal"));
     let res;
-    if (existing?.data?.data) {
+    if (personalStep.data.completedSteps.includes("personal")) {
       // 🔹 If record exists → update
       res = await updateUserPersonal(payload);
       console.log("✅ Updated:", res.data);
       alert("✅ Personal details updated successfully!");
-    } else {
+    } else{
       // 🔹 If not → create new
       res = await saveUserPersonal(payload);
+      
       console.log("✅ Saved:", res.data);
       alert("✅ Personal details saved successfully!");
     }
@@ -984,7 +958,8 @@ const customSelectStyles = (error, value) => ({
   } finally {
     setLoading(false);
   }
-  };
+};
+
 
   // Handle save & next
   const handleSaveNext = async (e) => {
@@ -1121,29 +1096,23 @@ const customSelectStyles = (error, value) => ({
               </div>
 
               <div className="mb-4">
-                <label className="text-xs text-gray-600">Birth State</label>
-                <select
-                  name="birthState"
-                  value={formData.birthState}
-                  onChange={handleChange}
-                  onBlur={validateBirthState} // validate on blur
-                  className={`capitalize w-full p-3 rounded-md border ${
-                    errors.birthState ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                >
-                  <option value="">Select state</option>
-                  {indianStates.map((state) => (
-                    <option key={state.code} value={state.name}>
-                      {state.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.birthState && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.birthState}
-                  </p>
-                )}
-              </div>
+  <label className="text-xs text-gray-600">Birth State</label>
+  <input
+    type="text"
+    name="birthState"
+    placeholder="Enter Birth State"
+    value={formData.birthState}
+    onChange={handleChange}
+    onBlur={validateBirthState}
+    className={`capitalize w-full p-3 rounded-md border ${
+      errors.birthState ? "border-red-500" : "border-[#E4C48A]"
+    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+  />
+  {errors.birthState && (
+    <p className="text-red-500 text-xs mt-1">{errors.birthState}</p>
+  )}
+</div>
+
             </div>
           </div>
 
@@ -1642,9 +1611,9 @@ const customSelectStyles = (error, value) => ({
                           >
                             <input
                               type="radio"
-                              name="separationYear"
+                              name="separatedSince"
                               value={year}
-                              checked={separationYear === year.toString()}
+                              checked={separatedSince === year.toString()}
                               onChange={(e) =>
                                 setSeparationYear(e.target.value)
                               }
@@ -1656,9 +1625,9 @@ const customSelectStyles = (error, value) => ({
                         );
                       })}
                     </div>
-                    {errors.separationYear && (
+                    {errors.separatedSince && (
                       <p className="text-xs text-red-500 mt-1">
-                        {errors.separationYear}
+                        {errors.separatedSince}
                       </p>
                     )}
                   </div>

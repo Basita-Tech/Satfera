@@ -208,6 +208,7 @@ const VerifyOTP = () => {
 
           if (res.success) {
             setIsMobileVerified(true);
+            
             alert("✅ Mobile verified successfully!");
             // ✅ Store token if returned
           if (res.token || res.data?.token) {
@@ -321,7 +322,7 @@ const VerifyOTP = () => {
                     <span className="text-danger">Email OTP expired</span>
                   ) : (
                     <>
-                      {emailCountdown <= OTP_VALID_TIME - RESEND_AFTER &&
+                      {(emailCountdown <= OTP_VALID_TIME - RESEND_AFTER ||emailCountdown<=0) &&
                         resendAttemptsEmail < MAX_RESEND && (
                           <button
                             type="button"
@@ -379,7 +380,7 @@ const VerifyOTP = () => {
                     <span className="text-danger">Mobile OTP expired</span>
                   ) : (
                     <>
-                      {mobileCountdown <= OTP_VALID_TIME - RESEND_AFTER &&
+                      {(mobileCountdown <= OTP_VALID_TIME - RESEND_AFTER ||mobileCountdown<=0) &&
                         resendAttemptsMobile < MAX_RESEND && (
                           <button
                             type="button"

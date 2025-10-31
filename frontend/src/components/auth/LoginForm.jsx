@@ -115,50 +115,57 @@ const LoginForm = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
-          {/* Username */}
           <div className="mb-3">
-            <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">
-              Username
-            </label>
-            <input
-  type="text"
-  id="username"
-  name="username"
-  placeholder="Enter your username"
-  value={formData.username}
-  onChange={handleInputChange}
-  required
-  className={inputClass + " lowercase"} // Tailwind lowercase
-  autoCapitalize="none"                 // Prevent capitalization on iOS
-  autoCorrect="off"                     // Prevent autocorrect
-  spellCheck="false"                    // Prevent browser spellcheck
-/>
-          </div>
+  <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">
+    Username
+  </label>
+  <input
+    type="text"
+    id="username"
+    name="username"
+    placeholder="Enter Your Username"  // ✅ Capitalized here
+    value={formData.username}
+    onChange={handleInputChange}
+    required
+    className={inputClass }
+    autoCapitalize="none"
+    autoCorrect="off"
+    spellCheck="false"
+  />
+</div>
+
 
           {/* Password */}
-          <div className="mb-3 relative">
-            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              id="password"
-              name="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-              className={inputClass + " pr-10"}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeSlashFill /> : <EyeFill />}
-            </button>
-          </div>
+<div className="mb-3 relative">
+  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
+    Password
+  </label>
+
+  {/* ✅ Make this wrapper relative for positioning */}
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      id="password"
+      name="password"
+      placeholder="Enter Your Password"
+      value={formData.password}
+      onChange={handleInputChange}
+      required
+      className={inputClass + " pr-10"}
+    />
+
+    {/* ✅ Eye icon perfectly centered vertically */}
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 focus:outline-none"
+      tabIndex={-1}
+    >
+      {showPassword ? <EyeSlashFill size={18} /> : <EyeFill size={18} />}
+    </button>
+  </div>
+</div>
+
 
           {/* Error message */}
           {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
