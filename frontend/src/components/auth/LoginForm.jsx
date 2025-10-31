@@ -1,321 +1,847 @@
 import React, { useState, useEffect } from "react";
-import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser, googleAuth } from "../../api/auth";
+import { sendEmailOtp, signupUser,sendSmsOtp } from "../../api/auth";
+import {
+  HeartFill,
+  ArrowLeft,
+  EyeFill,
+  EyeSlashFill,
+  EnvelopeFill,
+  PhoneFill,
+  CheckCircleFill,
+} from "react-bootstrap-icons";
+import { allCountries } from "country-telephone-data";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const profileOptions = [
+  { value: "myself", label: "Myself" },
+  { value: "son", label: "Son" },
+  { value: "daughter", label: "Daughter" },
+  { value: "brother", label: "Brother" },
+  { value: "sister", label: "Sister" },
+  { value: "friend", label: "Friend" },
+];
 
-const LoginForm = () => {
+// Demo existing emails/mobiles (frontend)
+const existingEmails = ["test@example.com", "hello@domain.com"];
+const existingMobiles = ["+911234567890", "+919876543210"];
+console.log("API URL:", import.meta.env.VITE_API_URL);
+
+const SignUpPage = () => {
+  const today = new Date();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ username: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
+
+  const [formData, setFormData] = useState({
+    profileFor: "",
+    gender: localStorage.getItem("gender") || "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    dobDay: "",
+    dobMonth: "",
+    dobYear: "",
+    email: "",
+    countryCode: "+91",
+    mobile: "",
+    password: "",
+    confirmPassword: "",
+    useAsUsername: [],
+  });
+
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [googleUser, setGoogleUser] = useState(null);
-  const [googleAuthInfo, setGoogleAuthInfo] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordCriteria, setPasswordCriteria] = useState({
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false,
+  });
 
-  // Load Google script for login
+  const countryCodes = [
+    { code: "+91", country: "India" }, // 👈 India always first
+    ...allCountries
+      .filter((c) => c.iso2 !== "in") // avoids duplicate India
+      .map((c) => ({
+        code: `+${c.dialCode}`,
+        country: c.name,
+      })),
+  ];
+
+
+
+  const getNameLabel = () => {
+    switch (formData.profileFor) {
+      case "myself":
+        return "Your Name";
+      case "son":
+      case "brother":
+        return "His Name";
+      case "daughter":
+      case "sister":
+        return "Her Name";
+      default:
+        return "Name";
+    }
+  };
+
+
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
+    if (formData.gender) localStorage.setItem("gender", formData.gender);
+  }, [formData.gender]);
 
-    script.onload = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
+  const capitalizeWords = (str) =>
+    str.replace(/\b\w+\b/g, (word) => word[0].toUpperCase() + word.slice(1).toLowerCase());
+
+
+  const validateDOB = (day, month, year, gender) => {
+    if (!day || !month || !year) return "Complete Date of Birth required";
+    if (day.length !== 2 || month.length !== 2 || year.length !== 4)
+      return "Enter valid DD/MM/YYYY";
+    const birthDate = new Date(year, month - 1, day);
+    if (isNaN(birthDate.getTime())) return "Invalid Date";
+
+    const ageDifMs = today - birthDate;
+    const ageDate = new Date(ageDifMs);
+    const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+    if ((gender === "male" && age < 21 ) || (gender === "female" && age < 20))
+      return `Age must be at least ${gender === "male" ? 21 : 20}`;
+
+     if ((gender === "male" && age > 50 ) || (gender === "female" && age > 50))
+      return `Age must be at most ${gender === "male" ? 50 : 50}`;
+
+
+    return "";
+  };
+
+  const focusNext = (currentName) => {
+    const order = ["dobDay", "dobMonth", "dobYear"];
+    const currentIndex = order.indexOf(currentName);
+    if (currentIndex !== -1 && currentIndex < order.length - 1) {
+      const nextField = document.getElementsByName(order[currentIndex + 1])[0];
+      nextField?.focus();
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+    // ✅ 1. Force lowercase for email FIRST
+    if (name === "email") {
+      formattedValue = value.toLowerCase();
+    }
+
+    if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
+      formattedValue = value.replace(/\D/g, "");
+    }
+
+    if (["firstName", "middleName", "lastName"].includes(name)) {
+      formattedValue = capitalizeWords(value);
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    // Real-time name validation
+    if (name === "firstName" || name === "lastName") {
+      if (!formattedValue.trim()) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: `${name === "firstName" ? "First" : "Last"} Name required`
+        }));
+      } else {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
         });
-        window.google.accounts.id.renderButton(
-          document.getElementById("googleSignInDiv"),
-          { theme: "outline", size: "large", text: "continue_with", width: 320 }
+      }
+    }
+
+
+
+
+    // Password real-time check
+    if (name === "password") {
+      setPasswordCriteria({
+        length: formattedValue.length >= 6,
+        upper: /[A-Z]/.test(formattedValue),
+        lower: /[a-z]/.test(formattedValue),
+        number: /\d/.test(formattedValue),
+        special: /[@$!%*?&]/.test(formattedValue),
+      });
+    }
+
+    // DOB validation
+    if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
+      let dobError = "";
+      if (name === "dobDay" && formattedValue.length === 2) {
+        if (+formattedValue < 1 || +formattedValue > 31)
+          dobError = "Invalid day";
+        else focusNext(name);
+      }
+      if (name === "dobMonth" && formattedValue.length === 2) {
+        if (+formattedValue < 1 || +formattedValue > 12)
+          dobError = "Invalid month";
+        else focusNext(name);
+      }
+      if (name === "dobYear" && formattedValue.length === 4) {
+        const year = +formattedValue;
+        const currentYear = today.getFullYear();
+        if (year < currentYear - 100 || year > currentYear)
+          dobError = "Invalid year";
+      }
+      if (
+        name === "dobYear" &&
+        formData.dobDay.length === 2 &&
+        formData.dobMonth.length === 2
+      ) {
+        dobError = validateDOB(
+          formData.dobDay,
+          formData.dobMonth,
+          formattedValue,
+          formData.gender
         );
       }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!googleUser && window.google?.accounts?.id) {
-      const el = document.getElementById("googleSignInDiv");
-      if (el) {
-        try {
-          if (window.google.accounts.id.disableAutoSelect) {
-            window.google.accounts.id.disableAutoSelect();
-          }
-          window.google.accounts.id.renderButton(el, {
-            theme: "outline",
-            size: "large",
-            text: "continue_with",
-            width: 320,
-          });
-        } catch (e) {
-          // ignore
-        }
-      }
+      setErrors((prev) => ({ ...prev, dobDay: dobError }));
     }
-  }, [googleUser]);
 
-  // Decode Google JWT
-  const parseJwt = (token) => {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
+    // ✅ Email validation (works with lowercase now)
+    if (name === "email") {
+      const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+      if (!formattedValue)
+        setErrors((prev) => ({ ...prev, email: "Email required" }));
+      else if (/[A-Z]/.test(formattedValue))
+        setErrors((prev) => ({
+          ...prev,
+          email: "Uppercase letters are not allowed",
+        }));
+      else if (!emailRegex.test(formattedValue))
+        setErrors((prev) => ({ ...prev, email: "Invalid email format" }));
+      else if (existingEmails.includes(formattedValue))
+        setErrors((prev) => ({ ...prev, email: "Email already exists" }));
+      else setErrors((prev) => ({ ...prev, email: "" }));
+    }
+
+
+    // Mobile validation
+    if (name === "mobile") {
+      if (!formattedValue)
+        setErrors((prev) => ({ ...prev, mobile: "Mobile required" }));
+      else if (
+        formData.countryCode === "+91" &&
+        !/^\d{10}$/.test(formattedValue)
+      )
+        setErrors((prev) => ({
+          ...prev,
+          mobile: "Enter valid 10-digit number",
+        }));
+      else if (!/^\d{6,15}$/.test(formattedValue))
+        setErrors((prev) => ({
+          ...prev,
+          mobile: "Enter valid mobile number",
+        }));
+      else if (existingMobiles.includes(formData.countryCode + formattedValue))
+        setErrors((prev) => ({ ...prev, mobile: "Mobile already exists" }));
+      else setErrors((prev) => ({ ...prev, mobile: "" }));
+    }
+  };
+
+  const handleProfileForChange = (value) => {
+    let autoGender = "";
+    if (value === "son" || value === "brother") autoGender = "male";
+    if (value === "daughter" || value === "sister") autoGender = "female";
+
+    setFormData((prev) => ({
+      ...prev,
+      profileFor: value,
+      gender: autoGender || "",
+    }));
+
+    setErrors((prev) => {
+      const updated = { ...prev };
+      delete updated.profileFor; // ✅ remove red message immediately
+      if (autoGender) {
+        delete updated.gender;
+      } else if (value === "myself" || value === "friend") {
+        updated.gender = "Please select gender";
+      } else {
+        delete updated.gender;
+      }
+      return updated;
+    });
+
+    if (autoGender) {
+      const dobError = validateDOB(
+        formData.dobDay,
+        formData.dobMonth,
+        formData.dobYear,
+        autoGender
       );
-      return JSON.parse(jsonPayload);
-    } catch {
-      return null;
+      setErrors((prev) => ({ ...prev, dobDay: dobError }));
     }
   };
 
-  const handleGoogleResponse = (response) => {
-    const decoded = parseJwt(response.credential);
-    localStorage.removeItem("authToken");
-    setError("");
-    setGoogleUser(decoded);
-    console.log("Google User:", decoded);
 
-    (async () => {
-      try {
-        const email = decoded?.email;
-        if (!email) return;
-        const res = await googleAuth({ email, name: decoded?.name });
-        console.log("googleAuth response:", res);
-        setGoogleAuthInfo(res || null);
+  const handleGenderSelect = (gender) => {
+    setFormData((prev) => ({ ...prev, gender }));
+    setErrors((prev) => ({ ...prev, gender: "" }));
+    localStorage.setItem("gender", gender);
 
-        if (!res) {
-          setError("Google authentication failed. Try again.");
-          return;
-        }
+    const dobError = validateDOB(
+      formData.dobDay,
+      formData.dobMonth,
+      formData.dobYear,
+      gender
+    );
+    setErrors((prev) => ({ ...prev, dobDay: dobError }));
+  };
 
-        if (
-          res &&
-          res.status === 200 &&
-          res.success === true &&
-          res.exists === true &&
-          res.token
-        ) {
-          localStorage.setItem("authToken", res.token);
-          navigate(res?.redirectTo || "/");
-          return;
-        }
+  const handleGenderBlur = () => {
+    if (
+      (formData.profileFor === "myself" || formData.profileFor === "friend") &&
+      !formData.gender
+    ) {
+      setErrors((prev) => ({ ...prev, gender: "Please select gender" }));
+    } else {
+      setErrors((prev) => {
+        const newErr = { ...prev };
+        delete newErr.gender;
+        return newErr;
+      });
+    }
+  };
 
-        if (res && (res.status === 403 || res.success === false)) {
-          setError(res.message || "Google authentication failed");
-          try {
-            if (window.google?.accounts?.id && decoded?.sub) {
-              window.google.accounts.id.revoke(decoded.sub, () => {});
-            }
-          } catch (e) {}
-          setGoogleUser(null);
-          return;
-        }
-
-        if (res && res.exists === false) {
-          setError(
-            res.message ||
-              "No account is linked with this Google email. Please sign up to continue."
-          );
-          try {
-            if (window.google?.accounts?.id && decoded?.sub) {
-              window.google.accounts.id.revoke(decoded.sub, () => {});
-            }
-          } catch (e) {}
-          setGoogleUser(null);
-          return;
-        }
-
-        // Fallback
-        setError("Google authentication failed. Try again.");
-      } catch (err) {
-        console.error("Google backend check error:", err);
-        setError("Google authentication failed. Try again.");
+  const handleUsernameToggle = (type) => {
+    setFormData((prev) => {
+      let updatedSelection = [];
+      if (prev.useAsUsername.includes(type)) {
+        // Remove if unchecked
+        updatedSelection = prev.useAsUsername.filter((t) => t !== type);
+      } else {
+        // Select the new one (only one at a time)
+        updatedSelection = [type];
       }
-    })();
+
+      // Immediately remove the error if any checkbox is selected
+      setErrors((prevErrors) => {
+        const newErrors = { ...prevErrors };
+        if (updatedSelection.length > 0) {
+          delete newErrors.useAsUsername;
+        }
+        return newErrors;
+      });
+
+      return { ...prev, useAsUsername: updatedSelection };
+    });
   };
 
-  // Handle input changes
-  const handleInputChange = (e) => {
-    let value = e.target.value;
-    if (e.target.name === "username") value = value.toLowerCase();
-    setFormData({ ...formData, [e.target.name]: value });
-  };
-  // Handle form submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  const validateForm = () => {
+    const newErrors = {};
+    const {
+      profileFor,
+      gender,
+      firstName,
+      lastName,
+      dobDay,
+      dobMonth,
+      dobYear,
+      email,
+      mobile,
+      password,
+      confirmPassword,
+      useAsUsername,
+      countryCode,
+    } = formData;
 
-    // Determine if username is email or phone
-    const isEmail = formData.username.includes("@");
-    const isPhone = /^[0-9]+$/.test(formData.username);
+    if (!profileFor)
+      newErrors.profileFor = "Please select Matrimony Profile For";
+    if ((profileFor === "myself" || profileFor === "friend") && !gender)
+      newErrors.gender = "Please select gender";
+    if (!firstName.trim()) newErrors.firstName = "First Name required";
+    if (!lastName.trim()) newErrors.lastName = "Last Name required";
 
-    if (!isEmail && !isPhone) {
-      setError("Enter a valid email or phone number");
-      setLoading(false);
-      return;
+    const dobError = validateDOB(dobDay, dobMonth, dobYear, gender);
+    if (dobError) newErrors.dobDay = dobError;
+
+    if (!useAsUsername.length)
+      newErrors.useAsUsername = "Select Email or Mobile as Username";
+
+    // Email & Mobile checks
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+    if (useAsUsername.includes("email")) {
+      if (!email) newErrors.email = "Email required";
+      else if (/[A-Z]/.test(email))
+        newErrors.email = "Uppercase letters are not allowed";
+      else if (!emailRegex.test(email))
+        newErrors.email = "Invalid email format";
+      else if (existingEmails.includes(email))
+        newErrors.email = "Email already exists";
     }
+
+    if (useAsUsername.includes("mobile")) {
+      if (!mobile) newErrors.mobile = "Mobile required";
+      else if (countryCode === "+91" && !/^\d{10}$/.test(mobile))
+        newErrors.mobile = "Enter valid 10-digit number";
+      else if (!/^\d{6,15}$/.test(mobile))
+        newErrors.mobile = "Enter valid mobile number";
+      else if (existingMobiles.includes(countryCode + mobile))
+        newErrors.mobile = "Mobile already exists";
+    }
+
+    const passRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$/;
+    if (!passRegex.test(password || ""))
+      newErrors.password =
+        "Password must include uppercase, lowercase, number & special char";
+
+    if (password !== confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setLoading(true);
+
+  try {
+    let mobile = formData.mobile.replace(/\D/g, "");
+    if (mobile.startsWith("0")) mobile = mobile.slice(1);
+    const phoneNumber = `${formData.countryCode}${mobile}`;
 
     const payload = {
+      firstName: formData.firstName.trim(),
+      middleName: formData.middleName?.trim() || "",
+      lastName: formData.lastName.trim(),
+      gender: formData.gender,
+      email: formData.email.toLowerCase().trim(),
+      phoneNumber,
       password: formData.password,
-      ...(isEmail
-        ? { email: formData.username }
-        : { phoneNumber: formData.username }),
+      dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(formData.dobMonth).padStart(2, "0")}-${formData.dobYear}`,
+      for_Profile: formData.profileFor,
     };
 
-    try {
-      const response = await loginUser(payload);
-      console.log("Login response:", response);
-      console.log("Login successful:", response.data);
-      localStorage.setItem("authToken", response.token);
+    const res = await signupUser(payload);
 
-      navigate(response?.redirectTo || "/");
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(err.response?.data?.message || "Login failed. Try again.");
-    } finally {
-      setLoading(false);
+    if (res.data.success) {
+      const [emailOtpRes, smsOtpRes] = await Promise.all([
+        sendEmailOtp({ email: payload.email, type: "signup" }),
+        sendSmsOtp({
+          countryCode: formData.countryCode,
+          phoneNumber: mobile,
+        }),
+      ]);
+
+      if (emailOtpRes.success && smsOtpRes.success) {
+        navigate("/verify-otp", {
+          state: {
+            email: payload.email,
+            mobile,
+            countryCode: formData.countryCode,
+            name: `${payload.firstName} ${payload.lastName}`
+          },
+        });
+      } else if (!emailOtpRes.success) {
+        alert(emailOtpRes.message || "Failed to send Email OTP");
+        return;
+      } else if (!smsOtpRes.success) {
+        alert(smsOtpRes.message || "Failed to send SMS OTP");
+        return;
+      }
+    } else {
+      alert(res.message || "Signup failed. Try again.");
     }
-  };
-
-  const inputClass =
-    "w-full px-3 py-2 border border-[#D4A052] rounded-lg focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] outline-none transition";
+  } catch (error) {
+    console.error("Signup error:", error.response?.data || error.message);
+    alert(error.response?.data?.message || "Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
-    <div className="min-h-screen flex justify-center items-center px-4 bg-gradient-to-br from-background via-cream to-secondary">
-      <div className="w-full max-w-sm shadow-xl rounded-2xl p-6 border-t-4 border-[#F9F7F5]">
-        {/* Header */}
-        <div className="text-center mb-3">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">
-            Welcome Back!
-          </h2>
-          <p className="text-[#D4A052] text-sm font-medium">
-            Sign in to continue your journey
-          </p>
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-center px-4">
+      <div className="bg-[#FBFAF7] rounded-3xl shadow-2xl p-8 w-full max-w-xl hover:scale-[1.02] transition-transform duration-300">
+        <Link
+          to="/"
+          className="text-[#D4A052] text-sm flex items-center mb-6 hover:text-[#E4C48A] transition-colors"
+        >
+          <ArrowLeft className="mr-1" /> Back to Home
+        </Link>
+
+
+        <div className="text-center mb-8">
+
+          <h2 className="inline font-bold text-3xl text-gray-800">Create Your Profile</h2>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-3">
-            <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">
-              Username
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Profile For */}
+          <div className="mb-6">
+            <label className="block font-semibold mb-2 text-gray-700">
+              Matrimony Profile For <span className="text-red-500">*</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {profileOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleProfileForChange(opt.value)}
+                  className={`px-4 py-3 text-sm font-medium shadow-md border transition-all duration-200 
+                    ${formData.profileFor === opt.value
+                      ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
+                      : "bg-white text-gray-700 border-[#E4C48A] hover:bg-[#FFF9F2]"
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {errors.profileFor && (
+              <p className="text-red-500 text-sm mt-1">{errors.profileFor}</p>
+            )}
+          </div>
+
+          {/* Gender */}
+          {(formData.profileFor === "myself" || formData.profileFor === "friend") && (
+            <div className="mt-4">
+              <label className="block font-semibold mb-2 text-gray-700">
+                Gender <span className="text-red-500">*</span>
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {["male", "female"].map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => handleGenderSelect(g)}
+                    className={`px-4 py-3 text-sm font-medium shadow-md border transition-all duration-200
+            ${formData.gender === g
+                        ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]" // Pre-selected style
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                      }`}
+                  >
+                    {g === "male" ? "Male" : "Female"}
+                  </button>
+                ))}
+              </div>
+
+              {errors.gender && (
+                <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+              )}
+            </div>
+          )}
+
+
+          {/* Names */}
+          <div>
+            <label className="block font-semibold mb-2 text-gray-700">
+              {getNameLabel()} <span className="text-red-500">*</span>
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col">
+                <input
+                  type="text"
+                  name="firstName"
+                  placeholder="First Name *"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className={`w-full p-3 rounded-md border ${errors.firstName ? "border-red-500" : "border-[#E4C48A]"} 
+    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                />
+
+                {errors.firstName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col">
+                <input
+                  type="text"
+                  name="middleName"
+                  placeholder="Middle Name"
+                  value={formData.middleName}
+                  onChange={handleInputChange}
+                  className={`w-full p-3 rounded-md border ${errors.middleName ? "border-red-500" : "border-[#E4C48A]"} 
+    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <input
+                  type="text"
+                  name="lastName"
+                  placeholder="Last Name *"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className={`w-full p-3 rounded-md border ${errors.lastName ? "border-red-500" : "border-[#E4C48A]"} 
+    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                />
+                {errors.lastName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* DOB */}
+          <div>
+            <label className="block font-semibold mb-2 text-gray-700">
+              Date of Birth <span className="text-red-500">*</span>
+            </label>
+
+            <div className="grid grid-cols-3 gap-3">
+              <input
+                type="text"
+                name="dobDay"
+                placeholder="DD"
+                maxLength={2}
+                value={formData.dobDay}
+                onChange={handleInputChange}
+                className={`w-full p-3 rounded-md border ${errors.dobDay ? "border-red-500" : "border-[#E4C48A]"
+                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
+              <input
+                type="text"
+                name="dobMonth"
+                placeholder="MM"
+                maxLength={2}
+                value={formData.dobMonth}
+                onChange={handleInputChange}
+                className={`w-full p-3 rounded-md border ${errors.dobMonth ? "border-red-500" : "border-[#E4C48A]"
+                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
+              <input
+                type="text"
+                name="dobYear"
+                placeholder="YYYY"
+                maxLength={4}
+                value={formData.dobYear}
+                onChange={handleInputChange}
+                className={`w-full p-3 rounded-md border ${errors.dobYear ? "border-red-500" : "border-[#E4C48A]"
+                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
+            </div>
+
+            {/* ✅ Corrected Error Display */}
+            {errors.dobDay && (
+              <p className="text-red-500 text-sm mt-1">{errors.dobDay}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col w-full mb-6">
+            <label className="block font-semibold mb-2 text-gray-700">
+              Email <span className="text-red-500">*</span>
             </label>
             <input
-  type="text"
-  id="username"
-  name="username"
-  placeholder="Enter your username"
-  value={formData.username}
-  onChange={handleInputChange}
-  required
-  className={inputClass + " lowercase"} // Tailwind lowercase
-  autoCapitalize="none"                 // Prevent capitalization on iOS
-  autoCorrect="off"                     // Prevent autocorrect
-  spellCheck="false"                    // Prevent browser spellcheck
-/>
+              type="text"  // ← use text, not email
+              name="email"
+              placeholder="Enter Email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  email: e.target.value.toLowerCase(),
+                }))
+              }
+              className={`w-full p-3 rounded-md border ${errors.email ? "border-red-500" : "border-[#E4C48A]"
+                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition lowercase`}
+            />
+
+
+
+            <div className="flex items-center mt-1">
+              <input
+                type="checkbox"
+                checked={formData.useAsUsername.includes("email")}
+                onChange={() => handleUsernameToggle("email")}
+                className="mr-2 accent-[#333230]"
+              />
+              <span className="text-sm">
+                Use as Username{" "}
+                {formData.useAsUsername.includes("email") && (
+                  <CheckCircleFill className="inline text-green-500 ml-1" />
+                )}
+              </span>
+            </div>
+            {errors.useAsUsername && (
+              <p className="text-red-500 text-sm mt-1">{errors.useAsUsername}</p>
+            )}
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
+          </div>
+
+          {/* Mobile Number */}
+          <div className="flex flex-col w-full mb-6">
+            <label className="text-sm font-medium mb-2">Mobile <span className="text-red-500">*</span></label>
+
+            <div className="flex gap-3">
+              {/* Country Code */}
+              <div
+                className={`relative w-40 rounded-lg border ${errors.mobile ? "border-red-500" : "border-[#E4C48A]"
+                  } focus-within:ring-1 focus-within:ring-[#ecc988] overflow-hidden`}
+              >
+                <select
+                  name="countryCode"
+                  value={formData.countryCode}
+                  onChange={handleInputChange}
+                  className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border ${errors.mobile ? "border-red-500" : "border-gray-300"
+                    } focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 text-gray-700 placeholder-gray-400`}
+                  style={{
+                    WebkitAppearance: "none",
+                    MozAppearance: "none",
+                    outline: "none",
+                    boxShadow: "none",
+                    backgroundColor: "white",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  India first
+                  <option value="+91">+91 India</option>
+                  {countryCodes
+                    .filter((c) => c.code !== "+91")
+                    .map((c) => (
+                      <option key={`${c.code}-${c.country}`} value={c.code}>
+                        {c.code} {c.country}
+                      </option>
+                    ))}
+
+                </select>
+
+                {/* Dropdown Arrow */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+
+              <input
+                type="tel"
+                name="mobile"
+                placeholder="Enter Mobile Number"
+                value={formData.mobile}
+                onChange={handleInputChange}
+                className={`w-full p-3 rounded-md border ${errors.mobile ? "border-red-500" : "border-[#E4C48A]"} 
+    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
+
+            </div>
+
+            {/* Checkbox */}
+            <label className="flex items-center mt-2 cursor-pointer text-sm select-none">
+              <input
+                type="checkbox"
+                checked={formData.useAsUsername.includes("mobile")}
+                onChange={() => handleUsernameToggle("mobile")}
+                className="mr-2 accent-[#3e3d3a]"
+              />
+              Use as Username
+              {formData.useAsUsername.includes("mobile") && (
+                <CheckCircleFill className="inline text-green-500 ml-1" />
+              )}
+            </label>
+
+            {/* Error Messages */}
+            {errors.mobile && <p className="text-red-500 text-sm mt-1">{errors.mobile}</p>}
+            {errors.useAsUsername && <p className="text-red-500 text-sm mt-1">{errors.useAsUsername}</p>}
           </div>
 
           {/* Password */}
-          <div className="mb-3 relative">
-            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
-              Password
-            </label>
+          <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
-              id="password"
               name="password"
-              placeholder="Enter your password"
+              placeholder="Password"
               value={formData.password}
               onChange={handleInputChange}
-              required
-              className={inputClass + " pr-10"}
+              className={`w-full p-3 rounded-md border ${errors.password ? "border-red-500" : "border-[#E4C48A]"} 
+    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
-            <button
-              type="button"
+            <span
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
-              tabIndex={-1}
             >
               {showPassword ? <EyeSlashFill /> : <EyeFill />}
-            </button>
+            </span>
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+            )}
+
+            {/* Password Criteria: show only if password is invalid */}
+            {formData.password && !(
+              formData.password.length >= 6 &&
+              /[A-Z]/.test(formData.password) &&
+              /[a-z]/.test(formData.password) &&
+              /[0-9]/.test(formData.password) &&
+              /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+            ) && (
+                <div className="mt-2 text-sm space-y-1">
+                  <p className={`${formData.password.length >= 6 ? "text-green-500" : "text-gray-500"}`}>
+                    • Minimum 6 characters
+                  </p>
+                  <p className={`${/[A-Z]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                    • At least one uppercase letter
+                  </p>
+                  <p className={`${/[a-z]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                    • At least one lowercase letter
+                  </p>
+                  <p className={`${/[0-9]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                    • At least one number
+                  </p>
+                  <p className={`${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                    • At least one special character
+                  </p>
+                </div>
+              )}
           </div>
 
-          {/* Error message */}
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
-          {/* Forgot Links */}
-          <div className="flex justify-between text-sm mb-3">
-            <Link
-              to="/forgot-password"
-              className="text-[#D4A052] font-medium hover:underline"
+          {/* Confirm Password */}
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className={`w-full p-3 rounded-md border ${errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"} 
+    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+            />
+            <span
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
-              Forgot Password?
-            </Link>
-            <Link
-              to="/forgot-username"
-              className="text-[#D4A052] font-medium hover:underline"
-            >
-              Forgot Username?
-            </Link>
+              {showConfirmPassword ? <EyeSlashFill /> : <EyeFill />}
+            </span>
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+            )}
           </div>
 
-          {/* Sign In Button */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#D4A052] hover:bg-[#b38b40] text-white font-semibold py-2 rounded-full shadow-md transition-colors disabled:opacity-50"
+            className={`w-full bg-[#D4A052] hover:bg-[#E4C48A] text-white p-3 rounded-full font-semibold shadow-lg transition-colors duration-300 
+    ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            {loading ? "Signing In..." : "Sign In"}
+            {loading ? "Creating..." : "Create Profile"}
           </button>
 
-          {/* Divider */}
-          <div className="text-center my-3 text-gray-400 text-sm">OR</div>
 
-          {/* Google Login */}
-          {!googleUser && (
-            <div
-              id="googleSignInDiv"
-              className="flex justify-center mb-4"
-            ></div>
-          )}
-
-          {googleUser && (
-            <div className="text-center mt-4 text-gray-700">
-              <div className="w-14 h-14 rounded-full bg-[#D4A052] text-white flex items-center justify-center mb-2 text-lg font-bold mx-auto">
-                {googleUser.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <h6 className="font-bold">{googleUser.name}</h6>
-              <p className="text-sm text-gray-600">{googleUser.email}</p>
-              <button
-                type="button"
-                onClick={() => setGoogleUser(null)}
-                className="mt-2 px-4 py-1 border border-[#D4A052] text-[#D4A052] rounded-full text-sm hover:bg-[#FFF8EE] transition-colors"
-              >
-                Logout Google
-              </button>
-            </div>
-          )}
         </form>
-
-        {/* Signup link */}
-        <p className="text-center text-sm mt-4 text-gray-600">
-          Don’t have an account?{" "}
-          <Link
-            to="/signup"
-            className="text-[#D4A052] font-semibold hover:underline"
-          >
-            Sign up
-          </Link>
-        </p>
       </div>
     </div>
   );
 };
 
-export default LoginForm;
+export default SignUpPage;
