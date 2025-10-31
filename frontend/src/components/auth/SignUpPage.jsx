@@ -427,8 +427,8 @@ const SignUpPage = () => {
     };
 
     const res = await signupUser(payload);
-
-    if (res.success) {
+    
+    if (res.data.success) {
       const [emailOtpRes, smsOtpRes] = await Promise.all([
         sendEmailOtp({ email: payload.email, type: "signup" }),
         sendSmsOtp({

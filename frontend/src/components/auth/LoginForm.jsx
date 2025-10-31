@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../../api/auth";
+import { loginUser, googleAuth } from "../../api/auth";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -12,6 +12,7 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleUser, setGoogleUser] = useState(null);
+  const [googleAuthInfo, setGoogleAuthInfo] = useState(null);
 
   // Load Google script for login
   useEffect(() => {
@@ -35,6 +36,27 @@ const LoginForm = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!googleUser && window.google?.accounts?.id) {
+      const el = document.getElementById("googleSignInDiv");
+      if (el) {
+        try {
+          if (window.google.accounts.id.disableAutoSelect) {
+            window.google.accounts.id.disableAutoSelect();
+          }
+          window.google.accounts.id.renderButton(el, {
+            theme: "outline",
+            size: "large",
+            text: "continue_with",
+            width: 320,
+          });
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  }, [googleUser]);
+
   // Decode Google JWT
   const parseJwt = (token) => {
     try {
@@ -54,18 +76,77 @@ const LoginForm = () => {
 
   const handleGoogleResponse = (response) => {
     const decoded = parseJwt(response.credential);
+    localStorage.removeItem("authToken");
+    setError("");
     setGoogleUser(decoded);
     console.log("Google User:", decoded);
-    // Optionally send decoded info to backend for login/signup
+
+    (async () => {
+      try {
+        const email = decoded?.email;
+        if (!email) return;
+        const res = await googleAuth({ email, name: decoded?.name });
+        console.log("googleAuth response:", res);
+        setGoogleAuthInfo(res || null);
+
+        if (!res) {
+          setError("Google authentication failed. Try again.");
+          return;
+        }
+
+        if (
+          res &&
+          res.status === 200 &&
+          res.success === true &&
+          res.exists === true &&
+          res.token
+        ) {
+          localStorage.setItem("authToken", res.token);
+          navigate(res?.redirectTo || "/");
+          return;
+        }
+
+        if (res && (res.status === 403 || res.success === false)) {
+          setError(res.message || "Google authentication failed");
+          try {
+            if (window.google?.accounts?.id && decoded?.sub) {
+              window.google.accounts.id.revoke(decoded.sub, () => {});
+            }
+          } catch (e) {}
+          setGoogleUser(null);
+          return;
+        }
+
+        if (res && res.exists === false) {
+          setError(
+            res.message ||
+              "No account is linked with this Google email. Please sign up to continue."
+          );
+          try {
+            if (window.google?.accounts?.id && decoded?.sub) {
+              window.google.accounts.id.revoke(decoded.sub, () => {});
+            }
+          } catch (e) {}
+          setGoogleUser(null);
+          return;
+        }
+
+        // Fallback
+        setError("Google authentication failed. Try again.");
+      } catch (err) {
+        console.error("Google backend check error:", err);
+        setError("Google authentication failed. Try again.");
+      }
+    })();
   };
 
- // Handle input changes
+  // Handle input changes
   const handleInputChange = (e) => {
     let value = e.target.value;
     if (e.target.name === "username") value = value.toLowerCase();
     setFormData({ ...formData, [e.target.name]: value });
   };
- // Handle form submit
+  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -83,7 +164,9 @@ const LoginForm = () => {
 
     const payload = {
       password: formData.password,
-      ...(isEmail ? { email: formData.username } : { phoneNumber: formData.username }),
+      ...(isEmail
+        ? { email: formData.username }
+        : { phoneNumber: formData.username }),
     };
 
     try {
@@ -109,35 +192,45 @@ const LoginForm = () => {
       <div className="w-full max-w-sm shadow-xl rounded-2xl p-6 border-t-4 border-[#F9F7F5]">
         {/* Header */}
         <div className="text-center mb-3">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Welcome Back!</h2>
-          <p className="text-[#D4A052] text-sm font-medium">Sign in to continue your journey</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">
+            Welcome Back!
+          </h2>
+          <p className="text-[#D4A052] text-sm font-medium">
+            Sign in to continue your journey
+          </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
           {/* Username */}
           <div className="mb-3">
-            <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">
+            <label
+              htmlFor="username"
+              className="block text-sm font-semibold text-gray-700 mb-1"
+            >
               Username
             </label>
             <input
-  type="text"
-  id="username"
-  name="username"
-  placeholder="Enter your username"
-  value={formData.username}
-  onChange={handleInputChange}
-  required
-  className={inputClass + " lowercase"} // Tailwind lowercase
-  autoCapitalize="none"                 // Prevent capitalization on iOS
-  autoCorrect="off"                     // Prevent autocorrect
-  spellCheck="false"                    // Prevent browser spellcheck
-/>
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              value={formData.username}
+              onChange={handleInputChange}
+              required
+              className={inputClass + " lowercase"} // Tailwind lowercase
+              autoCapitalize="none" // Prevent capitalization on iOS
+              autoCorrect="off" // Prevent autocorrect
+              spellCheck="false" // Prevent browser spellcheck
+            />
           </div>
 
           {/* Password */}
           <div className="mb-3 relative">
-            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-semibold text-gray-700 mb-1"
+            >
               Password
             </label>
             <input
@@ -165,10 +258,16 @@ const LoginForm = () => {
 
           {/* Forgot Links */}
           <div className="flex justify-between text-sm mb-3">
-            <Link to="/forgot-password" className="text-[#D4A052] font-medium hover:underline">
+            <Link
+              to="/forgot-password"
+              className="text-[#D4A052] font-medium hover:underline"
+            >
               Forgot Password?
             </Link>
-            <Link to="/forgot-username" className="text-[#D4A052] font-medium hover:underline">
+            <Link
+              to="/forgot-username"
+              className="text-[#D4A052] font-medium hover:underline"
+            >
               Forgot Username?
             </Link>
           </div>
@@ -186,7 +285,12 @@ const LoginForm = () => {
           <div className="text-center my-3 text-gray-400 text-sm">OR</div>
 
           {/* Google Login */}
-          {!googleUser && <div id="googleSignInDiv" className="flex justify-center mb-4"></div>}
+          {!googleUser && (
+            <div
+              id="googleSignInDiv"
+              className="flex justify-center mb-4"
+            ></div>
+          )}
 
           {googleUser && (
             <div className="text-center mt-4 text-gray-700">
@@ -209,7 +313,10 @@ const LoginForm = () => {
         {/* Signup link */}
         <p className="text-center text-sm mt-4 text-gray-600">
           Don’t have an account?{" "}
-          <Link to="/signup" className="text-[#D4A052] font-semibold hover:underline">
+          <Link
+            to="/signup"
+            className="text-[#D4A052] font-semibold hover:underline"
+          >
             Sign up
           </Link>
         </p>
