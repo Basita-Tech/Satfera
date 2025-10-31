@@ -2,6 +2,7 @@ import { Twilio } from "twilio";
 import { AuthenticatedRequest } from "../types/types";
 import { Response } from "express";
 import { User } from "../models/User";
+import jwt from "jsonwebtoken";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID || "";
 const authToken = process.env.TWILIO_AUTH_TOKEN || "";
@@ -24,13 +25,13 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
         .json({ success: false, message: "Phone number is required" });
       return;
     }
-    const verification = await client.verify
+    const verification = await client.verify.v2
       .services(verifyServiceSid)
       .verifications.create({
         to: `${countryCode}${phoneNumber}`,
         channel: "sms",
       });
-      
+
     res.status(200).json({
       success: true,
       message: "OTP sent successfully",
@@ -80,7 +81,7 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
       return;
     }
 
-    const verificationCheck = await client.verify
+    const verificationCheck = await client.verify.v2
       .services(verifyServiceSid)
       .verificationChecks.create({
         to: `${countryCode}${phoneNumber}`,
@@ -107,10 +108,22 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
       });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "OTP verified successfully",
-    });
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+
+    if (user.isEmailVerified && user.isPhoneVerified) {
+      const token = jwt.sign({ id: user._id }, secret, {
+        expiresIn: "7d",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+        data: { token, user },
+      });
+    }
   } catch (error: any) {
     console.error("Error verifying OTP:", error);
     return res.status(500).json({
