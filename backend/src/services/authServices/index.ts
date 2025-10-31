@@ -8,7 +8,11 @@ import {
   setOtp,
 } from "../../lib/otpRedis";
 import { redisClient } from "../..//lib/redis";
-import { sendResetPasswordEmail, sendOtpEmail } from "../../lib/email";
+import {
+  sendResetPasswordEmail,
+  sendOtpEmail,
+  sendWelcomeEmail,
+} from "../../lib/email";
 import { parseDDMMYYYYToDate } from "../../lib/lib";
 
 export class AuthService {
@@ -107,6 +111,32 @@ export class AuthService {
 
     await newUser.save();
 
+    // If both email and phone are already verified (rare at signup), send welcome email
+    try {
+      const username = newUser.email || newUser.phoneNumber || "";
+      const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
+      if (
+        newUser.isEmailVerified &&
+        newUser.isPhoneVerified &&
+        !newUser.welcomeSent
+      ) {
+        await sendWelcomeEmail(
+          newUser.email,
+          `${(newUser as any).firstName || "User"} ${
+            (newUser as any).lastName || ""
+          }`.trim(),
+          username,
+          loginLink,
+          process.env.SUPPORT_CONTACT
+        );
+        newUser.welcomeSent = true;
+        await newUser.save();
+      }
+    } catch (e) {
+      // don't block signup if email sending fails
+      console.error("Failed to send welcome email at signup:", e);
+    }
+
     return newUser.toObject ? newUser.toObject() : newUser;
   }
 
@@ -189,6 +219,30 @@ export class AuthService {
     const token = jwt.sign({ id: user._id }, this.jwtSecret(), {
       expiresIn: "7d",
     });
+
+    // If both email + phone verified now and welcome not yet sent, send welcome email
+    try {
+      if (user.isPhoneVerified && user.isEmailVerified && !user.welcomeSent) {
+        const username = user.email || user.phoneNumber || "";
+        const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
+        await sendWelcomeEmail(
+          user.email,
+          `${(user as any).firstName || "User"} ${
+            (user as any).lastName || ""
+          }`.trim(),
+          username,
+          loginLink,
+          process.env.SUPPORT_CONTACT
+        );
+        user.welcomeSent = true;
+        await user.save();
+      }
+    } catch (e) {
+      console.error(
+        "Failed to send welcome email after email verification:",
+        e
+      );
+    }
 
     if (user.isPhoneVerified && user.isEmailVerified) {
       return { token, user };

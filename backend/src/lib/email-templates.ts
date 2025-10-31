@@ -147,3 +147,111 @@ export function buildResetPasswordHtml(
     text: `Reset your password\n\nWe received a request to reset your password. Use the link below to reset it (valid for 5 minutes):\n\n${resetLink}\n\nIf you didn't request this, ignore this message.\n\n— ${brandName} Team`,
   };
 }
+
+export function buildWelcomeHtml(
+  userName: string,
+  username: string,
+  loginLink: string,
+  supportContact: string | undefined,
+  brandName = "SATFERA",
+  logoUrl?: string
+) {
+  const title = `Welcome to ${brandName} – Your Matrimony Journey Begins`;
+  const preheader = `Welcome to ${brandName}. Here are your login details and next steps to complete your profile.`;
+
+  const supportLine = supportContact
+    ? `If you need any help, feel free to contact our support team at ${supportContact}.`
+    : "If you need any help, feel free to contact our support team.";
+
+  const html = `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+    <style>
+      body { background: #f4f6fb; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #333; }
+      .container { max-width: 680px; margin: 28px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(20,30,60,0.08); }
+      .header { padding: 22px; text-align: center; border-bottom: 1px solid #eef2f7; }
+      .logo { height: 44px; display: inline-block; margin-bottom: 6px; }
+      .content { padding: 28px; }
+      .title { font-size: 20px; font-weight: 600; margin: 0 0 8px; }
+      .subtitle { margin: 0 0 18px; color: #556077; font-size: 14px; }
+      .login { display: inline-block; padding: 10px 16px; border-radius: 8px; background: #0b63ff; color: #fff; font-weight: 600; text-decoration: none; }
+      .note { font-size: 13px; color: #7a8598; margin-top: 14px; }
+      .footer { padding: 18px; text-align: center; font-size: 12px; color: #9aa3b2; border-top: 1px solid #f0f4fb; }
+      a { color: #0b63ff; text-decoration: none; }
+      @media (max-width:420px) { .content { padding: 18px; } }
+    </style>
+  </head>
+  <body>
+    <span style="display:none;max-height:0px;overflow:hidden;">${preheader}</span>
+    <div class="container" role="article" aria-label="${title}">
+      <div class="header">
+        ${
+          logoUrl
+            ? `<img src="${logoUrl}" alt="${brandName} logo" class="logo">`
+            : `<div style="font-weight:700;color:#0b63ff;font-size:18px">${brandName}</div>`
+        }
+      </div>
+      <div class="content">
+        <h1 class="title">${title}</h1>
+        <p class="subtitle">Dear ${userName},</p>
+
+        <p>Thank you for registering with <strong>${brandName} Matrimony</strong>. We are delighted to have you with us.</p>
+
+        <h3>Here are your login details:</h3>
+        <ul>
+          <li><strong>Username:</strong> ${username}</li>
+          <li><strong>Login Link:</strong> <a href="${loginLink}" target="_blank" rel="noopener noreferrer">Click here to Login</a></li>
+        </ul>
+
+        <p>To help you get started, please follow the step-by-step process to complete your profile:</p>
+        <ol>
+          <li><strong>Login</strong> to your ${brandName} account using the above details.</li>
+          <li><strong>Upload your ID proof</strong> (Aadhar Card / Driving Licence / Passport / or any other valid photo ID) for verification.</li>
+          <li><strong>Upload your photographs</strong> – clear face photo and a full-length photo are required.</li>
+          <li><strong>Complete your personal details</strong> – education, profession, family background, lifestyle, and preferences.</li>
+          <li><strong>Save & Submit</strong> your profile for review.</li>
+        </ol>
+
+        <p style="font-size:14px">👉 A verified and complete profile increases your chances of getting better matches.</p>
+
+        <p>${supportLine}</p>
+
+        <p>Best Regards,<br><strong>Team ${brandName}</strong><br><em>Your Trusted Matchmaking Partner</em></p>
+      </div>
+      <div class="footer">
+        ${brandName} • If you need help, reply to this email or visit our support center.
+      </div>
+    </div>
+  </body>
+</html>
+  `;
+
+  const text = `${title}
+
+Dear ${userName},
+
+Thank you for registering with ${brandName} Matrimony. We are delighted to have you with us.
+
+Here are your login details:
+Username: ${username}
+Login Link: ${loginLink}
+
+Steps to complete your profile:
+1) Login to your ${brandName} account using the above details.
+2) Upload your ID proof (Aadhar/Driving Licence/Passport/etc.) for verification.
+3) Upload your photographs – clear face photo and full-length photo.
+4) Complete your personal details – education, profession, family background, lifestyle, and preferences.
+5) Save & Submit your profile for review.
+
+${supportLine}
+
+Best Regards,
+Team ${brandName}
+Your Trusted Matchmaking Partner`;
+
+  return { html, text };
+}

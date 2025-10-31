@@ -56,6 +56,61 @@ function sanitizeUser(user: any) {
 }
 
 export class AuthController {
+  static async googleAuth(req: Request, res: Response) {
+    try {
+      const { email, name } = req.body;
+      if (!email) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Email is required" });
+      }
+
+      const user = await User.findOne({
+        email: email.toLowerCase().trim(),
+        isActive: true,
+      });
+
+      if (!user) {
+        return res.status(200).json({ success: true, exists: false });
+      }
+
+      if (!user.isEmailLoginEnabled) {
+        return res.status(403).json({
+          success: false,
+          exists: false,
+          message: "Email login is disabled for this user.",
+        });
+      }
+
+      if (!user.isEmailVerified) {
+        return res.status(403).json({
+          success: false,
+          exists: false,
+          message:
+            "Email is not verified. Please verify your email before signing in.",
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.JWT_SECRET || "",
+        {
+          expiresIn: "7d",
+        }
+      );
+
+      const userObj = user.toObject ? user.toObject() : user;
+      const publicUser = sanitizeUser(userObj) as any;
+
+      return res
+        .status(200)
+        .json({ success: true, exists: true, user: publicUser, token });
+    } catch (err: any) {
+      const message = err?.message || "Google auth check failed";
+      return res.status(500).json({ success: false, message });
+    }
+  }
+
   static async login(req: Request, res: Response) {
     try {
       const validation = formatValidationErrors(req);

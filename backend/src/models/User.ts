@@ -15,6 +15,7 @@ export interface IUser extends Document {
   for_Profile?: "myself" | "son" | "daughter" | "brother" | "sister" | "friend";
   isEmailVerified?: boolean;
   isPhoneVerified?: boolean;
+  welcomeSent?: boolean;
   createdAt: Date;
   dateOfBirth?: Date;
   lastLoginAt: Date;
@@ -43,6 +44,7 @@ const userSchema: Schema = new Schema(
     },
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
+    welcomeSent: { type: Boolean, default: false },
     dateOfBirth: { type: Date },
     createdAt: { type: Date, default: Date.now },
     lastLoginAt: { type: Date },
@@ -68,6 +70,7 @@ function removeSensitive(doc: any, ret: any) {
   if (ret) {
     delete ret.password;
     delete ret.__v;
+    delete ret.welcomeSent;
 
     if (ret._id) {
       ret.id = String(ret._id);

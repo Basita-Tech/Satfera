@@ -7,6 +7,7 @@ const authRouter = express.Router();
 
 authRouter.post("/login", LoginValidation, AuthController.login);
 authRouter.post("/signup", SignupValidation, AuthController.signup);
+authRouter.post("/google", AuthController.googleAuth);
 
 authRouter.post("/forgot-password", AuthController.forgotPasswordRequest);
 authRouter.post("/reset-password/:token", AuthController.resetPassword);
