@@ -20,8 +20,8 @@ const userProfessionSchema = new Schema(
       type: String,
       trim: true,
       enum: [
-        "Private Sector",
-        "Government",
+        "private sector",
+        "government",
         "self-employed",
         "unemployed",
         "student",

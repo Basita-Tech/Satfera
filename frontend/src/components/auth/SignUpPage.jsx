@@ -428,7 +428,7 @@ const SignUpPage = () => {
     console.log('payload', payload)
     const res = await signupUser(payload);
     console.log(res)
-    if (res.success) {
+    if (res && res.success) {
       const [emailOtpRes, smsOtpRes] = await Promise.all([
         sendEmailOtp({ email: payload.email, type: "signup" }),
         // sendSmsOtp({
@@ -455,7 +455,43 @@ const SignUpPage = () => {
       //   return;
       // }
     } else {
-      alert(res.message || "Signup failed. Try again.");
+      // Map backend validation errors to form fields so user sees inline messages
+      try {
+        if (res && res.errors) {
+          const newErrors = {};
+          if (Array.isArray(res.errors)) {
+            res.errors.forEach((err) => {
+              const field = err.param || err.field || err.key || err.path || err.location || "form";
+              const message = err.msg || err.message || String(err);
+
+              // map common backend field names to our form fields
+              const mappedField = (() => {
+                if (["phoneNumber", "phone", "mobile"].includes(field)) return "mobile";
+                if (["for_Profile", "forProfile", "for_profile"].includes(field)) return "profileFor";
+                if (["dateOfBirth", "dob", "date_of_birth"].includes(field)) return "dobDay";
+                if (["firstName", "firstname"].includes(field)) return "firstName";
+                if (field === "lastName" || field === "lastname") return "lastName";
+                if (field === "email") return "email";
+                if (field === "password") return "password";
+                return field;
+              })();
+
+              newErrors[mappedField] = message;
+            });
+          } else if (typeof res.errors === "object") {
+            Object.keys(res.errors).forEach((k) => {
+              newErrors[k] = Array.isArray(res.errors[k]) ? res.errors[k].join(" ") : String(res.errors[k]);
+            });
+          }
+
+          setErrors((prev) => ({ ...prev, ...newErrors }));
+        } else {
+          alert((res && (res.message || res.error)) || "Signup failed. Try again.");
+        }
+      } catch (err) {
+        console.error("Error mapping signup errors:", err);
+        alert(res.message || "Signup failed. Try again.");
+      }
     }
   } catch (error) {
     console.error("Signup error:", error.response?.data || error.message);

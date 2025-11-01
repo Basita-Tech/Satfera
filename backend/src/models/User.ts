@@ -54,6 +54,11 @@ const userSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+userSchema.index({ email: 1, isActive: 1 });
+userSchema.index({ phoneNumber: 1, isActive: 1 });
+userSchema.index({ email: 1, isEmailLoginEnabled: 1 });
+userSchema.index({ phoneNumber: 1, isMobileLoginEnabled: 1 });
+
 userSchema.pre("save", function (next) {
   try {
     if ((this as any).isModified("email") && (this as any).email) {

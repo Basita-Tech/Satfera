@@ -15,16 +15,14 @@ async function sendOtp(req: AuthenticatedRequest, res: Response) {
   const { countryCode, phoneNumber } = req.body;
   try {
     if (!countryCode) {
-      res
+      return res
         .status(400)
         .json({ success: false, message: "Country code is required" });
-      return;
     }
     if (!phoneNumber) {
-      res
+      return res
         .status(400)
         .json({ success: false, message: "Phone number is required" });
-      return;
     }
     const verification = await client.verify.v2
       .services(verifyServiceSid)
@@ -68,29 +66,27 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
   const { countryCode, phoneNumber, code } = req.body;
   try {
     if (!countryCode) {
-      res
+      return res
         .status(400)
         .json({ success: false, message: "Country code is required" });
-      return;
     }
 
     if (!phoneNumber) {
-      res
+      return res
         .status(400)
         .json({ success: false, message: "Phone number is required" });
-      return;
     }
 
     if (!code) {
-      res.status(400).json({ success: false, message: "OTP code is required" });
-      return;
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP code is required" });
     }
     const mobileNumber = `${countryCode}${phoneNumber}`;
     const user = await User.findOne({ phoneNumber: mobileNumber });
 
     if (!user) {
-      res.status(404).json({ success: false, message: "User not found" });
-      return;
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     const verificationCheck = await client.verify.v2
@@ -111,8 +107,9 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
     if (verificationCheck.status === "approved" && !user.isPhoneVerified) {
       user.isPhoneVerified = true;
       await user.save();
-      try {
-        if (user.isEmailVerified && user.isPhoneVerified && !user.welcomeSent) {
+
+      if (user.isEmailVerified && !user.welcomeSent) {
+        try {
           const username = user.email || user.phoneNumber || "";
           const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
           await sendWelcomeEmail(
@@ -126,12 +123,10 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
           );
           user.welcomeSent = true;
           await user.save();
+          console.log(`Welcome email sent to ${user.email}`);
+        } catch (e) {
+          console.error(`Failed to send welcome email to ${user.email}:`, e);
         }
-      } catch (e) {
-        console.error(
-          "Failed to send welcome email after phone verification:",
-          e
-        );
       }
     }
 
@@ -152,12 +147,18 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
         expiresIn: "7d",
       });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         message: "OTP verified successfully",
         data: { token, user },
       });
     }
+    
+    return res.status(200).json({
+      success: true,
+      message: "Phone verified successfully",
+      data: verificationCheck,
+    });
   } catch (error: any) {
     console.error("Error verifying OTP:", error);
     // If Twilio returns resource-not-found for verification check, give clearer guidance

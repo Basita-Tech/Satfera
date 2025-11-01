@@ -3,8 +3,8 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IUserPersonal extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
   timeOfBirth?: string;
-  height?: number;
-  weight?: number;
+  height?: number | string;
+  weight?: number | string;
   astrologicalSign?: string;
   birthPlace?: string;
   birthState?: string;
@@ -43,8 +43,8 @@ const userPersonalSchema = new Schema(
       index: true,
     },
     timeOfBirth: { type: String },
-    height: { type: Number },
-    weight: { type: Number },
+    height: { type: Schema.Types.Mixed },
+    weight: { type: Schema.Types.Mixed },
     astrologicalSign: { type: String },
     birthPlace: { type: String },
     birthState: { type: String },

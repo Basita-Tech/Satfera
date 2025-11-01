@@ -6,14 +6,14 @@ export interface IUserExpectations extends Document {
     from: number;
     to: number;
   };
-  maritalStatus: object
+  maritalStatus: object;
   isConsumeAlcoholic: string;
-  educationLevel: string[] | string | object;
-  community: string[] | string | object;
-  livingInCountry: string[] | string | object;
-  livingInState: string[] | string | object;
-  profession: string[] | string | object;
-  diet: string[] | string | object;
+  educationLevel: string[];
+  community: string[];
+  livingInCountry: string[];
+  livingInState: string[];
+  profession: string[];
+  diet: string[];
 }
 
 const userExpectationsSchema = new Schema(
