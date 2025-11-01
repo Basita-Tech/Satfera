@@ -134,40 +134,48 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     }
   };
 
-  // Form validation
+  // 🔹 Form Validation
   const validateForm = () => {
     const newErrors = {};
+    const requiredFields = [
+      "preferredAgeFrom",
+      "preferredAgeTo",
+      "maritalStatus",
+      "partnerLocation",
+      "partnerCommunity",
+      "partnerDiet",
+      "partnerEducation",
+      "profession",
+    ];
 
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === "partnerStateOrCountry") {
-        if (
-          formData.partnerLocation === "India" ||
-          formData.partnerLocation === "Abroad"
-        ) {
-          if (value === "" || value === null || value === undefined) {
-            newErrors[key] = "This field is required";
-          }
-        }
-        return;
-      }
-      if (value === "" || value === null || value === undefined) {
+    requiredFields.forEach((key) => {
+      const value = formData[key];
+      if (Array.isArray(value) ? value.length === 0 : !value)
         newErrors[key] = "This field is required";
-      }
     });
+
+    if (
+      formData.partnerLocation === "India" ||
+      formData.partnerLocation === "Abroad"
+    ) {
+      if (
+        !Array.isArray(formData.partnerStateOrCountry) ||
+        formData.partnerStateOrCountry.length === 0
+      ) {
+        newErrors.partnerStateOrCountry = "This field is required";
+      }
+    }
 
     const fromAge = Number(formData.preferredAgeFrom);
     const toAge = Number(formData.preferredAgeTo);
 
-    if (!fromAge) newErrors.preferredAgeFrom = "Preferred Age From is required";
-    if (!toAge) newErrors.preferredAgeTo = "Preferred Age To is required";
-
-    if (fromAge && (fromAge < 18 || fromAge > 40))
+    if (isNaN(fromAge)) newErrors.preferredAgeFrom = "Preferred Age From is required";
+    if (isNaN(toAge)) newErrors.preferredAgeTo = "Preferred Age To is required";
+    if (!isNaN(fromAge) && (fromAge < 18 || fromAge > 40))
       newErrors.preferredAgeFrom = "Age must be between 18 and 40";
-
-    if (toAge && (toAge < 18 || toAge > 40))
+    if (!isNaN(toAge) && (toAge < 18 || toAge > 40))
       newErrors.preferredAgeTo = "Age must be between 18 and 40";
-
-    if (fromAge && toAge && fromAge > toAge)
+    if (!isNaN(fromAge) && !isNaN(toAge) && fromAge > toAge)
       newErrors.preferredAgeTo = "To age must be greater than From age";
 
     setErrors(newErrors);
