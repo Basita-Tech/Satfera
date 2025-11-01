@@ -155,19 +155,9 @@ export const CreateUserPersonalValidation = [
     .isString()
     .withMessage("timeOfBirth must be a string"),
 
-  body("height")
-    .notEmpty()
-    .withMessage("Height is required")
-    .isFloat()
-    .withMessage("Height must be a number")
-    .toFloat(),
+  body("height").notEmpty().withMessage("Height is required"),
 
-  body("weight")
-    .notEmpty()
-    .withMessage("Weight is required")
-    .isFloat()
-    .withMessage("Weight must be a number")
-    .toFloat(),
+  body("weight").notEmpty().withMessage("Weight is required"),
 
   body("astrologicalSign")
     .notEmpty()
