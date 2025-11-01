@@ -4,8 +4,6 @@ import { LoginRequest } from "../types/types";
 import { AuthService } from "../services/authServices";
 import jwt from "jsonwebtoken";
 import {
-  setOtp as setRedisOtp,
-  getOtp as getRedisOtp,
   incrementResend,
   getResendCount,
   OTP_RESEND_LIMIT,
@@ -182,7 +180,26 @@ export class AuthController {
         .json({ success: true, user: publicUser, token: result.token });
     } catch (err: any) {
       const message = err?.message || "Login failed";
-      return res.status(401).json({ success: false, message });
+
+      if (
+        message.toLowerCase().includes("verify") ||
+        message.toLowerCase().includes("verification")
+      ) {
+        return res.status(403).json({ success: false, message });
+      }
+
+      if (
+        message.toLowerCase().includes("invalid credentials") ||
+        message.toLowerCase().includes("password")
+      ) {
+        return res.status(401).json({ success: false, message });
+      }
+
+      console.error("Login error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "An unexpected error occurred during login",
+      });
     }
   }
 

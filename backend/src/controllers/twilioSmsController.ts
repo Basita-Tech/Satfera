@@ -111,8 +111,9 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
     if (verificationCheck.status === "approved" && !user.isPhoneVerified) {
       user.isPhoneVerified = true;
       await user.save();
-      try {
-        if (user.isEmailVerified && user.isPhoneVerified && !user.welcomeSent) {
+
+      if (user.isEmailVerified && !user.welcomeSent) {
+        try {
           const username = user.email || user.phoneNumber || "";
           const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
           await sendWelcomeEmail(
@@ -126,12 +127,10 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
           );
           user.welcomeSent = true;
           await user.save();
+          console.log(`Welcome email sent to ${user.email}`);
+        } catch (e) {
+          console.error(`Failed to send welcome email to ${user.email}:`, e);
         }
-      } catch (e) {
-        console.error(
-          "Failed to send welcome email after phone verification:",
-          e
-        );
       }
     }
 

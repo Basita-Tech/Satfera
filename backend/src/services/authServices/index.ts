@@ -15,6 +15,41 @@ import {
 } from "../../lib/email";
 import { parseDDMMYYYYToDate } from "../../lib/lib";
 
+async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
+  try {
+    if (!user.isEmailVerified || user.welcomeSent) {
+      return false;
+    }
+
+    const username = user.email || user.phoneNumber || "";
+    const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
+    const fullName = `${(user as any).firstName || "User"} ${
+      (user as any).lastName || ""
+    }`.trim();
+
+    await sendWelcomeEmail(
+      user.email,
+      fullName,
+      username,
+      loginLink,
+      process.env.SUPPORT_CONTACT
+    );
+
+    user.welcomeSent = true;
+    await user.save();
+
+    console.log(`Welcome email sent to ${user.email}`);
+    return true;
+  } catch (error: any) {
+    console.error(
+      `Failed to send welcome email to ${user.email}:`,
+      error.message || error
+    );
+
+    return false;
+  }
+}
+
 export class AuthService {
   private jwtSecret() {
     const secret = process.env.JWT_SECRET;
@@ -61,8 +96,6 @@ export class AuthService {
     });
 
     if (!user) throw new Error("Invalid credentials");
-    if (!user.isPhoneVerified)
-      throw new Error("Please verify your phone number before logging in.");
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) throw new Error("Invalid credentials");
@@ -111,31 +144,7 @@ export class AuthService {
 
     await newUser.save();
 
-    // If both email and phone are already verified (rare at signup), send welcome email
-    try {
-      const username = newUser.email || newUser.phoneNumber || "";
-      const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
-      if (
-        newUser.isEmailVerified &&
-        newUser.isPhoneVerified &&
-        !newUser.welcomeSent
-      ) {
-        await sendWelcomeEmail(
-          newUser.email,
-          `${(newUser as any).firstName || "User"} ${
-            (newUser as any).lastName || ""
-          }`.trim(),
-          username,
-          loginLink,
-          process.env.SUPPORT_CONTACT
-        );
-        newUser.welcomeSent = true;
-        await newUser.save();
-      }
-    } catch (e) {
-      // don't block signup if email sending fails
-      console.error("Failed to send welcome email at signup:", e);
-    }
+    await sendWelcomeEmailOnce(newUser);
 
     return newUser.toObject ? newUser.toObject() : newUser;
   }
@@ -160,14 +169,26 @@ export class AuthService {
     if (!user) throw new Error("User not found");
 
     const attemptCount = await incrementAttempt(email, "forgot-password");
-    if (attemptCount > OTP_ATTEMPT_LIMIT)
+    if (attemptCount > OTP_ATTEMPT_LIMIT) {
       throw new Error(
-        "Maximum OTP attempts reached for today. Try again tomorrow."
+        `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please request a new OTP or try again after 24 hours.`
       );
+    }
 
     const redisOtp = await getOtp(email, "forgot-password");
-    if (!redisOtp || redisOtp !== otp)
-      throw new Error("Invalid or expired OTP");
+    if (!redisOtp) {
+      throw new Error(
+        "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
+      );
+    }
+    if (redisOtp !== otp) {
+      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
+      throw new Error(
+        `Invalid OTP. You have ${remainingAttempts} attempt${
+          remainingAttempts !== 1 ? "s" : ""
+        } remaining.`
+      );
+    }
 
     const randomHash = await bcrypt.hash(
       Math.random().toString(36).substring(2),
@@ -201,15 +222,26 @@ export class AuthService {
     if (!user) throw new Error("User not found");
 
     const attemptCount = await incrementAttempt(email, "signup");
-    if (attemptCount > OTP_ATTEMPT_LIMIT)
+    if (attemptCount > OTP_ATTEMPT_LIMIT) {
       throw new Error(
-        "Maximum OTP attempts reached for today. Try again tomorrow."
+        `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please request a new OTP or try again after 24 hours.`
       );
+    }
 
     const redisOtp = await getOtp(email, "signup");
-    if (!redisOtp)
-      throw new Error("OTP has expired. Please request a new one.");
-    if (redisOtp !== otp) throw new Error("Invalid OTP");
+    if (!redisOtp) {
+      throw new Error(
+        "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
+      );
+    }
+    if (redisOtp !== otp) {
+      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
+      throw new Error(
+        `Invalid OTP. You have ${remainingAttempts} attempt${
+          remainingAttempts !== 1 ? "s" : ""
+        } remaining.`
+      );
+    }
 
     if (user.isEmailVerified) throw new Error("Email is already verified");
 
@@ -220,35 +252,15 @@ export class AuthService {
       expiresIn: "7d",
     });
 
-    // If both email + phone verified now and welcome not yet sent, send welcome email
-    try {
-      if (user.isPhoneVerified && user.isEmailVerified && !user.welcomeSent) {
-        const username = user.email || user.phoneNumber || "";
-        const loginLink = `${process.env.FRONTEND_URL || ""}/login`;
-        await sendWelcomeEmail(
-          user.email,
-          `${(user as any).firstName || "User"} ${
-            (user as any).lastName || ""
-          }`.trim(),
-          username,
-          loginLink,
-          process.env.SUPPORT_CONTACT
-        );
-        user.welcomeSent = true;
-        await user.save();
-      }
-    } catch (e) {
-      console.error(
-        "Failed to send welcome email after email verification:",
-        e
-      );
-    }
+    await sendWelcomeEmailOnce(user);
 
-    if (user.isPhoneVerified && user.isEmailVerified) {
-      return { token, user };
-    }
-
-    return { message: "Email verified successfully" };
+    return {
+      token,
+      user,
+      message: user.isPhoneVerified
+        ? "Email verified successfully. You can now login."
+        : "Email verified successfully. You can now login.",
+    };
   }
 
   async resetPasswordWithToken(token: string, newPassword: string) {
