@@ -89,9 +89,14 @@ export class AuthController {
         });
       }
 
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        throw new Error("JWT_SECRET environment variable is required");
+      }
+
       const token = jwt.sign(
         { id: user._id, email: user.email },
-        process.env.JWT_SECRET || "",
+        jwtSecret,
         {
           expiresIn: "7d",
         }

@@ -51,9 +51,14 @@ async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
 }
 
 export class AuthService {
-  private jwtSecret() {
+  private jwtSecret(): string {
     const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error("JWT_SECRET environment variable is required");
+    if (!secret) {
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+    if (secret.length < 32) {
+      throw new Error("JWT_SECRET must be at least 32 characters long");
+    }
     return secret;
   }
 

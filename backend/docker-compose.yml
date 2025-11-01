@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: satfera-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/satfera
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - satfera-network
+    volumes:
+      - ./logs:/app/logs
+
+  # MongoDB
+  mongo:
+    image: mongo:7
+    container_name: satfera-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=satfera
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - satfera-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: satfera-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - satfera-network
+    command: redis-server --appendonly yes
+
+networks:
+  satfera-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis-data:

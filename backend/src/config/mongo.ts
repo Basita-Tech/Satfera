@@ -1,5 +1,7 @@
 import mongoose, { ConnectOptions } from "mongoose";
 import { EventEmitter } from "events";
+import { APP_CONFIG } from "./constants";
+import { logger } from "./logger";
 
 class DatabaseConnection extends EventEmitter {
   private isConnected: boolean = false;
@@ -19,16 +21,18 @@ class DatabaseConnection extends EventEmitter {
     }
 
     try {
-      const mongoUrl =
-        process.env.MONGO_URI || "mongodb://localhost:27017/basita";
+      const mongoUrl = process.env.MONGO_URI;
+      if (!mongoUrl) {
+        throw new Error("MONGO_URI environment variable is required");
+      }
 
       const options: ConnectOptions = {
-        maxPoolSize: 10,
-        minPoolSize: 2,
-        serverSelectionTimeoutMS: 10000,
-        socketTimeoutMS: 45000,
-        connectTimeoutMS: 10000,
-        heartbeatFrequencyMS: 10000,
+        maxPoolSize: APP_CONFIG.MONGO.MAX_POOL_SIZE,
+        minPoolSize: APP_CONFIG.MONGO.MIN_POOL_SIZE,
+        serverSelectionTimeoutMS: APP_CONFIG.MONGO.SERVER_SELECTION_TIMEOUT_MS,
+        socketTimeoutMS: APP_CONFIG.MONGO.SOCKET_TIMEOUT_MS,
+        connectTimeoutMS: APP_CONFIG.MONGO.CONNECT_TIMEOUT_MS,
+        heartbeatFrequencyMS: APP_CONFIG.MONGO.HEARTBEAT_FREQUENCY_MS,
         retryWrites: true,
         retryReads: true,
       } as ConnectOptions;
@@ -36,11 +40,11 @@ class DatabaseConnection extends EventEmitter {
       await mongoose.connect(mongoUrl, options);
 
       this.isConnected = true;
-      this.reconnectAttempts = 0; 
+      this.reconnectAttempts = 0;
 
       this.setupEventHandlers();
     } catch (error: any) {
-      console.error("MongoDB connection failed:", error?.message || error);
+      logger.error("MongoDB connection failed:", error?.message || error);
       this.handleReconnection();
       throw new Error(error?.message || "MongoDB connection failed");
     }
@@ -52,27 +56,27 @@ class DatabaseConnection extends EventEmitter {
     mongoose.connection.removeAllListeners("reconnected");
 
     mongoose.connection.on("error", (error: any) => {
-      console.error("MongoDB connection error:", error?.message || error);
+      logger.error("MongoDB connection error:", error?.message || error);
       this.emit("error", error);
       this.isConnected = false;
     });
 
     mongoose.connection.on("disconnected", () => {
-      console.log("MongoDB disconnected");
+      logger.warn("MongoDB disconnected");
       this.isConnected = false;
       this.emit("disconnected");
       this.handleReconnection();
     });
 
     mongoose.connection.on("reconnected", () => {
-      console.log("MongoDB reconnected successfully");
+      logger.info("MongoDB reconnected successfully");
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.emit("reconnected");
     });
 
     mongoose.connection.on("connected", () => {
-      console.log("MongoDB connected");
+      logger.info("MongoDB connected");
       this.isConnected = true;
       this.reconnectAttempts = 0;
     });
@@ -84,7 +88,7 @@ class DatabaseConnection extends EventEmitter {
     }
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error(
+      logger.error(
         `MongoDB: Maximum reconnection attempts (${this.maxReconnectAttempts}) reached. Please check your connection.`
       );
       this.emit("maxReconnectAttemptsReached");
@@ -94,7 +98,7 @@ class DatabaseConnection extends EventEmitter {
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectDelay * this.reconnectAttempts, 30000); // Max 30 seconds
 
-    console.log(
+    logger.warn(
       `MongoDB: Attempting to reconnect in ${delay / 1000}s (attempt ${
         this.reconnectAttempts
       }/${this.maxReconnectAttempts})`
@@ -107,7 +111,7 @@ class DatabaseConnection extends EventEmitter {
           await this.connect();
         }
       } catch (error) {
-        console.error("MongoDB: Reconnection attempt failed");
+        logger.error("MongoDB: Reconnection attempt failed");
         this.handleReconnection();
       }
     }, delay);
@@ -121,10 +125,10 @@ class DatabaseConnection extends EventEmitter {
     try {
       await mongoose.disconnect();
       this.isConnected = false;
-      console.log("🔌 MongoDB disconnected gracefully");
+      logger.info("🔌 MongoDB disconnected gracefully");
       this.emit("disconnected");
     } catch (error: any) {
-      console.error(
+      logger.error(
         "Error disconnecting from MongoDB:",
         error?.message || error
       );

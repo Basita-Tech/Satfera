@@ -195,12 +195,6 @@ export const getUserFamilyDetails = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    // if (!authUser?.id) {
-    //   return res
-    //     .status(400)
-    //     .json({ success: false, message: "User ID is required" });
-    // }
-
     const data = await getUserFamilyDetailsService(authUser.id);
 
     if (!data) {

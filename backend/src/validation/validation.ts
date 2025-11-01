@@ -109,6 +109,13 @@ export const SignupValidation = [
     .withMessage("Last name must be a string"),
   body("middleName").optional().isString(),
 
+  body("gender")
+    .notEmpty()
+    .withMessage("Gender is required")
+    .bail()
+    .isIn(["male", "female", "other"])
+    .withMessage("Gender must be one of: male, female, other"),
+
   body("phoneNumber")
     .notEmpty()
     .withMessage("Phone number is required")
@@ -463,17 +470,12 @@ export const validateUserExpectations = [
   body("maritalStatus")
     .notEmpty()
     .withMessage("Marital status is required")
-    .isArray({ min: 1 })
-    .withMessage("Marital status must be a non-empty array")
-    .isIn([
-      "Never Married",
-      "Divorced",
-      "Widowed",
-      "Separated",
-      "Awaiting Divorce",
-      "No Preference",
-    ])
-    .withMessage("Invalid marital status"),
+    .custom((value) => {
+      if (!value || typeof value !== "object") {
+        throw new Error("Marital status must be an object or array");
+      }
+      return true;
+    }),
   body("isConsumeAlcoholic")
     .notEmpty()
     .withMessage("Alcohol consumption is required")
@@ -529,15 +531,15 @@ export const UserProfessionValidation = [
   body("EmploymentStatus")
     .optional()
     .isIn([
-      "Private Sector",
-      "Government",
+      "private sector",
+      "government",
       "self-employed",
       "unemployed",
       "student",
       "business",
     ])
     .withMessage(
-      'EmploymentStatus must be one of: "Private Sector", "Government", "self-employed", "unemployed", "student", "business"'
+      'EmploymentStatus must be one of: "private sector", "government", "self-employed", "unemployed", "student", "business"'
     ),
   body("OrganizationName")
     .optional()
