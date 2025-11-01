@@ -425,23 +425,19 @@ const SignUpPage = () => {
       dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(formData.dobMonth).padStart(2, "0")}-${formData.dobYear}`,
       for_Profile: formData.profileFor,
     };
-
+    console.log('payload', payload)
     const res = await signupUser(payload);
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> 80be7a6bfc8fb52d09af7289588fee218622af10
-    if (res.data.success) {
+    console.log(res)
+    if (res.success) {
       const [emailOtpRes, smsOtpRes] = await Promise.all([
         sendEmailOtp({ email: payload.email, type: "signup" }),
-        sendSmsOtp({
-          countryCode: formData.countryCode,
-          phoneNumber: mobile,
-        }),
+        // sendSmsOtp({
+        //   countryCode: formData.countryCode,
+        //   phoneNumber: mobile,
+        // }),
       ]);
 
-      if (emailOtpRes.success && smsOtpRes.success) {
+      if (emailOtpRes && emailOtpRes.success) {
         navigate("/verify-otp", {
           state: {
             email: payload.email,
@@ -453,16 +449,17 @@ const SignUpPage = () => {
       } else if (!emailOtpRes.success) {
         alert(emailOtpRes.message || "Failed to send Email OTP");
         return;
-      } else if (!smsOtpRes.success) {
-        alert(smsOtpRes.message || "Failed to send SMS OTP");
-        return;
       }
+      //  else if (!smsOtpRes.success) {
+      //   alert(smsOtpRes.message || "Failed to send SMS OTP");
+      //   return;
+      // }
     } else {
       alert(res.message || "Signup failed. Try again.");
     }
   } catch (error) {
     console.error("Signup error:", error.response?.data || error.message);
-    alert(error.response?.data?.message || "Something went wrong");
+    alert(error.response?.message || "Something went wrong");
   } finally {
     setLoading(false);
   }
@@ -647,7 +644,7 @@ const SignUpPage = () => {
             <input
               type="text"  // ← use text, not email
               name="email"
-              placeholder="Enter Email"
+              placeholder="Enter Your Email"
               value={formData.email}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -656,7 +653,7 @@ const SignUpPage = () => {
                 }))
               }
               className={`w-full p-3 rounded-md border ${errors.email ? "border-red-500" : "border-[#E4C48A]"
-                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition lowercase`}
+                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition lowercase placeholder:capitalize`}
             />
 
 

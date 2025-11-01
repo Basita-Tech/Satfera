@@ -20,7 +20,7 @@ const getAuthHeaders = () => {
 export const signupUser = async (formData) => {
   try {
     const response = await axios.post(`${API}/auth/signup`, formData);
-    return response;
+    return response.data;
   } catch (error) {
     console.error("❌ Signup Error:", error.response?.data || error.message);
   }
@@ -38,14 +38,9 @@ export const loginUser = async (formData) => {
 export const googleAuth = async (data) => {
   try {
     const response = await axios.post(`${API}/auth/google`, data);
-    // include HTTP status so frontend can make decisions based on it
     return { ...(response.data || {}), status: response.status };
   } catch (error) {
-    // Return backend payload including HTTP status so frontend can react to 403/401 explicitly
-    console.error(
-      "❌ Google Auth Check Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Google Auth Check Error:", error.response?.data || error.message);
     if (error.response && error.response.data) {
       return { ...(error.response.data || {}), status: error.response.status };
     }
@@ -56,50 +51,90 @@ export const googleAuth = async (data) => {
 // Send OTP
 export const sendEmailOtp = async (data) => {
   try {
+    console.log("📧 Sending email OTP request:", { 
+      email: data.email,
+      type: data.type,
+      url: `${API}/auth/send-email-otp` 
+    });
+    
     const response = await axios.post(`${API}/auth/send-email-otp`, data);
+    console.log("✅ Email OTP API Response:", response.data);
+    
+    if (!response.data) {
+      throw new Error("Empty response from server");
+    }
+    
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Send Email OTP Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Send Email OTP Error:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    // Return error response so the UI can handle it
+    throw error;
   }
 };
 
 export const sendSmsOtp = async (data) => {
   try {
+    console.log("📱 Sending SMS OTP request:", { 
+      mobile: data.mobile,
+      countryCode: data.countryCode,
+      type: data.type,
+      url: `${API}/auth/send-sms-otp` 
+    });
+    
     const response = await axios.post(`${API}/auth/send-sms-otp`, data);
+    console.log("✅ SMS OTP API Response:", response.data);
+    
+    if (!response.data) {
+      throw new Error("Empty response from server");
+    }
+    
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Send SMS OTP Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Send SMS OTP Error:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    // Return error response so the UI can handle it
+    throw error;
   }
 };
-
-// Verify OTP
 export const verifyEmailOtp = async (data) => {
   try {
     const response = await axios.post(`${API}/auth/verify-email-otp`, data);
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Verify Email OTP Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Verify Email OTP Error:", error.response?.data || error.message);
+    // ✅ Always return a structured object so caller doesn't crash
+    return error.response?.data || { success: false, message: "Server error" };
   }
 };
 
+
 export const verifySmsOtp = async (data) => {
   try {
+    console.log("📱 Verifying SMS OTP:", {
+      mobile: data.mobile,
+      type: data.type,
+      url: `${API}/auth/verify-sms-otp`
+    });
+
     const response = await axios.post(`${API}/auth/verify-sms-otp`, data);
+    console.log("✅ SMS OTP Verification Response:", response.data);
+
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Verify SMS OTP Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Verify SMS OTP Error:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    // Always return a structured object so caller doesn't crash
+    return error.response?.data || { success: false, message: "Server error" };
   }
 };
 
@@ -109,10 +144,7 @@ export const resendOtp = async (data) => {
     const response = await axios.post(`${API}/auth/resend-otp`, data);
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Resend OTP Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Resend OTP Error:", error.response?.data || error.message);
   }
 };
 
@@ -125,12 +157,9 @@ export const saveUserPersonal = async (payload) => {
     const response = await axios.post(`${API}/user-personal/`, payload, {
       headers: getAuthHeaders(),
     });
-    return response.data;
+    return response;
   } catch (error) {
-    console.error(
-      "❌ Save Personal Details Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Save Personal Details Error:", error.response?.data || error.message);
   }
 };
 
@@ -138,18 +167,10 @@ export const getUserPersonal = async () => {
   try {
     const response = await axios.get(`${API}/user-personal/`, {
       headers: getAuthHeaders(),
-<<<<<<< HEAD
-    }); 
-    return response;
-=======
     });
-    return response.data;
->>>>>>> 80be7a6bfc8fb52d09af7289588fee218622af10
+    return response;
   } catch (error) {
-    console.error(
-      "❌ Get Personal Details Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Get Personal Details Error:", error.response?.data || error.message);
   }
 };
 
@@ -160,27 +181,22 @@ export const updateUserPersonal = async (payload) => {
     });
     return response.data;
   } catch (error) {
-<<<<<<< HEAD
     console.error("❌ Update Personal Details Error:", error.response?.data || error.message);
-  
-=======
-    console.error(
-      "❌ Update Personal Details Error:",
-      error.response?.data || error.message
-    );
->>>>>>> 80be7a6bfc8fb52d09af7289588fee218622af10
   }
 };
 
+// -------------------------------------------------------------
+// 🔹 USER EXPECTATIONS APIs
+// -------------------------------------------------------------
 export const saveUserExpectations = async (payload) => {
-  try{
-  const response= await axios.post(`${API}/user-personal/expectations`, payload, {
-    headers: getAuthHeaders(),
-  });
-  return response
-}catch(err){
-console.error("❌ Save Expectations Error:", err.response?.data || err.message);
-}
+  try {
+    const response = await axios.post(`${API}/user-personal/expectations`, payload, {
+      headers: getAuthHeaders(),
+    });
+    return response;
+  } catch (error) {
+    console.error("❌ Save Expectations Error:", error.response?.data || error.message);
+  }
 };
 
 export const getUserExpectations = async () => {
@@ -190,41 +206,32 @@ export const getUserExpectations = async () => {
     });
     return response;
   } catch (error) {
-    console.error(
-      "❌ Get User Expectations Error:",
-      error.response?.data || error.message
-    );
-  }
-};
-export const updateUserExpectations = async (payload) => {
-  try {
-    const response = await axios.put(
-      `${API}/user-personal/expectations`,
-      payload,
-      {
-        headers: getAuthHeaders(),
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error(
-      "❌ Update Expectations Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Get User Expectations Error:", error.response?.data || error.message);
   }
 };
 
-export const getUserHealth = async () => {
+export const updateUserExpectations = async (payload) => {
   try {
-    const res = await axios.get(`${API}/user-personal/health`, {
+    const response = await axios.put(`${API}/user-personal/expectations`, payload, {
       headers: getAuthHeaders(),
     });
-    return res;
+    return response.data;
   } catch (error) {
-    console.error(
-      "❌ Get User Health Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Update Expectations Error:", error.response?.data || error.message);
+  }
+};
+
+// -------------------------------------------------------------
+// 🔹 USER HEALTH APIs
+// -------------------------------------------------------------
+export const getUserHealth = async () => {
+  try {
+    const response = await axios.get(`${API}/user-personal/health`, {
+      headers: getAuthHeaders(),
+    });
+    return response;
+  } catch (error) {
+    console.error("❌ Get User Health Error:", error.response?.data || error.message);
   }
 };
 
@@ -235,10 +242,7 @@ export const saveUserHealth = async (payload) => {
     });
     return response;
   } catch (error) {
-    console.error(
-      "❌ Save User Health Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Save User Health Error:", error.response?.data || error.message);
   }
 };
 
@@ -249,60 +253,49 @@ export const updateUserHealth = async (payload) => {
     });
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Update User Health Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Update User Health Error:", error.response?.data || error.message);
   }
 };
 
+// -------------------------------------------------------------
+// 🔹 USER PROFESSION APIs
+// -------------------------------------------------------------
 export const getUserProfession = async () => {
   try {
-    const res = await axios.get(`${API}/user-personal/profession`, {
+    const response = await axios.get(`${API}/user-personal/profession`, {
       headers: getAuthHeaders(),
     });
-    return res;
+    return response;
   } catch (error) {
-    console.error(
-      "❌ Get Profession Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Get Profession Error:", error.response?.data || error.message);
   }
 };
 
 export const saveUserProfession = async (payload) => {
   try {
-    const res = await axios.post(`${API}/user-personal/profession`, payload, {
+    const response = await axios.post(`${API}/user-personal/profession`, payload, {
       headers: getAuthHeaders(),
     });
-
-    return res;
+    return response;
   } catch (error) {
-    console.error(
-      "❌ Save Profession Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Save Profession Error:", error.response?.data || error.message);
   }
 };
 
 export const updateUserProfession = async (payload) => {
   try {
-    const response = await axios.put(
-      `${API}/user-personal/profession`,
-      payload,
-      {
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await axios.put(`${API}/user-personal/profession`, payload, {
+      headers: getAuthHeaders(),
+    });
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Update Profession Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Update Profession Error:", error.response?.data || error.message);
   }
 };
 
+// -------------------------------------------------------------
+// 🔹 USER FAMILY DETAILS APIs
+// -------------------------------------------------------------
 export const getUserFamilyDetails = async () => {
   try {
     const response = await axios.get(`${API}/user-personal/family/`, {
@@ -310,10 +303,7 @@ export const getUserFamilyDetails = async () => {
     });
     return response;
   } catch (error) {
-    console.error(
-      "❌ Get Family Details Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Get Family Details Error:", error.response?.data || error.message);
   }
 };
 
@@ -335,13 +325,13 @@ export const updateUserFamilyDetails = async (payload) => {
     });
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Update Family Details Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Update Family Details Error:", error.response?.data || error.message);
   }
 };
 
+// -------------------------------------------------------------
+// 🔹 USER EDUCATION APIs
+// -------------------------------------------------------------
 export const getEducationalDetails = async () => {
   try {
     const response = await axios.get(`${API}/user-personal/education/`, {
@@ -349,16 +339,13 @@ export const getEducationalDetails = async () => {
     });
     return response;
   } catch (error) {
-    console.error(
-      "❌ Get Educational Details Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Get Educational Details Error:", error.response?.data || error.message);
   }
 };
 
-export const saveEducationalDetails = async (data) => {
+export const saveEducationalDetails = async (payload) => {
   try {
-    const response = await axios.post(`${API}/user-personal/education/`, data, {
+    const response = await axios.post(`${API}/user-personal/education/`, payload, {
       headers: getAuthHeaders(),
     });
     return response;
@@ -369,50 +356,36 @@ export const saveEducationalDetails = async (data) => {
 
 export const updateEducationalDetails = async (payload) => {
   try {
-    const response = await axios.put(
-      `${API}/user-personal/education/`,
-      payload,
-      {
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await axios.put(`${API}/user-personal/education/`, payload, {
+      headers: getAuthHeaders(),
+    });
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Update Educational Details Error:",
-      error.response?.data || error.message
-    );
-  }
-};
-// ✅ Update onboarding progress (PUT request)
-export const updateOnboardingStatus = async (payload) => {
-  try {
-    const response = await axios.put(
-      `${API}/user-personal/onboarding-status/`,
-      payload,
-      { headers: getAuthHeaders() }
-    );
-    return response.data;
-  } catch (error) {
-    console.error(
-      "❌ Update Onboarding Status Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Update Educational Details Error:", error.response?.data || error.message);
   }
 };
 
-// ✅ Get onboarding progress (GET request — no payload in GET)
+// -------------------------------------------------------------
+// 🔹 USER ONBOARDING STATUS APIs
+// -------------------------------------------------------------
 export const getOnboardingStatus = async () => {
   try {
-    const response = await axios.get(
-      `${API}/user-personal/onboarding-status/`,
-      { headers: getAuthHeaders() }
-    );
+    const response = await axios.get(`${API}/user-personal/onboarding-status/`, {
+      headers: getAuthHeaders(),
+    });
+    return response;
+  } catch (error) {
+    console.error("❌ Get Onboarding Status Error:", error.response?.data || error.message);
+  }
+};
+
+export const updateOnboardingStatus = async (payload) => {
+  try {
+    const response = await axios.put(`${API}/user-personal/onboarding-status/`, payload, {
+      headers: getAuthHeaders(),
+    });
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Get Onboarding Status Error:",
-      error.response?.data || error.message
-    );
+    console.error("❌ Update Onboarding Status Error:", error.response?.data || error.message);
   }
 };

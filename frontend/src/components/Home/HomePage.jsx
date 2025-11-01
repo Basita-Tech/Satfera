@@ -34,7 +34,7 @@ export default function HomePage() {
     <div className="min-h-screen w-full overflow-x-hidden bg-beige">
       {/* HEADER */}
       <header className="sticky top-0 z-50 shadow bg-[#ebe9e6]">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex flex-wrap justify-between items-center">
+        <div className="max-w-7xl mx-auto px-6 flex flex-wrap justify-between items-center">
 
           <div className="flex items-center mb-2 md:mb-0 bg-[#ebe9e6]">
             <img

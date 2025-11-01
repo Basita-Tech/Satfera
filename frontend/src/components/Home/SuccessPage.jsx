@@ -30,11 +30,13 @@ console.log('userData', userData)
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
-      <div className="bg-white shadow-xl rounded-3xl max-w-lg w-full p-8 md:p-10 text-center">
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-10">
+      <div
+        className="shadow-xl rounded-3xl max-w-lg w-full p-8 md:p-10 text-center"
+        style={{ backgroundColor: "#FBFAF7" }}
+      >
         {/* Logo */}
         <div className="flex items-center justify-center mb-6">
-          <i className="bi bi-heart-fill text-red-500 text-3xl mr-2"></i>
           <span className="text-2xl md:text-3xl font-bold text-gray-800">
             Satfera
           </span>
@@ -52,12 +54,12 @@ console.log('userData', userData)
           <h2 className="text-2xl font-bold text-gray-800 mb-1">
             Welcome, {userData?.name}!
           </h2>
-          <h3 className="text-green-600 font-semibold mb-2">
+          <h3 className="text-[#D4A052] font-semibold mb-2">
             Account Created Successfully!
           </h3>
-          <p className="text-gray-500">
-            Your account is now active with Satfera. Let’s complete your
-            profile to find the best matches.
+          <p className="text-gray-600">
+            Your account is now active with Satfera. Let’s complete your profile
+            to find the best matches.
           </p>
         </div>
 
@@ -65,27 +67,27 @@ console.log('userData', userData)
         <div className="flex flex-col gap-3 mb-6">
           <button
             onClick={handleCompleteProfile}
-            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#D4A052" }}
+            className="hover:opacity-90 text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
           >
             Complete Profile <i className="bi bi-arrow-right"></i>
           </button>
           <button
             onClick={handleSkip}
-            className="border border-gray-300 text-gray-700 hover:bg-gray-100 py-3 rounded-lg transition-all"
+            className="border border-[#D4A052] text-[#D4A052] hover:bg-[#D4A052]/10 py-3 rounded-lg transition-all"
           >
             Skip for Now
           </button>
         </div>
 
         {/* User Info */}
-        <div className="text-left p-4 bg-gray-50 rounded-lg shadow-inner mb-4 max-h-64 overflow-y-auto">
+        <div className="text-left p-4 bg-white/70 rounded-lg shadow-inner mb-4 max-h-64 overflow-y-auto">
           <h4 className="font-semibold text-gray-800 mb-2">
             Next Steps to Complete Your Profile:
           </h4>
-          <ul className="list-disc list-inside text-gray-600 space-y-1">
+          <ul className="list-disc list-inside text-gray-700 space-y-1">
             <li>
-              <strong>Full Name:</strong>{" "}
-              {userData.name}
+              <strong>Full Name:</strong> {userData.name}
             </li>
             <li>
               <strong>Email:</strong> {userData.email || "Not Provided"}
@@ -95,13 +97,10 @@ console.log('userData', userData)
               {userData.mobile ? `+${userData.mobile}` : "Not Provided"}
             </li>
             <li>Login to your SATFERA account using these details.</li>
-            <li>
-              Upload your ID proof (Aadhar, Driving Licence, or Passport).
-            </li>
+            <li>Upload your ID proof (Aadhar, Driving Licence, or Passport).</li>
             <li>Upload clear face & full-length photographs.</li>
             <li>
-              Complete personal details – education, profession, lifestyle,
-              etc.
+              Complete personal details – education, profession, lifestyle, etc.
             </li>
           </ul>
           <p className="text-gray-500 mt-2 text-sm">
@@ -110,7 +109,7 @@ console.log('userData', userData)
         </div>
 
         {/* Email Notification */}
-        <div className="bg-blue-50 text-blue-700 rounded-lg p-3 text-sm">
+        <div className="bg-[#FFF6E5] text-[#D4A052] rounded-lg p-3 text-sm">
           📧 We’ve sent a welcome email to your registered email address.
         </div>
       </div>

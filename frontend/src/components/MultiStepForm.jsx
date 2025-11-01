@@ -24,61 +24,35 @@ const MultiStepForm = () => {
   const [maxAllowedStep, setMaxAllowedStep] = useState("personal");
   const [loading, setLoading] = useState(true);
 
-  const location = useLocation();
   const navigate = useNavigate();
-
-  // ✅ Read step from URL
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const stepParam = queryParams.get("step");
-    if (stepParam && steps.some((s) => s.id === stepParam)) {
-      setCurrentStep(stepParam);
-    }
-  }, [location.search]);
 
   // ✅ Fetch onboarding progress
   useEffect(() => {
     const fetchProgress = async () => {
       try {
         setLoading(true);
-        const res = await getOnboardingStatus();
-        console.log("📥 Onboarding progress:", res);
+  const res = await getOnboardingStatus();
+  // API returns { success: true, data: { completedSteps: [...] } }
+  const savedSteps = res?.data?.data?.completedSteps || [];
+        console.log("📥 Onboarding progress from backend:", savedSteps);
 
-        const savedSteps = res?.data?.completedSteps || [];
         setCompletedSteps(savedSteps);
 
-        // ✅ Determine next allowed step
         let nextStep = "personal";
-        let maxAllowed = "personal";
-
-        if (res?.data?.redirectTo) {
-          const url = new URL(res.data.redirectTo, window.location.origin);
-          const stepParam =
-            url.searchParams.get("step") ||
-            url.searchParams.get("steps") ||
-            null;
-
-          if (stepParam && steps.some((s) => s.id === stepParam)) {
-            nextStep = stepParam;
-          }
-        } else {
-          // ✅ Find the next incomplete step
-          for (const s of steps) {
-            if (!savedSteps.includes(s.id)) {
-              nextStep = s.id;
-              break;
-            }
+        for (const s of steps) {
+          if (!savedSteps.includes(s.id)) {
+            nextStep = s.id;
+            break;
           }
         }
 
-        // ✅ Limit user access to last completed + 1 step
         const lastCompletedIndex =
           savedSteps.length > 0
             ? steps.findIndex((s) => s.id === savedSteps[savedSteps.length - 1])
-            : -1;
+            : 0;
 
         const maxAllowedIndex = Math.min(lastCompletedIndex + 1, steps.length - 1);
-        maxAllowed = steps[maxAllowedIndex].id;
+        const maxAllowed = steps[maxAllowedIndex].id;
 
         setMaxAllowedStep(maxAllowed);
         setCurrentStep(nextStep);
@@ -94,34 +68,25 @@ const MultiStepForm = () => {
     fetchProgress();
   }, []);
 
-  // ✅ Sync URL with current step
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    if (queryParams.get("step") !== currentStep) {
-      navigate(`/onboarding/user?step=${currentStep}`, { replace: true });
-    }
-  }, [currentStep]);
-
-  // ✅ Handle Next
+  // ✅ Save progress and go to next
   const handleNext = async (stepId) => {
     const updatedSteps = [...new Set([...completedSteps, stepId])];
-    const nextIndex = steps.findIndex((s) => s.id === stepId) + 1;
-
     setCompletedSteps(updatedSteps);
 
     try {
-      if (currentStep.includes("expectation")) {
-        console.log("🎉 Onboarding process completed!", currentStep.includes("expectation"));
-        const res = await updateOnboardingStatus({ completedSteps: updatedSteps, isOnboardingCompleted: true });
-        console.log("✅ Onboarding completed:", res);
+      if (stepId === "expectation") {
+        await updateOnboardingStatus({
+          completedSteps: updatedSteps,
+          isOnboardingCompleted: true,
+        });
+        alert("🎉 Onboarding completed successfully!");
       } else {
-        const RES = await updateOnboardingStatus({ completedSteps: updatedSteps });
-        console.log("✅ Onboarding status updated:", RES);
+        await updateOnboardingStatus({ completedSteps: updatedSteps });
+        const nextIndex = steps.findIndex((s) => s.id === stepId) + 1;
         if (nextIndex < steps.length) {
           const nextStep = steps[nextIndex].id;
           setCurrentStep(nextStep);
-        } else {
-          alert("🎉 Profile completed successfully!");
+          navigate(`/onboarding/user?step=${nextStep}`, { replace: true });
         }
       }
     } catch (err) {
@@ -132,18 +97,19 @@ const MultiStepForm = () => {
   const handlePrevious = (stepId) => {
     const prevIndex = steps.findIndex((s) => s.id === stepId) - 1;
     if (prevIndex >= 0) {
-      setCurrentStep(steps[prevIndex].id);
+      const prevStep = steps[prevIndex].id;
+      setCurrentStep(prevStep);
+      navigate(`/onboarding/user?step=${prevStep}`, { replace: true });
     }
   };
 
-  // ✅ Prevent skipping ahead
   const handleStepClick = (id) => {
-    const currentIndex = steps.findIndex((s) => s.id === currentStep);
     const clickedIndex = steps.findIndex((s) => s.id === id);
     const maxAllowedIndex = steps.findIndex((s) => s.id === maxAllowedStep);
 
     if (clickedIndex <= maxAllowedIndex) {
       setCurrentStep(id);
+      navigate(`/onboarding/user?step=${id}`, { replace: true });
     } else {
       alert("⚠️ You can only go one step ahead of your last completed step.");
     }
@@ -152,7 +118,12 @@ const MultiStepForm = () => {
   const renderStep = () => {
     switch (currentStep) {
       case "personal":
-        return <PersonalDetails onNext={() => handleNext("personal")} />;
+        return (
+          <PersonalDetails
+            onNext={() => handleNext("personal")}
+            isCompleted={completedSteps.includes("personal")}
+          />
+        );
       case "family":
         return (
           <FamilyDetails

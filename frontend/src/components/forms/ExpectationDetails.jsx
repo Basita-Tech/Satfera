@@ -19,7 +19,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   });
 
   const [errors, setErrors] = useState({});
-  // const [hasExistingData, setHasExistingData] = useState(false);
+  const [hasExistingData, setHasExistingData] = useState(false);
 
   const maritalStatuses = [
     "Any",
@@ -41,7 +41,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   ];
 
   const castOptions = [
-    
+
     "Patel-Desai",
     "Patel-Kadva",
     "Patel-Leva",
@@ -98,18 +98,40 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     // Enforce age limits
     if (field === "preferredAgeFrom" || field === "preferredAgeTo") {
       let num = Number(value);
-      if (num < 18) num = 18;
-      if (num > 40) num = 40;
-      value = num;
+      if (Number.isNaN(num)) num = "";
+      else {
+        if (num < 18) num = 18;
+        if (num > 40) num = 40;
+      }
+      // store as string so it matches the option value type
+      value = num === "" ? "" : String(num);
     }
+
+    // Clear error immediately when a value is provided
+    const shouldClearError = 
+      (Array.isArray(value) && value.length > 0) || // For multi-select
+      (typeof value === 'string' && value.trim() !== '') || // For text/select
+      (value && typeof value === 'object' && Object.keys(value).length > 0); // For single select objects
 
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-      ...(field === "partnerLocation" ? { partnerStateOrCountry: "" } : {}),
+      // keep partnerStateOrCountry as an array (react-select expects array for isMulti)
+      ...(field === "partnerLocation" ? { partnerStateOrCountry: [] } : {}),
     }));
 
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    if (shouldClearError) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        
+        // Clear related field errors
+        if (field === 'partnerLocation') {
+          delete newErrors.partnerStateOrCountry;
+        }
+        return newErrors;
+      });
+    }
   };
 
   // Form validation
@@ -159,22 +181,22 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     const mapHabits = (val) => {
       if (!val) return val;
       const v = String(val).toLowerCase();
-      if (v === "yes") return "yes";
-      if (v === "no") return "no";
       if (v === "occasional" || v === "occasionally") return "occasionally";
       return v;
     };
+
 
     const payload = {
       age: {
         from: Number(formData.preferredAgeFrom) || 18,
         to: Number(formData.preferredAgeTo) || 40,
       },
-      maritalStatus: formData.maritalStatus,
+      maritalStatus: formData.maritalStatus.map((x) => x.value),
       isConsumeAlcoholic: mapHabits(formData.openToPartnerHabits),
-      educationLevel: formData.partnerEducation,
-      community: formData.partnerCommunity,
-      profession: formData.profession,
+      educationLevel: formData.partnerEducation.map((x) => x.value),
+      community: formData.partnerCommunity.map((x) => x.value),
+      diet: formData.partnerDiet?.map((x) => x.value) || [],
+      profession: formData.profession.map((x) => x.value),
     };
 
     // ✅ Handle partner location logic
@@ -186,42 +208,73 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     } else {
       payload.livingInCountry = "No preference";
     }
+    console.log(formData)
 
-   try {
-  const existing = await getUserExpectations();
-  let res;
+    try {
+      const existing = await getUserExpectations();
+      let res;
 
-  if (existing?.data) {
-    res = await updateUserExpectations(payload);
-    alert("✅ Expectations updated successfully!");
-  } else {
-    res = await saveUserExpectations(payload);
-    alert("✅ Expectations saved successfully!");
-  }
+      if (existing?.data) {
+        res = await updateUserExpectations(payload);
+        alert("✅ Expectations updated successfully!");
+      } else {
+        res = await saveUserExpectations(payload);
+        alert("✅ Expectations saved successfully!");
+      }
 
-  // 🔄 Re-fetch updated data from backend
-  const updated = await getUserExpectations();
-  if (updated?.data?.data) {
-    const data = updated.data.data;
-    setFormData((prev) => ({
-      ...prev,
-      partnerLocation: data.livingInCountry === "India" ? "India" :
-                       data.livingInCountry === "No preference" ? "No preference" : "Abroad",
-      openToPartnerHabits: data.isConsumeAlcoholic ? "Yes" : "No",
-      partnerEducation: data.educationLevel || [],
-      partnerCommunity: data.community || [],
-      profession: data.profession || [],
-      maritalStatus: data.maritalStatus || [],
-      preferredAgeFrom: data.age?.from || "",
-      preferredAgeTo: data.age?.to || "",
-    }));
-  }
+      // 🔄 Re-fetch updated data from backend
+      const updated = await getUserExpectations();
+      if (updated?.data?.data) {
+        const data = updated.data.data;
 
-  // 👉 Move to next only after refresh
-  onNext?.("expectation");
-} catch (err) {
-  console.error("❌ Save failed", err);
-}
+        const determinePartnerLocation = (livingInCountry) => {
+          if (!livingInCountry) return "No preference";
+          if (typeof livingInCountry === "string") {
+            if (livingInCountry === "India") return "India";
+            if (livingInCountry === "No preference") return "No preference";
+            return "Abroad";
+          }
+          if (Array.isArray(livingInCountry)) {
+            const countryValues = livingInCountry.map((c) => c.value || c);
+            if (countryValues.includes("India")) return "India";
+            return "Abroad";
+          }
+          return "No preference";
+        };
+
+        const mapHabitDisplay = (val) => {
+          if (!val) return "";
+          if (String(val).toLowerCase() === "yes") return "Yes";
+          if (String(val).toLowerCase() === "no") return "No";
+          if (String(val).toLowerCase() === "occasionally") return "Occasional";
+          return String(val);
+        };
+
+        const partnerLocation = determinePartnerLocation(data.livingInCountry);
+
+        setFormData((prev) => ({
+          ...prev,
+          partnerLocation,
+          partnerStateOrCountry:
+            partnerLocation === "India"
+              ? (data.livingInState?.map((s) => ({ value: s, label: s })) || [])
+              : partnerLocation === "Abroad"
+                ? (data.livingInCountry?.map((c) => ({ value: c.value || c, label: c.label || c })) || [])
+                : [],
+          openToPartnerHabits: mapHabitDisplay(data.isConsumeAlcoholic),
+           preferredAgeFrom: data.age?.from !== undefined && data.age?.from !== null ? String(data.age.from) : "",
+           preferredAgeTo: data.age?.to !== undefined && data.age?.to !== null ? String(data.age.to) : "",
+          profession: data.profession?.map((e) => ({ value: e, label: e })) || [],
+          maritalStatus: data.maritalStatus?.map((e) => ({ value: e, label: e })) || [],
+          partnerDiet: data.diet?.map((e) => ({ value: e, label: e })) || [],
+        }));
+      }
+
+      // 👉 Move to next only after refresh
+      onNext?.("expectation");
+    } catch (err) {
+      console.error("❌ Save failed", err);
+    }
 
 
   };
@@ -243,9 +296,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             return "Abroad";
           }
           if (Array.isArray(data.livingInCountry)) {
-            if (data.livingInCountry.includes("India")) return "India";
+            const countryValues = data.livingInCountry.map(c => c.value || c);
+            if (countryValues.includes("India")) return "India";
             return "Abroad";
           }
+
           return "No preference";
         })();
 
@@ -262,17 +317,22 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           partnerLocation,
           partnerStateOrCountry:
             partnerLocation === "India"
-              ? data.livingInState || ""
+              ? (data.livingInState?.map(s => ({ value: s, label: s })) || [])
               : partnerLocation === "Abroad"
-                ? data.livingInCountry || ""
-                : "",
+                ? (data.livingInCountry?.map(c => ({
+                  value: c.value || c,
+                  label: c.label || c
+                })) || [])
+                : [],
+
           openToPartnerHabits: mapHabitsDisplay(data.isConsumeAlcoholic),
-          partnerEducation: data.educationLevel || "",
-          partnerCommunity: data.community || "",
-          profession: data.profession || "",
-          maritalStatus: data.maritalStatus || "",
-          preferredAgeFrom: data.age?.from || "",
-          preferredAgeTo: data.age?.to || "",
+          partnerEducation: data.educationLevel?.map((e) => ({ value: e, label: e })) || [],
+          partnerCommunity: data.community?.map((e) => ({ value: e, label: e })) || [],
+          profession: data.profession?.map((e) => ({ value: e, label: e })) || [],
+          maritalStatus: data.maritalStatus?.map((e) => ({ value: e, label: e })) || [],
+          preferredAgeFrom: data.age?.from !== undefined && data.age?.from !== null ? String(data.age.from) : "",
+          preferredAgeTo: data.age?.to !== undefined && data.age?.to !== null ? String(data.age.to) : "",
+          partnerDiet: data.diet?.map((e) => ({ value: e, label: e })) || [], 
         }));
       })
       .catch((err) => {
@@ -350,6 +410,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                         ]);
                       } else {
                         handleChange("partnerStateOrCountry", selectedOptions || []);
+                      }
+                      // Clear error when options are selected
+                      if (selectedOptions && selectedOptions.length > 0) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.partnerStateOrCountry;
+                          return newErrors;
+                        });
                       }
                     }}
                     placeholder={
@@ -551,98 +619,98 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
 
 
-{/* Community / Caste */}
-<div className="mt-6">
-  <label className="block text-sm font-medium mb-1">
-    Community / Caste
-  </label>
+          {/* Community / Caste */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium mb-1">
+              Community / Caste
+            </label>
 
-  <div className="w-full">
-    <Select
-      isMulti
-      name="partnerCommunity"
-      options={[
-        { value: "Any", label: "Any" },
-        ...castOptions.map((caste) => ({
-          value: caste,
-          label: caste,
-        })),
-      ]}
-      value={formData.partnerCommunity}
-      onChange={(selectedOptions) => {
-        // ✅ If "Any" is selected, keep only that option
-        if (selectedOptions?.some((opt) => opt.value === "Any")) {
-          handleChange("partnerCommunity", [{ value: "Any", label: "Any" }]);
-        } else {
-          handleChange("partnerCommunity", selectedOptions || []);
-        }
-      }}
-      placeholder="Select one or multiple"
-      classNamePrefix="react-select"
-      components={{
-        IndicatorSeparator: () => null, // ✅ removes divider line
-      }}
-      styles={{
-        control: (base, state) => ({
-          ...base,
-          borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-          boxShadow: "none",
-          borderRadius: "0.5rem",
-          backgroundColor: "#fff",
-          minHeight: "50px", // ✅ consistent height
-          display: "flex",
-          alignItems: "center",
-          fontSize: "0.875rem",
-          transition: "all 0.2s ease",
-          "&:hover": {
-            borderColor: "#D4A052",
-          },
-        }),
-        valueContainer: (base) => ({
-          ...base,
-          padding: "0 8px",
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          flexWrap: "wrap",
-        }),
-        input: (base) => ({
-          ...base,
-          margin: 0,
-          padding: 0,
-        }),
-        multiValue: (base) => ({
-          ...base,
-          backgroundColor: "#F9F7F5",
-          borderRadius: "0.5rem",
-          padding: "0 6px",
-        }),
-        multiValueLabel: (base) => ({
-          ...base,
-          color: "#111827",
-          fontSize: "0.875rem",
-        }),
-        multiValueRemove: (base) => ({
-          ...base,
-          color: "#6b7280",
-          ":hover": {
-            backgroundColor: "#D4A052",
-            color: "white",
-          },
-        }),
-        menu: (base) => ({
-          ...base,
-          zIndex: 9999,
-          borderRadius: "0.75rem",
-        }),
-      }}
-    />
-  </div>
+            <div className="w-full">
+              <Select
+                isMulti
+                name="partnerCommunity"
+                options={[
+                  { value: "Any", label: "Any" },
+                  ...castOptions.map((caste) => ({
+                    value: caste,
+                    label: caste,
+                  })),
+                ]}
+                value={formData.partnerCommunity}
+                onChange={(selectedOptions) => {
+                  // ✅ If "Any" is selected, keep only that option
+                  if (selectedOptions?.some((opt) => opt.value === "Any")) {
+                    handleChange("partnerCommunity", [{ value: "Any", label: "Any" }]);
+                  } else {
+                    handleChange("partnerCommunity", selectedOptions || []);
+                  }
+                }}
+                placeholder="Select one or multiple"
+                classNamePrefix="react-select"
+                components={{
+                  IndicatorSeparator: () => null, // ✅ removes divider line
+                }}
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+                    boxShadow: "none",
+                    borderRadius: "0.5rem",
+                    backgroundColor: "#fff",
+                    minHeight: "50px", // ✅ consistent height
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "0.875rem",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      borderColor: "#D4A052",
+                    },
+                  }),
+                  valueContainer: (base) => ({
+                    ...base,
+                    padding: "0 8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    flexWrap: "wrap",
+                  }),
+                  input: (base) => ({
+                    ...base,
+                    margin: 0,
+                    padding: 0,
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#F9F7F5",
+                    borderRadius: "0.5rem",
+                    padding: "0 6px",
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: "#111827",
+                    fontSize: "0.875rem",
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#6b7280",
+                    ":hover": {
+                      backgroundColor: "#D4A052",
+                      color: "white",
+                    },
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 9999,
+                    borderRadius: "0.75rem",
+                  }),
+                }}
+              />
+            </div>
 
-  {errors.partnerCommunity && (
-    <p className="text-red-500 text-sm mt-1">{errors.partnerCommunity}</p>
-  )}
-</div>
+            {errors.partnerCommunity && (
+              <p className="text-red-500 text-sm mt-1">{errors.partnerCommunity}</p>
+            )}
+          </div>
 
           {/* Diet Preference */}
           <div className="mt-6">
@@ -661,8 +729,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   { value: "Eggetarian", label: "Eggetarian" },
                   { value: "Jain", label: "Jain" },
                   { value: "Swaminarayan", label: "Swaminarayan" },
-                  { value: "Veg", label: "Veg" },
-                  { value: "Non-Veg", label: "Non-Veg" },
+                  { value: "Veg & Non-Veg", label: "Veg & Non-veg" },
+                  
                 ]}
                 value={formData.partnerDiet}
                 onChange={(selectedOptions) => {
@@ -847,92 +915,92 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
 
           {/* Legal / Marital Status */}
-<div className="mt-6">
-  <label className="block text-sm font-medium mb-1">
-    Legal / Marital Status
-  </label>
+          <div className="mt-6">
+            <label className="block text-sm font-medium mb-1">
+              Legal / Marital Status
+            </label>
 
-  <div className="w-full">
-    <Select
-      isMulti
-      name="maritalStatus"
-      options={maritalStatuses.map((status) => ({
-        value: status,
-        label: status,
-      }))}
-      value={formData.maritalStatus}
-      onChange={(selectedOptions) => {
-        // ✅ If "Any" is selected, keep only that option
-        if (selectedOptions?.some((opt) => opt.value === "Any")) {
-          handleChange("maritalStatus", [{ value: "Any", label: "Any" }]);
-        } else {
-          handleChange("maritalStatus", selectedOptions || []);
-        }
-      }}
-      placeholder="Select one or multiple"
-      classNamePrefix="react-select"
-      components={{
-        IndicatorSeparator: () => null, // ✅ removes divider line
-      }}
-      styles={{
-        control: (base, state) => ({
-          ...base,
-          borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-          boxShadow: "none",
-          borderRadius: "0.5rem",
-          backgroundColor: "#fff",
-          minHeight: "50px",
-          display: "flex",
-          alignItems: "center",
-          fontSize: "0.875rem",
-          transition: "all 0.2s ease",
-          "&:hover": { borderColor: "#D4A052" },
-        }),
-        valueContainer: (base) => ({
-          ...base,
-          padding: "0 8px",
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          flexWrap: "wrap",
-        }),
-        input: (base) => ({
-          ...base,
-          margin: 0,
-          padding: 0,
-        }),
-        multiValue: (base) => ({
-          ...base,
-          backgroundColor: "#F9F7F5",
-          borderRadius: "0.5rem",
-          padding: "0 6px",
-        }),
-        multiValueLabel: (base) => ({
-          ...base,
-          color: "#111827",
-          fontSize: "0.875rem",
-        }),
-        multiValueRemove: (base) => ({
-          ...base,
-          color: "#6b7280",
-          ":hover": {
-            backgroundColor: "#D4A052",
-            color: "white",
-          },
-        }),
-        menu: (base) => ({
-          ...base,
-          zIndex: 9999,
-          borderRadius: "0.75rem",
-        }),
-      }}
-    />
-  </div>
+            <div className="w-full">
+              <Select
+                isMulti
+                name="maritalStatus"
+                options={maritalStatuses.map((status) => ({
+                  value: status,
+                  label: status,
+                }))}
+                value={formData.maritalStatus}
+                onChange={(selectedOptions) => {
+                  // ✅ If "Any" is selected, keep only that option
+                  if (selectedOptions?.some((opt) => opt.value === "Any")) {
+                    handleChange("maritalStatus", [{ value: "Any", label: "Any" }]);
+                  } else {
+                    handleChange("maritalStatus", selectedOptions || []);
+                  }
+                }}
+                placeholder="Select one or multiple"
+                classNamePrefix="react-select"
+                components={{
+                  IndicatorSeparator: () => null, // ✅ removes divider line
+                }}
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+                    boxShadow: "none",
+                    borderRadius: "0.5rem",
+                    backgroundColor: "#fff",
+                    minHeight: "50px",
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "0.875rem",
+                    transition: "all 0.2s ease",
+                    "&:hover": { borderColor: "#D4A052" },
+                  }),
+                  valueContainer: (base) => ({
+                    ...base,
+                    padding: "0 8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    flexWrap: "wrap",
+                  }),
+                  input: (base) => ({
+                    ...base,
+                    margin: 0,
+                    padding: 0,
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#F9F7F5",
+                    borderRadius: "0.5rem",
+                    padding: "0 6px",
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: "#111827",
+                    fontSize: "0.875rem",
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#6b7280",
+                    ":hover": {
+                      backgroundColor: "#D4A052",
+                      color: "white",
+                    },
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    zIndex: 9999,
+                    borderRadius: "0.75rem",
+                  }),
+                }}
+              />
+            </div>
 
-  {errors.maritalStatus && (
-    <p className="text-red-500 text-sm mt-1">{errors.maritalStatus}</p>
-  )}
-</div>
+            {errors.maritalStatus && (
+              <p className="text-red-500 text-sm mt-1">{errors.maritalStatus}</p>
+            )}
+          </div>
 
 
           {/* Preferred Age */}
@@ -948,7 +1016,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
               >
                 <option value="">From</option>
                 {Array.from({ length: 23 }, (_, i) => 18 + i).map((age) => (
-                  <option key={age} value={age}>
+                  <option key={age} value={String(age)}>
                     {age}
                   </option>
                 ))}
@@ -969,7 +1037,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                       !formData.preferredAgeFrom || age >= Number(formData.preferredAgeFrom)
                   )
                   .map((age) => (
-                    <option key={age} value={age}>
+                    <option key={age} value={String(age)}>
                       {age}
                     </option>
                   ))}

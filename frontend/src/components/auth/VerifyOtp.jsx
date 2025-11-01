@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  verifySmsOtp,
-  verifyEmailOtp,
-  sendSmsOtp,
-  sendEmailOtp,
-} from "../../api/auth";
+import { verifyEmailOtp, sendEmailOtp } from "../../api/auth";
 
 const OTP_VALID_TIME = 180; // 3 minutes
 const RESEND_AFTER = 60; // 1 minute
@@ -15,227 +10,210 @@ const LOCK_DURATION = 24 * 60 * 60 * 1000; // 24 hours in ms
 const VerifyOTP = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { email, mobile, name, countryCode } = location.state || {};
+  const { email, name, mobile, countryCode } = location.state || {};
 
   const [emailOtp, setEmailOtp] = useState(Array(6).fill(""));
-  const [mobileOtp, setMobileOtp] = useState(Array(6).fill(""));
-
   const [emailCountdown, setEmailCountdown] = useState(OTP_VALID_TIME);
-  const [mobileCountdown, setMobileCountdown] = useState(OTP_VALID_TIME);
-
   const [resendAttemptsEmail, setResendAttemptsEmail] = useState(0);
-  const [resendAttemptsMobile, setResendAttemptsMobile] = useState(0);
-
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [isMobileVerified, setIsMobileVerified] = useState(false);
-
-  const [isLocked, setIsLocked] = useState({ email: false, mobile: false });
+  const [isLocked, setIsLocked] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  // Load lock state
+  // Load lock state from localStorage
   useEffect(() => {
     const lockData = JSON.parse(localStorage.getItem("otpLock")) || {};
     const now = Date.now();
-    let updated = false;
 
-    Object.keys(lockData).forEach((key) => {
-      if (now - lockData[key] >= LOCK_DURATION) {
-        delete lockData[key];
-        updated = true;
-      }
-    });
+    if (lockData[email] && now - lockData[email] < LOCK_DURATION) {
+      setIsLocked(true);
+    } else if (lockData[email]) {
+      delete lockData[email];
+      localStorage.setItem("otpLock", JSON.stringify(lockData));
+    }
+  }, [email]);
 
-    if (updated) localStorage.setItem("otpLock", JSON.stringify(lockData));
-
-    if (email && lockData[email])
-      setIsLocked((prev) => ({ ...prev, email: true }));
-    if (mobile && lockData[mobile])
-      setIsLocked((prev) => ({ ...prev, mobile: true }));
-  }, [email, mobile]);
-
-  // Redirect if no email or mobile
+  // Redirect if no email
   useEffect(() => {
-    if (!email && !mobile) navigate("/signup");
-  }, [email, mobile, navigate]);
+    if (!email) navigate("/signup");
+  }, [email, navigate]);
 
-  // Countdown timers
+  // Countdown timer
   useEffect(() => {
-    if (emailCountdown > 0 && !isEmailVerified && !isLocked.email) {
+    if (emailCountdown > 0 && !isEmailVerified && !isLocked) {
       const t = setInterval(() => setEmailCountdown((p) => p - 1), 1000);
       return () => clearInterval(t);
     }
-  }, [emailCountdown, isEmailVerified, isLocked.email]);
+  }, [emailCountdown, isEmailVerified, isLocked]);
 
-  useEffect(() => {
-    if (mobileCountdown > 0 && !isMobileVerified && !isLocked.mobile) {
-      const t = setInterval(() => setMobileCountdown((p) => p - 1), 1000);
-      return () => clearInterval(t);
-    }
-  }, [mobileCountdown, isMobileVerified, isLocked.mobile]);
+  // Redirect after success
+  // navigation is handled after showing a short success message (see submit handler)
 
-  // Redirect when verified
-  useEffect(() => {
-    if (
-      (email && isEmailVerified && !mobile) ||
-      (mobile && isMobileVerified && !email) ||
-      (isEmailVerified && isMobileVerified)
-    ) {
-      navigate("/success", {
-        state: { name: name, email, mobile },
-      });
-    }
-  }, [isEmailVerified, isMobileVerified, email, mobile, name, navigate]);
-
-  // OTP input handler
-  const handleOtpChange = (type, index, value) => {
+  // Handle OTP input
+  const handleOtpChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
-    const otpArray = type === "email" ? [...emailOtp] : [...mobileOtp];
+    if (isVerifying) return; // prevent changes while verifying
+    const otpArray = [...emailOtp];
     otpArray[index] = value;
-    type === "email" ? setEmailOtp(otpArray) : setMobileOtp(otpArray);
-
+    setEmailOtp(otpArray);
     if (value && index < 5) {
-      const nextInput = document.getElementById(`${type}-otp-${index + 1}`);
-      nextInput?.focus();
+      document.getElementById(`email-otp-${index + 1}`)?.focus();
     }
   };
 
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  // ✅ Resend handler (fixed)
-  const handleResend = async (type) => {
+  // Resend Email OTP
+  const handleResend = async () => {
     try {
-      if (type === "email") {
-        if (resendAttemptsEmail >= MAX_RESEND)
-          return alert("Email OTP locked for 24 hours");
-
-        const res = await sendEmailOtp({ email, type: "signup" });
-
-        if (res.success) {
-          alert("📧 Email OTP resent successfully!");
-          setEmailCountdown(OTP_VALID_TIME);
-          setResendAttemptsEmail(resendAttemptsEmail + 1);
-          setEmailOtp(Array(6).fill(""));
-        } else {
-          alert(res.message || "Failed to resend Email OTP");
-        }
+      // Check for max attempts
+      if (resendAttemptsEmail >= MAX_RESEND) {
+        setError("Email OTP locked for 24 hours");
+        return;
       }
 
-      if (type === "mobile") {
-        if (resendAttemptsMobile >= MAX_RESEND)
-          return alert("Mobile OTP locked for 24 hours");
+      // Prevent multiple requests
+      if (isVerifying) {
+        return;
+      }
 
-        const res = await sendSmsOtp({
-          countryCode,
-          phoneNumber: mobile,
-          type: "signup",
-        });
+      // Start loading state and clear messages
+      setIsVerifying(true);
+      setError("");
+      setSuccessMessage("");
 
-        if (res.success) {
-          alert("📱 Mobile OTP resent successfully!");
-          setMobileCountdown(OTP_VALID_TIME);
-          setResendAttemptsMobile(resendAttemptsMobile + 1);
-          setMobileOtp(Array(6).fill(""));
-        } else {
-          alert(res.message || "Failed to resend Mobile OTP");
-        }
+      // Log the attempt
+      console.log("🔄 Attempting to resend OTP to:", email);
+
+      // Send the request with required data
+      const res = await sendEmailOtp({ 
+        email,
+        type: "signup",
+        resendAttempt: resendAttemptsEmail + 1
+      });
+
+      // Handle various response formats
+      const isSuccess = !!(
+        res?.success || 
+        res?.data?.success || 
+        res?.data?.data?.success
+      );
+
+      if (isSuccess) {
+        // Update UI state for success
+        setEmailCountdown(OTP_VALID_TIME);
+        setResendAttemptsEmail(prev => prev + 1);
+        setEmailOtp(Array(6).fill(""));
+        setSuccessMessage("📧 New OTP sent! Please check your email inbox and spam folder.");
+
+        // Show instructions alert
+        alert("📧 OTP has been sent! Please:\n1. Check your email inbox\n2. Look in your spam/junk folder\n3. Wait a few minutes if not received immediately");
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccessMessage(""), 5000);
+      } else {
+        // Handle unsuccessful response
+        const message = res?.message || res?.data?.message || "Failed to send OTP. Please try again.";
+        console.error("❌ Send OTP failed:", message);
+        setError(message);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Error resending OTP");
+      // Handle error cases with detailed logging
+      console.error("❌ Resend OTP Error:", {
+        error: err,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+
+      // Set user-friendly error message
+      const errorMessage = err.response?.data?.message || 
+        "Unable to send OTP. Please check your internet connection and try again.";
+      setError(errorMessage);
+
+      // Reset attempts if there's a server error
+      if (err.response?.status >= 500) {
+        setResendAttemptsEmail(prev => Math.max(0, prev - 1));
+      }
+    } finally {
+      setIsVerifying(false);
     }
   };
 
-  // ✅ Verify OTP handler (fixed)
+  // Verify Email OTP
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
-    if (isLocked.email && isLocked.mobile) {
-      setError("OTP verification locked for 24 hours");
+    if (isLocked) {
+      setError("Email OTP verification locked for 24 hours");
       return;
     }
 
     const emailValue = emailOtp.join("");
-    const mobileValue = mobileOtp.join("");
-    let tempError = "";
+    if (emailValue.length < 6) {
+      setError("Enter 6-digit Email OTP");
+      return;
+    }
 
     try {
-      // 🔹 Email OTP
-      if (email && !isEmailVerified && !isLocked.email) {
-        if (emailValue.length < 6) {
-          tempError = "Enter 6-digit Email OTP";
-        } else {
-          const res = await verifyEmailOtp({
-            email,
-            otp: emailValue,
-            type: "signup",
+      if (isVerifying) return;
+      setIsVerifying(true);
+
+      const res = await verifyEmailOtp({ email, otp: emailValue, type: "signup" });
+
+      // Defensive checks: API might return different shapes
+      const ok = !!(
+        res?.success ||
+        res?.data?.success ||
+        res?.data?.data?.success
+      );
+
+      if (ok) {
+        setIsEmailVerified(true);
+        setSuccessMessage("✅ Email verified successfully!");
+        setError("");
+        // also show an alert for success
+        alert("✅ Email verified successfully!");
+
+        // store token if present in any likely location
+        const token = res?.token || res?.data?.token || res?.data?.data?.token;
+        if (token) localStorage.setItem("authToken", token);
+
+        // navigate after short delay so user sees the success message
+        setTimeout(() => {
+          navigate("/success", {
+            state: {
+              name,
+              email,
+              mobile: countryCode ? `${countryCode}${mobile}`.replace(/\+/, '') : mobile // Remove + and combine country code with mobile
+            }
           });
-
-          if (res.success) {
-            setIsEmailVerified(true);
-            alert("✅ Email verified successfully!");
-            // ✅ Store token if returned
-          if (res.token || res.data?.token) {
-            localStorage.setItem("authToken", res.token || res.data.token);
-          }
-          } else {
-            tempError = res.message || "Incorrect Email OTP";
-          }
-
-          if (res.failedAttempts >= MAX_RESEND) {
-            setIsLocked((prev) => ({ ...prev, email: true }));
-            const lockData =
-              JSON.parse(localStorage.getItem("otpLock")) || {};
-            lockData[email] = Date.now();
-            localStorage.setItem("otpLock", JSON.stringify(lockData));
-            alert("Email OTP locked for 24 hours");
-          }
-        }
+        }, 1100);
+      } else {
+        // prefer message from common locations
+        const message =
+          res?.message || res?.data?.message || res?.data?.data?.message ||
+          "Incorrect Email OTP";
+        setError(message);
+        setSuccessMessage("");
       }
 
-      // 🔹 Mobile OTP
-      if (mobile && !isMobileVerified && !isLocked.mobile) {
-        if (mobileValue.length < 6) {
-          tempError = tempError
-            ? tempError + " | Enter 6-digit Mobile OTP"
-            : "Enter 6-digit Mobile OTP";
-        } else {
-          const res = await verifySmsOtp({
-            phoneNumber: mobile,
-            code: mobileValue,
-            countryCode,
-          });
-
-          if (res.success) {
-            setIsMobileVerified(true);
-            
-            alert("✅ Mobile verified successfully!");
-            // ✅ Store token if returned
-          if (res.token || res.data?.token) {
-            localStorage.setItem("authToken", res.token || res.data.token);
-          }
-          } else {
-            tempError =
-              tempError +
-                " | " +
-                (res.message || "Incorrect Mobile OTP") || res.message;
-          }
-
-          if (res.failedAttempts >= MAX_RESEND) {
-            setIsLocked((prev) => ({ ...prev, mobile: true }));
-            const lockData =
-              JSON.parse(localStorage.getItem("otpLock")) || {};
-            lockData[mobile] = Date.now();
-            localStorage.setItem("otpLock", JSON.stringify(lockData));
-            alert("Mobile OTP locked for 24 hours");
-          }
-        }
+      const attempts = res?.failedAttempts || res?.data?.failedAttempts || res?.data?.data?.failedAttempts || 0;
+      if (attempts >= MAX_RESEND) {
+        setIsLocked(true);
+        const lockData = JSON.parse(localStorage.getItem("otpLock")) || {};
+        lockData[email] = Date.now();
+        localStorage.setItem("otpLock", JSON.stringify(lockData));
+        alert("Email OTP locked for 24 hours");
       }
-
-      if (tempError) setError(tempError);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Email OTP Verification Error:", err);
       setError(err.response?.data?.message || "Error verifying OTP");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -284,122 +262,75 @@ const VerifyOTP = () => {
             ← Back
           </Link>
 
-          <h3 className="text-center mb-3">Verify OTP</h3>
+          <h3 className="text-center mb-3">Verify Email OTP</h3>
 
           <form onSubmit={handleSubmit}>
-            {/* 🔹 Email OTP */}
-            {email && (
-              <div className="mb-4">
-                <h6>Email OTP</h6>
-                <p className="text-muted small">{email}</p>
-                <div className="d-flex justify-content-between mb-2">
-                  {emailOtp.map((digit, idx) => (
+            <div className="mb-4">
+              <h6>Email OTP</h6>
+              <p className="text-muted small">{email}</p>
+              <div className="d-flex justify-content-between mb-2">
+                {emailOtp.map((digit, idx) => (
                     <input
-                      key={idx}
-                      id={`email-otp-${idx}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength="1"
-                      disabled={
-                        isEmailVerified || emailCountdown === 0 || isLocked.email
-                      }
-                      value={digit}
-                      onChange={(e) =>
-                        handleOtpChange("email", idx, e.target.value)
-                      }
-                      className="otp-input"
-                    />
-                  ))}
-                </div>
-                <div className="text-center small mt-2">
-                  {isEmailVerified ? (
-                    <span className="text-success">✅ Email Verified</span>
-                  ) : isLocked.email ? (
-                    <span className="text-danger">
-                      Email OTP locked for 24 hours
-                    </span>
-                  ) : emailCountdown <= 0 ? (
-                    <span className="text-danger">Email OTP expired</span>
-                  ) : (
-                    <>
-                      {(emailCountdown <= OTP_VALID_TIME - RESEND_AFTER ||emailCountdown<=0) &&
-                        resendAttemptsEmail < MAX_RESEND && (
-                          <button
-                            type="button"
-                            className="btn btn-link p-0"
-                            onClick={() => handleResend("email")}
-                          >
-                            Resend Email OTP
-                          </button>
-                        )}
-                      <span className="ms-2 text-muted">
-                        Valid for {formatTime(emailCountdown)}
-                      </span>
-                    </>
-                  )}
-                </div>
+                    key={idx}
+                    id={`email-otp-${idx}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength="1"
+                      disabled={isEmailVerified || emailCountdown === 0 || isLocked || isVerifying}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    className="otp-input"
+                  />
+                ))}
               </div>
-            )}
-
-            {/* 🔹 Mobile OTP */}
-            {mobile && (
-              <div className="mb-4">
-                <h6>Mobile OTP</h6>
-                <p className="text-muted small">
-                  {countryCode} {mobile}
-                </p>
-                <div className="d-flex justify-content-between mb-2">
-                  {mobileOtp.map((digit, idx) => (
-                    <input
-                      key={idx}
-                      id={`mobile-otp-${idx}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength="1"
-                      disabled={
-                        isMobileVerified ||
-                        mobileCountdown === 0 ||
-                        isLocked.mobile
-                      }
-                      value={digit}
-                      onChange={(e) =>
-                        handleOtpChange("mobile", idx, e.target.value)
-                      }
-                      className="otp-input"
-                    />
-                  ))}
-                </div>
-                <div className="text-center small mt-2">
-                  {isMobileVerified ? (
-                    <span className="text-success">✅ Mobile Verified</span>
-                  ) : isLocked.mobile ? (
-                    <span className="text-danger">
-                      Mobile OTP locked for 24 hours
+              <div className="text-center small mt-2">
+                {isVerifying ? (
+                  <span className="text-primary">Verifying...</span>
+                ) : isEmailVerified ? (
+                  <span className="text-success">✅ Email Verified</span>
+                ) : isLocked ? (
+                  <span className="text-danger">Email OTP locked for 24 hours</span>
+                ) : emailCountdown <= 0 ? (
+                  <>
+                    <span className="text-danger d-block mb-2">Email OTP expired</span>
+                    {resendAttemptsEmail < MAX_RESEND && (
+                      <button
+                        type="button"
+                        className="btn btn-link p-0"
+                        onClick={handleResend}
+                        disabled={isVerifying}
+                      >
+                        Resend Email OTP
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {(emailCountdown <= OTP_VALID_TIME - RESEND_AFTER ||
+                      emailCountdown <= 0) &&
+                      resendAttemptsEmail < MAX_RESEND && (
+                        <button
+                          type="button"
+                          className="btn btn-link p-0"
+                          onClick={handleResend}
+                          disabled={isVerifying}
+                        >
+                          Resend Email OTP
+                        </button>
+                      )}
+                    <span className="ms-2 text-muted">
+                      Valid for {formatTime(emailCountdown)}
                     </span>
-                  ) : mobileCountdown <= 0 ? (
-                    <span className="text-danger">Mobile OTP expired</span>
-                  ) : (
-                    <>
-                      {(mobileCountdown <= OTP_VALID_TIME - RESEND_AFTER ||mobileCountdown<=0) &&
-                        resendAttemptsMobile < MAX_RESEND && (
-                          <button
-                            type="button"
-                            className="btn btn-link p-0"
-                            onClick={() => handleResend("mobile")}
-                          >
-                            Resend Mobile OTP
-                          </button>
-                        )}
-                      <span className="ms-2 text-muted">
-                        Valid for {formatTime(mobileCountdown)}
-                      </span>
-                    </>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
-            )}
+            </div>
 
-            {error && <p className="text-danger text-center">{error}</p>}
+            {successMessage ? (
+              <p className="text-success text-center">{successMessage}</p>
+            ) : (
+              error && <p className="text-danger text-center">{error}</p>
+            )}
 
             <button
               type="submit"
@@ -409,9 +340,9 @@ const VerifyOTP = () => {
                 borderColor: "#D4A052",
                 color: "#fff",
               }}
-              disabled={isLocked.email && isLocked.mobile}
+              disabled={isLocked || isVerifying}
             >
-              Verify OTP
+              {isVerifying ? "Verifying..." : "Verify OTP"}
             </button>
           </form>
         </div>

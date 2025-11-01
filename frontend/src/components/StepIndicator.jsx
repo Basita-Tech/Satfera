@@ -7,7 +7,7 @@ const StepIndicator = ({ steps, completedSteps, currentStep, onStepClick }) => {
       {/* ✅ Satfera logo + text above the step indicator */}
       <div className="flex flex-col items-center mb-4">
         <span className="text-[#D4A052] font-semibold text-xl mb-1"></span>
-        <img src="/logo.png" width={150} height={150} alt="Satfera Logo" />
+        <img src="/logo.png" width={220} height={220} alt="Satfera Logo" />
       </div>
 
       {/* Step Indicator section */}

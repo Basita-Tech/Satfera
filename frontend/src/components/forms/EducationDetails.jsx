@@ -226,39 +226,54 @@ const handlePrevious = () => {
 
  const handleNext = async (e) => {
   e.preventDefault();
-  // if (!validateForm()) return;
-
   setLoading(true);
 
   try {
-    const submissionData = {
-      SchoolName: formData.schoolName,
-      HighestEducation: formData.highestEducation,
-      FieldOfStudy: formData.fieldOfStudy?.value || "",
-      University: formData.universityName,
-      CountryOfEducation: formData.countryOfEducation,
-      OtherCountry: formData.otherCountry || "",
+    // ✅ Universal cleanup — always returns string
+    const normalize = (val) => {
+      if (val === undefined || val === null) return "";
+      if (typeof val === "object") {
+        // unwrap possible select object structures
+        return (
+          val.value ||
+          val.label ||
+          val.text ||
+          val.name ||
+          ""
+        );
+      }
+      return String(val);
     };
 
-    console.log("🚀 Final submissionData being sent to API:", submissionData);
+    const submissionData = {
+      SchoolName: normalize(formData.schoolName),
+      HighestEducation: normalize(formData.highestEducation),
+      FieldOfStudy: normalize(formData.fieldOfStudy),
+      University: normalize(formData.universityName),
+      CountryOfEducation: normalize(formData.countryOfEducation),
+      OtherCountry: normalize(formData.otherCountry),
+    };
 
-    // ✅ Step 1: Check if education details already exist
+    console.log("🧾 FINAL submissionData BEFORE API:", submissionData);
+
+    // ✅ Sanity check — log types
+    Object.entries(submissionData).forEach(([k, v]) => {
+      console.log(`${k}:`, v, "| Type:", typeof v);
+    });
+
     const existing = await getEducationalDetails();
     let res;
 
     if (existing?.data?.data) {
-      // 🔹 Record exists → Update
       res = await updateEducationalDetails(submissionData);
-      console.log("✅ Education details updated:", res.data);
+      console.log("✅ Education details updated:", res?.data);
       alert("✅ Education details updated successfully!");
     } else {
-      // 🔹 No record → Create new
       res = await saveEducationalDetails(submissionData);
-      console.log("✅ Education details saved:", res.data);
+      console.log("✅ Education details saved:", res?.data);
       alert("✅ Education details saved successfully!");
     }
 
-    // ✅ Move to next step
     if (onNext) onNext("education");
   } catch (error) {
     console.error("❌ Failed to save/update education details:", error);

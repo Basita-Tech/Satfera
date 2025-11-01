@@ -30,6 +30,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
       "hiv",
       "tb",
       "medicalHistory",
+      "diet"
     ];
 
     requiredFields.forEach((field) => {
@@ -122,7 +123,8 @@ console.log("💾 Saving health data:", payload);
           tb: boolToSelect(data.isPostiviInTB),
           medicalHistory: boolToSelect(data.isHaveMedicalHistory),
           medicalHistoryDetails: data.medicalHistoryDetails || "",
-          diet: data.diet
+          diet: data.diet || ""
+
         }));
       })
       .catch((err) => {
@@ -297,8 +299,8 @@ console.log("💾 Saving health data:", payload);
               <option value="eggetarian">Eggetarian</option>
               <option value="jain">Jain</option>
               <option value="swaminarayan">Swaminarayan</option>
-              <option value="veg">Veg</option>
-              <option value="non-veg">Non-Veg</option>
+              <option value="veg & non-veg">Veg & Non-veg</option>
+              
             </select>
             {errors.diet && (
               <p className="text-red-500 text-sm mt-1">{errors.diet}</p>

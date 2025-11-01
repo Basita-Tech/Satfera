@@ -117,57 +117,70 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log("🧾 Raw formData before submission:", formData);
+  e.preventDefault();
 
-    const submissionData = {
-      fatherName: formData.fatherName,
-      motherName: formData.motherName,
-      fatherOccupation: formData.fatherProfession,
-      motherOccupation: formData.motherProfession,
-      fatherContact: formData.fatherPhone,
-      motherContact: formData.motherPhone,
-      fatherNativePlace: formData.fatherNative,
-      doYouHaveChildren: formData.doYouHaveChildren,
-      grandFatherName: formData.grandFatherName,
-      grandMotherName: formData.grandMotherName,
-      nanaName: formData.nanaName,
-      naniName: formData.naniName,
-      nanaNativePlace: formData.nanaNativePlace,
-      familyType: formData.familyType,
-      haveSibling: formData.hasSiblings,
-      howManySiblings: formData.siblingCount,
-      siblingDetails: formData.siblings || [],
-    };
+  console.log("🧾 Raw formData before submission:", formData);
 
-    console.log("🚀 Final submissionData being sent to API:", submissionData);
-
-    try {
-      const existing = await getUserFamilyDetails();
-      console.log("---------------------------------------------------");
-      console.log("📥 Existing family details fetched:", existing);
-      console.log("---------------------------------------------------");
-      let res;
-      if (existing?.data?.data) {
-        res = await updateUserFamilyDetails(submissionData);
-      } else {
-        res = await saveUserFamilyDetails(submissionData);
-        alert("data saved successfully")
-      }
-
-      console.log("✅ Family details API response:", res);
-
-      if (onNext) onNext("education");
-
-    } catch (error) {
-      console.error("❌ Save/Update Family Details Error:", error);
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Error saving family details.";
-      alert(`❌ ${msg}`);
-    }
+  // ✅ Base object (only user-entered values)
+  let submissionData = {
+    fatherName: formData.fatherName,
+    motherName: formData.motherName,
+    fatherOccupation: formData.fatherProfession,
+    motherOccupation: formData.motherProfession,
+    fatherContact: formData.fatherPhone,
+    motherContact: formData.motherPhone,
+    fatherNativePlace: formData.fatherNative,
+    doYouHaveChildren: formData.doYouHaveChildren,
+    grandFatherName: formData.grandFatherName,
+    grandMotherName: formData.grandMotherName,
+    nanaName: formData.nanaName,
+    naniName: formData.naniName,
+    nanaNativePlace: formData.nanaNativePlace,
+    familyType: formData.familyType,
   };
+
+  // ✅ Handle siblings properly
+  if (formData.hasSiblings === true) {
+    submissionData.haveSibling = true;
+    submissionData.howManySiblings = formData.siblingCount || 0;
+    submissionData.siblingDetails = (formData.siblings || []).filter(
+      (s) => s.name?.trim() && s.relation?.trim()
+    ); // remove incomplete sibling entries
+  } else if (formData.hasSiblings === false) {
+    submissionData.haveSibling = false;
+    // ❌ do NOT send howManySiblings or siblingDetails
+  }
+  // else (user didn’t choose), don’t add any sibling fields
+
+  // ✅ Remove all empty or null values
+  Object.keys(submissionData).forEach((key) => {
+    if (
+      submissionData[key] === "" ||
+      submissionData[key] === null ||
+      (Array.isArray(submissionData[key]) &&
+        submissionData[key].length === 0)
+    ) {
+      delete submissionData[key];
+    }
+  });
+
+  console.log("🚀 Clean data being sent:", submissionData);
+
+  try {
+    const existing = await getUserFamilyDetails();
+    let res;
+    if (existing?.data?.data) {
+      res = await updateUserFamilyDetails(submissionData);
+    } else {
+      res = await saveUserFamilyDetails(submissionData);
+    }
+    alert("✅ Family details saved successfully!");
+    if (onNext) onNext("education");
+  } catch (error) {
+    console.error("❌ Save/Update Family Details Error:", error);
+    alert("Error saving family details.");
+  }
+};
 
 
   // ✅ Add this function here — above `return`

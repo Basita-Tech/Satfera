@@ -410,6 +410,11 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
       [name]: value,
     }));
 
+    // Clear error for the field when user types/selects a value
+    if (value && value.toString().trim() !== "") {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
     //  Special handling when employmentStatus changes
     if (name === "employmentStatus") {
       if (value === "Student" || value === "Not Working") {
@@ -420,6 +425,8 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
           companyName: "",
           annualIncome: "",
         });
+        // clear any dependent errors
+        setErrors((prev) => ({ ...prev, occupation: "", companyName: "", annualIncome: "", employmentStatus: "" }));
       } else {
         // Reset dependent fields when switching back to employed/self-employed
         setFormData({
@@ -428,6 +435,8 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
           companyName: "",
           annualIncome: "",
         });
+        // clear employmentStatus error (and keep others cleared until user fills them)
+        setErrors((prev) => ({ ...prev, employmentStatus: "" }));
       }
     }
   };
@@ -495,12 +504,12 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
       return val;
     };
 
-    const payload = {
-      EmploymentStatus: mapToBackendEmployment(formData.employmentStatus),
-      Occupation: formData.occupation ? formData.occupation.value : null,
-      OrganizationName: formData.companyName,
-      AnnualIncome: formData.annualIncome,
-    };
+   const payload = {
+  EmploymentStatus: mapToBackendEmployment(formData.employmentStatus)?.toLowerCase() || null,
+  Occupation: formData.occupation ? formData.occupation.value : null,
+  OrganizationName: formData.companyName,
+  AnnualIncome: formData.annualIncome,
+};
 
     try {
       
@@ -558,7 +567,7 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
         setFormData((prev) => ({
           ...prev,
           employmentStatus:
-            mapFromBackendEmployment(data.EmploymentStatus) || "",
+            mapFromBackendEmployment(data.EmploymentStatus.toLowerCase()) || "",
           occupation: data.Occupation
             ? { label: data.Occupation, value: data.Occupation }
             : null,
@@ -682,11 +691,17 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
               onChange={handleChange}
               disabled={isDisabled}
               placeholder="Enter company or organization name"
-              className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${isDisabled
-                  ? "bg-gray-100 cursor-not-allowed border-gray-300"
-                  : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"
+                className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${
+                  isDisabled
+                    ? "bg-gray-100 cursor-not-allowed border-gray-300"
+                    : errors.companyName
+                    ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+                    : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"
                 }`}
             />
+              {errors.companyName && (
+                <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>
+              )}
           </div>
 
 
@@ -704,7 +719,12 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
               }
               onChange={handleChange}
               disabled={isDisabled}
-              className={`w-full border border-[#D4A052] rounded-md p-3 text-sm focus:border-[#D4A052] focus:ring-1 focus:ring-[#D4A052] focus:outline-none ${isDisabled ? "bg-gray-100 cursor-not-allowed" : ""
+                className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${
+                  isDisabled
+                    ? "bg-gray-100 cursor-not-allowed border-gray-300"
+                    : errors.annualIncome
+                    ? "border-red-500 focus:ring-red-400 focus:border-red-400"
+                    : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"
                 }`}
             >
               <option value="">Select Annual Income</option>
@@ -714,6 +734,9 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
                 </option>
               ))}
             </select>
+              {errors.annualIncome && (
+                <p className="text-red-500 text-sm mt-1">{errors.annualIncome}</p>
+              )}
           </div>
 
           {/* ✅ Buttons */}
