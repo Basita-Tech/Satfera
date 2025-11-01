@@ -167,6 +167,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   ? "yes"
                   : "no"
                 : "",
+            divorceStatus: data.divorceStatus
           };
 
           setFormData((prev) => ({ ...prev, ...mapped }));
@@ -886,8 +887,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       return match ? parseInt(match[match.length - 1]) : null;
     };
 
+    const timeOfBirth =
+      formData.birthHour && formData.birthMinute
+        ? `${formData.birthHour}:${formData.birthMinute}`
+        : null;
+
     const payload = {
-      timeOfBirth: `${formData.birthHour}:${formData.birthMinute}`,
+      timeOfBirth: timeOfBirth,
       birthPlace: formData.birthCity,
       birthState: formData.birthState,
 
@@ -922,7 +928,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     };
 
     try {
+      // Useful debug: log payload before sending
+      console.log("📤 Saving personal details payload:", payload);
       setLoading(true);
+
       const personalStep = await getOnboardingStatus();
       let res;
 
@@ -933,19 +942,52 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
       if (alreadyCompleted) {
         res = await updateUserPersonal(payload);
-        alert("✅ Personal details updated successfully!");
       } else {
         res = await saveUserPersonal(payload);
-        alert("✅ Personal details saved successfully!");
       }
 
-      // 🔄 Optional: refresh updated data if needed
-      // await getUserPersonal();
+      // Normalize success check across different response shapes
+      const isSuccess = !!(
+        res?.success ||
+        res?.data?.success ||
+        res?.data?.data ||
+        res?.status === 200 ||
+        res?.status === 201
+      );
+
+      if (!isSuccess) {
+        const serverMessage = res?.message || res?.data?.message || "Failed to save personal details.";
+        console.error("❌ Save returned unsuccessful response:", res);
+        // If server returned field errors, map them to the form
+        const fieldErrors = res?.data?.errors || res?.errors || null;
+        if (fieldErrors && typeof fieldErrors === "object") {
+          setErrors((prev) => ({ ...prev, ...fieldErrors }));
+        }
+        alert(`❌ ${serverMessage}`);
+        return false;
+      }
+
+      // Success
+      alert(alreadyCompleted ? "✅ Personal details updated successfully!" : "✅ Personal details saved successfully!");
+
+      // Optionally refresh data
+      try {
+        await getUserPersonal();
+      } catch (refreshErr) {
+        console.warn("Failed to refresh personal data after save:", refreshErr);
+      }
 
       return true;
     } catch (err) {
       console.error("❌ Error saving/updating personal details:", err);
-      const msg = err?.response?.data?.message || "Failed to save personal details.";
+
+      // Map server-side validation errors to form fields when available
+      const serverData = err?.response?.data || {};
+      if (serverData?.errors && typeof serverData.errors === "object") {
+        setErrors((prev) => ({ ...prev, ...serverData.errors }));
+      }
+
+      const msg = serverData?.message || err?.message || "Failed to save personal details.";
       alert(`❌ ${msg}`);
       return false;
     } finally {

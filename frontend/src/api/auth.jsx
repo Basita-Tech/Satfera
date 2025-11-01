@@ -160,6 +160,7 @@ export const saveUserPersonal = async (payload) => {
     return response;
   } catch (error) {
     console.error("❌ Save Personal Details Error:", error.response?.data || error.message);
+    throw error;
   }
 };
 
@@ -182,6 +183,8 @@ export const updateUserPersonal = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("❌ Update Personal Details Error:", error.response?.data || error.message);
+    // Re-throw so the UI knows update failed
+    throw error;
   }
 };
 
