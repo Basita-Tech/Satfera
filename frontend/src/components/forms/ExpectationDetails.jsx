@@ -207,16 +207,18 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       profession: formData.profession.map((x) => x.value),
     };
 
-    // ✅ Handle partner location logic
-    if (formData.partnerLocation === "India") {
-      payload.livingInCountry = "India";
-      payload.livingInState = formData.partnerStateOrCountry;
-    } else if (formData.partnerLocation === "Abroad") {
-      payload.livingInCountry = formData.partnerStateOrCountry;
-    } else {
-      payload.livingInCountry = "No preference";
-    }
-    console.log(formData)
+    // ✅ FIXED: convert to plain strings
+  if (formData.partnerLocation === "India") {
+    payload.livingInCountry = "India";
+    payload.livingInState = formData.partnerStateOrCountry.map((x) => x.value);
+  } else if (formData.partnerLocation === "Abroad") {
+    payload.livingInCountry = formData.partnerStateOrCountry.map((x) => x.value);
+  } else {
+    payload.livingInCountry = "No preference";
+  }
+
+  console.log("🟢 Final Payload:", payload);
+
 
     try {
       const existing = await getUserExpectations();
@@ -393,106 +395,93 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                     : "Select Country(ies)"}
                 </label>
 
+                
                 <div className="w-full">
-                  <Select
-                    isMulti
-                    name="partnerStateOrCountry"
-                    options={[
-                      { value: "Any", label: "Any" }, // ✅ Add "Any" as the first option
-                      ...(formData.partnerLocation === "India"
-                        ? indianStates.map((state) => ({
-                          value: state.name,
-                          label: state.name,
-                        }))
-                        : abroadOptions.map((country) => ({
-                          value: country,
-                          label: country,
-                        }))),
-                    ]}
-                    value={formData.partnerStateOrCountry}
-                    onChange={(selectedOptions) => {
-                      // ✅ Make "Any" exclusive
-                      if (selectedOptions?.some((opt) => opt.value === "Any")) {
-                        handleChange("partnerStateOrCountry", [
-                          { value: "Any", label: "Any" },
-                        ]);
-                      } else {
-                        handleChange("partnerStateOrCountry", selectedOptions || []);
-                      }
-                      // Clear error when options are selected
-                      if (selectedOptions && selectedOptions.length > 0) {
-                        setErrors(prev => {
-                          const newErrors = { ...prev };
-                          delete newErrors.partnerStateOrCountry;
-                          return newErrors;
-                        });
-                      }
-                    }}
-                    placeholder={
-                      formData.partnerLocation === "India"
-                        ? "Select one or multiple states"
-                        : "Select one or multiple countries"
-                    }
-                    classNamePrefix="react-select"
-                    components={{
-                      IndicatorSeparator: () => null,
-                    }}
-                    styles={{
-                      control: (base, state) => ({
-                        ...base,
-                        borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-                        boxShadow: "none",
-                        borderRadius: "0.5rem",
-                        backgroundColor: "#fff",
-                        minHeight: "50px",
-                        display: "flex",
-                        alignItems: "center",
-                        fontSize: "0.875rem",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          borderColor: "#D4A052",
-                        },
-                      }),
-                      valueContainer: (base) => ({
-                        ...base,
-                        padding: "0 8px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        flexWrap: "wrap",
-                      }),
-                      input: (base) => ({
-                        ...base,
-                        margin: 0,
-                        padding: 0,
-                      }),
-                      multiValue: (base) => ({
-                        ...base,
-                        backgroundColor: "#F9F7F5",
-                        borderRadius: "0.5rem",
-                        padding: "0 6px",
-                      }),
-                      multiValueLabel: (base) => ({
-                        ...base,
-                        color: "#111827",
-                        fontSize: "0.875rem",
-                      }),
-                      multiValueRemove: (base) => ({
-                        ...base,
-                        color: "#6b7280",
-                        ":hover": {
-                          backgroundColor: "#D4A052",
-                          color: "white",
-                        },
-                      }),
-                      menu: (base) => ({
-                        ...base,
-                        zIndex: 9999,
-                        borderRadius: "0.75rem",
-                      }),
-                    }}
-                  />
-                </div>
+  <Select
+    isMulti
+    name="partnerStateOrCountry"
+    options={[
+      { value: "Any", label: "Any" },
+      ...(formData.partnerLocation === "India"
+        ? indianStates.map((state) => ({
+            value: String(state?.name || ""), // ✅ ensure string
+            label: String(state?.name || ""),
+          }))
+        : abroadOptions.map((country) => ({
+            value: String(country || ""), // ✅ ensure string
+            label: String(country || ""),
+          }))),
+    ]}
+    value={
+      Array.isArray(formData.partnerStateOrCountry)
+        ? formData.partnerStateOrCountry.map((opt) => ({
+            value: String(opt.value),
+            label: String(opt.label),
+          }))
+        : []
+    }
+    onChange={(selectedOptions) => {
+      // ✅ Make "Any" exclusive
+      if (selectedOptions?.some((opt) => opt.value === "Any")) {
+        handleChange("partnerStateOrCountry", [
+          { value: "Any", label: "Any" },
+        ]);
+      } else {
+        handleChange("partnerStateOrCountry", selectedOptions || []);
+      }
+
+      // ✅ Clear validation errors
+      if (selectedOptions && selectedOptions.length > 0) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.partnerStateOrCountry;
+          return newErrors;
+        });
+      }
+    }}
+    placeholder={
+      formData.partnerLocation === "India"
+        ? "Select one or multiple states"
+        : "Select one or multiple countries"
+    }
+    classNamePrefix="react-select"
+    components={{
+      IndicatorSeparator: () => null,
+    }}
+    styles={{
+      control: (base, state) => ({
+        ...base,
+        borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+        boxShadow: "none",
+        borderRadius: "0.5rem",
+        backgroundColor: "#fff",
+        minHeight: "50px",
+        fontSize: "0.875rem",
+        "&:hover": {
+          borderColor: "#D4A052",
+        },
+      }),
+      valueContainer: (base) => ({
+        ...base,
+        padding: "0 8px",
+        display: "flex",
+        flexWrap: "wrap",
+      }),
+      multiValue: (base) => ({
+        ...base,
+        backgroundColor: "#F9F7F5",
+        borderRadius: "0.5rem",
+      }),
+      menu: (base) => ({
+        ...base,
+        zIndex: 9999,
+        borderRadius: "0.75rem",
+      }),
+    }}
+  />
+</div>
+
+
 
                 {errors.partnerStateOrCountry && (
                   <p className="text-red-500 text-sm mt-1">
@@ -1083,6 +1072,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         </form>
       </div>
     </div>
+    
   );
 };
 

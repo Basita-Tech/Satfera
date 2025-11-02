@@ -175,7 +175,7 @@ const MultiStepForm = () => {
         currentStep={currentStep}
         onStepClick={handleStepClick}
       />
-      <div className="w-full max-w-4xl bg-transparent p-3 sm:p-5 md:p-8 transition-all duration-300">
+      <div className="w-full max-w-4xl bg-transparent pt-3 sm:p-5 md:p-8 transition-all duration-300">
         {renderStep()}
       </div>
     </div>

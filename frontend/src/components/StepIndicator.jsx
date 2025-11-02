@@ -1,11 +1,17 @@
 import React from "react";
 import { Check } from "lucide-react";
 
-const StepIndicator = ({ steps, completedSteps, currentStep, onStepClick }) => {
+const StepIndicator = ({ steps, completedSteps = [], currentStep, onStepClick }) => {
+  // Calculate progress width based on completed steps
+  const progressPercent =
+    steps.length > 1
+      ? ((completedSteps.length - 1) / (steps.length - 1)) * 100
+      : 0;
+
   return (
-    <div className="w-full flex flex-col items-center px-3 sm:px-6 overflow-x-auto">
+    <div className="w-full flex flex-col items-center px-3 sm:px-6">
       {/* ✅ Logo Section */}
-      <div className="flex flex-col items-center mb-4 w-full">
+      <div className="flex flex-col items-center mb-6">
         <img
           src="/logo.png"
           alt="Satfera Logo"
@@ -13,37 +19,32 @@ const StepIndicator = ({ steps, completedSteps, currentStep, onStepClick }) => {
         />
       </div>
 
-      {/* ✅ Step Indicator Row */}
-      <div className="w-full max-w-5xl overflow-x-auto scrollbar-hide">
-        <div className="relative flex flex-nowrap items-center justify-start sm:justify-center gap-6 sm:gap-8 px-2 py-3 min-w-max">
+      {/* ✅ Step Indicator */}
+      <div className="w-full overflow-x-auto scrollbar-hide nav-progres-bar flex justify-center max-sm:block">
+        <div className="relative flex items-center gap-4 sm:gap-6 md:gap-8 px-4 min-w-fit">
+          {/* 🔹 Base Line (Gray) */}
+          <div className="absolute top-[35%] left-0 right-0 h-[2px] bg-gray-300 z-0"></div>
+
+          {/* 🔸 Progress Line (Gold) */}
+          <div
+            className="absolute top-[35%] left-0 h-[2px] bg-[#E8C27D] z-[1] transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          ></div>
+
+          {/* 🔘 Step Circles */}
           {steps.map((step, index) => {
             const isDone = completedSteps.includes(step.id);
             const isActive = currentStep === step.id;
-            const isLast = index === steps.length - 1;
 
             return (
               <div
                 key={step.id}
-                className="relative flex flex-col items-center cursor-pointer select-none min-w-[70px] sm:min-w-[90px]"
                 onClick={() => onStepClick(step.id)}
+                className="flex flex-col items-center text-center relative z-10 cursor-pointer select-none"
               >
-                {/* Connecting Line (placed first so it stays behind the circle) */}
-                {!isLast && (
-                  <div
-                    className="absolute top-1/2 left-[calc(50%+18px)] sm:left-[calc(50%+22px)] h-[2px] w-[45px] sm:w-[70px] -translate-y-1/2 z-0"
-                    style={{
-                      backgroundColor: isDone
-                        ? "#E8C27D"
-                        : isActive
-                        ? "#D4A052"
-                        : "#D1D5DB",
-                    }}
-                  ></div>
-                )}
-
-                {/* Step Circle */}
+                {/* Circle */}
                 <div
-                  className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                  className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all duration-300 ${
                     isDone
                       ? "bg-[#E8C27D] border-[#E8C27D] text-white"
                       : isActive
@@ -54,20 +55,15 @@ const StepIndicator = ({ steps, completedSteps, currentStep, onStepClick }) => {
                   {isDone ? <Check size={18} /> : index + 1}
                 </div>
 
-                {/* Step Label */}
+                {/* Label */}
                 <span
-                  className={`text-[10px] sm:text-xs mt-2 text-center leading-tight ${
+                  className={`mt-2 text-[10px] sm:text-[12px] font-medium leading-tight whitespace-nowrap ${
                     isDone
-                      ? "text-black font-semibold"
-                      : isActive
                       ? "text-black"
-                      : "text-gray-600"
+                      : isActive
+                      ? "text-[#D4A052]"
+                      : "text-gray-700"
                   }`}
-                  style={{
-                    width: "70px",
-                    maxWidth: "90px",
-                    whiteSpace: "normal",
-                  }}
                 >
                   {step.label}
                 </span>

@@ -1569,7 +1569,55 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             </div>
           </div>
 
-          
+          {/* 🏠 Is this your own house? */}
+<div className="mt-6">
+  <label className="block text-sm font-medium mb-2 text-gray-800">
+    Is this your own house?
+  </label>
+
+  <div className="flex items-center gap-6">
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="radio"
+        name="ownHouse"
+        value="Yes"
+        checked={formData.ownHouse === "Yes"}
+        onChange={() =>
+          setFormData((prev) => ({ ...prev, ownHouse: "Yes" }))
+        }
+        className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${
+            formData.ownHouse === "Yes"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
+          focus:ring-1 focus:ring-[#E4C48A]`}
+      />
+      <span className="text-gray-700 text-sm">Yes</span>
+    </label>
+
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input
+        type="radio"
+        name="ownHouse"
+        value="No"
+        checked={formData.ownHouse === "No"}
+        onChange={() =>
+          setFormData((prev) => ({ ...prev, ownHouse: "No" }))
+        }
+        className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${
+            formData.ownHouse === "No"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
+          focus:ring-1 focus:ring-[#E4C48A]`}
+      />
+      <span className="text-gray-700 text-sm">No</span>
+    </label>
+  </div>
+</div>
+
 
           <div className="space-y-6">
             {/* Marital Status */}
