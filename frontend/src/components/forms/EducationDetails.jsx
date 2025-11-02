@@ -290,10 +290,10 @@ const handlePrevious = () => {
 const inputClass =
   "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
-return (
-  <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
-    <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-6 md:p-8 border-t-4 border-[#F9F7F5] hover:scale-[1.02] transition-transform duration-300">
-      <h2 className="text-2xl font-bold text-[#131313] text-center mb-8">
+  return (
+  <div className="min-h-screen w-91 w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+    <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
+      <h2 className="text-2xl font-bold text-[#131313] text-center mb-6">
         Education Details
       </h2>
 
@@ -442,14 +442,14 @@ return (
             <button
               type="button"
               onClick={handlePrevious}
-              className="w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
+              className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
             >
               Previous
             </button>
 
             <button
               type="submit"
-              className="w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
+              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
             >
               Save & Next
             </button>

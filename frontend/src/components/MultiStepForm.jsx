@@ -7,7 +7,7 @@ import ProfessionDetails from "./forms/ProfessionalDetails";
 import HealthLifestyle from "./forms/HealthLifestyle";
 import ExpectationDetails from "./forms/ExpectationDetails";
 import { getOnboardingStatus, updateOnboardingStatus } from "../api/auth";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const steps = [
   { id: "personal", label: "Personal Details" },
@@ -31,11 +31,8 @@ const MultiStepForm = () => {
     const fetchProgress = async () => {
       try {
         setLoading(true);
-  const res = await getOnboardingStatus();
-  // API returns { success: true, data: { completedSteps: [...] } }
-  const savedSteps = res?.data?.data?.completedSteps || [];
-        console.log("📥 Onboarding progress from backend:", savedSteps);
-
+        const res = await getOnboardingStatus();
+        const savedSteps = res?.data?.data?.completedSteps || [];
         setCompletedSteps(savedSteps);
 
         let nextStep = "personal";
@@ -51,12 +48,12 @@ const MultiStepForm = () => {
             ? steps.findIndex((s) => s.id === savedSteps[savedSteps.length - 1])
             : 0;
 
-        const maxAllowedIndex = Math.min(lastCompletedIndex + 1, steps.length - 1);
-        const maxAllowed = steps[maxAllowedIndex].id;
-
-        setMaxAllowedStep(maxAllowed);
+        const maxAllowedIndex = Math.min(
+          lastCompletedIndex + 1,
+          steps.length - 1
+        );
+        setMaxAllowedStep(steps[maxAllowedIndex].id);
         setCurrentStep(nextStep);
-
         navigate(`/onboarding/user?step=${nextStep}`, { replace: true });
       } catch (err) {
         console.error("❌ Failed to fetch onboarding progress:", err);
@@ -64,11 +61,10 @@ const MultiStepForm = () => {
         setLoading(false);
       }
     };
-
     fetchProgress();
   }, []);
 
-  // ✅ Save progress and go to next
+  // ✅ Step navigation handlers
   const handleNext = async (stepId) => {
     const updatedSteps = [...new Set([...completedSteps, stepId])];
     setCompletedSteps(updatedSteps);
@@ -106,7 +102,6 @@ const MultiStepForm = () => {
   const handleStepClick = (id) => {
     const clickedIndex = steps.findIndex((s) => s.id === id);
     const maxAllowedIndex = steps.findIndex((s) => s.id === maxAllowedStep);
-
     if (clickedIndex <= maxAllowedIndex) {
       setCurrentStep(id);
       navigate(`/onboarding/user?step=${id}`, { replace: true });
@@ -173,14 +168,14 @@ const MultiStepForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-10 px-6 gap-10 bg-[hsl(30,33%,97%)]">
+    <div className="min-h-screen flex flex-col items-center bg-[hsl(30,33%,97%)] px-2 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 gap-6 sm:gap-8 md:gap-10">
       <StepIndicator
         steps={steps}
         completedSteps={completedSteps}
         currentStep={currentStep}
         onStepClick={handleStepClick}
       />
-      <div className="p-8 w-full max-w-3xl transition-all duration-300">
+      <div className="w-full max-w-4xl bg-transparent p-3 sm:p-5 md:p-8 transition-all duration-300">
         {renderStep()}
       </div>
     </div>

@@ -49,7 +49,7 @@ export default function HomePage() {
 
 
           {/* Navigation */}
-          <nav className="flex flex-wrap items-center gap-4">
+          <nav className="flex flex-wrap items-center gap-4 mb-3">
             <a href="#hero" className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline">Home</a>
             <a href="#membership" className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline">Membership</a>
             <a href="#success-stories" className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline">Success Stories</a>

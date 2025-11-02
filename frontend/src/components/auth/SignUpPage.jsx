@@ -694,12 +694,12 @@ const SignUpPage = () => {
 
 
 
-            <div className="flex items-center mt-1">
+            <div className=" mt-1">
               <input
                 type="checkbox"
                 checked={formData.useAsUsername.includes("email")}
                 onChange={() => handleUsernameToggle("email")}
-                className="mr-2 accent-[#333230]"
+                className="mr-2 accent-[#333230] w-3 h-3"
               />
               <span className="text-sm">
                 Use as Username{" "}
@@ -779,7 +779,7 @@ const SignUpPage = () => {
                 type="checkbox"
                 checked={formData.useAsUsername.includes("mobile")}
                 onChange={() => handleUsernameToggle("mobile")}
-                className="mr-2 accent-[#3e3d3a]"
+                className="mr-2 accent-[#3e3d3a]  w-3 h-3"
               />
               Use as Username
               {formData.useAsUsername.includes("mobile") && (

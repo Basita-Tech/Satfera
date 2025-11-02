@@ -220,55 +220,48 @@ const VerifyOTP = () => {
   return (
     <>
       <style>
-        {`
-          .otp-input {
-            width: 3rem;
-            height: 3rem;
-            border: 1px solid #ccc;
-            border-radius: 0.25rem;
-            text-align: center;
-            font-size: 1.5rem;
-            transition: border 0.2s, box-shadow 0.2s;
-          }
-          .otp-input:focus {
-            outline: none;
-            border: 1px solid #E4C48A;
-            box-shadow: 0 0 5px #E4C48A33;
-          }
+        {`\
+          .otp-input {\
+            width: 2.5rem;\
+            height: 2.5rem;\
+            border: 1px solid #ccc;\
+            border-radius: 0.25rem;\
+            text-align: center;\
+            font-size: 1.25rem;\
+            transition: border 0.2s, box-shadow 0.2s;\
+          }\
+          .otp-input:focus {\
+            outline: none;\
+            border: 1px solid #E4C48A;\
+            box-shadow: 0 0 5px #E4C48A33;\
+          }\
+\
+          @media (min-width: 640px) {\
+            .otp-input {\
+              width: 3rem;\
+              height: 3rem;\
+              font-size: 1.5rem;\
+            }\
+          }\
         `}
       </style>
 
-      <div
-        className="d-flex justify-content-center align-items-center min-vh-100"
-        style={{ backgroundColor: "#F9F7F5" }}
-      >
-        <div
-          className="card p-4 shadow rounded-4"
-          style={{
-            maxWidth: "500px",
-            width: "100%",
-            backgroundColor: "#FBFAF7",
-          }}
-        >
+      <div className="min-h-screen w-full bg-[#F9F7F5] flex items-center justify-center py-8 px-4">
+        <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-md p-6 sm:p-8">
           <Link
             to="/signup"
-            className="btn mb-3"
-            style={{
-              backgroundColor: "#D4A052",
-              color: "#fff",
-              borderRadius: "0.25rem",
-            }}
+            className="inline-block mb-4 px-3 py-2 bg-[#D4A052] text-white rounded-md font-medium"
           >
             ← Back
           </Link>
 
-          <h3 className="text-center mb-3">Verify Email OTP</h3>
+          <h3 className="text-center text-xl font-semibold mb-4">Verify Email OTP</h3>
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <h6>Email OTP</h6>
-              <p className="text-muted small">{email}</p>
-              <div className="d-flex justify-content-between mb-2">
+              <h6 className="font-medium">Email OTP</h6>
+              <p className="text-sm text-gray-500">{email}</p>
+              <div className="flex justify-center gap-2 mb-2 mt-3">
                 {emailOtp.map((digit, idx) => (
                     <input
                     key={idx}
@@ -283,20 +276,20 @@ const VerifyOTP = () => {
                   />
                 ))}
               </div>
-              <div className="text-center small mt-2">
+              <div className="text-center text-sm mt-2">
                 {isVerifying ? (
-                  <span className="text-primary">Verifying...</span>
+                  <span className="text-blue-600">Verifying...</span>
                 ) : isEmailVerified ? (
-                  <span className="text-success">✅ Email Verified</span>
+                  <span className="text-green-600">✅ Email Verified</span>
                 ) : isLocked ? (
-                  <span className="text-danger">Email OTP locked for 24 hours</span>
+                  <span className="text-red-600">Email OTP locked for 24 hours</span>
                 ) : emailCountdown <= 0 ? (
                   <>
-                    <span className="text-danger d-block mb-2">Email OTP expired</span>
+                    <span className="text-red-600 block mb-2">Email OTP expired</span>
                     {resendAttemptsEmail < MAX_RESEND && (
                       <button
                         type="button"
-                        className="btn btn-link p-0"
+                        className="text-sm text-[#D4A052] underline"
                         onClick={handleResend}
                         disabled={isVerifying}
                       >
@@ -311,14 +304,14 @@ const VerifyOTP = () => {
                       resendAttemptsEmail < MAX_RESEND && (
                         <button
                           type="button"
-                          className="btn btn-link p-0"
+                          className="text-sm text-[#D4A052] underline"
                           onClick={handleResend}
                           disabled={isVerifying}
                         >
                           Resend Email OTP
                         </button>
                       )}
-                    <span className="ms-2 text-muted">
+                    <span className="ml-2 text-gray-500">
                       Valid for {formatTime(emailCountdown)}
                     </span>
                   </>
@@ -327,19 +320,14 @@ const VerifyOTP = () => {
             </div>
 
             {successMessage ? (
-              <p className="text-success text-center">{successMessage}</p>
+              <p className="text-green-600 text-center">{successMessage}</p>
             ) : (
-              error && <p className="text-danger text-center">{error}</p>
+              error && <p className="text-red-600 text-center">{error}</p>
             )}
 
             <button
               type="submit"
-              className="btn w-100"
-              style={{
-                backgroundColor: "#D4A052",
-                borderColor: "#D4A052",
-                color: "#fff",
-              }}
+              className="w-full py-3 rounded-xl font-semibold text-white bg-[#D4A052] hover:bg-[#E4C48A] transition"
               disabled={isLocked || isVerifying}
             >
               {isVerifying ? "Verifying..." : "Verify OTP"}

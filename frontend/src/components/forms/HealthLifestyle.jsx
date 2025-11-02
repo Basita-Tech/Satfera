@@ -141,8 +141,8 @@ console.log("💾 Saving health data:", payload);
     "capitalize w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
   return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
-      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-8 border-t-[2px] border-[#F9F7F5] transition-transform duration-300">
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+  <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-[2px] border-[#F9F7F5] transition-transform duration-300">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-black">Health & Lifestyle</h2>
         </div>
@@ -310,18 +310,18 @@ console.log("💾 Saving health data:", payload);
 
 
           {/* ✅ Buttons */}
-          <div className="pt-6 flex justify-between items-center gap-4">
+          <div className="pt-6 flex  justify-between items-center gap-4">
             <button
               type="button"
               onClick={() => onPrevious && onPrevious()}
-              className="w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
+              className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
             >
               Previous
             </button>
 
             <button
               type="submit"
-              className="w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
+              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
             >
               Save & Next
             </button>

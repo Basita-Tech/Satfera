@@ -354,8 +354,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
-      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-8 border-t-4 border-[#F9F7F5] hover:scale-[1.02] transition-transform duration-300">
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-black">Expectations</h2>
         </div>
@@ -1015,12 +1015,12 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           <div className="flex flex-col mb-4">
             <label className="block text-sm font-medium mb-2">Preferred Age</label>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               {/* FROM */}
               <select
                 value={formData.preferredAgeFrom}
                 onChange={(e) => handleChange("preferredAgeFrom", e.target.value)}
-                className={inputClass + " w-1/2"}
+                className={inputClass + " w-full sm:w-1/2"}
               >
                 <option value="">From</option>
                 {Array.from({ length: 23 }, (_, i) => 18 + i).map((age) => (
@@ -1036,7 +1036,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
               <select
                 value={formData.preferredAgeTo}
                 onChange={(e) => handleChange("preferredAgeTo", e.target.value)}
-                className={inputClass + " w-1/2"}
+                className={inputClass + " w-full sm:w-1/2"}
               >
                 <option value="">To</option>
                 {Array.from({ length: 23 }, (_, i) => 18 + i)
@@ -1062,18 +1062,18 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           </div>
 
           {/* ✅ Buttons */}
-          <div className="pt-6 flex justify-between items-center gap-4">
+          <div className="pt-6 flex justify-between items-center gap-4  ">
             <button
               type="button"
               onClick={() => onPrevious && onPrevious()}
-              className="w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
+              className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
             >
               Previous
             </button>
 
             <button
               type="submit"
-              className="w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
+              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
             >
               Save & Next
             </button>

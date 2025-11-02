@@ -194,8 +194,8 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
 
 
   return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
-      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+  <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-black">Family Details</h2>
         </div>
@@ -225,7 +225,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             {/* Father's Phone */}
             <div className="flex flex-col w-full mb-4">
               <label className="text-sm font-medium mb-1">Father's Phone</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={formData.fatherPhoneCode}
                   onChange={(e) =>
@@ -276,7 +276,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             {/* Mother's Phone */}
             <div className="flex flex-col w-full mb-4">
               <label className="text-sm font-medium mb-1">Mother's Phone</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={formData.motherPhoneCode}
                   onChange={(e) =>
@@ -489,7 +489,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             <button
               type="button"
               onClick={handlePrevious}
-              className="w-1/2 py-3 rounded-xl font-medium bg-[#EEEAE6] text-gray-800 hover:bg-[#E4C48A] hover:text-white transition-all duration-300 shadow-sm"
+              className="w-full sm:w-1/2 py-3 rounded-xl font-medium bg-[#EEEAE6] text-gray-800 hover:bg-[#E4C48A] hover:text-white transition-all duration-300 shadow-sm"
             >
               Previous
             </button>
@@ -497,7 +497,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             {/* Save & Next Button */}
             <button
               type="submit"
-              className="w-1/2 py-3 rounded-xl font-medium bg-[#D4A052] text-white hover:bg-[#C18E47] transition-all duration-300 shadow-sm"
+              className="w-full sm:w-1/2 py-3 rounded-xl font-medium bg-[#D4A052] text-white hover:bg-[#C18E47] transition-all duration-300 shadow-sm"
             >
               Save & Next
             </button>

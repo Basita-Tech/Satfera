@@ -1016,15 +1016,15 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
-      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300 hover:scale-[1.02]">
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 border-t-4 border-[#F9F7F5] transition-transform duration-300 hover:scale-[1.02]">
         {/* Heading */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-black">Personal Details</h2>
         </div>
 
         <form onSubmit={handleSaveNext} className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium">First Name</label>
               <input
@@ -1056,7 +1056,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium">
               Date of Birth (DD / MM / YYYY)
             </label>
-            <div className="grid grid-cols-3 gap-3 mt-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
               <input
                 readOnly
                 value={formData.dobDay}
@@ -1079,7 +1079,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium">
               Time of Birth (HH : MM)
             </label>
-            <div className="grid grid-cols-2 gap-3 mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
               <input
                 name="birthHour"
                 value={formData.birthHour}
@@ -1110,7 +1110,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           {/* Birth Place */}
           <div>
             <p className="text-sm font-medium">Birth Place</p>
-            <div className="grid grid-cols-2 gap-4 mt-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
               {/* City Input */}
               <div>
                 <label className="text-xs text-gray-600">City</label>
@@ -1335,7 +1335,6 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <label className="block text-sm font-medium mb-2 text-gray-800">
                 Willing to marry from other community?
               </label>
-
               <div className="flex items-center gap-6">
                 {/* YES Option */}
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1349,7 +1348,6 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         ...prev,
                         interCommunity: "Yes",
                       }));
-                      // Clear the error when an option is selected
                       setErrors((prev) => ({
                         ...prev,
                         interCommunity: ""
@@ -1364,7 +1362,6 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   />
                   <span className="text-gray-700 text-sm">Yes</span>
                 </label>
-
                 {/* NO Option */}
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -1377,7 +1374,6 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         ...prev,
                         interCommunity: "No",
                       }));
-                      // Clear the error when an option is selected
                       setErrors((prev) => ({
                         ...prev,
                         interCommunity: ""
@@ -1397,7 +1393,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 <p className="text-xs text-red-500 mt-2">{errors.interCommunity}</p>
               )}
             </div>
-          </div>
+
+            
 
           {/* Full Address Section */}
           <div className="mt-6">
@@ -1467,7 +1464,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               </div>
 
               {/* City & State (always editable) */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* City */}
                 <div>
                   <label className="text-sm font-medium">City</label>
@@ -1502,6 +1499,77 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               </div>
             </div>
           </div>
+
+
+           {/* Is this your own house? */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-2 text-gray-800">
+                Is this your own house?
+              </label>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="ownHouse"
+                    value="Yes"
+                    checked={formData.ownHouse === "Yes"}
+                    onChange={() => setFormData((prev) => ({ ...prev, ownHouse: "Yes" }))}
+                    className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.ownHouse === "Yes"
+                        ? "bg-[#E4C48A] border-[#E4C48A]"
+                        : "border-gray-300"
+                      }
+          focus:ring-1 focus:ring-[#E4C48A]`}
+                  />
+                  <span className="text-gray-700 text-sm">Yes</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="ownHouse"
+                    value="No"
+                    checked={formData.ownHouse === "No"}
+                    onChange={() => setFormData((prev) => ({ ...prev, ownHouse: "No" }))}
+                    className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.ownHouse === "No"
+                        ? "bg-[#E4C48A] border-[#E4C48A]"
+                        : "border-gray-300"
+                      }
+          focus:ring-1 focus:ring-[#E4C48A]`}
+                  />
+                  <span className="text-gray-700 text-sm">No</span>
+                </label>
+              </div>
+
+              {/* City and State for own house */}
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">City</label>
+                  <input
+                    type="text"
+                    name="ownHouseCity"
+                    value={formData.ownHouseCity || ""}
+                    onChange={e => setFormData(prev => ({ ...prev, ownHouseCity: e.target.value }))}
+                    placeholder="Enter city"
+                    className="w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">State</label>
+                  <input
+                    type="text"
+                    name="ownHouseState"
+                    value={formData.ownHouseState || ""}
+                    onChange={e => setFormData(prev => ({ ...prev, ownHouseState: e.target.value }))}
+                    placeholder="Enter state"
+                    className="w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
 
           <div className="space-y-6">
             {/* Marital Status */}
@@ -1576,7 +1644,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 </div>
 
                 {formData.hasChildren === "Yes" && (
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <select
                       name="numChildren"
                       value={formData.numChildren}

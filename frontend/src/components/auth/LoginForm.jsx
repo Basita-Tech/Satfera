@@ -155,10 +155,10 @@ const LoginForm = () => {
     />
 
     {/* ✅ Eye icon perfectly centered vertically */}
-    <button
+     <button
       type="button"
       onClick={() => setShowPassword(!showPassword)}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 focus:outline-none"
+      className="absolute w-11  right-0 top-0 bottom-0 p-0 flex justify-center items-center text-gray-500 "
       tabIndex={-1}
     >
       {showPassword ? <EyeSlashFill size={18} /> : <EyeFill size={18} />}
