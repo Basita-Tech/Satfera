@@ -14,6 +14,9 @@ import { redisClient } from "./lib/redis";
 
 const app = express();
 
+// Trust proxy - required for Vercel/serverless and rate limiting
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(express.json());
 app.use(morgan("combined", { stream: morganStream }));
