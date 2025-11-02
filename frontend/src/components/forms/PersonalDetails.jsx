@@ -1541,82 +1541,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 </label>
               </div>
 
-              {/* City and State for own house */}
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">City</label>
-                  <input
-                    type="text"
-                    name="ownHouseCity"
-                    value={formData.ownHouseCity || ""}
-                    onChange={e => setFormData(prev => ({ ...prev, ownHouseCity: e.target.value }))}
-                    placeholder="Enter city"
-                    className="w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">State</label>
-                  <input
-                    type="text"
-                    name="ownHouseState"
-                    value={formData.ownHouseState || ""}
-                    onChange={e => setFormData(prev => ({ ...prev, ownHouseState: e.target.value }))}
-                    placeholder="Enter state"
-                    className="w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                  />
-                </div>
-              </div>
+             
+                
+              
             </div>
           </div>
 
-          {/* 🏠 Is this your own house? */}
-<div className="mt-6">
-  <label className="block text-sm font-medium mb-2 text-gray-800">
-    Is this your own house?
-  </label>
-
-  <div className="flex items-center gap-6">
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="radio"
-        name="ownHouse"
-        value="Yes"
-        checked={formData.ownHouse === "Yes"}
-        onChange={() =>
-          setFormData((prev) => ({ ...prev, ownHouse: "Yes" }))
-        }
-        className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.ownHouse === "Yes"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#E4C48A]`}
-      />
-      <span className="text-gray-700 text-sm">Yes</span>
-    </label>
-
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="radio"
-        name="ownHouse"
-        value="No"
-        checked={formData.ownHouse === "No"}
-        onChange={() =>
-          setFormData((prev) => ({ ...prev, ownHouse: "No" }))
-        }
-        className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.ownHouse === "No"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#E4C48A]`}
-      />
-      <span className="text-gray-700 text-sm">No</span>
-    </label>
-  </div>
-</div>
+      
 
 
           <div className="space-y-6">
