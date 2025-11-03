@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { sendEmailOtp, signupUser, sendSmsOtp } from "../../api/auth";
+import { sendEmailOtp, signupUser } from "../../api/auth";
 import {
   HeartFill,
   ArrowLeft,
@@ -406,158 +406,130 @@ const SignUpPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setLoading(true);
-    setErrors({}); // clear previous errors
+  setLoading(true);
+  setErrors({}); // clear previous errors
 
-    try {
-      // 🧹 Normalize mobile number
-      let mobile = formData.mobile.replace(/\D/g, "");
-      if (mobile.startsWith("0")) mobile = mobile.slice(1);
-      const phoneNumber = `${formData.countryCode}${mobile}`;
+  try {
+    // 🧹 Normalize mobile number
+    let mobile = formData.mobile.replace(/\D/g, "");
+    if (mobile.startsWith("0")) mobile = mobile.slice(1);
+    const phoneNumber = `${formData.countryCode}${mobile}`;
 
-      // 🧩 Build payload
-      const payload = {
-        firstName: formData.firstName.trim(),
-        middleName: formData.middleName?.trim() || "",
-        lastName: formData.lastName.trim(),
-        gender: formData.gender,
-        email: formData.email.toLowerCase().trim(),
-        phoneNumber,
-        password: formData.password,
-        dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(
-          formData.dobMonth
-        ).padStart(2, "0")}-${formData.dobYear}`,
-        for_Profile: formData.profileFor,
-      };
+    // 🧩 Build payload
+    const payload = {
+      firstName: formData.firstName.trim(),
+      middleName: formData.middleName?.trim() || "",
+      lastName: formData.lastName.trim(),
+      gender: formData.gender,
+      email: formData.email.toLowerCase().trim(),
+      phoneNumber,
+      password: formData.password,
+      dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(
+        formData.dobMonth
+      ).padStart(2, "0")}-${formData.dobYear}`,
+      for_Profile: formData.profileFor,
+    };
 
-      console.log("Signup payload:", payload);
+    console.log("Signup payload:", payload);
 
-      // 🚀 Call signup API
-      const res = await signupUser(payload);
-      console.log("Signup response:", res);
+    // 🚀 Call signup API
+    const res = await signupUser(payload);
+    console.log("Signup response:", res);
 
-      if (res?.success) {
-        // ✅ Send OTPs
-        const [emailOtpRes] = await Promise.all([
-          sendEmailOtp({ email: payload.email, type: "signup" }),
-          // sendSmsOtp({ countryCode: formData.countryCode, phoneNumber: mobile }),
-        ]);
+    if (res?.success) {
+      try {
+        // ✅ Send Email OTP only
+        const emailOtpRes = await sendEmailOtp({
+          email: payload.email,
+          type: "signup",
+        });
 
         if (emailOtpRes?.success) {
+          toast.success("Email OTP sent successfully!");
           navigate("/verify-otp", {
             state: {
               email: payload.email,
-              mobile,
               countryCode: formData.countryCode,
+              mobile,
               name: `${payload.firstName} ${payload.lastName}`,
             },
           });
           return;
+        } else {
+          toast.error(emailOtpRes?.message || "Failed to send Email OTP");
+          return;
         }
-
-        alert(emailOtpRes?.message || "Failed to send Email OTP");
+      } catch (otpError) {
+        console.error("Email OTP error:", otpError);
+        toast.error("Error sending OTP. Please try again.");
         return;
       }
-
-      // ❌ Handle backend message
-      if (!res.status) {
-        // const msg = res.message.toLowerCase();
-        toast.error(res.message)
-        setErrors((prev) => ({
-          ...prev,
-          ...(res.message === "Email already in use"
-            ? { email: res.message }
-            : { mobile: res.message }),
-        }));
-
-        // if (
-        //   msg.includes("email") &&
-        //   (msg.includes("exist") ||
-        //     msg.includes("used") ||
-        //     msg.includes("taken") ||
-        //     msg.includes("register"))
-        // ) {
-        //   setErrors((prev) => ({
-        //     ...prev,
-        //     email: "This email is already registered. Please use another.",
-        //   }));
-        //   setLoading(false);
-        //   return;
-        // }
-
-        // if (
-        //   (msg.includes("mobile") || msg.includes("phone")) &&
-        //   (msg.includes("exist") ||
-        //     msg.includes("used") ||
-        //     msg.includes("taken") ||
-        //     msg.includes("register"))
-        // ) {
-        //   setErrors((prev) => ({
-        //     ...prev,
-        //     mobile: "This mobile number is already used. Try another.",
-        //   }));
-        //   setLoading(false);
-        //   return;
-        // }
-      }
-
-      // ⚙️ Handle validation errors object/array
-      if (res?.errors) {
-        const newErrors = {};
-
-        if (Array.isArray(res.errors)) {
-          res.errors.forEach((err) => {
-            const field =
-              err.param || err.field || err.key || err.path || "form";
-            const message = err.msg || err.message || String(err);
-
-            const mappedField = (() => {
-              if (["phoneNumber", "phone", "mobile"].includes(field)) return "mobile";
-              if (["for_Profile", "forProfile", "for_profile"].includes(field))
-                return "profileFor";
-              if (["dateOfBirth", "dob", "date_of_birth"].includes(field))
-                return "dobDay";
-              if (["firstName", "firstname"].includes(field)) return "firstName";
-              if (["lastName", "lastname"].includes(field)) return "lastName";
-              if (field === "email") return "email";
-              if (field === "password") return "password";
-              return field;
-            })();
-
-            newErrors[mappedField] = message;
-          });
-        } else if (typeof res.errors === "object") {
-          Object.keys(res.errors).forEach((k) => {
-            newErrors[k] = Array.isArray(res.errors[k])
-              ? res.errors[k].join(" ")
-              : String(res.errors[k]);
-          });
-        }
-
-        setErrors((prev) => ({ ...prev, ...newErrors }));
-        setLoading(false);
-        return;
-      }
-
-      // Fallback error message
-      setErrors((prev) => ({
-        ...prev,
-        form: res?.message || res?.error || "Signup failed. Try again.",
-      }));
-    } catch (error) {
-      console.error("Signup error:", error.response?.data || error.message);
-      setErrors((prev) => ({
-        ...prev,
-        form: error.response?.message || "Something went wrong. Please try again.",
-      }));
-    } finally {
-      setLoading(false);
     }
-  };
 
+    // ❌ Handle backend failure message
+    if (!res?.success) {
+      toast.error(res?.message || "Signup failed");
+      setErrors((prev) => ({
+        ...prev,
+        ...(res.message?.toLowerCase().includes("email")
+          ? { email: res.message }
+          : { mobile: res.message }),
+      }));
+      return;
+    }
+
+    // ⚙️ Handle backend validation errors
+    if (res?.errors) {
+      const newErrors = {};
+
+      if (Array.isArray(res.errors)) {
+        res.errors.forEach((err) => {
+          const field =
+            err.param || err.field || err.key || err.path || "form";
+          const message = err.msg || err.message || String(err);
+
+          const mappedField = (() => {
+            if (["phoneNumber", "phone", "mobile"].includes(field)) return "mobile";
+            if (["for_Profile", "forProfile", "for_profile"].includes(field))
+              return "profileFor";
+            if (["dateOfBirth", "dob", "date_of_birth"].includes(field))
+              return "dobDay";
+            if (["firstName", "firstname"].includes(field)) return "firstName";
+            if (["lastName", "lastname"].includes(field)) return "lastName";
+            if (field === "email") return "email";
+            if (field === "password") return "password";
+            return field;
+          })();
+
+          newErrors[mappedField] = message;
+        });
+      } else if (typeof res.errors === "object") {
+        Object.keys(res.errors).forEach((k) => {
+          newErrors[k] = Array.isArray(res.errors[k])
+            ? res.errors[k].join(" ")
+            : String(res.errors[k]);
+        });
+      }
+
+      setErrors((prev) => ({ ...prev, ...newErrors }));
+      return;
+    }
+
+    // 🛑 Fallback error
+    setErrors((prev) => ({
+      ...prev,
+      form: res?.message || "Signup failed. Try again.",
+    }));
+  } catch (error) {
+    console.error("Signup error:", error.response?.data || error.message);
+    toast.error(error.response?.data?.message || "Something went wrong!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-center px-4">
