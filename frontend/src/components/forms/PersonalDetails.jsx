@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
 import CreatableSelect from "react-select/creatable";
 import { getOnboardingStatus, getUserPersonal, saveUserPersonal, updateUserPersonal } from "../../api/auth";
+import toast from "react-hot-toast";
 // import "./PersonalDetails.css";
 
 const PersonalDetails = ({ onNext, onPrevious }) => {
@@ -36,6 +37,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     pincode: "",
     city: "",
     state: "",
+    ownHouse: "",
     birthCity: "",
     birthState: "",
     legalStatus: "",
@@ -135,6 +137,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             pincode: data.full_address?.zipCode || "",
             city: data.full_address?.city || "",
             state: data.full_address?.state || "",
+            ownHouse:
+  typeof data.full_address?.isYourHome === "boolean"
+    ? data.full_address.isYourHome
+      ? "Yes"
+      : "No"
+    : "",
+
+          
             birthCity: data.birthPlace || "",
             birthState: data.birthState || "",
             visaCategory: data.visaType || "",
@@ -912,7 +922,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         city: formData.city,
         state: formData.state,
         zipCode: formData.pincode,
-        isYourHome: true,
+        isYourHome: formData.ownHouse === "Yes"
       },
       marriedStatus: formData.legalStatus,
       isResidentOfIndia: formData.residingInIndia === "yes",
@@ -968,7 +978,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       }
 
       // Success
-      alert(alreadyCompleted ? "✅ Personal details updated successfully!" : "✅ Personal details saved successfully!");
+      toast.success(alreadyCompleted ? " Personal details updated successfully!" : " Personal details saved successfully!");
 
       // Optionally refresh data
       try {
@@ -1394,114 +1404,114 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               )}
             </div>
 
-            
 
-          {/* Full Address Section */}
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
-              Full Address
-            </h3>
 
-            <div className="space-y-4">
-              {/* Street Address 1 */}
-              <div>
-                <label className="text-sm font-medium">Street Address 1</label>
-                <input
-                  name="street1"
-                  value={formData.street1}
-                  placeholder="Enter address line 1"
-                  onChange={(e) => {
-                    // Update form data
-                    setFormData({ ...formData, street1: e.target.value });
+            {/* Full Address Section */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                Full Address
+              </h3>
 
-                    // Remove error as soon as user types
-                    setErrors((prev) => {
-                      const updated = { ...prev };
-                      delete updated.street1;
-                      return updated;
-                    });
-                  }}
-                  className={`capitalize w-full p-3 rounded-md border ${errors.street1 ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                />
-              </div>
-
-              {/* Street Address 2 */}
-              <div>
-                <label className="text-sm font-medium">Street Address 2</label>
-                <input
-                  name="street2"
-                  value={formData.street2}
-                  onChange={handleChange}
-                  placeholder="Enter address line 2"
-                  className={`capitalize w-full p-3 rounded-md border ${errors.street2 ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                />
-                {errors.street1 && (
-                  <p className="text-xs text-red-500 mt-1">{errors.street1}</p>
-                )}
-              </div>
-
-              {/* Pincode */}
-              <div>
-                <label className="text-sm font-medium">Pincode</label>
-                <input
-                  type="text"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  placeholder="Enter pincode"
-                  maxLength={6}
-                  className={`capitalize w-full p-3 rounded-md border ${errors.pincode ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                />
-
-                {(errors.pincode || errorMsg) && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.pincode || errorMsg}
-                  </p>
-                )}
-              </div>
-
-              {/* City & State (always editable) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* City */}
+              <div className="space-y-4">
+                {/* Street Address 1 */}
                 <div>
-                  <label className="text-sm font-medium">City</label>
+                  <label className="text-sm font-medium">Street Address 1</label>
                   <input
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="City"
-                    className={`capitalize w-full p-3 rounded-md border ${errors.city ? "border-red-500" : "border-[#E4C48A]"
+                    name="street1"
+                    value={formData.street1}
+                    placeholder="Enter address line 1"
+                    onChange={(e) => {
+                      // Update form data
+                      setFormData({ ...formData, street1: e.target.value });
+
+                      // Remove error as soon as user types
+                      setErrors((prev) => {
+                        const updated = { ...prev };
+                        delete updated.street1;
+                        return updated;
+                      });
+                    }}
+                    className={`capitalize w-full p-3 rounded-md border ${errors.street1 ? "border-red-500" : "border-[#E4C48A]"
                       } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                   />
-                  {errors.city && (
-                    <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+                </div>
+
+                {/* Street Address 2 */}
+                <div>
+                  <label className="text-sm font-medium">Street Address 2</label>
+                  <input
+                    name="street2"
+                    value={formData.street2}
+                    onChange={handleChange}
+                    placeholder="Enter address line 2"
+                    className={`capitalize w-full p-3 rounded-md border ${errors.street2 ? "border-red-500" : "border-[#E4C48A]"
+                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  />
+                  {errors.street1 && (
+                    <p className="text-xs text-red-500 mt-1">{errors.street1}</p>
                   )}
                 </div>
 
-                {/* State */}
+                {/* Pincode */}
                 <div>
-                  <label className="text-sm font-medium">State</label>
+                  <label className="text-sm font-medium">Pincode</label>
                   <input
-                    name="state"
-                    value={formData.state}
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
                     onChange={handleChange}
-                    placeholder="State"
-                    className={`capitalize w-full p-3 rounded-md border ${errors.state ? "border-red-500" : "border-[#E4C48A]"
+                    placeholder="Enter pincode"
+                    maxLength={6}
+                    className={`capitalize w-full p-3 rounded-md border ${errors.pincode ? "border-red-500" : "border-[#E4C48A]"
                       } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                   />
-                  {errors.state && (
-                    <p className="text-xs text-red-500 mt-1">{errors.state}</p>
+
+                  {(errors.pincode || errorMsg) && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.pincode || errorMsg}
+                    </p>
                   )}
+                </div>
+
+                {/* City & State (always editable) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* City */}
+                  <div>
+                    <label className="text-sm font-medium">City</label>
+                    <input
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="City"
+                      className={`capitalize w-full p-3 rounded-md border ${errors.city ? "border-red-500" : "border-[#E4C48A]"
+                        } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    />
+                    {errors.city && (
+                      <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+                    )}
+                  </div>
+
+                  {/* State */}
+                  <div>
+                    <label className="text-sm font-medium">State</label>
+                    <input
+                      name="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      placeholder="State"
+                      className={`capitalize w-full p-3 rounded-md border ${errors.state ? "border-red-500" : "border-[#E4C48A]"
+                        } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    />
+                    {errors.state && (
+                      <p className="text-xs text-red-500 mt-1">{errors.state}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
 
-           {/* Is this your own house? */}
+            {/* Is this your own house? */}
             <div className="mt-6">
               <label className="block text-sm font-medium mb-2 text-gray-800">
                 Is this your own house?
@@ -1541,13 +1551,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 </label>
               </div>
 
-             
-                
-              
+
+
+
             </div>
           </div>
 
-      
+
 
 
           <div className="space-y-6">

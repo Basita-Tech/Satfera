@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getUserHealth, saveUserHealth, updateUserHealth } from "../../api/auth";
+import toast from "react-hot-toast";
 
 const HealthLifestyle = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
@@ -86,11 +87,11 @@ console.log("💾 Saving health data:", payload);
       if (existing?.data?.data) {
         const res = await updateUserHealth(payload);
         console.log("✅ Health data updated:", res);
-        alert("✅ Health details updated successfully!");
+        toast.success(" Health details updated successfully!");
       } else {
         const res = await saveUserHealth(payload);
         console.log("✅ Health data saved:", res);
-        alert("✅ Health details saved successfully!");
+        toast.success(" Health details saved successfully!");
       }
 
       // ✅ Move to next section

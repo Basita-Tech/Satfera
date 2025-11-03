@@ -20,9 +20,17 @@ const getAuthHeaders = () => {
 export const signupUser = async (formData) => {
   try {
     const response = await axios.post(`${API}/auth/signup`, formData);
-    return response.data;
+    return response.data; // ✅ success case
   } catch (error) {
     console.error("❌ Signup Error:", error.response?.data || error.message);
+
+    // ✅ always return a structured error object
+    return (
+      error.response?.data || {
+        success: false,
+        message: "Something went wrong. Please try again.",
+      }
+    );
   }
 };
 

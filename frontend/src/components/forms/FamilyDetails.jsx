@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { allCountries } from "country-telephone-data";
 import { useNavigate } from "react-router-dom";
 import { saveUserFamilyDetails, getUserFamilyDetails, updateUserFamilyDetails } from "../../api/auth";
+import toast from "react-hot-toast";
+
 // Map allCountries for dropdown
 const countryCodes = allCountries.map((c) => ({
   code: `+${c.dialCode}`,
@@ -11,6 +13,8 @@ const countryCodes = allCountries.map((c) => ({
 const FamilyDetails = ({ onNext, onPrevious }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
+  const [existingId, setExistingId] = useState(null);
 
   const [formData, setFormData] = useState({
     fatherName: "",
@@ -34,6 +38,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     siblings: [],
   });
 
+  // ✅ Fetch existing data once
   useEffect(() => {
     const fetchFamilyDetails = async () => {
       try {
@@ -41,10 +46,10 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
         const res = await getUserFamilyDetails();
         console.log("📥 API family details:", res?.data);
 
-        if (res?.data) {
-          const data = res.data.data;
+        const data = res?.data?.data;
+        if (data) {
+          setExistingId(data._id || null);
 
-          // ✅ Map backend → frontend field names
           setFormData({
             fatherName: data.fatherName || "",
             fatherProfession: data.fatherOccupation || "",
@@ -53,7 +58,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             motherName: data.motherName || "",
             motherProfession: data.motherOccupation || "",
             motherPhone: data.motherContact || "",
-            motherNative: "", // not in backend yet
+            motherNative: "",
             grandFatherName: data.grandFatherName || "",
             grandMotherName: data.grandMotherName || "",
             nanaName: data.nanaName || "",
@@ -64,6 +69,8 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             siblingCount: data.howManySiblings || 0,
             siblings: data.siblingDetails || [],
             doYouHaveChildren: data.doYouHaveChildren ?? false,
+            fatherPhoneCode: "+91",
+            motherPhoneCode: "+91",
           });
         }
       } catch (error) {
@@ -116,12 +123,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     setFormData((prev) => ({ ...prev, siblings: updatedSiblings }));
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
   e.preventDefault();
-
   console.log("🧾 Raw formData before submission:", formData);
 
-  // ✅ Base object (only user-entered values)
+  // ✅ Prepare clean submission data
   let submissionData = {
     fatherName: formData.fatherName,
     motherName: formData.motherName,
@@ -139,20 +145,18 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     familyType: formData.familyType,
   };
 
-  // ✅ Handle siblings properly
+  // ✅ Handle siblings correctly
   if (formData.hasSiblings === true) {
     submissionData.haveSibling = true;
     submissionData.howManySiblings = formData.siblingCount || 0;
     submissionData.siblingDetails = (formData.siblings || []).filter(
       (s) => s.name?.trim() && s.relation?.trim()
-    ); // remove incomplete sibling entries
+    );
   } else if (formData.hasSiblings === false) {
     submissionData.haveSibling = false;
-    // ❌ do NOT send howManySiblings or siblingDetails
   }
-  // else (user didn’t choose), don’t add any sibling fields
 
-  // ✅ Remove all empty or null values
+  // ✅ Clean empty fields
   Object.keys(submissionData).forEach((key) => {
     if (
       submissionData[key] === "" ||
@@ -164,21 +168,43 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     }
   });
 
-  console.log("🚀 Clean data being sent:", submissionData);
+  console.log("🚀 Final clean data being sent:", submissionData);
 
   try {
+    setLoading(true);
     const existing = await getUserFamilyDetails();
+
     let res;
     if (existing?.data?.data) {
+      console.log("🔁 Updating existing family details...");
       res = await updateUserFamilyDetails(submissionData);
+      toast.success("✅ Family details updated successfully!");
     } else {
+      console.log("🆕 Creating new family details...");
       res = await saveUserFamilyDetails(submissionData);
+      toast.success("✅ Family details saved successfully!");
     }
-    alert("✅ Family details saved successfully!");
+
     if (onNext) onNext("education");
   } catch (error) {
     console.error("❌ Save/Update Family Details Error:", error);
-    alert("Error saving family details.");
+
+    // Handle backend "already exists" gracefully
+    if (error?.response?.data?.message?.includes("already exist")) {
+      toast("ℹ️ Family details already exist, updating instead...");
+      try {
+        const res = await updateUserFamilyDetails(submissionData);
+        toast.success("✅ Family details updated successfully!");
+        if (onNext) onNext("education");
+      } catch (updateErr) {
+        console.error("❌ Update failed:", updateErr);
+        toast.error("Failed to update family details.");
+      }
+    } else {
+      toast.error("Error saving family details.");
+    }
+  } finally {
+    setLoading(false);
   }
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import CreatableSelect from "react-select/creatable";
 import { getUserProfession, saveUserProfession, updateUserProfession } from "../../api/auth";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const ProfessionDetails = ({ onNext, onPrevious }) => {
   const navigate = useNavigate();
@@ -520,12 +521,12 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
       if(existing?.data?.data){
         const res = await updateUserProfession(payload);
         console.log("✅ Profession updated:", res);
-        alert("✅ Profession details updated successfully!");
+        toast.success(" Profession details updated successfully!");
       }
       else {
         const res = await saveUserProfession(payload);
         console.log("✅ Profession saved:", res);
-        alert("✅ Profession details saved successfully!");
+        toast.success(" Profession details saved successfully!");
       }
 
       // ✅ Navigate to next step

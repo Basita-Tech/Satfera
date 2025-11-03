@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { getUserExpectations, saveUserExpectations, updateUserExpectations } from "../../api/auth";
 import { getNames } from "country-list";
 import Select from "react-select";
+import toast from "react-hot-toast";
+
 
 
 const ExpectationDetails = ({ onNext, onPrevious }) => {
@@ -226,10 +228,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
       if (existing?.data) {
         res = await updateUserExpectations(payload);
-        alert("✅ Expectations updated successfully!");
+        toast.success(" Expectations updated successfully!");
       } else {
         res = await saveUserExpectations(payload);
-        alert("✅ Expectations saved successfully!");
+        toast.success("Expectations saved successfully!");
       }
 
       // 🔄 Re-fetch updated data from backend
