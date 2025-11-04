@@ -14,6 +14,7 @@ import {
   sendWelcomeEmail,
 } from "../../lib/email";
 import { parseDDMMYYYYToDate } from "../../lib/lib";
+import { Profile } from "../../models/Profile";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -146,6 +147,14 @@ export class AuthService {
       phoneNumber,
       password: hashedPassword,
     });
+
+    const userProfile = await Profile.create({
+      userId: newUser._id,
+    });
+
+    if (!userProfile) {
+      throw new Error("Failed to create user profile");
+    }
 
     await newUser.save();
 

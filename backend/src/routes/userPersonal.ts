@@ -28,6 +28,15 @@ import {
   validateUserExpectations,
 } from "../validation/validation";
 import { authenticate } from "../middleware/authMiddleware";
+import {
+  deletePhotoController,
+  updatePhotoController,
+  uploadPhotoController,
+  getPhotosController,
+  uploadGovernmentIdController,
+  updateGovernmentIdController,
+  getGovernmentIdController,
+} from "../controllers/uploadController";
 
 const userPersonalRouter = Router();
 
@@ -93,7 +102,47 @@ userPersonalRouter.post(
 
 userPersonalRouter.put("/expectations/", authenticate, updateUserExpectations);
 
-userPersonalRouter.get("/onboarding-status", authenticate, getUserOnboardingStatus);
-userPersonalRouter.put("/onboarding-status", authenticate, updateUserOnboardingStatus);
+userPersonalRouter.get(
+  "/onboarding-status",
+  authenticate,
+  getUserOnboardingStatus
+);
+userPersonalRouter.put(
+  "/onboarding-status",
+  authenticate,
+  updateUserOnboardingStatus
+);
+
+userPersonalRouter.post("/upload/photos", authenticate, uploadPhotoController);
+userPersonalRouter.get("/upload/photos", authenticate, getPhotosController);
+userPersonalRouter.put(
+  "/upload/photos/:photoId",
+  authenticate,
+  updatePhotoController
+);
+
+userPersonalRouter.delete(
+  "/upload/photos/:photoId",
+  authenticate,
+  deletePhotoController
+);
+
+userPersonalRouter.post(
+  "/upload/government-id",
+  authenticate,
+  uploadGovernmentIdController
+);
+
+userPersonalRouter.get(
+  "/upload/government-id",
+  authenticate,
+  getGovernmentIdController
+);
+
+userPersonalRouter.put(
+  "/upload/government-id",
+  authenticate,
+  updateGovernmentIdController
+);
 
 export default userPersonalRouter;
