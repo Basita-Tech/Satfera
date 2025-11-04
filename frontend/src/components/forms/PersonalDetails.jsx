@@ -70,6 +70,38 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
   const [showDivorceFields, setShowDivorceFields] = useState(false);
   const [showChildrenFields, setShowChildrenFields] = useState(false);
 
+  // ✅ Handle hour input
+  const handleHourInput = (e) => {
+    let value = e.target.value.replace(/\D/g, ""); // only numbers
+    if (value.length > 2) value = value.slice(0, 2);
+    setFormData((prev) => ({ ...prev, birthHour: value }));
+
+    // auto-focus to minute input after 2 digits
+    if (value.length === 2) minuteRef.current?.focus();
+
+    // validate immediately
+    if (value !== "" && (+value < 0 || +value > 23)) {
+      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00–23" }));
+    } else {
+      setErrors((prev) => ({ ...prev, birthHour: "" }));
+    }
+  };
+
+  // ✅ Handle minute input
+  const handleMinuteInput = (e) => {
+    let value = e.target.value.replace(/\D/g, ""); // only numbers
+    if (value.length > 2) value = value.slice(0, 2);
+    setFormData((prev) => ({ ...prev, birthMinute: value }));
+
+    // validate immediately
+    if (value !== "" && (+value < 0 || +value > 59)) {
+      setErrors((prev) => ({ ...prev, birthMinute: "Minute must be between 00–59" }));
+    } else {
+      setErrors((prev) => ({ ...prev, birthMinute: "" }));
+    }
+  };
+
+
 
   useEffect(() => {
     let filtered = [];
@@ -89,125 +121,136 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
   }, [formData.religion]);
 
 
-  useEffect(() => {
-    const fetchPersonal = async () => {
-      try {
-        setLoading(true);
-        const res = await getUserPersonal();
-        if (res?.data) {
-          const data = res.data?.data || {};
+ useEffect(() => {
+  const fetchPersonal = async () => {
+    try {
+      setLoading(true);
+      const res = await getUserPersonal();
+      if (res?.data) {
+        const data = res.data?.data || {};
 
-          const dateObj = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+        const dateObj = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
 
-          // Parse time
-          let birthHour = "", birthMinute = "";
-          if (data.timeOfBirth) {
-            const parts = data.timeOfBirth.split(":");
-            birthHour = parts[0] || "";
-            birthMinute = parts[1] || "";
-          }
-
-          const mapped = {
-            firstName: data.firstName || "",
-            middleName: data.middleName || "",
-            lastName: data.lastName || "",
-            dobDay: dateObj ? dateObj.getDate().toString().padStart(2, "0") : "",
-            dobMonth: dateObj ? (dateObj.getMonth() + 1).toString().padStart(2, "0") : "",
-            dobYear: dateObj ? dateObj.getFullYear().toString() : "",
-            birthHour,
-            birthMinute,
-            // Normalize incoming height/weight whether the API returns an object or a string
-            height: data.height
-              ? typeof data.height === "object"
-                ? data.height.text || data.height.value || ""
-                : String(data.height)
-              : "",
-            weight: data.weight
-              ? typeof data.weight === "object"
-                ? data.weight.text || data.weight.value || ""
-                : String(data.weight)
-              : "",
-            rashi: data.astrologicalSign || "",
-            dosh: data.dosh || "",
-            religion: data.religion || "",
-            caste: data.subCaste || "",
-            nationality: data.nationality || "",
-            street1: data.full_address?.street1 || "",
-            street2: data.full_address?.street2 || "",
-            pincode: data.full_address?.zipCode || "",
-            city: data.full_address?.city || "",
-            state: data.full_address?.state || "",
-            ownHouse:
-  typeof data.full_address?.isYourHome === "boolean"
-    ? data.full_address.isYourHome
-      ? "Yes"
-      : "No"
-    : "",
-
-          
-            birthCity: data.birthPlace || "",
-            birthState: data.birthState || "",
-            visaCategory: data.visaType || "",
-            residingCountry: data.residingCountry || "",
-            legalStatus: data.marriedStatus || "",
-            interCommunity:
-              data.marryToOtherReligion === true
-                ? "Yes"
-                : data.marryToOtherReligion === false
-                  ? "No"
-                  : "",
-            hasChildren:
-              data.isHaveChildren === true
-                ? "Yes"
-                : data.isHaveChildren === false
-                  ? "No"
-                  : "",
-            numChildren: data.numberOfChildren
-              ? String(data.numberOfChildren)
-              : "",
-            livingWith:
-              data.isChildrenLivingWithYou === true
-                ? "With Me"
-                : data.isChildrenLivingWithYou === false
-                  ? "No"
-                  : "",
-            residingInIndia:
-              typeof data.isResidentOfIndia === "boolean"
-                ? data.isResidentOfIndia
-                  ? "yes"
-                  : "no"
-                : "",
-            divorceStatus: data.divorceStatus
-          };
-
-          setFormData((prev) => ({ ...prev, ...mapped }));
-
-          // Show/hide sections based on loaded data
-          setShowDivorceFields(!!data.divorceStatus);
-          setShowChildrenFields(data.isHaveChildren === true);
-
-          // Set separation-related states so the UI displays correctly
-          // Prefer explicit `isYouLegallySeparated` returned by API, fallback to older `isLegallySeparated` or presence of separatedSince
-          const apiYouSeparated =
-            data.isYouLegallySeparated !== undefined
-              ? data.isYouLegallySeparated
-              : data.isLegallySeparated !== undefined
-                ? data.isLegallySeparated
-                : !!data.separatedSince;
-
-          setIsLegallySeparated(apiYouSeparated === true ? "Yes" : apiYouSeparated === false ? "No" : "");
-          setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
+        // Parse time of birth
+        let birthHour = "", birthMinute = "";
+        if (data.timeOfBirth) {
+          const parts = data.timeOfBirth.split(":");
+          birthHour = parts[0] || "";
+          birthMinute = parts[1] || "";
         }
-      } catch (err) {
-        console.error("Failed to fetch personal details:", err);
-      } finally {
-        setLoading(false);
+
+        // 🧩 Map backend data to form state
+        const mapped = {
+          firstName: data.firstName || "",
+          middleName: data.middleName || "",
+          lastName: data.lastName || "",
+          dobDay: dateObj ? dateObj.getDate().toString().padStart(2, "0") : "",
+          dobMonth: dateObj ? (dateObj.getMonth() + 1).toString().padStart(2, "0") : "",
+          dobYear: dateObj ? dateObj.getFullYear().toString() : "",
+          birthHour,
+          birthMinute,
+
+          // Normalize height/weight
+          height: data.height
+            ? typeof data.height === "object"
+              ? data.height.text || data.height.value || ""
+              : String(data.height)
+            : "",
+          weight: data.weight
+            ? typeof data.weight === "object"
+              ? data.weight.text || data.weight.value || ""
+              : String(data.weight)
+            : "",
+
+          rashi: data.astrologicalSign || "",
+          dosh: data.dosh || "",
+          religion: data.religion || "",
+          caste: data.subCaste || "",
+          nationality: data.nationality || "",
+
+          // Address
+          street1: data.full_address?.street1 || "",
+          street2: data.full_address?.street2 || "",
+          pincode: data.full_address?.zipCode || "",
+          city: data.full_address?.city || "",
+          state: data.full_address?.state || "",
+          ownHouse:
+            typeof data.full_address?.isYourHome === "boolean"
+              ? data.full_address.isYourHome
+                ? "Yes"
+                : "No"
+              : "",
+
+          // Birth & residency
+          birthCity: data.birthPlace || "",
+          birthState: data.birthState || "",
+          visaCategory: data.visaType || "",
+          residingCountry: data.residingCountry || "",
+
+          // Marital info
+          legalStatus: data.marriedStatus || "",
+          divorceStatus: data.divorceStatus || "",
+
+          interCommunity:
+            data.marryToOtherReligion === true
+              ? "Yes"
+              : data.marryToOtherReligion === false
+                ? "No"
+                : "",
+
+          hasChildren:
+            data.isHaveChildren === true
+              ? "Yes"
+              : data.isHaveChildren === false
+                ? "No"
+                : "",
+          numChildren: data.numberOfChildren
+            ? String(data.numberOfChildren)
+            : "",
+          livingWith:
+            data.isChildrenLivingWithYou === true
+              ? "With Me"
+              : data.isChildrenLivingWithYou === false
+                ? "No"
+                : "",
+
+          residingInIndia:
+            typeof data.isResidentOfIndia === "boolean"
+              ? data.isResidentOfIndia
+                ? "yes"
+                : "no"
+              : "",
+        };
+
+        // ✅ Update form data
+        setFormData((prev) => ({ ...prev, ...mapped }));
+
+        // ✅ Conditional UI logic (based on marital status)
+        const status = data.marriedStatus || "";
+        setShowChildrenFields(status && status !== "Never Married");
+        setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
+
+        let separated = "";
+
+if (data.isYouLegallySeparated === true) separated = "Yes";
+else if (data.isYouLegallySeparated === false && data.separatedSince) separated = "No";
+else if (data.isLegallySeparated === true) separated = "Yes";
+else if (data.isLegallySeparated === false && data.separatedSince) separated = "No";
+else if (data.separatedSince) separated = "Yes"; // user provided year => must be Yes
+// else leave blank if backend didn’t specify anything
+
+setIsLegallySeparated(separated);
+setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch personal details:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchPersonal();
-  }, []);
-
+  fetchPersonal();
+}, []);
 
   const pincodeMapping = {
     110001: { city: "New Delhi", state: "Delhi" },
@@ -535,10 +578,11 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
   const doshOptions = [
     "No Dosh",
     "Manglik",
+    "Ashnik Manglik",
     "Sarpa Dosh",
     "Kala Sarpa Dosh",
     "Rahu Dosh",
-    "Kethu Dosh",
+    "Ketu Dosh",
     "Kalathra Dosh",
   ];
 
@@ -746,58 +790,58 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     });
   };
 
-  const handleHourInput = (e) => {
-    const val = e.target.value;
-    // Allow only numbers and max 2 digits
-    if (/^\d{0,2}$/.test(val)) {
-      setFormData({ ...formData, birthHour: val });
-      if (val.length === 2) {
-        minuteRef.current.focus(); // Auto move to minute input
-      }
-    }
-  };
+  // const handleHourInput = (e) => {
+  //   const val = e.target.value;
+  //   // Allow only numbers and max 2 digits
+  //   if (/^\d{0,2}$/.test(val)) {
+  //     setFormData({ ...formData, birthHour: val });
+  //     if (val.length === 2) {
+  //       minuteRef.current.focus(); // Auto move to minute input
+  //     }
+  //   }
+  // };
 
-  const handleMinuteInput = (e) => {
-    const val = e.target.value;
-    if (/^\d{0,2}$/.test(val)) {
-      setFormData({ ...formData, birthMinute: val });
-    }
-  };
+  // const handleMinuteInput = (e) => {
+  //   const val = e.target.value;
+  //   if (/^\d{0,2}$/.test(val)) {
+  //     setFormData({ ...formData, birthMinute: val });
+  //   }
+  // };
 
 
 
-  const handleLegalStatus = (e) => {
-    const status = e.target.value;
+  // 🧠 Handle Legal Status Change
+const handleLegalStatus = (e) => {
+  const status = e.target.value;
 
-    // Update form data and clear children fields when marital status changes
-    setFormData((prev) => ({
-      ...prev,
-      legalStatus: status,
-      hasChildren: "",
-      numChildren: "",
-      livingWith: "",
-    }));
+  // Update form data
+  setFormData((prev) => ({
+    ...prev,
+    legalStatus: status,
+    hasChildren: "",
+    numChildren: "",
+    livingWith: "",
+    divorceStatus: "",
+  }));
 
-    // Clear error immediately when user selects a value
-    setErrors((prev) => {
-      const updated = { ...prev };
-      if (status) delete updated.legalStatus;
-      return updated;
-    });
+  // Clear errors for marital status
+  setErrors((prev) => {
+    const updated = { ...prev };
+    if (status) delete updated.legalStatus;
+    return updated;
+  });
 
-    // ✅ Show "Do you have children?" only if status is selected AND not "Never Married"
-    setShowChildrenFields(status && status !== "Never Married");
+  // Show/hide sections dynamically
+  setShowChildrenFields(status && status !== "Never Married");
+  setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
 
-    // ✅ Show divorce fields only for "Divorced" or "Awaiting Divorce"
-    setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
-
-    // ✅ Reset separation-related fields if not "Separated"
-    if (status !== "Separated") {
-      setIsLegallySeparated("");
-      setSeparationYear("");
-      setManualSeparationEntry(false);
-    }
-  };
+  // Reset separation-related fields
+  if (status !== "Separated") {
+    setIsLegallySeparated("");
+    setSeparationYear("");
+    setManualSeparationEntry(false);
+  }
+};
 
   const validate = () => {
     const newErrors = {};
@@ -1085,38 +1129,42 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">
-              Time of Birth (HH : MM)
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-              <input
-                name="birthHour"
-                value={formData.birthHour}
-                onChange={handleHourInput}
-                placeholder="HH"
-                maxLength={2}
-                className={`capitalize w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              />
-              {errors.birthHour && (
-                <p className="text-xs text-red-500 mt-1">{errors.birthHour}</p>
-              )}
-              <input
-                name="birthMinute"
-                value={formData.birthMinute}
-                onChange={handleMinuteInput}
-                placeholder="MM"
-                maxLength={2}
-                ref={minuteRef}
-                className={`capitalize w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              />
-              {errors.birthMinute && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.birthMinute}
-                </p>
-              )}
-            </div>
-          </div>
+         <div>
+      <label className="text-sm font-medium">Time of Birth (HH : MM)</label>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+        {/* Hour Input */}
+        <input
+          name="birthHour"
+          value={formData.birthHour}
+          onChange={handleHourInput}
+          placeholder="HH"
+          maxLength={2}
+          className={`w-full p-3 rounded-md border ${
+            errors.birthHour ? "border-red-500" : "border-[#E4C48A]"
+          } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+        />
+        {errors.birthHour && (
+          <p className="text-xs text-red-500 mt-1">{errors.birthHour}</p>
+        )}
+
+        {/* Minute Input */}
+        <input
+          name="birthMinute"
+          value={formData.birthMinute}
+          onChange={handleMinuteInput}
+          placeholder="MM"
+          maxLength={2}
+          ref={minuteRef}
+          className={`w-full p-3 rounded-md border ${
+            errors.birthMinute ? "border-red-500" : "border-[#E4C48A]"
+          } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+        />
+        {errors.birthMinute && (
+          <p className="text-xs text-red-500 mt-1">{errors.birthMinute}</p>
+        )}
+      </div>
+    </div>
           {/* Birth Place */}
           <div>
             <p className="text-sm font-medium">Birth Place</p>
@@ -1452,26 +1500,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   )}
                 </div>
 
-                {/* Pincode */}
-                <div>
-                  <label className="text-sm font-medium">Pincode</label>
-                  <input
-                    type="text"
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleChange}
-                    placeholder="Enter pincode"
-                    maxLength={6}
-                    className={`capitalize w-full p-3 rounded-md border ${errors.pincode ? "border-red-500" : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                  />
-
-                  {(errors.pincode || errorMsg) && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.pincode || errorMsg}
-                    </p>
-                  )}
-                </div>
+          
 
                 {/* City & State (always editable) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1509,6 +1538,27 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 </div>
               </div>
             </div>
+
+            {/* Pincode */}
+                <div>
+                  <label className="text-sm font-medium">Pincode</label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    placeholder="Enter pincode"
+                    maxLength={6}
+                    className={`capitalize w-full p-3 rounded-md border ${errors.pincode ? "border-red-500" : "border-[#E4C48A]"
+                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  />
+
+                  {(errors.pincode || errorMsg) && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.pincode || errorMsg}
+                    </p>
+                  )}
+                </div>
 
 
             {/* Is this your own house? */}

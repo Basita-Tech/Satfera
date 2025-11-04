@@ -2,23 +2,23 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserHealth extends Document {
   userId: { type: Schema.Types.ObjectId; ref: "User" };
-  isAlcoholic?: boolean;
-  isTobaccoUser?: boolean;
-  isHaveTattoos?: boolean;
-  isHaveHIV?: boolean;
-  isPostiviInTB?: boolean;
-  isHaveMedicalHistory?: boolean;
+  isAlcoholic?: string;
+  isTobaccoUser?: string;
+  isHaveTattoos?: string;
+  isHaveHIV?: string;
+  isPositiveInTB?: string;
+  isHaveMedicalHistory?: string;
   medicalHistoryDetails?: string;
   diet?:
-    | "vegetarian"
-    | "non-vegetarian"
-    | "eggetarian"
-    | "jain"
-    | "swaminarayan"
-    | "veg & non-veg"
+  | "vegetarian"
+  | "non-vegetarian"
+  | "eggetarian"
+  | "jain"
+  | "swaminarayan"
+  | "veg & non-veg";
 }
 
-const userHealthSchema = new Schema(
+const userHealthSchema = new Schema<IUserHealth>(
   {
     userId: {
       type: Schema.Types.ObjectId,
@@ -27,26 +27,39 @@ const userHealthSchema = new Schema(
       unique: true,
     },
     isAlcoholic: {
-      type: Boolean,
+      type: String,
+      enum: ["yes", "no", "occasional", ""],
+      default: "",
     },
     isTobaccoUser: {
-      type: Boolean,
+      type: String,
+      enum: ["yes", "no", "occasional", ""],
+      default: "",
     },
     isHaveTattoos: {
-      type: Boolean,
+      type: String,
+      enum: ["yes", "no", ""],
+      default: "",
     },
     isHaveHIV: {
-      type: Boolean,
+      type: String,
+      enum: ["yes", "no", ""],
+      default: "",
     },
-    isPostiviInTB: {
-      type: Boolean,
+    isPositiveInTB: {
+      type: String,
+      enum: ["yes", "no", ""],
+      default: "",
     },
     isHaveMedicalHistory: {
-      type: Boolean,
+      type: String,
+      enum: ["yes", "no", ""],
+      default: "",
     },
     medicalHistoryDetails: {
       type: String,
       trim: true,
+      default: "",
     },
     diet: {
       type: String,
@@ -57,12 +70,12 @@ const userHealthSchema = new Schema(
         "jain",
         "swaminarayan",
         "veg & non-veg",
+        "",
       ],
+      default: "",
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 export const UserHealth =

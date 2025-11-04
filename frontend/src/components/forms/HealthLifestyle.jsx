@@ -60,28 +60,18 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const toBool = (val) => {
-      if (val === "yes") return true;
-      if (val === "no") return false;
-      if (val === "occasional" || val === "Occasional") return true;
-      return false;
-    };
-
     const payload = {
-      isAlcoholic: toBool(formData.alcohol),
-      isTobaccoUser: toBool(formData.tobacco),
-      isHaveTattoos: toBool(formData.tattoos),
-      isHaveHIV: toBool(formData.hiv),
-      isPostiviInTB: toBool(formData.tb),
-      isHaveMedicalHistory: toBool(formData.medicalHistory),
-      medicalHistoryDetails: formData.medicalHistoryDetails || "",
-      diet: formData.diet || "",
+      isAlcoholic: String(formData.alcohol || ""),
+      isTobaccoUser: String(formData.tobacco || ""),
+      isHaveTattoos: String(formData.tattoos || ""),
+      isHaveHIV: String(formData.hiv || ""),
+      isPositiveInTB: String(formData.tb || ""),
+      isHaveMedicalHistory: String(formData.medicalHistory || ""),
+      medicalHistoryDetails: formData.medicalHistoryDetails?.trim() || "",
+      diet: String(formData.diet || ""),
     };
 
     try {
-console.log("💾 Saving health data:", payload);
-      // 🔹 Always create a new record
-
       const existing = await getUserHealth();
 
       if (existing?.data?.data) {
@@ -94,16 +84,15 @@ console.log("💾 Saving health data:", payload);
         toast.success(" Health details saved successfully!");
       }
 
-      // ✅ Move to next section
-      if (onNext) onNext("expectation");
-    } catch (err) {
-      console.error("❌ Failed to save health data", err);
-      const msg = err?.response?.data?.message || "Failed to save health data";
-      setErrors((prev) => ({ ...prev, submit: msg }));
-      alert(`❌ ${msg}`);
-    }
-  };
 
+
+      if (onNext) onNext("expectation");
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  // 🩺 Load existing health data on mount
   useEffect(() => {
     let mounted = true;
     getUserHealth()
@@ -112,24 +101,21 @@ console.log("💾 Saving health data:", payload);
         const data = res?.data?.data || null;
         if (!data) return;
 
-        const boolToSelect = (b) =>
-          b === true ? "yes" : b === false ? "no" : "";
-
+        // directly map the string values from backend
         setFormData((prev) => ({
           ...prev,
-          alcohol: boolToSelect(data.isAlcoholic),
-          tobacco: boolToSelect(data.isTobaccoUser),
-          tattoos: boolToSelect(data.isHaveTattoos),
-          hiv: boolToSelect(data.isHaveHIV),
-          tb: boolToSelect(data.isPostiviInTB),
-          medicalHistory: boolToSelect(data.isHaveMedicalHistory),
+          alcohol: data.isAlcoholic || "",
+          tobacco: data.isTobaccoUser || "",
+          tattoos: data.isHaveTattoos || "",
+          hiv: data.isHaveHIV || "",
+          tb: data.isPositiveInTB || "",
+          medicalHistory: data.isHaveMedicalHistory || "",
           medicalHistoryDetails: data.medicalHistoryDetails || "",
-          diet: data.diet || ""
-
+          diet: data.diet || "",
         }));
       })
       .catch((err) => {
-        if (err?.response?.status === 404) return; // no data yet
+        if (err?.response?.status === 404) return; // no record yet
         console.error("Failed to load health data", err);
       });
 
@@ -137,13 +123,12 @@ console.log("💾 Saving health data:", payload);
       mounted = false;
     };
   }, []);
-
   const inputClass =
     "capitalize w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
-  <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-[2px] border-[#F9F7F5] transition-transform duration-300">
+      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-[2px] border-[#F9F7F5] transition-transform duration-300">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-black">Health & Lifestyle</h2>
         </div>
@@ -295,13 +280,12 @@ console.log("💾 Saving health data:", payload);
               className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`}
             >
               <option value="">Select</option>
-              <option value="vegetarien">Vegetarian</option>
-              <option value="non-negetarian">Non-Vegetarian</option>
+              <option value="vegetarian">Vegetarian</option>
+              <option value="non-vegetarian">Non-Vegetarian</option>
               <option value="eggetarian">Eggetarian</option>
               <option value="jain">Jain</option>
               <option value="swaminarayan">Swaminarayan</option>
               <option value="veg & non-veg">Veg & Non-veg</option>
-              
             </select>
             {errors.diet && (
               <p className="text-red-500 text-sm mt-1">{errors.diet}</p>
@@ -332,6 +316,7 @@ console.log("💾 Saving health data:", payload);
       </div>
     </div>
   );
-};
+
+}
 
 export default HealthLifestyle;

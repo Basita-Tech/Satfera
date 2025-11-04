@@ -10,6 +10,13 @@ const countryCodes = allCountries.map((c) => ({
   country: c.name,
 }));
 
+
+// ✅ Validate phone number (10 digits)
+const isValidPhone = (phone) => {
+  const phoneRegex = /^[0-9]{10}$/; // only digits, exactly 10
+  return phoneRegex.test(phone);
+};
+
 const FamilyDetails = ({ onNext, onPrevious }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -101,20 +108,16 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
   };
 
   const handlePhoneChange = (field, value) => {
+  if (field === "motherPhone" || field === "fatherPhone") {
+    // remove non-digit characters (no + inside the input)
+    const digitsOnly = value.replace(/\D/g, "");
+    setFormData((prev) => ({ ...prev, [field]: digitsOnly }));
+  } else {
+    // handle country code normally
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  }
+};
 
-  const handleSiblingCount = (count) => {
-    const siblingArray = Array.from({ length: count }, () => ({
-      name: "",
-      relation: "",
-    }));
-    setFormData((prev) => ({
-      ...prev,
-      siblingCount: count,
-      siblings: siblingArray,
-    }));
-  };
 
   const handleSiblingChange = (index, field, value) => {
     const updatedSiblings = [...formData.siblings];
@@ -123,10 +126,22 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     setFormData((prev) => ({ ...prev, siblings: updatedSiblings }));
   };
 
+  
+
+
  const handleSubmit = async (e) => {
   e.preventDefault();
   console.log("🧾 Raw formData before submission:", formData);
+// ✅ Validate phone numbers before continuing
+  if (formData.fatherPhone && !isValidPhone(formData.fatherPhone)) {
+    toast.error("Please enter a valid 10-digit father's phone number.");
+    return;
+  }
 
+  if (formData.motherPhone && !isValidPhone(formData.motherPhone)) {
+    toast.error("Please enter a valid 10-digit mother's phone number.");
+    return;
+  }
   // ✅ Prepare clean submission data
   let submissionData = {
     fatherName: formData.fatherName,

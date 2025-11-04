@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { getNames } from "country-list";
 import CreatableSelect from "react-select/creatable";
 import { getEducationalDetails,saveEducationalDetails,updateEducationalDetails } from "../../api/auth";
+import toast from "react-hot-toast";
+
 
 const EducationDetails = ({onNext,onPrevious}) => {
   const navigate = useNavigate();
@@ -267,11 +269,11 @@ const handlePrevious = () => {
     if (existing?.data?.data) {
       res = await updateEducationalDetails(submissionData);
       console.log("✅ Education details updated:", res?.data);
-      alert("✅ Education details updated successfully!");
+      toast.success(" Education details updated successfully!");
     } else {
       res = await saveEducationalDetails(submissionData);
       console.log("✅ Education details saved:", res?.data);
-      alert("✅ Education details saved successfully!");
+      toast.success("✅ Education details saved successfully!");
     }
 
     if (onNext) onNext("education");

@@ -111,8 +111,8 @@ const SignUpPage = () => {
     if ((gender === "male" && age < 21) || (gender === "female" && age < 20))
       return `Age must be at least ${gender === "male" ? 21 : 20}`;
 
-    if ((gender === "male" && age > 50) || (gender === "female" && age > 50))
-      return `Age must be at most ${gender === "male" ? 50 : 50}`;
+    if ((gender === "male" && age > 40) || (gender === "female" && age > 40))
+      return `Age must be at most ${gender === "male" ? 40 : 40}`;
 
 
     return "";

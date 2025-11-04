@@ -426,29 +426,23 @@ export const UserEducationDetailsValidation = [
 
 export const UserHealthValidation = [
   body("isAlcoholic")
-    .optional()
-    .isBoolean()
-    .withMessage("isAlcoholic must be a boolean"),
+    .optional(),
+
   body("isTobaccoUser")
-    .optional()
-    .isBoolean()
-    .withMessage("isTobaccoUser must be a boolean"),
+    .optional(),
+
   body("isHaveTattoos")
-    .optional()
-    .isBoolean()
-    .withMessage("isHaveTattoos must be a boolean"),
+    .optional(),
+
   body("isHaveHIV")
-    .optional()
-    .isBoolean()
-    .withMessage("isHaveHIV must be a boolean"),
+    .optional(),
+
   body("isPostiviInTB")
-    .optional()
-    .isBoolean()
-    .withMessage("isPostiviInTB must be a boolean"),
+    .optional(),
+
   body("isHaveMedicalHistory")
-    .optional()
-    .isBoolean()
-    .withMessage("isHaveMedicalHistory must be a boolean"),
+    .optional(),
+
   body("medicalHistoryDetails")
     .optional()
     .isString()

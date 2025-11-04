@@ -180,6 +180,7 @@ export const getUserPersonal = async () => {
     return response;
   } catch (error) {
     console.error("❌ Get Personal Details Error:", error.response?.data || error.message);
+
   }
 };
 
@@ -251,10 +252,13 @@ export const saveUserHealth = async (payload) => {
     const response = await axios.post(`${API}/user-personal/health`, payload, {
       headers: getAuthHeaders(),
     });
-    return response;
+    return response.data;
   } catch (error) {
+
     console.error("❌ Save User Health Error:", error.response?.data || error.message);
+     throw error;
   }
+
 };
 
 export const updateUserHealth = async (payload) => {
@@ -265,8 +269,11 @@ export const updateUserHealth = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("❌ Update User Health Error:", error.response?.data || error.message);
+    // Important: rethrow so frontend can handle properly
+    throw error;
   }
 };
+
 
 // -------------------------------------------------------------
 // 🔹 USER PROFESSION APIs
@@ -290,6 +297,7 @@ export const saveUserProfession = async (payload) => {
     return response;
   } catch (error) {
     console.error("❌ Save Profession Error:", error.response?.data || error.message);
+    throw error;
   }
 };
 
@@ -298,7 +306,7 @@ export const updateUserProfession = async (payload) => {
     const response = await axios.put(`${API}/user-personal/profession`, payload, {
       headers: getAuthHeaders(),
     });
-    return response.data;
+    return response;
   } catch (error) {
     console.error("❌ Update Profession Error:", error.response?.data || error.message);
   }
@@ -326,6 +334,7 @@ export const saveUserFamilyDetails = async (payload) => {
     return response;
   } catch (error) {
     console.error("❌ Save Family Details Error:", error.response?.data || error.message);
+    throw error;
   }
 };
 
@@ -362,6 +371,7 @@ export const saveEducationalDetails = async (payload) => {
     return response;
   } catch (error) {
     console.error("❌ Save Educational Details Error:", error.response?.data || error.message);
+    throw error;
   }
 };
 
@@ -398,5 +408,56 @@ export const updateOnboardingStatus = async (payload) => {
     return response.data;
   } catch (error) {
     console.error("❌ Update Onboarding Status Error:", error.response?.data || error.message);
+  }
+};
+
+
+// 📤 Upload normal photo (compulsory1, compulsory2, optional1, etc.)
+export const uploadUserPhoto = async (payload) => {
+  try {
+    const response = await axios.post(`${API}/user-personal/upload/photos`, payload, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Upload User Photo Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// 📤 Upload Government ID photo
+export const uploadGovernmentId = async (payload) => {
+  try {
+    const response = await axios.post(`${API}/user-personal/upload/government-id`, payload, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Upload Government ID Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// 📥 Get all uploaded photos
+export const getUserPhotos = async () => {
+  try {
+    const response = await axios.get(`${API}/user-personal/upload/photos`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get User Photos Error:", error.response?.data || error.message);
+  }
+};
+
+// 📥 Get government ID
+export const getGovernmentId = async () => {
+  try {
+    const response = await axios.get(`${API}/user-personal/upload/government-id`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Government ID Error:", error.response?.data || error.message);
   }
 };

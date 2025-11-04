@@ -10,6 +10,7 @@ import SignUpPage from "./components/auth/SignUpPage";
 import VerifyOtp from "./components/auth/VerifyOtp";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ForgotUsername from "./components/auth/ForgotUsername";
+import UserDashboard   from "./components/pages/UserDasbaord"
 
 // 📋 Form Pages
 import ProfileCompletion from "./components/forms/ProfileCompletion";
@@ -22,6 +23,7 @@ import UploadPhotos from "./components/UploadPhotos";
 import ScrollToTop from "./components/ScrollToTop";
 
 import "./App.css";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
   return (
@@ -43,6 +45,9 @@ function App() {
         <Route path="/complete-profile" element={<ProfileCompletion />} />
         <Route path="/onboarding/user" element={<MultiStepForm />} />
         <Route path="/upload-photo" element={<UploadPhotos />} />
+
+
+        <Route path="/userdashboard" element={<ProtectedRoute><UserDashboard/></ProtectedRoute>}/>
       
       </Routes>
     </>
