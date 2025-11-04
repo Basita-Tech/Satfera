@@ -210,8 +210,8 @@ const handleSubmit = async (e) => {
 
 
   return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
-      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-8 border-t-4 border-[#FBFAF7] hover:scale-[1.02] transition-transform duration-300">
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-[2px] border-[#F9F7F5] transition-transform duration-300">
         <h2 className="text-2xl font-bold text-[#1f1e1d] text-center mb-8">
           Upload Your Photos & ID
         </h2>
