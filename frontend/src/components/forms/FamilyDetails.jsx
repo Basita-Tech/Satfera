@@ -126,6 +126,21 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     setFormData((prev) => ({ ...prev, siblings: updatedSiblings }));
   };
 
+
+  // ✅ Handle sibling count change (missing earlier)
+  const handleSiblingCount = (count) => {
+    const siblingsArray = Array.from({ length: count }, () => ({
+      name: "",
+      relation: "",
+      maritalStatus: "",
+    }));
+    setFormData((prev) => ({
+      ...prev,
+      siblingCount: count,
+      siblings: siblingsArray,
+    }));
+  };
+
   
 
 
