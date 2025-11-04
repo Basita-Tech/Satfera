@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
+
 import {
   uploadUserPhoto,
   uploadGovernmentId,
   getUserPhotos,
   getGovernmentId,
-} from "../api/auth";
+} from "../../api/auth";
+import toast from "react-hot-toast";
 
-const UploadPhotos = () => {
+const UploadPhotos = ({onNext, onPrevious}) => {
+    
   const [photos, setPhotos] = useState({
     compulsory1: null, // full
     compulsory2: null, // family
@@ -23,6 +26,10 @@ const UploadPhotos = () => {
 
   // ✅ Load existing photos from backend
   useEffect(() => {
+    const savedAgreement = localStorage.getItem("agreedTerms");
+  if (savedAgreement === "true") setAgreed(true);
+
+      
     const loadExistingPhotos = async () => {
       try {
         const [photoRes, idRes] = await Promise.all([
@@ -109,87 +116,98 @@ const UploadPhotos = () => {
   };
 
   // ✅ Submit photos to backend
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!agreed) {
-      alert("Please agree to the Terms & Conditions before continuing.");
-      return;
-    }
+  if (!agreed) {
+    alert("Please agree to the Terms & Conditions before continuing.");
+    return;
+  }
 
-    if (
-      !photos.compulsory1 ||
-      !photos.compulsory2 ||
-      !photos.compulsory3 ||
-      !photos.governmentId
-    ) {
-      alert("Please upload all required photos and your government ID card.");
-      return;
-    }
+  if (
+    !photos.compulsory1 ||
+    !photos.compulsory2 ||
+    !photos.compulsory3 ||
+    !photos.governmentId
+  ) {
+    alert("Please upload all required photos and your government ID card.");
+    return;
+  }
 
-    try {
-      setUploading(true);
-      const token = localStorage.getItem("authToken");
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:8000";
+  try {
+    setUploading(true);
+    const token = localStorage.getItem("authToken");
+    const API_BASE_URL =
+      import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-      // ✅ Map frontend keys -> backend photoType
-      const typeMap = {
-        compulsory1: "personal",
-        compulsory2: "family",
-        compulsory3: "closer",
-        optional1: "other",
-        optional2: "other",
-      };
+    const typeMap = {
+      compulsory1: "personal",
+      compulsory2: "family",
+      compulsory3: "closer",
+      optional1: "other",
+      optional2: "other",
+    };
 
-      const uploadResults = {};
+    const uploadResults = {};
 
-      for (const key in photos) {
-        const file = photos[key];
-        if (!file) continue;
+    for (const key in photos) {
+      const file = photos[key];
+      if (!file) continue;
 
-        // 1️⃣ Upload to Cloudinary
-        const url = await uploadToCloudinary(file);
-        if (!url) continue;
-        uploadResults[key] = url;
+      // 1️⃣ Upload to Cloudinary
+      const url = await uploadToCloudinary(file);
+      if (!url) continue;
+      uploadResults[key] = url;
 
-        // 2️⃣ Backend endpoint
-        const endpoint =
-          key === "governmentId"
-            ? `${API_BASE_URL}/user-personal/upload/government-id`
-            : `${API_BASE_URL}/user-personal/upload/photos`;
+      // 2️⃣ Backend endpoint
+      const endpoint =
+        key === "governmentId"
+          ? `${API_BASE_URL}/user-personal/upload/government-id`
+          : `${API_BASE_URL}/user-personal/upload/photos`;
 
-        // 3️⃣ Request body
-        const body =
-          key === "governmentId"
-            ? { url }
-            : { photoType: typeMap[key] || "other", url };
+      // 3️⃣ Request body
+      const body =
+        key === "governmentId"
+          ? { url }
+          : { photoType: typeMap[key] || "other", url };
 
-        // 4️⃣ Send to backend
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(body),
-        });
+      // 4️⃣ Send to backend
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
 
-        if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(`Backend upload failed: ${msg}`);
-        }
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(`Backend upload failed: ${msg}`);
       }
-
-      alert("🎉 All photos uploaded and saved successfully!");
-      setUploadedUrls(uploadResults);
-    } catch (err) {
-      console.error("❌ Upload Error:", err);
-      alert("Upload failed. Please try again.");
-    } finally {
-      setUploading(false);
     }
-  };
+
+    // ✅ Preserve checkbox state
+    const previousAgreement = agreed;
+
+    toast.success("🎉 All photos uploaded and saved successfully!");
+
+    // ✅ Update uploaded photo URLs
+    setUploadedUrls((prev) => ({ ...prev, ...uploadResults }));
+
+    // ✅ Do NOT reset agreed checkbox
+    setAgreed(previousAgreement);
+
+    // ✅ Move to next step if applicable
+    if (onNext) onNext();
+  } catch (err) {
+    console.error("❌ Upload Error:", err);
+    alert("Upload failed. Please try again.");
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-10 px-4">
@@ -240,42 +258,71 @@ const UploadPhotos = () => {
             );
           })}
 
-          {/* Government ID */}
-          <div>
-            <label
-              htmlFor="governmentId"
-              className="block font-semibold text-gray-800 mb-1"
-            >
-              Candidate Government ID Card{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="governmentId"
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={(e) => handlePhotoChange(e, "governmentId")}
-              className="w-full p-2 border rounded-lg"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Supported: JPG, PNG, PDF — Max size:{" "}
-              <span className="font-semibold">2 MB</span>
-            </p>
-            {uploadedUrls.governmentId &&
-              uploadedUrls.governmentId.endsWith(".pdf") === false && (
-                <img
-                  src={uploadedUrls.governmentId}
-                  alt="Government ID"
-                  className="mt-2 h-24 w-24 object-cover rounded-lg border"
-                />
-              )}
-            {photos.governmentId &&
-              photos.governmentId.type === "application/pdf" && (
-                <p className="text-sm text-green-600 mt-2">
-                  📄 PDF file selected
-                </p>
-              )}
-          </div>
+         {/* Government ID */}
+<div>
+  <label
+    htmlFor="governmentId"
+    className="block font-semibold text-gray-800 mb-1"
+  >
+    Candidate Government ID Card <span className="text-red-500">*</span>
+  </label>
+  <input
+    id="governmentId"
+    type="file"
+    accept=".jpg,.jpeg,.png,.pdf"
+    onChange={(e) => handlePhotoChange(e, "governmentId")}
+    className="w-full p-2 border rounded-lg"
+    required
+  />
+  <p className="text-xs text-gray-500 mt-1">
+    Supported: JPG, PNG, PDF — Max size:{" "}
+    <span className="font-semibold">2 MB</span>
+  </p>
+
+  {/* ✅ Show immediate preview if user selects an image */}
+  {photos.governmentId &&
+    photos.governmentId.type.startsWith("image/") && (
+      <img
+        src={URL.createObjectURL(photos.governmentId)}
+        alt="Selected Government ID"
+        className="mt-2 h-24 w-24 object-cover rounded-lg border"
+      />
+    )}
+
+  {/* ✅ Show text when PDF is selected */}
+  {photos.governmentId &&
+    photos.governmentId.type === "application/pdf" && (
+      <p className="text-sm text-green-600 mt-2">
+        📄 PDF file selected
+      </p>
+    )}
+
+  {/* ✅ Show uploaded image when page reloads (from backend) */}
+  {!photos.governmentId &&
+    uploadedUrls.governmentId &&
+    !uploadedUrls.governmentId.endsWith(".pdf") && (
+      <img
+        src={uploadedUrls.governmentId}
+        alt="Government ID"
+        className="mt-2 h-24 w-24 object-cover rounded-lg border"
+      />
+    )}
+
+  {/* ✅ Show PDF link when reloaded from backend */}
+  {!photos.governmentId &&
+    uploadedUrls.governmentId &&
+    uploadedUrls.governmentId.endsWith(".pdf") && (
+      <a
+        href={uploadedUrls.governmentId}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 underline text-sm mt-2 inline-block"
+      >
+        📄 View Uploaded Document (PDF)
+      </a>
+    )}
+</div>
+
 
           {/* Optional Photos */}
           {["optional1", "optional2"].map((key, idx) => {
@@ -319,7 +366,11 @@ const UploadPhotos = () => {
               type="checkbox"
               id="agree"
               checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
+              onChange={(e) => {
+    const checked = e.target.checked;
+    setAgreed(checked);
+    localStorage.setItem("agreedTerms", checked); // ✅ persist state
+  }}
               className="w-4 h-4 accent-[#D4AF37] cursor-pointer"
             />
             <label
@@ -341,38 +392,50 @@ const UploadPhotos = () => {
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={
-              !agreed ||
-              !photos.compulsory1 ||
-              !photos.compulsory2 ||
-              !photos.compulsory3 ||
-              !photos.governmentId ||
-              uploading
-            }
-            className="w-full py-3 rounded-lg font-semibold transition text-white hover:brightness-90"
-            style={{
-              backgroundColor:
-                agreed &&
-                photos.compulsory1 &&
-                photos.compulsory2 &&
-                photos.compulsory3 &&
-                photos.governmentId
-                  ? "#D4AF37"
-                  : "#E0C97A",
-              cursor:
-                !agreed ||
-                !photos.compulsory1 ||
-                !photos.compulsory2 ||
-                !photos.compulsory3 ||
-                !photos.governmentId
-                  ? "not-allowed"
-                  : "pointer",
-            }}
-          >
-            {uploading ? "Uploading..." : "Submit"}
-          </button>
+<button
+  type="submit"
+  disabled={
+    !agreed ||
+    !photos.compulsory1 ||
+    !photos.compulsory2 ||
+    !photos.compulsory3 ||
+    !photos.governmentId ||
+    uploading
+  }
+  className="w-full py-3 rounded-lg font-semibold transition text-white hover:brightness-90"
+  style={{
+    backgroundColor:
+      agreed &&
+      photos.compulsory1 &&
+      photos.compulsory2 &&
+      photos.compulsory3 &&
+      photos.governmentId
+        ? "#D4AF37"
+        : "#E0C97A",
+    cursor:
+      !agreed ||
+      !photos.compulsory1 ||
+      !photos.compulsory2 ||
+      !photos.compulsory3 ||
+      !photos.governmentId
+        ? "not-allowed"
+        : "pointer",
+  }}
+>
+  {uploading ? "Uploading..." : "Submit"}
+</button>
+
+{/* Navigation Buttons */}
+<div className="flex justify-between mt-6">
+  <button
+    type="button"
+    onClick={onPrevious}
+    className="px-4 py-2 rounded-lg border border-gray-400 hover:bg-gray-100"
+  >
+    ← Previous
+  </button>
+</div>
+
         </form>
       </div>
 
@@ -384,18 +447,53 @@ const UploadPhotos = () => {
               Disclaimer for SATFERA Matrimony
             </h3>
             <div className="text-sm text-gray-700 space-y-3">
-              <p>
-                By registering on SATFERA, you give us permission to use your
-                photos and shared information for matchmaking purposes.
-              </p>
-              <p>
-                You confirm all personal details provided by you are true,
-                correct, and updated.
-              </p>
-              <p>
-                SATFERA is only a matchmaking platform and is not responsible
-                for any personal or financial outcomes.
-              </p>
+                <p>
+    By registering on <strong>SATFERA</strong>, you give us permission to use your
+    photos, profile details, and other shared information on our website, mobile
+    application, and for sharing with suitable profiles for matchmaking purposes.
+  </p>
+  <p>
+    You confirm that all personal details provided by you, including name, age,
+    contact number, education, financial details, and any other information,
+    are true, correct, and updated.
+  </p>
+  <p>
+    <strong>SATFERA</strong> is only a matchmaking platform. We do not guarantee
+    marriage, engagement, or confirmation of any relationship.
+  </p>
+  <p>
+    If you are interested in any profile, it is your sole responsibility to verify
+    their past, present, financial capacity, family background, and other necessary
+    details before making any decision. SATFERA is not responsible for the
+    authenticity of users’ claims.
+  </p>
+  <p>
+    SATFERA will not be held responsible for any issues, disputes, frauds, or
+    misunderstandings arising after marriage, engagement, or any personal
+    interactions. We cannot interfere in the personal life of any member.
+  </p>
+  <p>
+    SATFERA strongly advises all members to exercise caution, conduct independent
+    verification, and use their own judgment before sharing personal, financial,
+    or sensitive information with other members.
+  </p>
+  <p>
+    SATFERA does not conduct criminal background checks or financial verifications
+    of its members. Users are responsible for due diligence.
+  </p>
+  <p>
+    SATFERA will not be liable for any loss, damage, fraud, or emotional/financial
+    harm arising out of interactions with other members.
+  </p>
+  <p>
+    Membership fees or charges paid to SATFERA are non-refundable under any
+    circumstances.
+  </p>
+  <p>
+    By using SATFERA, you agree to abide by our Terms & Conditions and Privacy
+    Policy.
+  </p>
+             
             </div>
             <div className="flex justify-end mt-6">
               <button

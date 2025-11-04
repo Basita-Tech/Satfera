@@ -6,8 +6,10 @@ import EducationDetails from "./forms/EducationDetails";
 import ProfessionDetails from "./forms/ProfessionalDetails";
 import HealthLifestyle from "./forms/HealthLifestyle";
 import ExpectationDetails from "./forms/ExpectationDetails";
+import UploadPhotos from "./forms/UploadPhotos";
 import { getOnboardingStatus, updateOnboardingStatus } from "../api/auth";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const steps = [
   { id: "personal", label: "Personal Details" },
@@ -16,6 +18,7 @@ const steps = [
   { id: "profession", label: "Professional Details" },
   { id: "health", label: "Health & Lifestyle" },
   { id: "expectation", label: "Expectation Details" },
+  { id: "photos", label: "Upload Photos" }, // ✅ added upload photos as last step
 ];
 
 const MultiStepForm = () => {
@@ -70,14 +73,17 @@ const MultiStepForm = () => {
     setCompletedSteps(updatedSteps);
 
     try {
-      if (stepId === "expectation") {
-        await updateOnboardingStatus({
-          completedSteps: updatedSteps,
-          isOnboardingCompleted: true,
-        });
-        alert("🎉 Onboarding completed successfully!");
+      // ✅ Mark onboarding complete only after "photos" step
+      const isLastStep = stepId === "photos";
+
+      await updateOnboardingStatus({
+        completedSteps: updatedSteps,
+        isOnboardingCompleted: isLastStep,
+      });
+
+      if (isLastStep) {
+        toast.success("🎉 Onboarding completed successfully!");
       } else {
-        await updateOnboardingStatus({ completedSteps: updatedSteps });
         const nextIndex = steps.findIndex((s) => s.id === stepId) + 1;
         if (nextIndex < steps.length) {
           const nextStep = steps[nextIndex].id;
@@ -152,6 +158,13 @@ const MultiStepForm = () => {
           <ExpectationDetails
             onNext={() => handleNext("expectation")}
             onPrevious={() => handlePrevious("expectation")}
+          />
+        );
+      case "photos":
+        return (
+          <UploadPhotos
+            onNext={() => handleNext("photos")}
+            onPrevious={() => handlePrevious("photos")}
           />
         );
       default:

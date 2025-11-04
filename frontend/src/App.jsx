@@ -15,7 +15,7 @@ import UserDashboard   from "./components/pages/UserDasbaord"
 // 📋 Form Pages
 import ProfileCompletion from "./components/forms/ProfileCompletion";
 import MultiStepForm from "./components/MultiStepForm";
-import UploadPhotos from "./components/UploadPhotos";
+// import UploadPhotos from "./components/UploadPhotos";
 // 📋 Form Pages
 
 
@@ -44,7 +44,7 @@ function App() {
         {/* 🧾 Profile & Forms */}
         <Route path="/complete-profile" element={<ProfileCompletion />} />
         <Route path="/onboarding/user" element={<MultiStepForm />} />
-        <Route path="/upload-photo" element={<UploadPhotos />} />
+        {/* <Route path="/upload-photo" element={<UploadPhotos />} /> */}
 
 
         <Route path="/userdashboard" element={<ProtectedRoute><UserDashboard/></ProtectedRoute>}/>
