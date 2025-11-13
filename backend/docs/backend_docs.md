@@ -124,21 +124,21 @@ or
 
 - Errors:
 
-### Email already exsting:
+### Email already existing:
 
 `{
   "success": false,
   "message": "Email already in use"
 }`
 
-### Phone Number Exsting
+### Phone Number Existing
 
 `{
   "success": false,
   "message": "Phone number already in use"
 }`
 
-### Others errror:
+### Others error:
 
 `{
     "success": false,
