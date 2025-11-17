@@ -10,20 +10,17 @@ import SignUpPage from "./components/auth/SignUpPage";
 import VerifyOtp from "./components/auth/VerifyOtp";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ForgotUsername from "./components/auth/ForgotUsername";
-import UserDashboard   from "./components/pages/UserDasbaord"
-
+import { UserDashboard } from "./components/pages/UserDashboard";
 // 📋 Form Pages
 import ProfileCompletion from "./components/forms/ProfileCompletion";
 import MultiStepForm from "./components/MultiStepForm";
-// import UploadPhotos from "./components/UploadPhotos";
-// 📋 Form Pages
 
 
 // 🧭 Layout Components
 import ScrollToTop from "./components/ScrollToTop";
-
-import "./App.css";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import "./App.css";
+
 
 function App() {
   return (
@@ -44,11 +41,35 @@ function App() {
         {/* 🧾 Profile & Forms */}
         <Route path="/complete-profile" element={<ProfileCompletion />} />
         <Route path="/onboarding/user" element={<MultiStepForm />} />
-        {/* <Route path="/upload-photo" element={<UploadPhotos />} /> */}
+        <Route
+          path="/onboarding/review"
+          element={
+            <ProtectedRoute>
+              <ReviewPage />
+            </ProtectedRoute>
+          } />
 
+        {/* 👤 Dashboard Route (wildcard handles index + nested) */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <ProtectedRoute>
+              <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
+        {/* Alias legacy /userdashboard to /dashboard/* if still referenced */}
+        <Route
+          path="/userdashboard/*"
+          element={
+            <ProtectedRoute>
+              <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/userdashboard" element={<ProtectedRoute><UserDashboard/></ProtectedRoute>}/>
-      
+        {/* ProfileDetails is now handled by nested route inside UserDashboard with proper props */}
+
       </Routes>
     </>
   );

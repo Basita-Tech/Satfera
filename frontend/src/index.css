@@ -106,7 +106,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #E4C48A !important;
+  border-color: #E4C48A ;
   outline: none;
 }
 
@@ -162,10 +162,6 @@ button {
   transition: background-color 0.2s ease-in-out, transform 0.2s;
 }
 
-button:hover {
-  background-color: #d9b26d;
-  transform: translateY(-1px);
-}
 
 /* 📱 Buttons full width on mobile */
 @media (max-width: 480px) {
@@ -255,3 +251,45 @@ button:hover {
 .S9gUrf-YoZ4jf {
   width: 100%;
 }
+
+
+
+nav button {
+  display: inline-block; /* or inline-flex if using icons/text alignment */
+  background-color: transparent;
+  color: inherit;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0; /* optional */
+}
+
+/* -------------------------------------------------
+   Bootstrap container gutter override
+   Remove horizontal gutters (space between columns)
+   Bootstrap uses the CSS variable `--bs-gutter-x` to control
+   horizontal padding. Setting it to 0 removes the gutter.
+------------------------------------------------- */
+/* .container,
+.container-fluid,
+.container-lg,
+.container-md,
+.container-sm,
+.container-xl,
+.container-xxl {
+  --bs-gutter-x: 0 !important;
+ 
+} */
+
+/* -------------------------------------------------
+   Custom padding override
+------------------------------------------------- */
+/* .px-4 {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+} */
+
+/* Force remove right padding when specified */
+/* .pr-0,
+[class*="pr-0"] {
+  padding-right: 0 !important;
+} */
