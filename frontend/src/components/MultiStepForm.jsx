@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import StepIndicator from "./StepIndicator";
 import PersonalDetails from "./forms/PersonalDetails";
 import FamilyDetails from "./forms/FamilyDetails";
@@ -7,9 +7,14 @@ import ProfessionDetails from "./forms/ProfessionalDetails";
 import HealthLifestyle from "./forms/HealthLifestyle";
 import ExpectationDetails from "./forms/ExpectationDetails";
 import UploadPhotos from "./forms/UploadPhotos";
-import { getOnboardingStatus, updateOnboardingStatus } from "../api/auth";
+import {
+  getOnboardingStatus,
+  getProfileReviewStatus,
+  updateOnboardingStatus,
+} from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { AuthContextr } from "./context/AuthContext";
 
 const steps = [
   { id: "personal", label: "Personal Details" },
@@ -18,7 +23,7 @@ const steps = [
   { id: "profession", label: "Professional Details" },
   { id: "health", label: "Health & Lifestyle" },
   { id: "expectation", label: "Expectation Details" },
-  { id: "photos", label: "Upload Photos" }, // ✅ added upload photos as last step
+  { id: "photos", label: "Upload Photos" },
 ];
 
 const MultiStepForm = () => {
@@ -28,9 +33,15 @@ const MultiStepForm = () => {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+  const { token, user } = useContext(AuthContextr);
 
-  // ✅ Fetch onboarding progress
   useEffect(() => {
+    const savedToken = token || localStorage.getItem("authToken");
+    if (!savedToken) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
     const fetchProgress = async () => {
       try {
         setLoading(true);
@@ -67,13 +78,11 @@ const MultiStepForm = () => {
     fetchProgress();
   }, []);
 
-  // ✅ Step navigation handlers
   const handleNext = async (stepId) => {
     const updatedSteps = [...new Set([...completedSteps, stepId])];
     setCompletedSteps(updatedSteps);
 
     try {
-      // ✅ Mark onboarding complete only after "photos" step
       const isLastStep = stepId === "photos";
 
       await updateOnboardingStatus({
@@ -112,9 +121,28 @@ const MultiStepForm = () => {
       setCurrentStep(id);
       navigate(`/onboarding/user?step=${id}`, { replace: true });
     } else {
-      alert("⚠️ You can only go one step ahead of your last completed step.");
+      toast.error("Please complete the previous steps first.");
     }
   };
+
+  useEffect(() => {
+    async function checkUserReview() {
+      const res = await getProfileReviewStatus();
+
+      if (res.data.profileReviewStatus === "pending") {
+        toast.error(
+          "Your profile is under review. You cannot edit your details at this time."
+        );
+        navigate("/onboarding/review", { replace: true });
+      } else if (res.data.profileReviewStatus === "approved") {
+        toast.success(
+          "Your profile has been approved! Redirecting to your dashboard."
+        );
+        navigate("/userdashboard", { replace: true });
+      }
+    }
+    checkUserReview();
+  }, [currentStep]);
 
   const renderStep = () => {
     switch (currentStep) {

@@ -38,84 +38,82 @@ const userFamilySchema = new Schema(
       ref: "User",
       required: true,
       unique: true,
-      index: true,
+      index: true
     },
     fatherName: {
       type: String,
-      trim: true,
+      trim: true
     },
     motherName: {
       type: String,
-      trim: true,
+      trim: true
     },
     fatherOccupation: {
       type: String,
-      trim: true,
+      trim: true
     },
     motherOccupation: {
       type: String,
-      trim: true,
+      trim: true
     },
     fatherContact: {
       type: String,
       trim: true,
       unique: true,
-      sparse: true,
+      sparse: true
     },
     motherContact: {
       type: String,
       trim: true,
       unique: true,
-      sparse: true,
+      sparse: true
     },
     fatherNativePlace: {
       type: String,
-      trim: true,
+      trim: true
     },
     doYouHaveChildren: {
       type: Boolean,
-      default: false,
-      trim: true,
+      trim: true
     },
     grandFatherName: {
       type: String,
-      trim: true,
+      trim: true
     },
     grandMotherName: {
       type: String,
-      trim: true,
+      trim: true
     },
     naniName: {
       type: String,
-      trim: true,
+      trim: true
     },
     nanaName: {
       type: String,
-      trim: true,
+      trim: true
     },
     nanaNativePlace: {
       type: String,
-      trim: true,
+      trim: true
     },
     familyType: {
       type: String,
-      trim: true,
+      trim: true
     },
     haveSibling: {
       type: Boolean,
-      default: false,
-      trim: true,
+      trim: true
     },
     howManySiblings: {
       type: Number,
       min: 0,
-      trim: true,
+      trim: true
     },
     siblingDetails: [
       {
         name: {
           type: String,
-          trim: true,
+          trim: true
         },
         relation: {
           type: String,
@@ -123,19 +121,19 @@ const userFamilySchema = new Schema(
             "Elder Brother",
             "Younger Brother",
             "Elder Sister",
-            "Younger Sister",
-          ],
+            "Younger Sister"
+          ]
         },
         maritalStatus: {
           type: String,
           trim: true,
-          enum: ["Married", "Unmarried"],
-        },
-      },
-    ],
+          enum: ["Married", "Unmarried"]
+        }
+      }
+    ]
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { getUserExpectations, saveUserExpectations, updateUserExpectations } from "../../api/auth";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  getUserExpectations,
+  saveUserExpectations,
+  updateUserExpectations,
+} from "../../api/auth";
 import { getNames } from "country-list";
 import Select from "react-select";
 import toast from "react-hot-toast";
-
-
 
 const ExpectationDetails = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
@@ -43,7 +45,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   ];
 
   const castOptions = [
-
     "Patel-Desai",
     "Patel-Kadva",
     "Patel-Leva",
@@ -95,9 +96,71 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   const inputClass =
     "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
-  // Handle input changes
-  const handleChange = (field, value) => {
-    // Enforce age limits
+  const ageOptions = useMemo(
+    () => Array.from({ length: 23 }, (_, i) => 18 + i),
+    []
+  );
+
+  const partnerEducationOptions = useMemo(
+    () => [
+      { value: "Any", label: "Any" },
+      { value: "High School", label: "High School" },
+      { value: "Undergraduate", label: "Undergraduate" },
+      { value: "Associates Degree", label: "Associates Degree" },
+      { value: "Bachelors", label: "Bachelors" },
+      { value: "Honours Degree", label: "Honours Degree" },
+      { value: "Masters", label: "Masters" },
+      { value: "Doctorate", label: "Doctorate" },
+      { value: "Diploma", label: "Diploma" },
+      { value: "Trade School", label: "Trade School" },
+      { value: "Less Than High School", label: "Less Than High School" },
+    ],
+    []
+  );
+
+  const dietOptions = useMemo(
+    () => [
+      { value: "Any", label: "Any" },
+      { value: "Vegetarian", label: "Vegetarian" },
+      { value: "Non-Vegetarian", label: "Non-Vegetarian" },
+      { value: "Eggetarian", label: "Eggetarian" },
+      { value: "Jain", label: "Jain" },
+      { value: "Swaminarayan", label: "Swaminarayan" },
+      { value: "Veg & Non-Veg", label: "Veg & Non-veg" },
+    ],
+    []
+  );
+
+  const professionOptionsFormatted = useMemo(
+    () => professionOptions.map((p) => ({ value: p, label: p })),
+    [professionOptions]
+  );
+
+  const maritalStatusesFormatted = useMemo(
+    () => maritalStatuses.map((s) => ({ value: s, label: s })),
+    [maritalStatuses]
+  );
+
+  const casteOptionsFormatted = useMemo(
+    () => castOptions.map((c) => ({ value: c, label: c })),
+    [castOptions]
+  );
+
+  const indianStateOptions = useMemo(
+    () =>
+      indianStates.map((s) => ({
+        value: String(s.name),
+        label: String(s.name),
+      })),
+    [indianStates]
+  );
+
+  const abroadOptionsFormatted = useMemo(
+    () => abroadOptions.map((c) => ({ value: String(c), label: String(c) })),
+    [abroadOptions]
+  );
+
+  const handleChange = useCallback((field, value) => {
     if (field === "preferredAgeFrom" || field === "preferredAgeTo") {
       let num = Number(value);
       if (Number.isNaN(num)) num = "";
@@ -105,20 +168,18 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         if (num < 18) num = 18;
         if (num > 40) num = 40;
       }
-      // store as string so it matches the option value type
+
       value = num === "" ? "" : String(num);
     }
 
-    // Clear error immediately when a value is provided
-    const shouldClearError = 
-      (Array.isArray(value) && value.length > 0) || // For multi-select
-      (typeof value === 'string' && value.trim() !== '') || // For text/select
-      (value && typeof value === 'object' && Object.keys(value).length > 0); // For single select objects
+    const shouldClearError =
+      (Array.isArray(value) && value.length > 0) ||
+      (typeof value === "string" && value.trim() !== "") ||
+      (value && typeof value === "object" && Object.keys(value).length > 0);
 
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-      // keep partnerStateOrCountry as an array (react-select expects array for isMulti)
       ...(field === "partnerLocation" ? { partnerStateOrCountry: [] } : {}),
     }));
 
@@ -126,17 +187,15 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
-        
-        // Clear related field errors
-        if (field === 'partnerLocation') {
+
+        if (field === "partnerLocation") {
           delete newErrors.partnerStateOrCountry;
         }
         return newErrors;
       });
     }
-  };
+  });
 
-  // 🔹 Form Validation
   const validateForm = () => {
     const newErrors = {};
     const requiredFields = [
@@ -171,7 +230,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     const fromAge = Number(formData.preferredAgeFrom);
     const toAge = Number(formData.preferredAgeTo);
 
-    if (isNaN(fromAge)) newErrors.preferredAgeFrom = "Preferred Age From is required";
+    if (isNaN(fromAge))
+      newErrors.preferredAgeFrom = "Preferred Age From is required";
     if (isNaN(toAge)) newErrors.preferredAgeTo = "Preferred Age To is required";
     if (!isNaN(fromAge) && (fromAge < 18 || fromAge > 40))
       newErrors.preferredAgeFrom = "Age must be between 18 and 40";
@@ -195,7 +255,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       return v;
     };
 
-
     const payload = {
       age: {
         from: Number(formData.preferredAgeFrom) || 18,
@@ -209,18 +268,18 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       profession: formData.profession.map((x) => x.value),
     };
 
-    // ✅ FIXED: convert to plain strings
-  if (formData.partnerLocation === "India") {
-    payload.livingInCountry = "India";
-    payload.livingInState = formData.partnerStateOrCountry.map((x) => x.value);
-  } else if (formData.partnerLocation === "Abroad") {
-    payload.livingInCountry = formData.partnerStateOrCountry.map((x) => x.value);
-  } else {
-    payload.livingInCountry = "No preference";
-  }
-
-  console.log("🟢 Final Payload:", payload);
-
+    if (formData.partnerLocation === "India") {
+      payload.livingInCountry = "India";
+      payload.livingInState = formData.partnerStateOrCountry.map(
+        (x) => x.value
+      );
+    } else if (formData.partnerLocation === "Abroad") {
+      payload.livingInCountry = formData.partnerStateOrCountry.map(
+        (x) => x.value
+      );
+    } else {
+      payload.livingInCountry = "No preference";
+    }
 
     try {
       const existing = await getUserExpectations();
@@ -234,7 +293,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         toast.success("Expectations saved successfully!");
       }
 
-      // 🔄 Re-fetch updated data from backend
       const updated = await getUserExpectations();
       if (updated?.data?.data) {
         const data = updated.data.data;
@@ -269,26 +327,34 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           partnerLocation,
           partnerStateOrCountry:
             partnerLocation === "India"
-              ? (data.livingInState?.map((s) => ({ value: s, label: s })) || [])
+              ? data.livingInState?.map((s) => ({ value: s, label: s })) || []
               : partnerLocation === "Abroad"
-                ? (data.livingInCountry?.map((c) => ({ value: c.value || c, label: c.label || c })) || [])
-                : [],
+              ? data.livingInCountry?.map((c) => ({
+                  value: c.value || c,
+                  label: c.label || c,
+                })) || []
+              : [],
           openToPartnerHabits: mapHabitDisplay(data.isConsumeAlcoholic),
-           preferredAgeFrom: data.age?.from !== undefined && data.age?.from !== null ? String(data.age.from) : "",
-           preferredAgeTo: data.age?.to !== undefined && data.age?.to !== null ? String(data.age.to) : "",
-          profession: data.profession?.map((e) => ({ value: e, label: e })) || [],
-          maritalStatus: data.maritalStatus?.map((e) => ({ value: e, label: e })) || [],
+          preferredAgeFrom:
+            data.age?.from !== undefined && data.age?.from !== null
+              ? String(data.age.from)
+              : "",
+          preferredAgeTo:
+            data.age?.to !== undefined && data.age?.to !== null
+              ? String(data.age.to)
+              : "",
+          profession:
+            data.profession?.map((e) => ({ value: e, label: e })) || [],
+          maritalStatus:
+            data.maritalStatus?.map((e) => ({ value: e, label: e })) || [],
           partnerDiet: data.diet?.map((e) => ({ value: e, label: e })) || [],
         }));
       }
 
-      // 👉 Move to next only after refresh
       onNext?.("expectation");
     } catch (err) {
       console.error("❌ Save failed", err);
     }
-
-
   };
 
   useEffect(() => {
@@ -298,7 +364,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         if (!mounted) return;
         const data = res?.data?.data || null;
         if (!data) return;
-        setHasExistingData(true)
+        setHasExistingData(true);
         const partnerLocation = (() => {
           if (!data.livingInCountry) return "No preference";
           if (typeof data.livingInCountry === "string") {
@@ -308,7 +374,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             return "Abroad";
           }
           if (Array.isArray(data.livingInCountry)) {
-            const countryValues = data.livingInCountry.map(c => c.value || c);
+            const countryValues = data.livingInCountry.map((c) => c.value || c);
             if (countryValues.includes("India")) return "India";
             return "Abroad";
           }
@@ -329,22 +395,32 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           partnerLocation,
           partnerStateOrCountry:
             partnerLocation === "India"
-              ? (data.livingInState?.map(s => ({ value: s, label: s })) || [])
+              ? data.livingInState?.map((s) => ({ value: s, label: s })) || []
               : partnerLocation === "Abroad"
-                ? (data.livingInCountry?.map(c => ({
+              ? data.livingInCountry?.map((c) => ({
                   value: c.value || c,
-                  label: c.label || c
-                })) || [])
-                : [],
+                  label: c.label || c,
+                })) || []
+              : [],
 
           openToPartnerHabits: mapHabitsDisplay(data.isConsumeAlcoholic),
-          partnerEducation: data.educationLevel?.map((e) => ({ value: e, label: e })) || [],
-          partnerCommunity: data.community?.map((e) => ({ value: e, label: e })) || [],
-          profession: data.profession?.map((e) => ({ value: e, label: e })) || [],
-          maritalStatus: data.maritalStatus?.map((e) => ({ value: e, label: e })) || [],
-          preferredAgeFrom: data.age?.from !== undefined && data.age?.from !== null ? String(data.age.from) : "",
-          preferredAgeTo: data.age?.to !== undefined && data.age?.to !== null ? String(data.age.to) : "",
-          partnerDiet: data.diet?.map((e) => ({ value: e, label: e })) || [], 
+          partnerEducation:
+            data.educationLevel?.map((e) => ({ value: e, label: e })) || [],
+          partnerCommunity:
+            data.community?.map((e) => ({ value: e, label: e })) || [],
+          profession:
+            data.profession?.map((e) => ({ value: e, label: e })) || [],
+          maritalStatus:
+            data.maritalStatus?.map((e) => ({ value: e, label: e })) || [],
+          preferredAgeFrom:
+            data.age?.from !== undefined && data.age?.from !== null
+              ? String(data.age.from)
+              : "",
+          preferredAgeTo:
+            data.age?.to !== undefined && data.age?.to !== null
+              ? String(data.age.to)
+              : "",
+          partnerDiet: data.diet?.map((e) => ({ value: e, label: e })) || [],
         }));
       })
       .catch((err) => {
@@ -390,109 +466,106 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           {/* State / Country */}
           {(formData.partnerLocation === "India" ||
             formData.partnerLocation === "Abroad") && (
-              <div className="mt-6">
-                <label className="block text-sm font-medium mb-1">
-                  {formData.partnerLocation === "India"
-                    ? "Select State(s)"
-                    : "Select Country(ies)"}
-                </label>
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-1">
+                {formData.partnerLocation === "India"
+                  ? "Select State(s)"
+                  : "Select Country(ies)"}
+              </label>
 
-                
-                <div className="w-full">
-  <Select
-    isMulti
-    name="partnerStateOrCountry"
-    options={[
-      { value: "Any", label: "Any" },
-      ...(formData.partnerLocation === "India"
-        ? indianStates.map((state) => ({
-            value: String(state?.name || ""), // ✅ ensure string
-            label: String(state?.name || ""),
-          }))
-        : abroadOptions.map((country) => ({
-            value: String(country || ""), // ✅ ensure string
-            label: String(country || ""),
-          }))),
-    ]}
-    value={
-      Array.isArray(formData.partnerStateOrCountry)
-        ? formData.partnerStateOrCountry.map((opt) => ({
-            value: String(opt.value),
-            label: String(opt.label),
-          }))
-        : []
-    }
-    onChange={(selectedOptions) => {
-      // ✅ Make "Any" exclusive
-      if (selectedOptions?.some((opt) => opt.value === "Any")) {
-        handleChange("partnerStateOrCountry", [
-          { value: "Any", label: "Any" },
-        ]);
-      } else {
-        handleChange("partnerStateOrCountry", selectedOptions || []);
-      }
+              <div className="w-full">
+                <Select
+                  isMulti
+                  name="partnerStateOrCountry"
+                  options={[
+                    { value: "Any", label: "Any" },
+                    ...(formData.partnerLocation === "India"
+                      ? indianStates.map((state) => ({
+                          value: String(state?.name || ""),
+                          label: String(state?.name || ""),
+                        }))
+                      : abroadOptions.map((country) => ({
+                          value: String(country || ""),
+                          label: String(country || ""),
+                        }))),
+                  ]}
+                  value={
+                    Array.isArray(formData.partnerStateOrCountry)
+                      ? formData.partnerStateOrCountry.map((opt) => ({
+                          value: String(opt.value),
+                          label: String(opt.label),
+                        }))
+                      : []
+                  }
+                  onChange={(selectedOptions) => {
+                    if (selectedOptions?.some((opt) => opt.value === "Any")) {
+                      handleChange("partnerStateOrCountry", [
+                        { value: "Any", label: "Any" },
+                      ]);
+                    } else {
+                      handleChange(
+                        "partnerStateOrCountry",
+                        selectedOptions || []
+                      );
+                    }
 
-      // ✅ Clear validation errors
-      if (selectedOptions && selectedOptions.length > 0) {
-        setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors.partnerStateOrCountry;
-          return newErrors;
-        });
-      }
-    }}
-    placeholder={
-      formData.partnerLocation === "India"
-        ? "Select one or multiple states"
-        : "Select one or multiple countries"
-    }
-    classNamePrefix="react-select"
-    components={{
-      IndicatorSeparator: () => null,
-    }}
-    styles={{
-      control: (base, state) => ({
-        ...base,
-        borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-        boxShadow: "none",
-        borderRadius: "0.5rem",
-        backgroundColor: "#fff",
-        minHeight: "50px",
-        fontSize: "0.875rem",
-        "&:hover": {
-          borderColor: "#D4A052",
-        },
-      }),
-      valueContainer: (base) => ({
-        ...base,
-        padding: "0 8px",
-        display: "flex",
-        flexWrap: "wrap",
-      }),
-      multiValue: (base) => ({
-        ...base,
-        backgroundColor: "#F9F7F5",
-        borderRadius: "0.5rem",
-      }),
-      menu: (base) => ({
-        ...base,
-        zIndex: 9999,
-        borderRadius: "0.75rem",
-      }),
-    }}
-  />
-</div>
-
-
-
-                {errors.partnerStateOrCountry && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.partnerStateOrCountry}
-                  </p>
-                )}
+                    if (selectedOptions && selectedOptions.length > 0) {
+                      setErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.partnerStateOrCountry;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  placeholder={
+                    formData.partnerLocation === "India"
+                      ? "Select one or multiple states"
+                      : "Select one or multiple countries"
+                  }
+                  classNamePrefix="react-select"
+                  components={{
+                    IndicatorSeparator: () => null,
+                  }}
+                  styles={{
+                    control: (base, state) => ({
+                      ...base,
+                      borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+                      boxShadow: "none",
+                      borderRadius: "0.5rem",
+                      backgroundColor: "#fff",
+                      minHeight: "50px",
+                      fontSize: "0.875rem",
+                      "&:hover": {
+                        borderColor: "#D4A052",
+                      },
+                    }),
+                    valueContainer: (base) => ({
+                      ...base,
+                      padding: "0 8px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: "#F9F7F5",
+                      borderRadius: "0.5rem",
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      borderRadius: "0.75rem",
+                    }),
+                  }}
+                />
               </div>
-            )}
 
+              {errors.partnerStateOrCountry && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.partnerStateOrCountry}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Open to habits */}
           <div>
@@ -540,12 +613,17 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   { value: "Doctorate", label: "Doctorate" },
                   { value: "Diploma", label: "Diploma" },
                   { value: "Trade School", label: "Trade School" },
-                  { value: "Less Than High School", label: "Less Than High School" },
+                  {
+                    value: "Less Than High School",
+                    label: "Less Than High School",
+                  },
                 ]}
                 value={formData.partnerEducation}
                 onChange={(selectedOptions) => {
                   if (selectedOptions?.some((opt) => opt.value === "Any")) {
-                    handleChange("partnerEducation", [{ value: "Any", label: "Any" }]);
+                    handleChange("partnerEducation", [
+                      { value: "Any", label: "Any" },
+                    ]);
                   } else {
                     handleChange("partnerEducation", selectedOptions || []);
                   }
@@ -553,7 +631,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 placeholder="Select"
                 classNamePrefix="react-select"
                 components={{
-                  IndicatorSeparator: () => null, // ✅ removes only the slash/vertical line
+                  IndicatorSeparator: () => null,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -608,15 +686,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             </div>
 
             {errors.partnerEducation && (
-              <p className="text-red-500 text-sm mt-1">{errors.partnerEducation}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.partnerEducation}
+              </p>
             )}
           </div>
-
-
-
-
-
-
 
           {/* Community / Caste */}
           <div className="mt-6">
@@ -637,9 +711,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 ]}
                 value={formData.partnerCommunity}
                 onChange={(selectedOptions) => {
-                  // ✅ If "Any" is selected, keep only that option
                   if (selectedOptions?.some((opt) => opt.value === "Any")) {
-                    handleChange("partnerCommunity", [{ value: "Any", label: "Any" }]);
+                    handleChange("partnerCommunity", [
+                      { value: "Any", label: "Any" },
+                    ]);
                   } else {
                     handleChange("partnerCommunity", selectedOptions || []);
                   }
@@ -647,7 +722,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 placeholder="Select one or multiple"
                 classNamePrefix="react-select"
                 components={{
-                  IndicatorSeparator: () => null, // ✅ removes divider line
+                  IndicatorSeparator: () => null,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -656,7 +731,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                     boxShadow: "none",
                     borderRadius: "0.5rem",
                     backgroundColor: "#fff",
-                    minHeight: "50px", // ✅ consistent height
+                    minHeight: "50px",
                     display: "flex",
                     alignItems: "center",
                     fontSize: "0.875rem",
@@ -707,7 +782,9 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             </div>
 
             {errors.partnerCommunity && (
-              <p className="text-red-500 text-sm mt-1">{errors.partnerCommunity}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.partnerCommunity}
+              </p>
             )}
           </div>
 
@@ -729,12 +806,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   { value: "Jain", label: "Jain" },
                   { value: "Swaminarayan", label: "Swaminarayan" },
                   { value: "Veg & Non-Veg", label: "Veg & Non-veg" },
-                  
                 ]}
                 value={formData.partnerDiet}
                 onChange={(selectedOptions) => {
-                  // ✅ Exclusive selection logic for "Any" and "No preference"
-                  const selectedValues = selectedOptions?.map((opt) => opt.value) || [];
+                  const selectedValues =
+                    selectedOptions?.map((opt) => opt.value) || [];
 
                   if (
                     selectedValues.includes("Any") ||
@@ -742,7 +818,9 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   ) {
                     handleChange("partnerDiet", [
                       {
-                        value: selectedValues.includes("Any") ? "Any" : "No preference",
+                        value: selectedValues.includes("Any")
+                          ? "Any"
+                          : "No preference",
                         label: selectedValues.includes("Any")
                           ? "Any"
                           : "No preference",
@@ -819,9 +897,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-
-
-
           {/* Profession / Occupation */}
           <div className="mt-6">
             <label className="block text-sm font-medium mb-1">
@@ -838,9 +913,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 }))}
                 value={formData.profession}
                 onChange={(selectedOptions) => {
-                  // ✅ If "Any" is selected, keep only that option
                   if (selectedOptions?.some((opt) => opt.value === "Any")) {
-                    handleChange("profession", [{ value: "Any", label: "Any" }]);
+                    handleChange("profession", [
+                      { value: "Any", label: "Any" },
+                    ]);
                   } else {
                     handleChange("profession", selectedOptions || []);
                   }
@@ -848,7 +924,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 placeholder="Select one or multiple"
                 classNamePrefix="react-select"
                 components={{
-                  IndicatorSeparator: () => null, // ✅ removes divider line
+                  IndicatorSeparator: () => null,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -857,7 +933,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                     boxShadow: "none",
                     borderRadius: "0.5rem",
                     backgroundColor: "#fff",
-                    minHeight: "50px", // ✅ consistent height
+                    minHeight: "50px",
                     display: "flex",
                     alignItems: "center",
                     fontSize: "0.875rem",
@@ -912,7 +988,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-
           {/* Legal / Marital Status */}
           <div className="mt-6">
             <label className="block text-sm font-medium mb-1">
@@ -929,9 +1004,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 }))}
                 value={formData.maritalStatus}
                 onChange={(selectedOptions) => {
-                  // ✅ If "Any" is selected, keep only that option
                   if (selectedOptions?.some((opt) => opt.value === "Any")) {
-                    handleChange("maritalStatus", [{ value: "Any", label: "Any" }]);
+                    handleChange("maritalStatus", [
+                      { value: "Any", label: "Any" },
+                    ]);
                   } else {
                     handleChange("maritalStatus", selectedOptions || []);
                   }
@@ -939,7 +1015,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 placeholder="Select one or multiple"
                 classNamePrefix="react-select"
                 components={{
-                  IndicatorSeparator: () => null, // ✅ removes divider line
+                  IndicatorSeparator: () => null,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -997,24 +1073,29 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             </div>
 
             {errors.maritalStatus && (
-              <p className="text-red-500 text-sm mt-1">{errors.maritalStatus}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.maritalStatus}
+              </p>
             )}
           </div>
 
-
           {/* Preferred Age */}
           <div className="flex flex-col mb-4">
-            <label className="block text-sm font-medium mb-2">Preferred Age</label>
+            <label className="block text-sm font-medium mb-2">
+              Preferred Age
+            </label>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
               {/* FROM */}
               <select
                 value={formData.preferredAgeFrom}
-                onChange={(e) => handleChange("preferredAgeFrom", e.target.value)}
+                onChange={(e) =>
+                  handleChange("preferredAgeFrom", e.target.value)
+                }
                 className={inputClass + " w-full sm:w-1/2"}
               >
                 <option value="">From</option>
-                {Array.from({ length: 23 }, (_, i) => 18 + i).map((age) => (
+                {ageOptions.map((age) => (
                   <option key={age} value={String(age)}>
                     {age}
                   </option>
@@ -1030,10 +1111,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 className={inputClass + " w-full sm:w-1/2"}
               >
                 <option value="">To</option>
-                {Array.from({ length: 23 }, (_, i) => 18 + i)
+                {ageOptions
                   .filter(
                     (age) =>
-                      !formData.preferredAgeFrom || age >= Number(formData.preferredAgeFrom)
+                      !formData.preferredAgeFrom ||
+                      age >= Number(formData.preferredAgeFrom)
                   )
                   .map((age) => (
                     <option key={age} value={String(age)}>
@@ -1045,10 +1127,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             {/* Error Messages */}
             {errors.preferredAgeFrom && (
-              <p className="text-red-500 text-sm mt-1">{errors.preferredAgeFrom}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.preferredAgeFrom}
+              </p>
             )}
             {errors.preferredAgeTo && (
-              <p className="text-red-500 text-sm mt-1">{errors.preferredAgeTo}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.preferredAgeTo}
+              </p>
             )}
           </div>
 
@@ -1069,12 +1155,9 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
               Save & Next
             </button>
           </div>
-
-
         </form>
       </div>
     </div>
-    
   );
 };
 

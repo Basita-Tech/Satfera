@@ -1,14 +1,80 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
 import CreatableSelect from "react-select/creatable";
-import { getOnboardingStatus, getUserPersonal, saveUserPersonal, updateUserPersonal } from "../../api/auth";
+import {
+  getOnboardingStatus,
+  getUserPersonal,
+  saveUserPersonal,
+  updateUserPersonal,
+} from "../../api/auth";
 import toast from "react-hot-toast";
-// import "./PersonalDetails.css";
+import {
+  nationalities,
+  visaCategories,
+  allCastes,
+  doshOptions,
+  weightOptions,
+  heightOptions,
+} from "@/lib/constant";
+
+const COUNTRIES = getNames();
+
+const COUNTRIES_WITH_CODES = COUNTRIES.map((name) => ({
+  name,
+  code: getCode(name),
+}));
+
+const ZODIAC_SIGNS = [
+  "Aries (Mesh)",
+  "Taurus (Vrishabh)",
+  "Gemini (Mithun)",
+  "Cancer (Kark)",
+  "Leo (Singh)",
+  "Virgo (Kanya)",
+  "Libra (Tula)",
+  "Scorpio (Vrishchik)",
+  "Sagittarius (Dhanu)",
+  "Capricorn (Makar)",
+  "Aquarius (Kumbh)",
+  "Pisces (Meen)",
+];
+
+const RELIGIONS = ["Hindu", "Jain"];
+
+const LEGAL_STATUSES = [
+  "Never Married",
+  "Divorced",
+  "Widowed",
+  "Separated",
+  "Awaiting Divorce",
+];
+
+const HOURS = Array.from({ length: 24 }, (_, i) =>
+  i.toString().padStart(2, "0")
+);
+const MINUTES = Array.from({ length: 60 }, (_, i) =>
+  i.toString().padStart(2, "0")
+);
+
+const HEIGHT_SELECT_OPTIONS = heightOptions.map((h) => ({
+  label: h,
+  value: h,
+}));
+const WEIGHT_SELECT_OPTIONS = weightOptions.map((w) => ({
+  label: w,
+  value: w,
+}));
 
 const PersonalDetails = ({ onNext, onPrevious }) => {
   const navigate = useNavigate();
-  // Inside your component
+
   const minuteRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -23,7 +89,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     height: "",
     weight: "",
     dosh: "",
-    interCommunity: "", // keep only one
+    interCommunity: "",
     rashi: "",
     religion: "",
     caste: "",
@@ -57,234 +123,189 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     maritalStatus: "",
   });
 
-  const [dosh, setDosh] = useState("");
-  const [castOptions, setCastOptions] = useState([]);
-  const [manualEntry, setManualEntry] = useState(false);
-
   const [errorMsg, setErrorMsg] = useState("");
   const [isLegallySeparated, setIsLegallySeparated] = useState("");
   const [separatedSince, setSeparationYear] = useState("");
   const [manualSeparationEntry, setManualSeparationEntry] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState("");
 
   const [showDivorceFields, setShowDivorceFields] = useState(false);
   const [showChildrenFields, setShowChildrenFields] = useState(false);
 
-  // ✅ Handle hour input
-  const handleHourInput = (e) => {
-    let value = e.target.value.replace(/\D/g, ""); // only numbers
+  const handleHourInput = useCallback((e) => {
+    let value = e.target.value.replace(/\D/g, "");
     if (value.length > 2) value = value.slice(0, 2);
     setFormData((prev) => ({ ...prev, birthHour: value }));
 
-    // auto-focus to minute input after 2 digits
     if (value.length === 2) minuteRef.current?.focus();
 
-    // validate immediately
     if (value !== "" && (+value < 0 || +value > 23)) {
-      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00–23" }));
+      setErrors((prev) => ({
+        ...prev,
+        birthHour: "Hour must be between 00–23",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, birthHour: "" }));
     }
-  };
+  }, []);
 
-  // ✅ Handle minute input
-  const handleMinuteInput = (e) => {
-    let value = e.target.value.replace(/\D/g, ""); // only numbers
+  const handleMinuteInput = useCallback((e) => {
+    let value = e.target.value.replace(/\D/g, "");
     if (value.length > 2) value = value.slice(0, 2);
     setFormData((prev) => ({ ...prev, birthMinute: value }));
 
-    // validate immediately
     if (value !== "" && (+value < 0 || +value > 59)) {
-      setErrors((prev) => ({ ...prev, birthMinute: "Minute must be between 00–59" }));
+      setErrors((prev) => ({
+        ...prev,
+        birthMinute: "Minute must be between 00–59",
+      }));
     } else {
       setErrors((prev) => ({ ...prev, birthMinute: "" }));
     }
-  };
+  }, []);
 
-
-
-  useEffect(() => {
-    let filtered = [];
-
+  const castOptions = useMemo(() => {
     if (formData.religion === "Hindu") {
-      filtered = allCastes.filter((c) => !c.toLowerCase().includes("jain"));
-    } else if (
-      formData.religion?.toLowerCase().includes("jain")
-    ) {
-      // Show only two fixed options when any Jain religion is selected
-      filtered = ["Jain - Digambar", "Jain - Shwetambar"];
-    } else {
-      filtered = allCastes;
+      return allCastes.filter((c) => !c.toLowerCase().includes("jain"));
     }
-
-    setCastOptions(filtered);
+    if (formData.religion?.toLowerCase().includes("jain")) {
+      return ["Jain - Digambar", "Jain - Shwetambar"];
+    }
+    return allCastes;
   }, [formData.religion]);
 
+  useEffect(() => {
+    const fetchPersonal = async () => {
+      try {
+        setLoading(true);
+        const res = await getUserPersonal();
+        if (res?.data) {
+          const data = res.data?.data || {};
 
- useEffect(() => {
-  const fetchPersonal = async () => {
-    try {
-      setLoading(true);
-      const res = await getUserPersonal();
-      if (res?.data) {
-        const data = res.data?.data || {};
+          const dateObj = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
 
-        const dateObj = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+          let birthHour = "",
+            birthMinute = "";
+          if (data.timeOfBirth) {
+            const parts = data.timeOfBirth.split(":");
+            birthHour = parts[0] || "";
+            birthMinute = parts[1] || "";
+          }
 
-        // Parse time of birth
-        let birthHour = "", birthMinute = "";
-        if (data.timeOfBirth) {
-          const parts = data.timeOfBirth.split(":");
-          birthHour = parts[0] || "";
-          birthMinute = parts[1] || "";
-        }
+          const mapped = {
+            firstName: data.firstName || "",
+            middleName: data.middleName || "",
+            lastName: data.lastName || "",
+            dobDay: dateObj
+              ? dateObj.getDate().toString().padStart(2, "0")
+              : "",
+            dobMonth: dateObj
+              ? (dateObj.getMonth() + 1).toString().padStart(2, "0")
+              : "",
+            dobYear: dateObj ? dateObj.getFullYear().toString() : "",
+            birthHour,
+            birthMinute,
 
-        // 🧩 Map backend data to form state
-        const mapped = {
-          firstName: data.firstName || "",
-          middleName: data.middleName || "",
-          lastName: data.lastName || "",
-          dobDay: dateObj ? dateObj.getDate().toString().padStart(2, "0") : "",
-          dobMonth: dateObj ? (dateObj.getMonth() + 1).toString().padStart(2, "0") : "",
-          dobYear: dateObj ? dateObj.getFullYear().toString() : "",
-          birthHour,
-          birthMinute,
+            height: data.height
+              ? typeof data.height === "object"
+                ? data.height.text || data.height.value || ""
+                : String(data.height)
+              : "",
+            weight: data.weight
+              ? typeof data.weight === "object"
+                ? data.weight.text || data.weight.value || ""
+                : String(data.weight)
+              : "",
 
-          // Normalize height/weight
-          height: data.height
-            ? typeof data.height === "object"
-              ? data.height.text || data.height.value || ""
-              : String(data.height)
-            : "",
-          weight: data.weight
-            ? typeof data.weight === "object"
-              ? data.weight.text || data.weight.value || ""
-              : String(data.weight)
-            : "",
+            rashi: data.astrologicalSign || "",
+            dosh: data.dosh || "",
+            religion: data.religion || "",
+            caste: data.subCaste || "",
+            nationality: data.nationality || "",
 
-          rashi: data.astrologicalSign || "",
-          dosh: data.dosh || "",
-          religion: data.religion || "",
-          caste: data.subCaste || "",
-          nationality: data.nationality || "",
+            street1: data.full_address?.street1 || "",
+            street2: data.full_address?.street2 || "",
+            pincode: data.full_address?.zipCode || "",
+            city: data.full_address?.city || "",
+            state: data.full_address?.state || "",
+            ownHouse:
+              typeof data.full_address?.isYourHome === "boolean"
+                ? data.full_address.isYourHome
+                  ? "Yes"
+                  : "No"
+                : "",
 
-          // Address
-          street1: data.full_address?.street1 || "",
-          street2: data.full_address?.street2 || "",
-          pincode: data.full_address?.zipCode || "",
-          city: data.full_address?.city || "",
-          state: data.full_address?.state || "",
-          ownHouse:
-            typeof data.full_address?.isYourHome === "boolean"
-              ? data.full_address.isYourHome
+            birthCity: data.birthPlace || "",
+            birthState: data.birthState || "",
+            visaCategory: data.visaType || "",
+            residingCountry: data.residingCountry || "",
+
+            legalStatus: data.marriedStatus || "",
+            divorceStatus: data.divorceStatus || "",
+
+            interCommunity:
+              data.marryToOtherReligion === true
                 ? "Yes"
-                : "No"
+                : data.marryToOtherReligion === false
+                ? "No"
+                : "",
+
+            hasChildren:
+              data.isHaveChildren === true
+                ? "Yes"
+                : data.isHaveChildren === false
+                ? "No"
+                : "",
+            numChildren: data.numberOfChildren
+              ? String(data.numberOfChildren)
               : "",
-
-          // Birth & residency
-          birthCity: data.birthPlace || "",
-          birthState: data.birthState || "",
-          visaCategory: data.visaType || "",
-          residingCountry: data.residingCountry || "",
-
-          // Marital info
-          legalStatus: data.marriedStatus || "",
-          divorceStatus: data.divorceStatus || "",
-
-          interCommunity:
-            data.marryToOtherReligion === true
-              ? "Yes"
-              : data.marryToOtherReligion === false
+            livingWith:
+              data.isChildrenLivingWithYou === true
+                ? "With Me"
+                : data.isChildrenLivingWithYou === false
                 ? "No"
                 : "",
 
-          hasChildren:
-            data.isHaveChildren === true
-              ? "Yes"
-              : data.isHaveChildren === false
-                ? "No"
+            residingInIndia:
+              typeof data.isResidentOfIndia === "boolean"
+                ? data.isResidentOfIndia
+                  ? "yes"
+                  : "no"
                 : "",
-          numChildren: data.numberOfChildren
-            ? String(data.numberOfChildren)
-            : "",
-          livingWith:
-            data.isChildrenLivingWithYou === true
-              ? "With Me"
-              : data.isChildrenLivingWithYou === false
-                ? "No"
-                : "",
+          };
 
-          residingInIndia:
-            typeof data.isResidentOfIndia === "boolean"
-              ? data.isResidentOfIndia
-                ? "yes"
-                : "no"
-              : "",
-        };
+          setFormData((prev) => ({ ...prev, ...mapped }));
 
-        // ✅ Update form data
-        setFormData((prev) => ({ ...prev, ...mapped }));
+          const status = data.marriedStatus || "";
+          setShowChildrenFields(status && status !== "Never Married");
+          setShowDivorceFields(
+            status === "Divorced" || status === "Awaiting Divorce"
+          );
 
-        // ✅ Conditional UI logic (based on marital status)
-        const status = data.marriedStatus || "";
-        setShowChildrenFields(status && status !== "Never Married");
-        setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
+          let separated = "";
 
-        let separated = "";
+          if (data.isYouLegallySeparated === true) separated = "Yes";
+          else if (data.isYouLegallySeparated === false && data.separatedSince)
+            separated = "No";
+          else if (data.isLegallySeparated === true) separated = "Yes";
+          else if (data.isLegallySeparated === false && data.separatedSince)
+            separated = "No";
+          else if (data.separatedSince) separated = "Yes";
 
-if (data.isYouLegallySeparated === true) separated = "Yes";
-else if (data.isYouLegallySeparated === false && data.separatedSince) separated = "No";
-else if (data.isLegallySeparated === true) separated = "Yes";
-else if (data.isLegallySeparated === false && data.separatedSince) separated = "No";
-else if (data.separatedSince) separated = "Yes"; // user provided year => must be Yes
-// else leave blank if backend didn’t specify anything
-
-setIsLegallySeparated(separated);
-setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
+          setIsLegallySeparated(separated);
+          setSeparationYear(
+            data.separatedSince ? String(data.separatedSince) : ""
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch personal details:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch personal details:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchPersonal();
-}, []);
+    fetchPersonal();
+  }, []);
 
-  const pincodeMapping = {
-    110001: { city: "New Delhi", state: "Delhi" },
-    400001: { city: "Mumbai", state: "Maharashtra" },
-    560001: { city: "Bengaluru", state: "Karnataka" },
-    700001: { city: "Kolkata", state: "West Bengal" },
-    600001: { city: "Chennai", state: "Tamil Nadu" },
-  };
-
-
-
-  // Get all country names
-  const countries = getNames(); // ["Afghanistan", "Albania", "Algeria", ...]
-
-  // Or get an array of objects with name + code
-  const countriesWithCodes = getNames().map((name) => ({
-    name,
-    code: getCode(name),
-  }));
-
-  const zodiacSigns = [
-    "Aries (Mesh)",
-    "Taurus (Vrishabh)",
-    "Gemini (Mithun)",
-    "Cancer (Kark)",
-    "Leo (Singh)",
-    "Virgo (Kanya)",
-    "Libra (Tula)",
-    "Scorpio (Vrishchik)",
-    "Sagittarius (Dhanu)",
-    "Capricorn (Makar)",
-    "Aquarius (Kumbh)",
-    "Pisces (Meen)",
-  ];
   const validateBirthState = () => {
     if (!formData.birthState) {
       setErrors((prev) => ({ ...prev, birthState: "Please select a state" }));
@@ -292,440 +313,36 @@ setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
       setErrors((prev) => ({ ...prev, birthState: "" }));
     }
   };
-  const handleLegalStatusChange = (value) => {
-    setFormData({
-      ...formData,
-      legalStatus: value,
-    });
-    setErrors({ ...errors, legalStatus: "" }); // clear red error
-  };
+  const handleLegalStatusChange = useCallback((value) => {
+    setFormData((prev) => ({ ...prev, legalStatus: value }));
+    setErrors((prev) => ({ ...prev, legalStatus: "" }));
+  }, []);
 
-  const religions = [
-    "Hindu",
-    "Jain"
-
-
-  ];
-
-  const nationalities = [
-    "Afghan",
-    "Albanian",
-    "Algerian",
-    "American",
-    "Andorran",
-    "Angolan",
-    "Anguillan",
-    "Citizen of Antigua and Barbuda",
-    "Argentine",
-    "Armenian",
-    "Australian",
-    "Austrian",
-    "Azerbaijani",
-    "Bahamian",
-    "Bahraini",
-    "Bangladeshi",
-    "Barbadian",
-    "Belarusian",
-    "Belgian",
-    "Belizean",
-    "Beninese",
-    "Bermudian",
-    "Bhutanese",
-    "Bolivian",
-    "Citizen of Bosnia and Herzegovina",
-    "Botswanan",
-    "Brazilian",
-    "British",
-    "British Virgin Islander",
-    "Bruneian",
-    "Bulgarian",
-    "Burkinan",
-    "Burmese",
-    "Burundian",
-    "Cambodian",
-    "Cameroonian",
-    "Canadian",
-    "Cape Verdean",
-    "Cayman Islander",
-    "Central African",
-    "Chadian",
-    "Chilean",
-    "Chinese",
-    "Colombian",
-    "Comoran",
-    "Congolese (Congo)",
-    "Congolese (DRC)",
-    "Cook Islander",
-    "Costa Rican",
-    "Croatian",
-    "Cuban",
-    "Cymraes",
-    "Cymro",
-    "Cypriot",
-    "Czech",
-    "Danish",
-    "Djiboutian",
-    "Dominican",
-    "Citizen of the Dominican Republic",
-    "Dutch",
-    "East Timorese",
-    "Ecuadorean",
-    "Egyptian",
-    "Emirati",
-    "English",
-    "Equatorial Guinean",
-    "Eritrean",
-    "Estonian",
-    "Ethiopian",
-    "Faroese",
-    "Fijian",
-    "Filipino",
-    "Finnish",
-    "French",
-    "Gabonese",
-    "Gambian",
-    "Georgian",
-    "German",
-    "Ghanaian",
-    "Gibraltarian",
-    "Greek",
-    "Greenlandic",
-    "Grenadian",
-    "Guamanian",
-    "Guatemalan",
-    "Citizen of Guinea-Bissau",
-    "Guinean",
-    "Guyanese",
-    "Haitian",
-    "Honduran",
-    "Hong Konger",
-    "Hungarian",
-    "Icelandic",
-    "Indian",
-    "Indonesian",
-    "Iranian",
-    "Iraqi",
-    "Irish",
-    "Israeli",
-    "Italian",
-    "Ivorian",
-    "Jamaican",
-    "Japanese",
-    "Jordanian",
-    "Kazakh",
-    "Kenyan",
-    "Kittitian",
-    "Citizen of Kiribati",
-    "Kosovan",
-    "Kuwaiti",
-    "Kyrgyz",
-    "Lao",
-    "Latvian",
-    "Lebanese",
-    "Liberian",
-    "Libyan",
-    "Liechtenstein citizen",
-    "Lithuanian",
-    "Luxembourger",
-    "Macanese",
-    "Macedonian",
-    "Malagasy",
-    "Malawian",
-    "Malaysian",
-    "Maldivian",
-    "Malian",
-    "Maltese",
-    "Marshallese",
-    "Martiniquais",
-    "Mauritanian",
-    "Mauritian",
-    "Mexican",
-    "Micronesian",
-    "Moldovan",
-    "Monegasque",
-    "Mongolian",
-    "Montenegrin",
-    "Montserratian",
-    "Moroccan",
-    "Mosotho",
-    "Mozambican",
-    "Namibian",
-    "Nauruan",
-    "Nepalese",
-    "New Zealander",
-    "Nicaraguan",
-    "Nigerian",
-    "Nigerien",
-    "Niuean",
-    "North Korean",
-    "Northern Irish",
-    "Norwegian",
-    "Omani",
-    "Pakistani",
-    "Palauan",
-    "Palestinian",
-    "Panamanian",
-    "Papua New Guinean",
-    "Paraguayan",
-    "Peruvian",
-    "Pitcairn Islander",
-    "Polish",
-    "Portuguese",
-    "Prydeinig",
-    "Puerto Rican",
-    "Qatari",
-    "Romanian",
-    "Russian",
-    "Rwandan",
-    "Salvadorean",
-    "Sammarinese",
-    "Samoan",
-    "Sao Tomean",
-    "Saudi Arabian",
-    "Scottish",
-    "Senegalese",
-    "Serbian",
-    "Citizen of Seychelles",
-    "Sierra Leonean",
-    "Singaporean",
-    "Slovak",
-    "Slovenian",
-    "Solomon Islander",
-    "Somali",
-    "South African",
-    "South Korean",
-    "South Sudanese",
-    "Spanish",
-    "Sri Lankan",
-    "St Helenian",
-    "St Lucian",
-    "Stateless",
-    "Sudanese",
-    "Surinamese",
-    "Swazi",
-    "Swedish",
-    "Swiss",
-    "Syrian",
-    "Taiwanese",
-    "Tajik",
-    "Tanzanian",
-    "Thai",
-    "Togolese",
-    "Tongan",
-    "Trinidadian",
-    "Tristanian",
-    "Tunisian",
-    "Turkish",
-    "Turkmen",
-    "Turks and Caicos Islander",
-    "Tuvaluan",
-    "Ugandan",
-    "Ukrainian",
-    "Uruguayan",
-    "Uzbek",
-    "Vatican citizen",
-    "Citizen of Vanuatu",
-    "Venezuelan",
-    "Vietnamese",
-    "Vincentian",
-    "Wallisian",
-    "Welsh",
-    "Yemeni",
-    "Zambian",
-    "Zimbabwean",
-  ];
-
-  const visaCategories = [
-    "Citizen",
-    "Student",
-    "Concurrent",
-    "Work Visa",
-    "Permanent Resident(PR)",
-    "Visitor",
-    "Business Visa",
-    "Green Card",
-  ];
-
-  const allCastes = [
-    "Patel-Desai",
-    "Patel-Kadva",
-    "Patel-Leva",
-    "Patel",
-    "Brahmin-Audichya",
-    "Brahmin",
-    "Jain-Digambar",
-    "Jain-Swetamber",
-    "Jain-Vanta",
-    "Vaishnav-Vania",
-  ];
-
-  // Required fields
-  const requiredFields = [
-    "birthCity",
-    "birthState",
-    "height",
-    "weight",
-    "rashi",
-    "religion",
-    "nationality",
-    "street1",
-    "pincode",
-    "city",
-    "state",
-    "legalStatus",
-    "interCommunity"  // Adding marry to other community as required
-  ];
-  const doshOptions = [
-    "No Dosh",
-    "Manglik",
-    "Ashnik Manglik",
-    "Sarpa Dosh",
-    "Kala Sarpa Dosh",
-    "Rahu Dosh",
-    "Ketu Dosh",
-    "Kalathra Dosh",
-  ];
-
-  // Friendly labels for error messages
-  const fieldLabels = {
-    birthCity: "Birth City",
-    birthState: "Birth State",
-    height: "Height",
-    weight: "Weight",
-    rashi: "Rashi",
-    religion: "Religion",
-    nationality: "Nationality",
-    street1: "Street Address 1",
-    pincode: "Pincode",
-    city: "City",
-    state: "State",
-    legalStatus: "Legal Status",
-    interCommunity: "Marry to other community"  // Adding label for error message
-  };
-
-  const weightOptions = [
-    "40 kg / 88 lbs",
-    "41 kg / 90 lbs",
-    "42 kg / 93 lbs",
-    "43 kg / 95 lbs",
-    "44 kg / 97 lbs",
-    "45 kg / 99 lbs",
-    "46 kg / 101 lbs",
-    "47 kg / 104 lbs",
-    "48 kg / 106 lbs",
-    "49 kg / 108 lbs",
-    "50 kg / 110 lbs",
-    "51 kg / 112 lbs",
-    "52 kg / 115 lbs",
-    "53 kg / 117 lbs",
-    "54 kg / 119 lbs",
-    "55 kg / 121 lbs",
-    "56 kg / 123 lbs",
-    "57 kg / 126 lbs",
-    "58 kg / 128 lbs",
-    "59 kg / 130 lbs",
-    "60 kg / 132 lbs",
-    "61 kg / 134 lbs",
-    "62 kg / 137 lbs",
-    "63 kg / 139 lbs",
-    "64 kg / 141 lbs",
-    "65 kg / 143 lbs",
-    "66 kg / 146 lbs",
-    "67 kg / 148 lbs",
-    "68 kg / 150 lbs",
-    "69 kg / 152 lbs",
-    "70 kg / 154 lbs",
-    "71 kg / 157 lbs",
-    "72 kg / 159 lbs",
-    "73 kg / 161 lbs",
-    "74 kg / 163 lbs",
-    "75 kg / 165 lbs",
-    "76 kg / 168 lbs",
-    "77 kg / 170 lbs",
-    "78 kg / 172 lbs",
-    "79 kg / 174 lbs",
-    "80 kg / 176 lbs",
-    "81 kg / 179 lbs",
-    "82 kg / 181 lbs",
-    "83 kg / 183 lbs",
-    "84 kg / 185 lbs",
-    "85 kg / 187 lbs",
-    "86 kg / 190 lbs",
-    "87 kg / 192 lbs",
-    "88 kg / 194 lbs",
-    "89 kg / 196 lbs",
-    "90 kg / 198 lbs",
-    "91 kg / 201 lbs",
-    "92 kg / 203 lbs",
-    "93 kg / 205 lbs",
-    "94 kg / 207 lbs",
-    "95 kg / 209 lbs",
-    "96 kg / 212 lbs",
-    "97 kg / 214 lbs",
-    "98 kg / 216 lbs",
-    "99 kg / 218 lbs",
-    "100 kg / 220 lbs",
-  ];
-  const heightOptions = [
-    "4'0\" / 122 cm",
-    "4'1\" / 124 cm",
-    "4'2\" / 127 cm",
-    "4'3\" / 130 cm",
-    "4'4\" / 132 cm",
-    "4'5\" / 135 cm",
-    "4'6\" / 137 cm",
-    "4'7\" / 140 cm",
-    "4'8\" / 142 cm",
-    "4'9\" / 145 cm",
-    "4'10\" / 147 cm",
-    "4'11\" / 150 cm",
-    "5'0\" / 152 cm",
-    "5'1\" / 155 cm",
-    "5'2\" / 157 cm",
-    "5'3\" / 160 cm",
-    "5'4\" / 163 cm",
-    "5'5\" / 165 cm",
-    "5'6\" / 168 cm",
-    "5'7\" / 170 cm",
-    "5'8\" / 173 cm",
-    "5'9\" / 175 cm",
-    "5'10\" / 178 cm",
-    "5'11\" / 180 cm",
-    "6'0\" / 183 cm",
-    "6'1\" / 185 cm",
-    "6'2\" / 188 cm",
-    "6'3\" / 191 cm",
-    "6'4\" / 193 cm",
-  ];
-
-  // Generic handler for height/weight
-  const handleSelectChange = (field, selected) => {
+  const handleSelectChange = useCallback((field, selected) => {
     setFormData((prev) => ({
       ...prev,
       [field]: selected ? selected.value : "",
     }));
-
     setErrors((prev) => {
       const updated = { ...prev };
       delete updated[field];
       return updated;
     });
-  };
+  }, []);
 
-  // ✅ Unified React Select Styles (No Glow + Gold Theme)
   const customSelectStyles = (error, value) => ({
     control: (base, state) => {
-      let borderColor = "#d1d5db"; // default gray
+      let borderColor = "#d1d5db";
       if (error) borderColor = "red";
-      else if (value && value.value) borderColor = "#D4A052"; // solid gold when selected
-      else if (state.isFocused) borderColor = "#E4C48A"; // light gold on focus
+      else if (value && value.value) borderColor = "#D4A052";
+      else if (state.isFocused) borderColor = "#E4C48A";
 
       return {
         ...base,
         minHeight: "3rem",
         borderRadius: "0.5rem",
         borderColor,
-        boxShadow: "none", // ✅ disables glow
+        boxShadow: "none",
         "&:hover": { borderColor },
         transition: "all 0.2s ease",
       };
@@ -743,16 +360,7 @@ setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
   });
 
-
-  const legalStatuses = [
-    "Never Married",
-    "Divorced",
-    "Widowed",
-    "Separated",
-    "Awaiting Divorce",
-  ];
-
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
 
     const capitalizeFields = [
@@ -763,24 +371,21 @@ setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
       "street1",
       "street2",
       "middleName",
-      // "residingCountry",
     ];
 
     let newValue = value;
 
     if (capitalizeFields.includes(name) && value.length > 0) {
       newValue = value
-        .split(" ") // split on one or more spaces
+        .split(" ")
         .map(
-          (word) =>
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
         )
         .join(" ");
     }
 
     setFormData((prev) => ({ ...prev, [name]: newValue }));
 
-    // ✅ Remove error immediately if value is not empty
     setErrors((prev) => {
       const updated = { ...prev };
       if (newValue.trim() !== "" && updated[name]) {
@@ -788,99 +393,67 @@ setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
       }
       return updated;
     });
-  };
+  }, []);
 
-  // const handleHourInput = (e) => {
-  //   const val = e.target.value;
-  //   // Allow only numbers and max 2 digits
-  //   if (/^\d{0,2}$/.test(val)) {
-  //     setFormData({ ...formData, birthHour: val });
-  //     if (val.length === 2) {
-  //       minuteRef.current.focus(); // Auto move to minute input
-  //     }
-  //   }
-  // };
+  const handleLegalStatus = useCallback((e) => {
+    const status = e.target.value;
 
-  // const handleMinuteInput = (e) => {
-  //   const val = e.target.value;
-  //   if (/^\d{0,2}$/.test(val)) {
-  //     setFormData({ ...formData, birthMinute: val });
-  //   }
-  // };
+    setFormData((prev) => ({
+      ...prev,
+      legalStatus: status,
+      hasChildren: "",
+      numChildren: "",
+      livingWith: "",
+      divorceStatus: "",
+    }));
 
+    setErrors((prev) => {
+      const updated = { ...prev };
+      if (status) delete updated.legalStatus;
+      return updated;
+    });
 
+    setShowChildrenFields(status && status !== "Never Married");
+    setShowDivorceFields(
+      status === "Divorced" || status === "Awaiting Divorce"
+    );
 
-  // 🧠 Handle Legal Status Change
-const handleLegalStatus = (e) => {
-  const status = e.target.value;
-
-  // Update form data
-  setFormData((prev) => ({
-    ...prev,
-    legalStatus: status,
-    hasChildren: "",
-    numChildren: "",
-    livingWith: "",
-    divorceStatus: "",
-  }));
-
-  // Clear errors for marital status
-  setErrors((prev) => {
-    const updated = { ...prev };
-    if (status) delete updated.legalStatus;
-    return updated;
-  });
-
-  // Show/hide sections dynamically
-  setShowChildrenFields(status && status !== "Never Married");
-  setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
-
-  // Reset separation-related fields
-  if (status !== "Separated") {
-    setIsLegallySeparated("");
-    setSeparationYear("");
-    setManualSeparationEntry(false);
-  }
-};
+    if (status !== "Separated") {
+      setIsLegallySeparated("");
+      setSeparationYear("");
+      setManualSeparationEntry(false);
+    }
+  }, []);
 
   const validate = () => {
     const newErrors = {};
 
-    // Birth Place
     if (!formData.birthCity) newErrors.birthCity = "Birth city is required";
     if (!formData.birthState) newErrors.birthState = "Birth state is required";
 
-    // Height & Weight
     if (!formData.height) newErrors.height = "Height is required";
     if (!formData.weight) newErrors.weight = "Weight is required";
 
-    // Astrological
     if (!formData.rashi) newErrors.rashi = "Rashi is required";
     if (!formData.dosh) newErrors.dosh = "Dosh is required";
 
-    // Religion & Caste
     if (!formData.religion) newErrors.religion = "Religion is required";
     if (!formData.caste) newErrors.caste = "Caste is required";
 
-    // Intercommunity
     if (!formData.interCommunity)
       newErrors.interCommunity = "Please select an option";
 
-    // Address
     if (!formData.street1) newErrors.street1 = "Street Address 1 is required";
     if (!formData.pincode) newErrors.pincode = "Pincode is required";
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.state) newErrors.state = "State is required";
 
-    // Nationality
     if (!formData.nationality)
       newErrors.nationality = "Nationality is required";
 
-    // Marital Status
     if (!formData.legalStatus)
       newErrors.legalStatus = "Marital status is required";
 
-    // Conditional Divorce / Children Fields
     if (showDivorceFields && !formData.divorceStatus) {
       newErrors.divorceStatus = "Divorce status is required";
     }
@@ -913,7 +486,6 @@ const handleLegalStatus = (e) => {
       newErrors.separatedSince = "Separation year is required";
     }
 
-    // Residing in India
     if (!formData.residingInIndia)
       newErrors.residingInIndia = "Please select an option";
 
@@ -966,7 +538,7 @@ const handleLegalStatus = (e) => {
         city: formData.city,
         state: formData.state,
         zipCode: formData.pincode,
-        isYourHome: formData.ownHouse === "Yes"
+        isYourHome: formData.ownHouse === "Yes",
       },
       marriedStatus: formData.legalStatus,
       isResidentOfIndia: formData.residingInIndia === "yes",
@@ -982,14 +554,11 @@ const handleLegalStatus = (e) => {
     };
 
     try {
-      // Useful debug: log payload before sending
-      console.log("📤 Saving personal details payload:", payload);
       setLoading(true);
 
       const personalStep = await getOnboardingStatus();
       let res;
 
-      // onboarding API returns { success, data: { completedSteps: [...] } }
       const alreadyCompleted =
         Array.isArray(personalStep?.data?.data?.completedSteps) &&
         personalStep.data.data.completedSteps.includes("personal");
@@ -1000,7 +569,6 @@ const handleLegalStatus = (e) => {
         res = await saveUserPersonal(payload);
       }
 
-      // Normalize success check across different response shapes
       const isSuccess = !!(
         res?.success ||
         res?.data?.success ||
@@ -1010,21 +578,26 @@ const handleLegalStatus = (e) => {
       );
 
       if (!isSuccess) {
-        const serverMessage = res?.message || res?.data?.message || "Failed to save personal details.";
+        const serverMessage =
+          res?.message ||
+          res?.data?.message ||
+          "Failed to save personal details.";
         console.error("❌ Save returned unsuccessful response:", res);
-        // If server returned field errors, map them to the form
+
         const fieldErrors = res?.data?.errors || res?.errors || null;
         if (fieldErrors && typeof fieldErrors === "object") {
           setErrors((prev) => ({ ...prev, ...fieldErrors }));
         }
-        alert(`❌ ${serverMessage}`);
+        toast.error(`❌ ${serverMessage}`);
         return false;
       }
 
-      // Success
-      toast.success(alreadyCompleted ? " Personal details updated successfully!" : " Personal details saved successfully!");
+      toast.success(
+        alreadyCompleted
+          ? " Personal details updated successfully!"
+          : " Personal details saved successfully!"
+      );
 
-      // Optionally refresh data
       try {
         await getUserPersonal();
       } catch (refreshErr) {
@@ -1035,39 +608,29 @@ const handleLegalStatus = (e) => {
     } catch (err) {
       console.error("❌ Error saving/updating personal details:", err);
 
-      // Map server-side validation errors to form fields when available
       const serverData = err?.response?.data || {};
       if (serverData?.errors && typeof serverData.errors === "object") {
         setErrors((prev) => ({ ...prev, ...serverData.errors }));
       }
 
-      const msg = serverData?.message || err?.message || "Failed to save personal details.";
-      alert(`❌ ${msg}`);
+      const msg =
+        serverData?.message ||
+        err?.message ||
+        "Failed to save personal details.";
+      toast.error(`❌ ${msg}`);
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-
-
   const handleSaveNext = async (e) => {
     e.preventDefault();
     const success = await handleSavePersonalDetails();
-    if (success && onNext) onNext("family"); // ✅ move only if successful
+    if (success && onNext) onNext("family");
   };
 
-  // if (loading) return <p>Loading...</p>;
-
   const handlePrevious = () => navigate("/signup");
-
-  // Generate hour and minute options
-  const hours = Array.from({ length: 24 }, (_, i) =>
-    i.toString().padStart(2, "0")
-  );
-  const minutes = Array.from({ length: 60 }, (_, i) =>
-    i.toString().padStart(2, "0")
-  );
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
@@ -1129,42 +692,46 @@ const handleLegalStatus = (e) => {
             </div>
           </div>
 
-         <div>
-      <label className="text-sm font-medium">Time of Birth (HH : MM)</label>
+          <div>
+            <label className="text-sm font-medium">
+              Time of Birth (HH : MM)
+            </label>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-        {/* Hour Input */}
-        <input
-          name="birthHour"
-          value={formData.birthHour}
-          onChange={handleHourInput}
-          placeholder="HH"
-          maxLength={2}
-          className={`w-full p-3 rounded-md border ${
-            errors.birthHour ? "border-red-500" : "border-[#E4C48A]"
-          } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-        />
-        {errors.birthHour && (
-          <p className="text-xs text-red-500 mt-1">{errors.birthHour}</p>
-        )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+              {/* Hour Input */}
+              <input
+                name="birthHour"
+                value={formData.birthHour}
+                onChange={handleHourInput}
+                placeholder="HH"
+                maxLength={2}
+                className={`w-full p-3 rounded-md border ${
+                  errors.birthHour ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
+              {errors.birthHour && (
+                <p className="text-xs text-red-500 mt-1">{errors.birthHour}</p>
+              )}
 
-        {/* Minute Input */}
-        <input
-          name="birthMinute"
-          value={formData.birthMinute}
-          onChange={handleMinuteInput}
-          placeholder="MM"
-          maxLength={2}
-          ref={minuteRef}
-          className={`w-full p-3 rounded-md border ${
-            errors.birthMinute ? "border-red-500" : "border-[#E4C48A]"
-          } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-        />
-        {errors.birthMinute && (
-          <p className="text-xs text-red-500 mt-1">{errors.birthMinute}</p>
-        )}
-      </div>
-    </div>
+              {/* Minute Input */}
+              <input
+                name="birthMinute"
+                value={formData.birthMinute}
+                onChange={handleMinuteInput}
+                placeholder="MM"
+                maxLength={2}
+                ref={minuteRef}
+                className={`w-full p-3 rounded-md border ${
+                  errors.birthMinute ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
+              {errors.birthMinute && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.birthMinute}
+                </p>
+              )}
+            </div>
+          </div>
           {/* Birth Place */}
           <div>
             <p className="text-sm font-medium">Birth Place</p>
@@ -1177,8 +744,9 @@ const handleLegalStatus = (e) => {
                   value={formData.birthCity}
                   onChange={handleChange}
                   placeholder="Enter birth city"
-                  className={`capitalize w-full p-3 rounded-md border ${errors.birthCity ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  className={`capitalize w-full p-3 rounded-md border ${
+                    errors.birthCity ? "border-red-500" : "border-[#E4C48A]"
+                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                 />
                 {errors.birthCity && (
                   <p className="text-xs text-red-500 mt-1">
@@ -1196,14 +764,16 @@ const handleLegalStatus = (e) => {
                   value={formData.birthState}
                   onChange={handleChange}
                   onBlur={validateBirthState}
-                  className={`capitalize w-full p-3 rounded-md border ${errors.birthState ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  className={`capitalize w-full p-3 rounded-md border ${
+                    errors.birthState ? "border-red-500" : "border-[#E4C48A]"
+                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                 />
                 {errors.birthState && (
-                  <p className="text-red-500 text-xs mt-1">{errors.birthState}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.birthState}
+                  </p>
                 )}
               </div>
-
             </div>
           </div>
 
@@ -1213,10 +783,7 @@ const handleLegalStatus = (e) => {
               <label className="text-sm font-medium mb-1">Height</label>
               <CreatableSelect
                 isClearable
-                options={heightOptions.map((h) => ({
-                  label: h,
-                  value: h,
-                }))}
+                options={HEIGHT_SELECT_OPTIONS}
                 value={
                   formData.height
                     ? { label: formData.height, value: formData.height }
@@ -1224,7 +791,7 @@ const handleLegalStatus = (e) => {
                 }
                 onChange={(selected, actionMeta) => {
                   handleSelectChange("height", selected);
-                  // ✅ Remove focus glow immediately after selection
+
                   if (actionMeta.action === "select-option") {
                     document.activeElement.blur();
                   }
@@ -1233,7 +800,7 @@ const handleLegalStatus = (e) => {
                 className="w-full text-sm"
                 classNamePrefix="react-select"
                 components={{
-                  IndicatorSeparator: () => null, // ✅ Removes the small slash line
+                  IndicatorSeparator: () => null,
                 }}
                 styles={customSelectStyles(errors.height, formData.height)}
                 menuPlacement="top"
@@ -1249,10 +816,7 @@ const handleLegalStatus = (e) => {
               <label className="text-sm font-medium mb-1">Weight</label>
               <CreatableSelect
                 isClearable
-                options={weightOptions.map((w) => ({
-                  label: w,
-                  value: w,
-                }))}
+                options={WEIGHT_SELECT_OPTIONS}
                 value={
                   formData.weight
                     ? { label: formData.weight, value: formData.weight }
@@ -1260,7 +824,7 @@ const handleLegalStatus = (e) => {
                 }
                 onChange={(selected, actionMeta) => {
                   handleSelectChange("weight", selected);
-                  // ✅ Remove focus glow immediately after selection
+
                   if (actionMeta.action === "select-option") {
                     document.activeElement.blur();
                   }
@@ -1292,11 +856,12 @@ const handleLegalStatus = (e) => {
                 name="rashi"
                 value={formData.rashi}
                 onChange={handleChange}
-                className={`capitalize w-full p-3 rounded-md border ${errors.rashi ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`capitalize w-full p-3 rounded-md border ${
+                  errors.rashi ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               >
                 <option value="">Select Rashi</option>
-                {zodiacSigns.map((r) => (
+                {ZODIAC_SIGNS.map((r) => (
                   <option key={r}>{r}</option>
                 ))}
               </select>
@@ -1312,18 +877,16 @@ const handleLegalStatus = (e) => {
                 name="dosh"
                 value={formData.dosh}
                 onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    dosh: e.target.value, // correct for normal select
-                  });
+                  setFormData((prev) => ({ ...prev, dosh: e.target.value }));
                   setErrors((prev) => {
                     const updated = { ...prev };
-                    delete updated.dosh; // clear error on selection
+                    delete updated.dosh;
                     return updated;
                   });
                 }}
-                className={`capitalize w-full p-3 rounded-md border ${errors.dosh ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`capitalize w-full p-3 rounded-md border ${
+                  errors.dosh ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               >
                 <option value="">Select Type of Dosh</option>
                 {doshOptions.map((d) => (
@@ -1337,7 +900,6 @@ const handleLegalStatus = (e) => {
               )}
             </div>
 
-
             {/* Religion */}
             <div>
               <label className="block text-sm font-medium mb-1">Religion</label>
@@ -1345,11 +907,12 @@ const handleLegalStatus = (e) => {
                 name="religion"
                 value={formData.religion}
                 onChange={handleChange}
-                className={`capitalize w-full p-3 rounded-md border ${errors.religion ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`capitalize w-full p-3 rounded-md border ${
+                  errors.religion ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               >
                 <option value="">Select Religion</option>
-                {religions.map((r) => (
+                {RELIGIONS.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
@@ -1367,8 +930,9 @@ const handleLegalStatus = (e) => {
                 name="caste"
                 value={formData.caste}
                 onChange={handleChange}
-                className={`capitalize w-full p-3 rounded-md border ${errors.caste ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`capitalize w-full p-3 rounded-md border ${
+                  errors.caste ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               >
                 <option value="">Select Caste</option>
                 {castOptions.length > 0 ? (
@@ -1385,8 +949,6 @@ const handleLegalStatus = (e) => {
                 <p className="text-xs text-red-500 mt-1">{errors.caste}</p>
               )}
             </div>
-
-
 
             {/* Willing to marry from other community */}
             <div className="mt-6">
@@ -1408,14 +970,15 @@ const handleLegalStatus = (e) => {
                       }));
                       setErrors((prev) => ({
                         ...prev,
-                        interCommunity: ""
+                        interCommunity: "",
                       }));
                     }}
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${formData.interCommunity === "Yes"
-                        ? "bg-[#E4C48A] border-[#E4C48A]"
-                        : "border-gray-300"
-                      }
+          ${
+            formData.interCommunity === "Yes"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
           focus:ring-1 focus:ring-[#E4C48A]`}
                   />
                   <span className="text-gray-700 text-sm">Yes</span>
@@ -1434,25 +997,26 @@ const handleLegalStatus = (e) => {
                       }));
                       setErrors((prev) => ({
                         ...prev,
-                        interCommunity: ""
+                        interCommunity: "",
                       }));
                     }}
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${formData.interCommunity === "No"
-                        ? "bg-[#E4C48A] border-[#E4C48A]"
-                        : "border-gray-300"
-                      }
+          ${
+            formData.interCommunity === "No"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
           focus:ring-1 focus:ring-[#E4C48A]`}
                   />
                   <span className="text-gray-700 text-sm">No</span>
                 </label>
               </div>
               {errors.interCommunity && (
-                <p className="text-xs text-red-500 mt-2">{errors.interCommunity}</p>
+                <p className="text-xs text-red-500 mt-2">
+                  {errors.interCommunity}
+                </p>
               )}
             </div>
-
-
 
             {/* Full Address Section */}
             <div className="mt-6">
@@ -1463,44 +1027,51 @@ const handleLegalStatus = (e) => {
               <div className="space-y-4">
                 {/* Street Address 1 */}
                 <div>
-                  <label className="text-sm font-medium">Street Address 1</label>
+                  <label className="text-sm font-medium">
+                    Street Address 1
+                  </label>
                   <input
                     name="street1"
                     value={formData.street1}
                     placeholder="Enter address line 1"
                     onChange={(e) => {
-                      // Update form data
-                      setFormData({ ...formData, street1: e.target.value });
+                      setFormData((prev) => ({
+                        ...prev,
+                        street1: e.target.value,
+                      }));
 
-                      // Remove error as soon as user types
                       setErrors((prev) => {
                         const updated = { ...prev };
                         delete updated.street1;
                         return updated;
                       });
                     }}
-                    className={`capitalize w-full p-3 rounded-md border ${errors.street1 ? "border-red-500" : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    className={`capitalize w-full p-3 rounded-md border ${
+                      errors.street1 ? "border-red-500" : "border-[#E4C48A]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                   />
                 </div>
 
                 {/* Street Address 2 */}
                 <div>
-                  <label className="text-sm font-medium">Street Address 2</label>
+                  <label className="text-sm font-medium">
+                    Street Address 2
+                  </label>
                   <input
                     name="street2"
                     value={formData.street2}
                     onChange={handleChange}
                     placeholder="Enter address line 2"
-                    className={`capitalize w-full p-3 rounded-md border ${errors.street2 ? "border-red-500" : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    className={`capitalize w-full p-3 rounded-md border ${
+                      errors.street2 ? "border-red-500" : "border-[#E4C48A]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                   />
                   {errors.street1 && (
-                    <p className="text-xs text-red-500 mt-1">{errors.street1}</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.street1}
+                    </p>
                   )}
                 </div>
-
-          
 
                 {/* City & State (always editable) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1512,8 +1083,9 @@ const handleLegalStatus = (e) => {
                       value={formData.city}
                       onChange={handleChange}
                       placeholder="City"
-                      className={`capitalize w-full p-3 rounded-md border ${errors.city ? "border-red-500" : "border-[#E4C48A]"
-                        } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                      className={`capitalize w-full p-3 rounded-md border ${
+                        errors.city ? "border-red-500" : "border-[#E4C48A]"
+                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                     />
                     {errors.city && (
                       <p className="text-xs text-red-500 mt-1">{errors.city}</p>
@@ -1528,11 +1100,14 @@ const handleLegalStatus = (e) => {
                       value={formData.state}
                       onChange={handleChange}
                       placeholder="State"
-                      className={`capitalize w-full p-3 rounded-md border ${errors.state ? "border-red-500" : "border-[#E4C48A]"
-                        } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                      className={`capitalize w-full p-3 rounded-md border ${
+                        errors.state ? "border-red-500" : "border-[#E4C48A]"
+                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                     />
                     {errors.state && (
-                      <p className="text-xs text-red-500 mt-1">{errors.state}</p>
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.state}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1540,26 +1115,26 @@ const handleLegalStatus = (e) => {
             </div>
 
             {/* Pincode */}
-                <div>
-                  <label className="text-sm font-medium">Pincode</label>
-                  <input
-                    type="text"
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleChange}
-                    placeholder="Enter pincode"
-                    maxLength={6}
-                    className={`capitalize w-full p-3 rounded-md border ${errors.pincode ? "border-red-500" : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                  />
+            <div>
+              <label className="text-sm font-medium">Pincode</label>
+              <input
+                type="text"
+                name="pincode"
+                value={formData.pincode}
+                onChange={handleChange}
+                placeholder="Enter pincode"
+                maxLength={6}
+                className={`capitalize w-full p-3 rounded-md border ${
+                  errors.pincode ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              />
 
-                  {(errors.pincode || errorMsg) && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.pincode || errorMsg}
-                    </p>
-                  )}
-                </div>
-
+              {(errors.pincode || errorMsg) && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.pincode || errorMsg}
+                </p>
+              )}
+            </div>
 
             {/* Is this your own house? */}
             <div className="mt-6">
@@ -1573,12 +1148,15 @@ const handleLegalStatus = (e) => {
                     name="ownHouse"
                     value="Yes"
                     checked={formData.ownHouse === "Yes"}
-                    onChange={() => setFormData((prev) => ({ ...prev, ownHouse: "Yes" }))}
+                    onChange={() =>
+                      setFormData((prev) => ({ ...prev, ownHouse: "Yes" }))
+                    }
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${formData.ownHouse === "Yes"
-                        ? "bg-[#E4C48A] border-[#E4C48A]"
-                        : "border-gray-300"
-                      }
+          ${
+            formData.ownHouse === "Yes"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
           focus:ring-1 focus:ring-[#E4C48A]`}
                   />
                   <span className="text-gray-700 text-sm">Yes</span>
@@ -1589,26 +1167,22 @@ const handleLegalStatus = (e) => {
                     name="ownHouse"
                     value="No"
                     checked={formData.ownHouse === "No"}
-                    onChange={() => setFormData((prev) => ({ ...prev, ownHouse: "No" }))}
+                    onChange={() =>
+                      setFormData((prev) => ({ ...prev, ownHouse: "No" }))
+                    }
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${formData.ownHouse === "No"
-                        ? "bg-[#E4C48A] border-[#E4C48A]"
-                        : "border-gray-300"
-                      }
+          ${
+            formData.ownHouse === "No"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
           focus:ring-1 focus:ring-[#E4C48A]`}
                   />
                   <span className="text-gray-700 text-sm">No</span>
                 </label>
               </div>
-
-
-
-
             </div>
           </div>
-
-
-
 
           <div className="space-y-6">
             {/* Marital Status */}
@@ -1620,11 +1194,12 @@ const handleLegalStatus = (e) => {
                 name="legalStatus"
                 value={formData.legalStatus}
                 onChange={handleLegalStatus}
-                className={`capitalize w-full p-3 rounded-md border ${errors.legalStatus ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`capitalize w-full p-3 rounded-md border ${
+                  errors.legalStatus ? "border-red-500" : "border-[#E4C48A]"
+                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               >
                 <option value="">Select Status</option>
-                {legalStatuses.map((status) => (
+                {LEGAL_STATUSES.map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
@@ -1647,8 +1222,9 @@ const handleLegalStatus = (e) => {
                   name="divorceStatus"
                   value={formData.divorceStatus}
                   onChange={handleChange}
-                  className={`capitalize w-full p-3 rounded-md border ${errors.divorceStatus ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  className={`capitalize w-full p-3 rounded-md border ${
+                    errors.divorceStatus ? "border-red-500" : "border-[#E4C48A]"
+                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                 >
                   <option value="">Select Divorce Status</option>
                   <option value="filed">Filed Papers</option>
@@ -1688,10 +1264,11 @@ const handleLegalStatus = (e) => {
                       name="numChildren"
                       value={formData.numChildren}
                       onChange={handleChange}
-                      className={`capitalize w-full p-3 rounded-md border ${errors.numChildren
-                        ? "border-red-500"
-                        : "border-[#E4C48A]"
-                        } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                      className={`capitalize w-full p-3 rounded-md border ${
+                        errors.numChildren
+                          ? "border-red-500"
+                          : "border-[#E4C48A]"
+                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                     >
                       <option value="">Number of Children</option>
                       {[...Array(10)].map((_, i) => (
@@ -1703,10 +1280,11 @@ const handleLegalStatus = (e) => {
                       name="livingWith"
                       value={formData.livingWith}
                       onChange={handleChange}
-                      className={`capitalize w-full p-3 rounded-md border ${errors.livingWith
-                        ? "border-red-500"
-                        : "border-[#E4C48A]"
-                        } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                      className={`capitalize w-full p-3 rounded-md border ${
+                        errors.livingWith
+                          ? "border-red-500"
+                          : "border-[#E4C48A]"
+                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                     >
                       <option value="">Living with you?</option>
                       <option>Yes</option>
@@ -1793,8 +1371,9 @@ const handleLegalStatus = (e) => {
               name="nationality"
               value={formData.nationality}
               onChange={handleChange}
-              className={`capitalize w-full p-3 rounded-md border ${errors.nationality ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              className={`capitalize w-full p-3 rounded-md border ${
+                errors.nationality ? "border-red-500" : "border-[#E4C48A]"
+              } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             >
               <option value="">Select Nationality</option>
               {nationalities.map((n) => (
@@ -1822,12 +1401,12 @@ const handleLegalStatus = (e) => {
                   value="yes"
                   checked={formData.residingInIndia === "yes"}
                   onChange={() => {
-                    setFormData({
-                      ...formData,
+                    setFormData((prev) => ({
+                      ...prev,
                       residingInIndia: "yes",
                       residingCountry: "India",
                       visaCategory: "",
-                    });
+                    }));
 
                     setErrors((prev) => {
                       const updated = { ...prev };
@@ -1836,10 +1415,11 @@ const handleLegalStatus = (e) => {
                     });
                   }}
                   className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${formData.residingInIndia === "yes"
-                      ? "bg-[#E4C48A] border-[#E4C48A]"
-                      : "border-gray-300"
-                    }
+          ${
+            formData.residingInIndia === "yes"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
           focus:ring-1 focus:ring-[#E4C48A]`}
                 />
                 <span className="text-gray-700 text-sm">Yes</span>
@@ -1853,14 +1433,13 @@ const handleLegalStatus = (e) => {
                   value="no"
                   checked={formData.residingInIndia === "no"}
                   onChange={() => {
-                    setFormData({
-                      ...formData,
+                    setFormData((prev) => ({
+                      ...prev,
                       residingInIndia: "no",
                       residingCountry: "no",
                       visaCategory: "",
-                    });
+                    }));
 
-                    // Remove red error immediately
                     setErrors((prev) => {
                       const updated = { ...prev };
                       delete updated.residingInIndia;
@@ -1868,10 +1447,11 @@ const handleLegalStatus = (e) => {
                     });
                   }}
                   className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${formData.residingInIndia === "no"
-                      ? "bg-[#E4C48A] border-[#E4C48A]"
-                      : "border-gray-300"
-                    }
+          ${
+            formData.residingInIndia === "no"
+              ? "bg-[#E4C48A] border-[#E4C48A]"
+              : "border-gray-300"
+          }
           focus:outline-none focus:ring-2 focus:ring-[#E4C48A] focus:ring-offset-1`}
                 />
                 <span className="text-gray-700 text-sm">No</span>
@@ -1908,19 +1488,18 @@ const handleLegalStatus = (e) => {
                         setErrors({ ...errors, residingCountry: "" });
                       }
                     }}
-                    className={`capitalize w-full p-3 rounded-md border ${errors.residingCountry
-                      ? "border-red-500"
-                      : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    className={`capitalize w-full p-3 rounded-md border ${
+                      errors.residingCountry
+                        ? "border-red-500"
+                        : "border-[#E4C48A]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                   >
                     <option value="">Select Country</option>
-                    {countries
-                      .filter((c) => c !== "India")
-                      .map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
+                    {COUNTRIES.filter((c) => c !== "India").map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
                   </select>
                   {errors.residingCountry && (
                     <p className="text-red-500 text-sm mt-1">
@@ -1948,10 +1527,11 @@ const handleLegalStatus = (e) => {
                         setErrors({ ...errors, visaCategory: "" });
                       }
                     }}
-                    className={`capitalize w-full p-3 rounded-md border ${errors.visaCategories
-                      ? "border-red-500"
-                      : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    className={`capitalize w-full p-3 rounded-md border ${
+                      errors.visaCategories
+                        ? "border-red-500"
+                        : "border-[#E4C48A]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                   >
                     <option value="">Select Visa Category</option>
                     {visaCategories.map((v) => (
@@ -1989,8 +1569,6 @@ const handleLegalStatus = (e) => {
               Save & Next
             </button>
           </div>
-
-
         </form>
       </div>
     </div>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { verifyEmailOtp, sendEmailOtp } from "../../api/auth";
+import toast from "react-hot-toast";
 
-const OTP_VALID_TIME = 180; // 3 minutes
-const RESEND_AFTER = 60; // 1 minute
-const MAX_RESEND = 5; // max attempts before lock
-const LOCK_DURATION = 24 * 60 * 60 * 1000; // 24 hours in ms
+const OTP_VALID_TIME = 180;
+const RESEND_AFTER = 60;
+const MAX_RESEND = 5;
+const LOCK_DURATION = 24 * 60 * 60 * 1000;
 
 const VerifyOTP = () => {
   const location = useLocation();
@@ -21,7 +22,6 @@ const VerifyOTP = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Load lock state from localStorage
   useEffect(() => {
     const lockData = JSON.parse(localStorage.getItem("otpLock")) || {};
     const now = Date.now();
@@ -34,12 +34,10 @@ const VerifyOTP = () => {
     }
   }, [email]);
 
-  // Redirect if no email
   useEffect(() => {
     if (!email) navigate("/signup");
   }, [email, navigate]);
 
-  // Countdown timer
   useEffect(() => {
     if (emailCountdown > 0 && !isEmailVerified && !isLocked) {
       const t = setInterval(() => setEmailCountdown((p) => p - 1), 1000);
@@ -47,13 +45,9 @@ const VerifyOTP = () => {
     }
   }, [emailCountdown, isEmailVerified, isLocked]);
 
-  // Redirect after success
-  // navigation is handled after showing a short success message (see submit handler)
-
-  // Handle OTP input
   const handleOtpChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
-    if (isVerifying) return; // prevent changes while verifying
+    if (isVerifying) return;
     const otpArray = [...emailOtp];
     otpArray[index] = value;
     setEmailOtp(otpArray);
@@ -65,83 +59,74 @@ const VerifyOTP = () => {
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
-  // Resend Email OTP
   const handleResend = async () => {
     try {
-      // Check for max attempts
       if (resendAttemptsEmail >= MAX_RESEND) {
         setError("Email OTP locked for 24 hours");
         return;
       }
 
-      // Prevent multiple requests
       if (isVerifying) {
         return;
       }
 
-      // Start loading state and clear messages
       setIsVerifying(true);
       setError("");
       setSuccessMessage("");
 
-      // Log the attempt
       console.log("🔄 Attempting to resend OTP to:", email);
 
-      // Send the request with required data
-      const res = await sendEmailOtp({ 
+      const res = await sendEmailOtp({
         email,
         type: "signup",
-        resendAttempt: resendAttemptsEmail + 1
+        resendAttempt: resendAttemptsEmail + 1,
       });
 
-      // Handle various response formats
       const isSuccess = !!(
-        res?.success || 
-        res?.data?.success || 
+        res?.success ||
+        res?.data?.success ||
         res?.data?.data?.success
       );
 
       if (isSuccess) {
-        // Update UI state for success
         setEmailCountdown(OTP_VALID_TIME);
-        setResendAttemptsEmail(prev => prev + 1);
+        setResendAttemptsEmail((prev) => prev + 1);
         setEmailOtp(Array(6).fill(""));
-        setSuccessMessage("📧 New OTP sent! Please check your email inbox and spam folder.");
+        setSuccessMessage(
+          "📧 New OTP sent! Please check your email inbox and spam folder."
+        );
 
-        // Show instructions alert
-        alert("📧 OTP has been sent! Please:\n1. Check your email inbox\n2. Look in your spam/junk folder\n3. Wait a few minutes if not received immediately");
-        
-        // Clear success message after 5 seconds
+        toast.success("📧 OTP resent successfully!");
+
         setTimeout(() => setSuccessMessage(""), 5000);
       } else {
-        // Handle unsuccessful response
-        const message = res?.message || res?.data?.message || "Failed to send OTP. Please try again.";
+        const message =
+          res?.message ||
+          res?.data?.message ||
+          "Failed to send OTP. Please try again.";
         console.error("❌ Send OTP failed:", message);
         setError(message);
       }
     } catch (err) {
-      // Handle error cases with detailed logging
       console.error("❌ Resend OTP Error:", {
         error: err,
         response: err.response?.data,
-        status: err.response?.status
+        status: err.response?.status,
       });
 
-      // Set user-friendly error message
-      const errorMessage = err.response?.data?.message || 
+      const errorMessage =
+        err.response?.data?.message ||
         "Unable to send OTP. Please check your internet connection and try again.";
       setError(errorMessage);
 
-      // Reset attempts if there's a server error
       if (err.response?.status >= 500) {
-        setResendAttemptsEmail(prev => Math.max(0, prev - 1));
+        setResendAttemptsEmail((prev) => Math.max(0, prev - 1));
       }
     } finally {
       setIsVerifying(false);
     }
   };
 
-  // Verify Email OTP
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -162,9 +147,12 @@ const VerifyOTP = () => {
       if (isVerifying) return;
       setIsVerifying(true);
 
-      const res = await verifyEmailOtp({ email, otp: emailValue, type: "signup" });
+      const res = await verifyEmailOtp({
+        email,
+        otp: emailValue,
+        type: "signup",
+      });
 
-      // Defensive checks: API might return different shapes
       const ok = !!(
         res?.success ||
         res?.data?.success ||
@@ -175,39 +163,44 @@ const VerifyOTP = () => {
         setIsEmailVerified(true);
         setSuccessMessage("✅ Email verified successfully!");
         setError("");
-        // also show an alert for success
-        alert("✅ Email verified successfully!");
 
-        // store token if present in any likely location
+        toast.success("✅ Email verified successfully!");
+
         const token = res?.token || res?.data?.token || res?.data?.data?.token;
         if (token) localStorage.setItem("authToken", token);
 
-        // navigate after short delay so user sees the success message
         setTimeout(() => {
           navigate("/success", {
             state: {
               name,
               email,
-              mobile: countryCode ? `${countryCode}${mobile}`.replace(/\+/, '') : mobile // Remove + and combine country code with mobile
-            }
+              mobile: countryCode
+                ? `${countryCode}${mobile}`.replace(/\+/, "")
+                : mobile,
+            },
           });
         }, 1100);
       } else {
-        // prefer message from common locations
         const message =
-          res?.message || res?.data?.message || res?.data?.data?.message ||
+          res?.message ||
+          res?.data?.message ||
+          res?.data?.data?.message ||
           "Incorrect Email OTP";
         setError(message);
         setSuccessMessage("");
       }
 
-      const attempts = res?.failedAttempts || res?.data?.failedAttempts || res?.data?.data?.failedAttempts || 0;
+      const attempts =
+        res?.failedAttempts ||
+        res?.data?.failedAttempts ||
+        res?.data?.data?.failedAttempts ||
+        0;
       if (attempts >= MAX_RESEND) {
         setIsLocked(true);
         const lockData = JSON.parse(localStorage.getItem("otpLock")) || {};
         lockData[email] = Date.now();
         localStorage.setItem("otpLock", JSON.stringify(lockData));
-        alert("Email OTP locked for 24 hours");
+        toast.error("❌ Email OTP verification locked for 24 hours");
       }
     } catch (err) {
       console.error("❌ Email OTP Verification Error:", err);
@@ -255,7 +248,9 @@ const VerifyOTP = () => {
             ← Back
           </Link>
 
-          <h3 className="text-center text-xl font-semibold mb-4">Verify Email OTP</h3>
+          <h3 className="text-center text-xl font-semibold mb-4">
+            Verify Email OTP
+          </h3>
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
@@ -263,13 +258,18 @@ const VerifyOTP = () => {
               <p className="text-sm text-gray-500">{email}</p>
               <div className="flex justify-center gap-2 mb-2 mt-3">
                 {emailOtp.map((digit, idx) => (
-                    <input
+                  <input
                     key={idx}
                     id={`email-otp-${idx}`}
                     type="text"
                     inputMode="numeric"
                     maxLength="1"
-                      disabled={isEmailVerified || emailCountdown === 0 || isLocked || isVerifying}
+                    disabled={
+                      isEmailVerified ||
+                      emailCountdown === 0 ||
+                      isLocked ||
+                      isVerifying
+                    }
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     className="otp-input"
@@ -282,10 +282,14 @@ const VerifyOTP = () => {
                 ) : isEmailVerified ? (
                   <span className="text-green-600">✅ Email Verified</span>
                 ) : isLocked ? (
-                  <span className="text-red-600">Email OTP locked for 24 hours</span>
+                  <span className="text-red-600">
+                    Email OTP locked for 24 hours
+                  </span>
                 ) : emailCountdown <= 0 ? (
                   <>
-                    <span className="text-red-600 block mb-2">Email OTP expired</span>
+                    <span className="text-red-600 block mb-2">
+                      Email OTP expired
+                    </span>
                     {resendAttemptsEmail < MAX_RESEND && (
                       <button
                         type="button"

@@ -1,7 +1,7 @@
 import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { User } from "../models/User";
-import { AuthenticatedRequest, JWTPayload } from "../types/types";
+import { User } from "../models";
+import { AuthenticatedRequest, JWTPayload } from "../types";
 
 export const verifyToken = (token: string): JWTPayload => {
   const secret = process.env.JWT_SECRET;
@@ -38,7 +38,7 @@ export const authenticate = async (
       if (!decoded?.id)
         return res
           .status(401)
-          .json({ success: false, message: "Invalid token" });
+          .json({ success: false, message: "Unauthorized Access" });
 
       const user = await User.findById(decoded.id).select(
         "email role phoneNumber"
@@ -55,15 +55,13 @@ export const authenticate = async (
         id: String(user._id),
         role: (user as any).role || "user",
         email: emailFromToken || user.email,
-        phoneNumber: phoneFromToken || (user as any).phoneNumber,
+        phoneNumber: phoneFromToken || (user as any).phoneNumber
       };
     } catch (error) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: (error as any)?.message || "Invalid token",
-        });
+      return res.status(401).json({
+        success: false,
+        message: (error as any)?.message || "Invalid token"
+      });
     }
 
     return next();

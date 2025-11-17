@@ -1,0 +1,707 @@
+import { Response } from "express";
+import mongoose from "mongoose";
+import { AuthenticatedRequest } from "../../types";
+import {
+  ConnectionRequest,
+  Notification,
+  User,
+  UserPersonal,
+  Profile
+} from "../../models";
+import { logger } from "../../lib/common/logger";
+import { computeMatchScore } from "../../services";
+import { formatListingProfile } from "../../lib/common/formatting";
+
+async function createNotificationBatch(
+  notifications: Array<{
+    user: mongoose.Types.ObjectId | string;
+    type: string;
+    title: string;
+    message: string;
+    meta?: Record<string, any>;
+  }>
+) {
+  await Notification.insertMany(notifications);
+}
+
+export async function getAllConnectionRequests(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const requests = await ConnectionRequest.find({ receiver: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({ success: true, data: requests });
+  } catch (err) {
+    logger.error("Error fetching connection requests", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch connection requests."
+    });
+  }
+}
+
+export async function getSentRequests(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const sentRequests = await ConnectionRequest.find({
+      sender: userObjectId
+    })
+      .populate("receiver", "firstName lastName dateOfBirth gender")
+      .lean();
+
+    if (sentRequests.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: []
+      });
+    }
+
+    const receiverIds = sentRequests.map(
+      (r: any) => r.receiver._id || r.receiver
+    );
+
+    const [personals, profiles, users] = await Promise.all([
+      UserPersonal.find({ userId: { $in: receiverIds } }).lean(),
+      Profile.find({ userId: { $in: receiverIds } }).lean(),
+      User.find(
+        { _id: { $in: receiverIds } },
+        "firstName lastName dateOfBirth"
+      ).lean()
+    ]);
+
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+
+    const result = await Promise.all(
+      sentRequests.map(async (connReq: any) => {
+        const receiverId = connReq.receiver._id || connReq.receiver;
+        const receiverIdStr = receiverId.toString();
+
+        const receiverUser = userMap.get(receiverIdStr);
+        const receiverPersonal = personalMap.get(receiverIdStr);
+        const receiverProfile = profileMap.get(receiverIdStr);
+
+        if (!receiverUser) return null;
+
+        const scoreDetail = await computeMatchScore(userObjectId, receiverId);
+
+        return formatListingProfile(
+          receiverUser,
+          receiverPersonal,
+          receiverProfile,
+          scoreDetail || { score: 0, reasons: [] },
+          connReq.status
+        );
+      })
+    );
+
+    const validResults = result.filter((r) => r !== null);
+
+    logger.info(
+      `Sent requests fetched for user ${userId} - Total: ${validResults.length}`
+    );
+
+    res.status(200).json({
+      success: true,
+      data: validResults
+    });
+  } catch (err: any) {
+    logger.error("Error fetching sent requests:", {
+      error: err.message,
+      stack: err.stack
+    });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch sent requests."
+    });
+  }
+}
+
+export async function getReceivedRequests(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const receivedRequests = await ConnectionRequest.find({
+      receiver: userObjectId
+    })
+      .populate("sender", "firstName lastName dateOfBirth gender")
+      .lean();
+
+    if (receivedRequests.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: []
+      });
+    }
+
+    const senderIds = receivedRequests.map(
+      (r: any) => r.sender._id || r.sender
+    );
+
+    const [personals, profiles, users] = await Promise.all([
+      UserPersonal.find({ userId: { $in: senderIds } }).lean(),
+      Profile.find({ userId: { $in: senderIds } }).lean(),
+      User.find(
+        { _id: { $in: senderIds } },
+        "firstName lastName dateOfBirth"
+      ).lean()
+    ]);
+
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+
+    const result = await Promise.all(
+      receivedRequests.map(async (connReq: any) => {
+        const senderId = connReq.sender._id || connReq.sender;
+        const senderIdStr = senderId.toString();
+
+        const senderUser = userMap.get(senderIdStr);
+        const senderPersonal = personalMap.get(senderIdStr);
+        const senderProfile = profileMap.get(senderIdStr);
+
+        if (!senderUser) return null;
+
+        const scoreDetail = await computeMatchScore(userObjectId, senderId);
+
+        return formatListingProfile(
+          senderUser,
+          senderPersonal,
+          senderProfile,
+          scoreDetail || { score: 0, reasons: [] },
+          connReq.status
+        );
+      })
+    );
+
+    const validResults = result.filter((r) => r !== null);
+
+    logger.info(
+      `Received requests fetched for user ${userId} - Total: ${validResults.length}`
+    );
+
+    res.status(200).json({
+      success: true,
+      data: validResults
+    });
+  } catch (err: any) {
+    logger.error("Error fetching received requests:", {
+      error: err.message,
+      stack: err.stack
+    });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch received requests."
+    });
+  }
+}
+
+export async function sendConnectionRequest(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const senderId = req.user!.id;
+    const { receiverId } = req.body;
+
+    if (senderId === receiverId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Cannot send request to yourself." });
+    }
+
+    const [sender, receiver] = await Promise.all([
+      User.findById(senderId).lean(),
+      User.findById(receiverId).lean()
+    ]);
+
+    if (!receiver) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Receiver not found." });
+    }
+
+    const existing = await ConnectionRequest.findOne({
+      sender: senderId,
+      receiver: receiverId,
+      status: "pending"
+    }).session(session);
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: "A pending connection request already exists."
+      });
+    }
+
+    const newRequest = await ConnectionRequest.create(
+      [{ sender: senderId, receiver: receiverId, status: "pending" }],
+      { session }
+    );
+
+    await createNotificationBatch([
+      {
+        user: receiverId,
+        type: "request_received",
+        title: "New connection request",
+        message: `${
+          sender?.firstName || "Someone"
+        } sent you a connection request.`,
+        meta: { senderId }
+      },
+      {
+        user: senderId,
+        type: "request_sent",
+        title: "Request sent",
+        message: `You sent a connection request to ${receiver.firstName} ${receiver.lastName}.`,
+        meta: { receiverId }
+      }
+    ]);
+
+    await session.commitTransaction();
+    res.status(201).json({ success: true, data: newRequest[0] });
+  } catch (err) {
+    await session.abortTransaction();
+    logger.error("Error sending connection request:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Error sending connection request." });
+  } finally {
+    session.endSession();
+  }
+}
+
+export async function acceptConnectionRequest(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { requestId } = req.body;
+
+    const request = await ConnectionRequest.findOneAndUpdate(
+      { _id: requestId, receiver: userId, status: "pending" },
+      { status: "accepted", actionedBy: userId },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found or already handled."
+      });
+    }
+
+    const receiver = await User.findById(userId).lean();
+
+    await createNotificationBatch([
+      {
+        user: request.sender,
+        type: "request_accepted",
+        title: "Request accepted",
+        message: `${
+          receiver?.firstName || "User"
+        } accepted your connection request.`,
+        meta: { receiverId: userId }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: request });
+  } catch (err) {
+    logger.error("Error accepting connection request:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Error accepting connection request." });
+  }
+}
+
+export async function rejectConnectionRequest(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { requestId } = req.body;
+
+    const request = await ConnectionRequest.findOneAndUpdate(
+      { _id: requestId, receiver: userId, status: "pending" },
+      { status: "rejected", actionedBy: userId },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found or already processed."
+      });
+    }
+
+    const receiver = await User.findById(userId).lean();
+
+    await createNotificationBatch([
+      {
+        user: request.sender,
+        type: "request_rejected",
+        title: "Request rejected",
+        message: `${
+          receiver?.firstName || "User"
+        } rejected your connection request.`,
+        meta: { receiverId: userId }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: request });
+  } catch (err) {
+    logger.error("Error rejecting connection request:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Error rejecting connection request." });
+  }
+}
+
+export async function getApprovedConnections(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "20"), 10))
+    );
+
+    const filter = {
+      $or: [{ sender: userObjectId }, { receiver: userObjectId }],
+      status: "accepted"
+    };
+
+    const total = await ConnectionRequest.countDocuments(filter);
+
+    const connections = await ConnectionRequest.find(filter, {
+      sender: 1,
+      receiver: 1,
+      updatedAt: 1
+    })
+      .sort({ updatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    if (connections.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        pagination: { total, page, limit, pages: Math.ceil(total / limit) }
+      });
+    }
+
+    const otherUserIds = connections.map((c: any) => {
+      const senderId = c.sender.toString();
+      const receiverId = c.receiver.toString();
+      return senderId === userId ? receiverId : senderId;
+    });
+
+    const [users, personals, profiles] = await Promise.all([
+      User.find(
+        {
+          _id: {
+            $in: otherUserIds.map((id) => new mongoose.Types.ObjectId(id))
+          }
+        },
+        "firstName lastName dateOfBirth"
+      ).lean(),
+      UserPersonal.find({ userId: { $in: otherUserIds } }).lean(),
+      Profile.find({ userId: { $in: otherUserIds } }).lean()
+    ]);
+
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
+
+    const formattedConnections = await Promise.all(
+      connections.map(async (conn: any) => {
+        const otherUserId =
+          conn.sender.toString() === userId
+            ? conn.receiver.toString()
+            : conn.sender.toString();
+
+        const otherUser = userMap.get(otherUserId);
+        if (!otherUser) return null;
+
+        const personal = personalMap.get(otherUserId);
+        const profile = profileMap.get(otherUserId);
+
+        const scoreDetail = await computeMatchScore(
+          userObjectId,
+          new mongoose.Types.ObjectId(otherUserId)
+        );
+
+        return formatListingProfile(
+          otherUser,
+          personal,
+          profile,
+          scoreDetail || { score: 0, reasons: [] },
+          conn.status
+        );
+      })
+    );
+
+    const validConnections = formattedConnections.filter((c) => c !== null);
+
+    res.status(200).json({
+      success: true,
+      data: validConnections,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) }
+    });
+  } catch (err) {
+    logger.error("Error fetching approved connections", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch approved connections."
+    });
+  }
+}
+
+export async function withdrawConnection(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { connectionId } = req.body;
+
+    const connection = await ConnectionRequest.findOneAndDelete({
+      _id: connectionId,
+      $or: [{ sender: userId }, { receiver: userId }],
+      status: { $in: ["accepted", "pending"] }
+    });
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        message: "Connection not found or already withdrawn."
+      });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Connection withdrawn successfully."
+    });
+  } catch (err) {
+    logger.error("Error withdrawing connection", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to withdraw connection."
+    });
+  }
+}
+
+export const getFavorites = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const viewerId = req.user?.id;
+    if (!viewerId || typeof viewerId !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const viewerObjectId = new mongoose.Types.ObjectId(viewerId);
+
+    const viewerProfile: any = await Profile.findOne({
+      userId: viewerObjectId
+    }).lean();
+    const favoriteIds =
+      viewerProfile && Array.isArray(viewerProfile.favoriteProfiles)
+        ? (viewerProfile.favoriteProfiles as any[]).map(
+            (f: any) => new mongoose.Types.ObjectId(f)
+          )
+        : [];
+
+    if (!favoriteIds.length) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: 1,
+          limit: favoriteIds.length,
+          total: 0,
+          hasMore: false
+        }
+      });
+    }
+
+    const [users, personals] = await Promise.all([
+      User.find(
+        { _id: { $in: favoriteIds } },
+        "firstName lastName dateOfBirth"
+      ).lean(),
+      UserPersonal.find({ userId: { $in: favoriteIds } }).lean()
+    ]);
+
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+
+    const formattedResults = await Promise.all(
+      favoriteIds.map((fid: any) => {
+        const cid = fid.toString();
+        const user = userMap.get(cid);
+        const personal = personalMap.get(cid);
+        if (!user) return null;
+        return formatListingProfile(
+          user,
+          personal,
+          viewerProfile,
+          { score: 0, reasons: [] },
+          "none"
+        );
+      })
+    );
+
+    const validResults = formattedResults.filter((r: any) => r !== null);
+
+    return res.json({ success: true, data: validResults });
+  } catch (error) {
+    logger.error("Error fetching favorites:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch favorites" });
+  }
+};
+
+export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
+  try {
+    const authUser = req.user;
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const { profileId } = req.body || {};
+    if (!profileId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "profileId is required" });
+    }
+
+    if (String(authUser.id) === String(profileId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Cannot favorite yourself" });
+    }
+
+    const target = await User.findOne({
+      _id: profileId,
+      isActive: true
+    }).lean();
+    if (!target) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Target user not found" });
+    }
+
+    const updated = await Profile.findOneAndUpdate(
+      { userId: new mongoose.Types.ObjectId(authUser.id) },
+      {
+        $addToSet: {
+          favoriteProfiles: new mongoose.Types.ObjectId(profileId)
+        }
+      },
+      { new: true, upsert: true }
+    ).lean();
+
+    const updatedDoc = Array.isArray(updated) ? updated[0] : updated;
+    const favoriteProfiles =
+      (updatedDoc && (updatedDoc as any).favoriteProfiles) || [];
+
+    return res.status(200).json({
+      success: true,
+      message: "Added to favorites"
+    });
+  } catch (err: any) {
+    logger.error("Error adding to favorites:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to add to favorites" });
+  }
+}
+
+export async function removeFromFavorites(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const authUser = req.user;
+    if (!authUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const { profileId } = req.body || {};
+    if (!profileId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "profileId is required" });
+    }
+
+    const updated = await Profile.findOneAndUpdate(
+      { userId: new mongoose.Types.ObjectId(authUser.id) },
+      {
+        $pull: {
+          favoriteProfiles: new mongoose.Types.ObjectId(profileId)
+        }
+      },
+      { new: true }
+    ).lean();
+
+    const updatedDoc = Array.isArray(updated) ? updated[0] : updated;
+    const favoriteProfiles =
+      (updatedDoc && (updatedDoc as any).favoriteProfiles) || [];
+
+    return res.status(200).json({
+      success: true,
+      data: { favoriteProfiles }
+    });
+  } catch (err: any) {
+    logger.error("Error removing from favorites:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to remove from favorites" });
+  }
+}

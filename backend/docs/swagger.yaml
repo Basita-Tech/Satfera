@@ -1,0 +1,1204 @@
+openapi: 3.0.3
+info:
+  title: Satfera API
+  version: 1.0.0
+  description: API Documentation for Satfera Backend (Matrimony Platform)
+servers:
+  - url: http://localhost:8000
+    description: Local server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  schemas:
+    StandardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        password:
+          type: string
+      required: [password]
+    SignupRequest:
+      type: object
+      properties:
+        for_Profile:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        password:
+          type: string
+        gender:
+          type: string
+    OTPRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        type:
+          type: string
+          description: "signup|forgot-password"
+        otp:
+          type: string
+          description: "Required for verify endpoints"
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+    ChangePasswordRequest:
+      type: object
+      properties:
+        newPassword:
+          type: string
+        confirmPassword:
+          type: string
+      required: [newPassword, confirmPassword]
+    ListingProfile:
+      type: object
+      description: Search listing profile schema
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        age:
+          type: integer
+        height:
+          type: integer
+        religion:
+          type: string
+        caste:
+          type: string
+        city:
+          type: string
+        profession:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+    SearchResponse:
+      type: object
+      properties:
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingProfile"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+
+  /:
+    get:
+      summary: Root
+      description: API root with basic info
+      responses:
+        "200":
+          description: Root response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  version:
+                    type: string
+
+  /api/v1/admin/queue-stats:
+    get:
+      summary: Get queue statistics (admin)
+      responses:
+        "200":
+          description: Queue stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+
+  /api/v1/auth/login:
+    post:
+      summary: Login with email or phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/signup:
+    post:
+      summary: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/google/start:
+    get:
+      summary: Start Google OAuth flow
+      responses:
+        "302":
+          description: Redirect to Google
+
+  /api/v1/auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      responses:
+        "200":
+          description: Redirect to frontend with token or error
+
+  /api/v1/auth/forgot-password:
+    post:
+      summary: Request forgot password OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        "200":
+          description: OTP sent
+
+  /api/v1/auth/reset-password/{token}:
+    post:
+      summary: Reset password using token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPassword:
+                  type: string
+      responses:
+        "200":
+          description: Password reset
+
+  /api/v1/auth/send-email-otp:
+    post:
+      summary: Send OTP to email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OTPRequest"
+      responses:
+        "201":
+          description: OTP sent
+
+  /api/v1/auth/verify-email-otp:
+    post:
+      summary: Verify email OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OTPRequest"
+      responses:
+        "200":
+          description: Verified
+
+  /api/v1/auth/send-sms-otp:
+    post:
+      summary: Send SMS OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+      responses:
+        "201":
+          description: OTP sent
+
+  /api/v1/auth/verify-sms-otp:
+    post:
+      summary: Verify SMS OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+                otp:
+                  type: string
+      responses:
+        "200":
+          description: Verified
+
+  /api/v1/user/profile:
+    get:
+      summary: Get authenticated user's dashboard/profile
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: User dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/notifications:
+    get:
+      summary: Get all notifications for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+
+  /api/v1/user/notifications/count:
+    get:
+      summary: Get unread notifications count
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Unread count
+
+  /api/v1/user/notifications/{id}/read:
+    patch:
+      summary: Mark a notification as read
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Marked as read
+
+  /api/v1/user/notifications/mark-all-read:
+    patch:
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: All marked
+
+  /api/v1/requests/all:
+    get:
+      summary: Get sent connection requests (authenticated)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Sent requests
+
+  /api/v1/requests/all/received:
+    get:
+      summary: Get received connection requests (authenticated)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Received requests
+
+  /api/v1/requests/send:
+    post:
+      summary: Send a connection request
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                receiverId:
+                  type: string
+      responses:
+        "201":
+          description: Request created
+
+  /api/v1/requests/accept:
+    post:
+      summary: Accept a connection request
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+      responses:
+        "200":
+          description: Accepted
+
+  /api/v1/requests/reject:
+    post:
+      summary: Reject a connection request
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+      responses:
+        "200":
+          description: Rejected
+
+  /api/v1/requests/approve:
+    get:
+      summary: Get approved/accepted connections
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved connections
+
+  /api/v1/requests/withdraw:
+    post:
+      summary: Withdraw (delete) a connection
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+      responses:
+        "200":
+          description: Withdrawn
+
+  /api/v1/requests/favorites/add:
+    post:
+      summary: Add a profile to favorites
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profileId:
+                  type: string
+      responses:
+        "200":
+          description: Added to favorites
+
+  /api/v1/requests/favorites/remove:
+    post:
+      summary: Remove a profile from favorites
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profileId:
+                  type: string
+      responses:
+        "200":
+          description: Removed from favorites
+
+  /api/v1/test:
+    post:
+      summary: Test compute match score between two users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId1:
+                  type: string
+                userId2:
+                  type: string
+      responses:
+        "200":
+          description: Match score
+
+  /api/v1/matchings:
+    post:
+      summary: Find matchings for a given user id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+      responses:
+        "200":
+          description: Matchings list
+
+  /api/v1/recommendations:
+    get:
+      summary: Get recommendations for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recommendations
+
+  /api/v1/matches:
+    get:
+      summary: Get matches for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Matches
+
+  /api/v1/profile/{candidateId}:
+    get:
+      summary: Get detailed profile of a candidate (authenticated)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Profile details
+        "404":
+          description: Not found
+
+  /api/v1/user-personal:
+    post:
+      summary: Create personal details for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    get:
+      summary: Get personal details for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Personal details
+    put:
+      summary: Update personal details for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/family:
+    post:
+      summary: Add family details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    get:
+      summary: Get family details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Family details
+    put:
+      summary: Update family details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/education:
+    get:
+      summary: Get education details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Education details
+    post:
+      summary: Create education details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update education details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/health:
+    get:
+      summary: Get health details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Health details
+    post:
+      summary: Add health details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update health details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/profession:
+    get:
+      summary: Get profession details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Profession details
+    post:
+      summary: Add profession details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update profession details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/expectations:
+    get:
+      summary: Get user expectations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Expectations
+    post:
+      summary: Create expectations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update expectations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/onboarding-status:
+    get:
+      summary: Get onboarding status
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Onboarding status
+    put:
+      summary: Update onboarding status
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isOnboardingCompleted:
+                  type: boolean
+                completedSteps:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/upload/photos:
+    post:
+      summary: Upload a photo (profile)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photoType:
+                  type: string
+                url:
+                  type: string
+                title:
+                  type: string
+                visibility:
+                  type: string
+      responses:
+        "201":
+          description: Photo uploaded
+    get:
+      summary: Get photos for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Photos
+
+  /api/v1/user-personal/upload/photos/{photoId}:
+    put:
+      summary: Update a photo by id
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                title:
+                  type: string
+                visibility:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+    delete:
+      summary: Delete a photo by id
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+
+  /api/v1/user-personal/upload/government-id:
+    post:
+      summary: Upload government id image
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+      responses:
+        "201":
+          description: Uploaded
+    get:
+      summary: Get government id info
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Government id
+    put:
+      summary: Update government id image
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/review/status:
+    get:
+      summary: Get profile review status
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Review status
+
+  /api/v1/user-personal/review/submit:
+    post:
+      summary: Submit profile for admin review
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Submitted
+  /api/v1/user/change-password:
+    post:
+      summary: Change password for authenticated user
+      description: |
+        Change the password for the currently authenticated user. Requires new password and confirmation. Password strength rules are enforced.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPassword:
+                  type: string
+                confirmPassword:
+                  type: string
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/search:
+    get:
+      summary: Search user profiles with filters
+      description: |
+        Search user listings by name, new profile timeframe, age range, height range, religion, caste, city and profession.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Search by name (first or last)
+        - in: query
+          name: newProfile
+          schema:
+            type: string
+            enum: [all, last_1_week, last_3_weeks, last_1_month]
+          description: Filter by recently created profiles
+        - in: query
+          name: ageFrom
+          schema:
+            type: integer
+        - in: query
+          name: ageTo
+          schema:
+            type: integer
+        - in: query
+          name: heightFrom
+          schema:
+            type: integer
+        - in: query
+          name: heightTo
+          schema:
+            type: integer
+        - in: query
+          name: religion
+          schema:
+            type: string
+        - in: query
+          name: caste
+          schema:
+            type: string
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: profession
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [newest, age_asc, age_desc, score]
+          description: Sorting preference
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      listings:
+                        - userId: "605c4f2b8b1e4b3b2c8f1a2d"
+                          displayName: "A. Sharma"
+                          firstName: "Anita"
+                          lastName: "Sharma"
+                          age: 28
+                          height: 160
+                          religion: "Hindu"
+                          caste: "Brahmin"
+                          city: "Mumbai"
+                          profession: "Software Engineer"
+                          photos: ["https://.../photo1.jpg"]
+                          score: 78.5
+                      pagination:
+                        page: 1
+                        limit: 20
+                        total: 124
+                        hasMore: true
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"

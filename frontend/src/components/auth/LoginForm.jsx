@@ -1,77 +1,137 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
-import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../../api/auth";
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  loginUser,
+  getOnboardingStatus,
+  getProfileReviewStatus,
+} from "../../api/auth";
+import toast from "react-hot-toast";
+import { AuthContextr } from "../context/AuthContext";
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const toastShownRef = useRef(false);
+  const { login: ctxLogin, token: ctxToken } = useContext(AuthContextr);
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [googleUser, setGoogleUser] = useState(null);
 
-  // Load Google script for login
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
+    const handleUrlToken = () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+      const redirectTo = params.get("redirectTo");
 
-    script.onload = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
-        });
-        window.google.accounts.id.renderButton(
-          document.getElementById("googleSignInDiv"),
-          { theme: "outline", size: "large", text: "continue_with" }
-        );
+      if (token) {
+        try {
+          localStorage.setItem("authToken", token);
+        } catch (e) {}
+
+        try {
+          if (ctxLogin) ctxLogin({ token });
+        } catch (e) {}
+
+        navigate(redirectTo || "/");
+        return true;
+      }
+
+      return false;
+    };
+
+    const checkLoggedInAndRedirect = async () => {
+      if (handleUrlToken()) return;
+
+      const savedToken = ctxToken || localStorage.getItem("authToken");
+      if (!savedToken) return;
+
+      try {
+        const os = await getOnboardingStatus();
+        const onboardingData = os?.data?.data || os?.data || {};
+        const isOnboardingCompleted =
+          typeof onboardingData.isOnboardingCompleted !== "undefined"
+            ? onboardingData.isOnboardingCompleted
+            : Array.isArray(onboardingData.completedSteps)
+            ? onboardingData.completedSteps.length >= 6
+            : true;
+
+        if (!isOnboardingCompleted) {
+          navigate("/onboarding/user", { replace: true });
+          return;
+        }
+
+        const pr = await getProfileReviewStatus();
+        if (pr && pr.success && pr.data) {
+          const status = pr.data.profileReviewStatus;
+          if (status && status !== "approved") {
+            navigate("/onboarding/review", { replace: true });
+            return;
+          }
+        }
+
+        navigate("/", { replace: true });
+      } catch (err) {
+        console.error("Error checking logged-in redirect:", err);
       }
     };
-  }, []);
 
-  // Decode Google JWT
-  const parseJwt = (token) => {
+    const initialParams = new URLSearchParams(location.search);
+    const googleExistsFlag = initialParams.get("googleExists");
+    if (googleExistsFlag === "false") {
+      if (!toastShownRef.current) {
+        toastShownRef.current = true;
+        toast.error(
+          "No account found for this Google account. Please sign up or use email/phone login."
+        );
+      }
+
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    checkLoggedInAndRedirect();
+  }, [ctxToken]);
+
+  const handleAuthResponse = async (apiResponse) => {
     try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      );
-      return JSON.parse(jsonPayload);
-    } catch {
-      return null;
+      const resp = apiResponse?.data || apiResponse || {};
+      const token = resp.token || resp?.data?.token;
+
+      if (token) {
+        try {
+          localStorage.setItem("authToken", token);
+        } catch (e) {}
+
+        try {
+          if (ctxLogin) ctxLogin({ token });
+        } catch (e) {}
+      }
+
+      if (resp.message) {
+        if (resp.success) toast.success(resp.message);
+        else toast.error(resp.message);
+      }
+
+      const serverRedirect = resp.redirectTo || "/";
+      navigate(serverRedirect);
+    } catch (e) {
+      console.error("Error handling auth response:", e);
     }
   };
 
-  const handleGoogleResponse = (response) => {
-    const decoded = parseJwt(response.credential);
-    setGoogleUser(decoded);
-    console.log("Google User:", decoded);
-    // Optionally send decoded info to backend for login/signup
-  };
-
- // Handle input changes
   const handleInputChange = (e) => {
     let value = e.target.value;
     if (e.target.name === "username") value = value.toLowerCase();
     setFormData({ ...formData, [e.target.name]: value });
   };
- // Handle form submit
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // Determine if username is email or phone
     const isEmail = formData.username.includes("@");
     const isPhone = /^[0-9]+$/.test(formData.username);
 
@@ -83,19 +143,17 @@ const LoginForm = () => {
 
     const payload = {
       password: formData.password,
-      ...(isEmail ? { email: formData.username } : { phoneNumber: formData.username }),
+      ...(isEmail
+        ? { email: formData.username }
+        : { phoneNumber: formData.username }),
     };
 
     try {
       const response = await loginUser(payload);
-      console.log("Login response:", response);
-      console.log("Login successful:", response.data);
-      localStorage.setItem("authToken", response.token);
-
-      navigate(response?.redirectTo || "/");
+      await handleAuthResponse(response);
     } catch (err) {
       console.error("Login error:", err);
-      setError(err.response?.data?.message || "Login failed. Try again.");
+      setError(err?.response?.data?.message || "Login failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -109,73 +167,91 @@ const LoginForm = () => {
       <div className="w-full max-w-sm shadow-xl rounded-2xl p-6 border-t-4 border-[#F9F7F5]">
         {/* Header */}
         <div className="text-center mb-3">
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">Welcome Back!</h2>
-          <p className="text-[#D4A052] text-sm font-medium">Sign in to continue your journey</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">
+            Welcome Back!
+          </h2>
+          <p className="text-[#D4A052] text-sm font-medium">
+            Sign in to continue your journey
+          </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-3">
-  <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">
-    Username
-  </label>
-  <input
-    type="text"
-    id="username"
-    name="username"
-    placeholder="Enter Your Username"  // ✅ Capitalized here
-    value={formData.username}
-    onChange={handleInputChange}
-    required
-    className={inputClass }
-    autoCapitalize="none"
-    autoCorrect="off"
-    spellCheck="false"
-  />
-</div>
-
+            <label
+              htmlFor="username"
+              className="block text-sm font-semibold text-gray-700 mb-1"
+            >
+              Username
+            </label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter Your Username"
+              value={formData.username}
+              onChange={handleInputChange}
+              required
+              className={inputClass}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+            />
+          </div>
 
           {/* Password */}
-<div className="mb-3 relative">
-  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
-    Password
-  </label>
+          <div className="mb-3 relative">
+            <label
+              htmlFor="password"
+              className="block text-sm font-semibold text-gray-700 mb-1"
+            >
+              Password
+            </label>
 
-  {/* ✅ Make this wrapper relative for positioning */}
-  <div className="relative">
-    <input
-      type={showPassword ? "text" : "password"}
-      id="password"
-      name="password"
-      placeholder="Enter Your Password"
-      value={formData.password}
-      onChange={handleInputChange}
-      required
-      className={inputClass + " pr-10"}
-    />
+            {/* ✅ Make this wrapper relative for positioning */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                placeholder="Enter Your Password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                className={inputClass + " pr-10"}
+              />
 
-    {/* ✅ Eye icon perfectly centered vertically */}
-     <button
-      type="button"
-      onClick={() => setShowPassword(!showPassword)}
-      className="absolute w-11  right-0 top-0 bottom-0 p-0 flex justify-center items-center text-gray-500 "
-      tabIndex={-1}
-    >
-      {showPassword ? <EyeSlashFill size={18} /> : <EyeFill size={18} />}
-    </button>
-  </div>
-</div>
-
+              {/* ✅ Eye icon perfectly centered vertically */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute w-11 right-0 top-0 bottom-0 p-0 flex justify-center items-center text-gray-500 "
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeSlashFill size={18} />
+                ) : (
+                  <EyeFill size={18} />
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* Error message */}
           {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
           {/* Forgot Links */}
           <div className="flex justify-between text-sm mb-3">
-            <Link to="/forgot-password" className="text-[#D4A052] font-medium hover:underline">
+            <Link
+              to="/forgot-password"
+              className="text-[#D4A052] font-medium hover:underline"
+            >
               Forgot Password?
             </Link>
-            <Link to="/forgot-username" className="text-[#D4A052] font-medium hover:underline">
+            <Link
+              to="/forgot-username"
+              className="text-[#D4A052] font-medium hover:underline"
+            >
               Forgot Username?
             </Link>
           </div>
@@ -192,31 +268,50 @@ const LoginForm = () => {
           {/* Divider */}
           <div className="text-center my-3 text-gray-400 text-sm">OR</div>
 
-          {/* Google Login */}
-          {!googleUser && <div id="googleSignInDiv" className="flex justify-center mb-4"></div>}
-
-          {googleUser && (
-            <div className="text-center mt-4 text-gray-700">
-              <div className="w-14 h-14 rounded-full bg-[#D4A052] text-white flex items-center justify-center mb-2 text-lg font-bold mx-auto">
-                {googleUser.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <h6 className="font-bold">{googleUser.name}</h6>
-              <p className="text-sm text-gray-600">{googleUser.email}</p>
-              <button
-                type="button"
-                onClick={() => setGoogleUser(null)}
-                className="mt-2 px-4 py-1 border border-[#D4A052] text-[#D4A052] rounded-full text-sm hover:bg-[#FFF8EE] transition-colors"
-              >
-                Logout Google
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() =>
+              (window.location.href = `${
+                import.meta.env.VITE_API_URL
+              }/auth/google/start`)
+            }
+            className="w-full bg-white gap-2 border rounded-lg flex items-center justify-center py-2 hover:bg-gray-50"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              x="0px"
+              y="0px"
+              width="18"
+              height="18"
+              viewBox="0 0 48 48"
+            >
+              <path
+                fill="#FFC107"
+                d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"
+              ></path>
+              <path
+                fill="#FF3D00"
+                d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"
+              ></path>
+              <path
+                fill="#4CAF50"
+                d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"
+              ></path>
+              <path
+                fill="#1976D2"
+                d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
+              ></path>
+            </svg>
+            Continue with Google
+          </button>
         </form>
 
         {/* Signup link */}
         <p className="text-center text-sm mt-4 text-gray-600">
           Don’t have an account?{" "}
-          <Link to="/signup" className="text-[#D4A052] font-semibold hover:underline">
+          <Link
+            to="/signup"
+            className="text-[#D4A052] font-semibold hover:underline"
+          >
             Sign up
           </Link>
         </p>

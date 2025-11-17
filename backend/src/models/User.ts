@@ -4,8 +4,8 @@ export interface IUser extends Document {
   firstName: string;
   middleName?: string;
   lastName: string;
-  gender: { type: String; enum: ["male", "female", "other"] };
-  role: { type: String; enum: ["user", "admin"] };
+  gender: { type: string; enum: ["male", "female", "other"] };
+  role: { type: string; enum: ["user", "admin"] };
   phoneNumber?: string;
   password: string;
   isActive: boolean;
@@ -21,6 +21,7 @@ export interface IUser extends Document {
   lastLoginAt: Date;
   isOnboardingCompleted: boolean;
   completedSteps?: string[];
+  termsAndConditionsAccepted: boolean;
 }
 
 const userSchema: Schema = new Schema(
@@ -40,7 +41,7 @@ const userSchema: Schema = new Schema(
       type: String,
       enum: ["myself", "son", "daughter", "brother", "sister", "friend"],
       required: true,
-      default: "myself",
+      default: "myself"
     },
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
@@ -50,6 +51,8 @@ const userSchema: Schema = new Schema(
     lastLoginAt: { type: Date },
     isOnboardingCompleted: { type: Boolean, default: false },
     completedSteps: { type: [String], default: [] },
+    termsAndConditionsAccepted: { type: Boolean, default: false },
+    customId: { type: String, unique: true, sparse: true }
   },
   { timestamps: true }
 );
@@ -67,7 +70,9 @@ userSchema.pre("save", function (next) {
     if ((this as any).isModified("phoneNumber") && (this as any).phoneNumber) {
       (this as any).phoneNumber = (this as any).phoneNumber.toString().trim();
     }
-  } catch (e) {}
+  } catch (error) {
+    return next(error as any);
+  }
   next();
 });
 
@@ -85,11 +90,11 @@ function removeSensitive(doc: any, ret: any) {
 }
 
 userSchema.set("toJSON", {
-  transform: removeSensitive,
+  transform: removeSensitive
 });
 
 userSchema.set("toObject", {
-  transform: removeSensitive,
+  transform: removeSensitive
 });
 
 userSchema.statics.findActive = function () {

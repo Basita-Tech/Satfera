@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -24,7 +25,6 @@ export const signupUser = async (formData) => {
   } catch (error) {
     console.error("❌ Signup Error:", error.response?.data || error.message);
 
-    // ✅ always return a structured error object
     return (
       error.response?.data || {
         success: false,
@@ -39,45 +39,32 @@ export const loginUser = async (formData) => {
     const response = await axios.post(`${API}/auth/login`, formData);
     return response.data;
   } catch (error) {
-    console.error("❌ Login Error:", error.response?.data || error.message);
-  }
-};
-
-export const googleAuth = async (data) => {
-  try {
-    const response = await axios.post(`${API}/auth/google`, data);
-    return { ...(response.data || {}), status: response.status };
-  } catch (error) {
-    console.error("❌ Google Auth Check Error:", error.response?.data || error.message);
-    if (error.response && error.response.data) {
-      return { ...(error.response.data || {}), status: error.response.status };
-    }
-    return { success: false, message: error.message, status: null };
+    toast.error(error.response.data.message);
   }
 };
 
 // Send OTP
 export const sendEmailOtp = async (data) => {
   try {
-    console.log("📧 Sending email OTP request:", { 
+    console.log("📧 Sending email OTP request:", {
       email: data.email,
       type: data.type,
-      url: `${API}/auth/send-email-otp` 
+      url: `${API}/auth/send-email-otp`,
     });
-    
+
     const response = await axios.post(`${API}/auth/send-email-otp`, data);
     console.log("✅ Email OTP API Response:", response.data);
-    
+
     if (!response.data) {
       throw new Error("Empty response from server");
     }
-    
+
     return response.data;
   } catch (error) {
     console.error("❌ Send Email OTP Error:", {
       message: error.message,
       response: error.response?.data,
-      status: error.response?.status
+      status: error.response?.status,
     });
     // Return error response so the UI can handle it
     throw error;
@@ -86,26 +73,26 @@ export const sendEmailOtp = async (data) => {
 
 export const sendSmsOtp = async (data) => {
   try {
-    console.log("📱 Sending SMS OTP request:", { 
+    console.log("📱 Sending SMS OTP request:", {
       mobile: data.mobile,
       countryCode: data.countryCode,
       type: data.type,
-      url: `${API}/auth/send-sms-otp` 
+      url: `${API}/auth/send-sms-otp`,
     });
-    
+
     const response = await axios.post(`${API}/auth/send-sms-otp`, data);
     console.log("✅ SMS OTP API Response:", response.data);
-    
+
     if (!response.data) {
       throw new Error("Empty response from server");
     }
-    
+
     return response.data;
   } catch (error) {
     console.error("❌ Send SMS OTP Error:", {
       message: error.message,
       response: error.response?.data,
-      status: error.response?.status
+      status: error.response?.status,
     });
     // Return error response so the UI can handle it
     throw error;
@@ -116,19 +103,21 @@ export const verifyEmailOtp = async (data) => {
     const response = await axios.post(`${API}/auth/verify-email-otp`, data);
     return response.data;
   } catch (error) {
-    console.error("❌ Verify Email OTP Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Verify Email OTP Error:",
+      error.response?.data || error.message
+    );
     // ✅ Always return a structured object so caller doesn't crash
     return error.response?.data || { success: false, message: "Server error" };
   }
 };
-
 
 export const verifySmsOtp = async (data) => {
   try {
     console.log("📱 Verifying SMS OTP:", {
       mobile: data.mobile,
       type: data.type,
-      url: `${API}/auth/verify-sms-otp`
+      url: `${API}/auth/verify-sms-otp`,
     });
 
     const response = await axios.post(`${API}/auth/verify-sms-otp`, data);
@@ -139,7 +128,7 @@ export const verifySmsOtp = async (data) => {
     console.error("❌ Verify SMS OTP Error:", {
       message: error.message,
       response: error.response?.data,
-      status: error.response?.status
+      status: error.response?.status,
     });
     // Always return a structured object so caller doesn't crash
     return error.response?.data || { success: false, message: "Server error" };
@@ -152,7 +141,25 @@ export const resendOtp = async (data) => {
     const response = await axios.post(`${API}/auth/resend-otp`, data);
     return response.data;
   } catch (error) {
-    console.error("❌ Resend OTP Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Resend OTP Error:",
+      error.response?.data || error.message
+    );
+  }
+};
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await axios.post(`${API}/auth/forgot-password`, {
+      email: email,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Forgot Password Error:",
+      error.response?.data || error.message
+    );
+    return error.response?.data || { success: false, message: "Server error" };
   }
 };
 
@@ -167,7 +174,10 @@ export const saveUserPersonal = async (payload) => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Save Personal Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Save Personal Details Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -179,8 +189,10 @@ export const getUserPersonal = async () => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Get Personal Details Error:", error.response?.data || error.message);
-
+    console.error(
+      "❌ Get Personal Details Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -191,7 +203,10 @@ export const updateUserPersonal = async (payload) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Update Personal Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update Personal Details Error:",
+      error.response?.data || error.message
+    );
     // Re-throw so the UI knows update failed
     throw error;
   }
@@ -202,12 +217,19 @@ export const updateUserPersonal = async (payload) => {
 // -------------------------------------------------------------
 export const saveUserExpectations = async (payload) => {
   try {
-    const response = await axios.post(`${API}/user-personal/expectations`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.post(
+      `${API}/user-personal/expectations`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response;
   } catch (error) {
-    console.error("❌ Save Expectations Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Save Expectations Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -218,18 +240,28 @@ export const getUserExpectations = async () => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Get User Expectations Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get User Expectations Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
 export const updateUserExpectations = async (payload) => {
   try {
-    const response = await axios.put(`${API}/user-personal/expectations`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.put(
+      `${API}/user-personal/expectations`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error("❌ Update Expectations Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update Expectations Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -243,7 +275,10 @@ export const getUserHealth = async () => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Get User Health Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get User Health Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -254,11 +289,12 @@ export const saveUserHealth = async (payload) => {
     });
     return response.data;
   } catch (error) {
-
-    console.error("❌ Save User Health Error:", error.response?.data || error.message);
-     throw error;
+    console.error(
+      "❌ Save User Health Error:",
+      error.response?.data || error.message
+    );
+    throw error;
   }
-
 };
 
 export const updateUserHealth = async (payload) => {
@@ -268,12 +304,14 @@ export const updateUserHealth = async (payload) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Update User Health Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update User Health Error:",
+      error.response?.data || error.message
+    );
     // Important: rethrow so frontend can handle properly
     throw error;
   }
 };
-
 
 // -------------------------------------------------------------
 // 🔹 USER PROFESSION APIs
@@ -285,30 +323,47 @@ export const getUserProfession = async () => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Get Profession Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get Profession Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
 export const saveUserProfession = async (payload) => {
   try {
-    const response = await axios.post(`${API}/user-personal/profession`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.post(
+      `${API}/user-personal/profession`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response;
   } catch (error) {
-    console.error("❌ Save Profession Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Save Profession Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
 
 export const updateUserProfession = async (payload) => {
   try {
-    const response = await axios.put(`${API}/user-personal/profession`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.put(
+      `${API}/user-personal/profession`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response;
   } catch (error) {
-    console.error("❌ Update Profession Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update Profession Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -322,7 +377,10 @@ export const getUserFamilyDetails = async () => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Get Family Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get Family Details Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -333,7 +391,10 @@ export const saveUserFamilyDetails = async (payload) => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Save Family Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Save Family Details Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -345,7 +406,10 @@ export const updateUserFamilyDetails = async (payload) => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Update Family Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update Family Details Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -359,30 +423,47 @@ export const getEducationalDetails = async () => {
     });
     return response;
   } catch (error) {
-    console.error("❌ Get Educational Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get Educational Details Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
 export const saveEducationalDetails = async (payload) => {
   try {
-    const response = await axios.post(`${API}/user-personal/education/`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.post(
+      `${API}/user-personal/education/`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response;
   } catch (error) {
-    console.error("❌ Save Educational Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Save Educational Details Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
 
 export const updateEducationalDetails = async (payload) => {
   try {
-    const response = await axios.put(`${API}/user-personal/education/`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.put(
+      `${API}/user-personal/education/`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error("❌ Update Educational Details Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update Educational Details Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
@@ -391,36 +472,55 @@ export const updateEducationalDetails = async (payload) => {
 // -------------------------------------------------------------
 export const getOnboardingStatus = async () => {
   try {
-    const response = await axios.get(`${API}/user-personal/onboarding-status/`, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.get(
+      `${API}/user-personal/onboarding-status/`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response;
   } catch (error) {
-    console.error("❌ Get Onboarding Status Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get Onboarding Status Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
 export const updateOnboardingStatus = async (payload) => {
   try {
-    const response = await axios.put(`${API}/user-personal/onboarding-status/`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.put(
+      `${API}/user-personal/onboarding-status/`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error("❌ Update Onboarding Status Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Update Onboarding Status Error:",
+      error.response?.data || error.message
+    );
   }
 };
-
 
 // 📤 Upload normal photo (compulsory1, compulsory2, optional1, etc.)
 export const uploadUserPhoto = async (payload) => {
   try {
-    const response = await axios.post(`${API}/user-personal/upload/photos`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.post(
+      `${API}/user-personal/upload/photos`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error("❌ Upload User Photo Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Upload User Photo Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -428,12 +528,19 @@ export const uploadUserPhoto = async (payload) => {
 // 📤 Upload Government ID photo
 export const uploadGovernmentId = async (payload) => {
   try {
-    const response = await axios.post(`${API}/user-personal/upload/government-id`, payload, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.post(
+      `${API}/user-personal/upload/government-id`,
+      payload,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error("❌ Upload Government ID Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Upload Government ID Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -446,18 +553,103 @@ export const getUserPhotos = async () => {
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Get User Photos Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get User Photos Error:",
+      error.response?.data || error.message
+    );
   }
 };
 
 // 📥 Get government ID
 export const getGovernmentId = async () => {
   try {
-    const response = await axios.get(`${API}/user-personal/upload/government-id`, {
+    const response = await axios.get(
+      `${API}/user-personal/upload/government-id`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Get Government ID Error:",
+      error.response?.data || error.message
+    );
+  }
+};
+
+// 📋 Get Profile Review Status
+export const getProfileReviewStatus = async () => {
+  try {
+    const response = await axios.get(`${API}/user-personal/review/status`, {
       headers: getAuthHeaders(),
     });
     return response.data;
   } catch (error) {
-    console.error("❌ Get Government ID Error:", error.response?.data || error.message);
+    console.error(
+      "❌ Get Profile Review Status Error:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// 📤 Submit Profile for Review
+export const submitProfileForReview = async () => {
+  try {
+    const response = await axios.post(
+      `${API}/user-personal/review/submit`,
+      {},
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Submit Profile for Review Error:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// ✅ Approve Profile (Admin)
+export const approveProfile = async (userId) => {
+  try {
+    const response = await axios.post(
+      `${API}/user-personal/review/approve`,
+      { userId },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Approve Profile Error:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// ❌ Reject Profile (Admin)
+export const rejectProfile = async (userId, reason) => {
+  try {
+    const response = await axios.post(
+      `${API}/user-personal/review/reject`,
+      { userId, reason },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Reject Profile Error:",
+      error.response?.data || error.message
+    );
+    throw error;
   }
 };

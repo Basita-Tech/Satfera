@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { allCountries } from "country-telephone-data";
+import { forgotPassword, verifyEmailOtp } from "@/api/auth";
+import toast from "react-hot-toast";
 
 const ForgotPassword = () => {
   const [resetType, setResetType] = useState("email");
@@ -46,7 +48,7 @@ const ForgotPassword = () => {
   };
 
   // Send or Resend OTP
-  const handleSendOtp = (e) => {
+  const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
 
     let emailOrPhone = formData.emailOrPhone;
@@ -58,6 +60,21 @@ const ForgotPassword = () => {
       setError("Enter a valid email address");
       return;
     }
+
+    const data = await forgotPassword(emailOrPhone);
+
+    if (!data.success) {
+      toast.error(data.message);
+      return;
+    }
+    if (data.message) {
+      toast.success(data.message);
+      setStep("otp");
+      setError("");
+      setOtpExpiry(180);
+      return;
+    }
+
     if (resetType === "mobile" && !/^\d{10}$/.test(emailOrPhone)) {
       setError("Enter a valid 10-digit mobile number");
       return;
@@ -76,16 +93,23 @@ const ForgotPassword = () => {
   };
 
   // Verify OTP
-  const handleVerifyOtp = (e) => {
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (otpExpiry <= 0) {
       setError("OTP Expired. Please resend OTP.");
       return;
     }
-    if (formData.otp !== "123456") {
-      setError("Incorrect OTP");
+    const data = {
+      otp: formData.otp,
+      email: resetType === "email" ? formData.emailOrPhone : undefined,
+      type: "forgot-password",
+    };
+    const res = await verifyEmailOtp(data);
+    if (!res.success) {
+      toast.error(res.message);
       return;
     }
+    toast.success(res.data.message);
     setError("");
     setStep("success");
     clearInterval(intervalRef.current);
@@ -116,7 +140,7 @@ const ForgotPassword = () => {
             </p>
 
             {/* Toggle Buttons */}
-            <div className="flex justify-center mb-6 bg-[#FFF3E0] rounded-md p-1">
+            <div className="flex justify-center mb-6 gap-2 rounded-md p-1">
               {["email", "mobile"].map((type) => (
                 <button
                   key={type}
@@ -128,7 +152,7 @@ const ForgotPassword = () => {
                   className={`px-6 py-2 rounded-md font-semibold text-sm md:text-base transition ${
                     resetType === type
                       ? "bg-[#D4A052] text-white"
-                      : "text-[#D4A052] hover:bg-[#D4A052] hover:text-white"
+                      : "text-[#D4A052] hover:bg-[#D4A052] bg-transparent border border-[#D4A052]"
                   }`}
                 >
                   {type.charAt(0).toUpperCase() + type.slice(1)}

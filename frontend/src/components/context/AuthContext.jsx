@@ -1,53 +1,30 @@
-import React,{createContext,useState,useEffect, Children} from "react"
+import React, { createContext, useState, useEffect, Children } from "react";
 
+export const AuthContextr = createContext();
 
-export const AuthContextr=createContext()
+export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(null);
 
-
-export const AuthProvider=({children})=>{
-    const [user,setUser]=useState(null)
-    const [token,setToken]=useState(null)
-    const [role,setRole]=useState(null)
-
-
-
-
-    useEffect(()=>{
-        const savedToken=localStorage.getItem("authToken")
-        const savedUser=localStorage.getItem("user")
-        const savedRole=localStorage.getItem("userRole")
-
-
+  useEffect(() => {
+    const savedToken = localStorage.getItem("authToken");
     if (savedToken) setToken(savedToken);
-    if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedRole) setRole(savedRole);
-    },[])
+  }, []);
 
-
-    const login=(userData)=>{
-        localStorage.setItem("authToken",userData.token)
-        localStorage.setItem("userRole",userData.Role)
-        localStorage.setItem("user",JSON.stringify(userData))
-
-    setToken(userData.token);
-    setRole(userData.role);
-    setUser(userData);
+  const login = (userData) => {
+    if (userData && userData.token) {
+      localStorage.setItem("authToken", userData.token);
+      setToken(userData.token);
     }
-
-
-    // ✅ Logout
-  const logout = () => {
-    localStorage.clear();
-    setToken(null);
-    setRole(null);
-    setUser(null);
   };
 
+  const logout = () => {
+    localStorage.removeItem("authToken");
+    setToken(null);
+  };
 
-  return(
-    <AuthContextr.Provider value={{user,token,role,login,logout}}>
-        {children}
+  return (
+    <AuthContextr.Provider value={{ token, login, logout }}>
+      {children}
     </AuthContextr.Provider>
-
-  )
-}
+  );
+};

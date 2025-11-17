@@ -1,0 +1,358 @@
+import type { Request, Response } from "express";
+import { ObjectId } from "mongodb";
+import mongoose from "mongoose";
+import {
+  computeMatchScore,
+  findMatchingUsers,
+  getDetailedProfile
+} from "../../services";
+import { formatListingProfile, logger } from "../../lib";
+import { UserPersonal, User, Profile } from "../../models";
+import { AuthenticatedRequest } from "../../types";
+
+export const testMatchScore = async (req: Request, res: Response) => {
+  try {
+    const { userId1, userId2 } = req.body;
+
+    if (!userId1 || !userId2) {
+      return res.status(400).json({
+        success: false,
+        message: "userId1 and userId2 are required"
+      });
+    }
+
+    const result = await computeMatchScore(
+      new ObjectId(userId1),
+      new ObjectId(userId2)
+    );
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error("Error testing match score:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to test match score"
+    });
+  }
+};
+
+export const getMatchings = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required"
+      });
+    }
+
+    const result = await findMatchingUsers(new ObjectId(userId));
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error("Error fetching matchings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch matchings"
+    });
+  }
+};
+
+export const getRecommendations = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const userId = req.user?.id;
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required"
+      });
+    }
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const recommendations = await findMatchingUsers(userObjectId, 90);
+
+    if (recommendations.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: 0,
+          hasMore: false
+        }
+      });
+    }
+
+    const candidateIds = recommendations.map(
+      (r: any) => new mongoose.Types.ObjectId(r.user.userId)
+    );
+
+    const [users, personals, profiles] = await Promise.all([
+      User.find(
+        { _id: { $in: candidateIds } },
+        "firstName lastName dateOfBirth"
+      ).lean(),
+      UserPersonal.find({ userId: { $in: candidateIds } }).lean(),
+      Profile.find({ userId: { $in: candidateIds } }).lean()
+    ]);
+
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
+
+    const formattedResults = await Promise.all(
+      recommendations.map((rec: any) => {
+        const candidateId = rec.user.userId;
+        const user = userMap.get(candidateId);
+        const personal = personalMap.get(candidateId);
+        const profile = profileMap.get(candidateId);
+
+        if (!user) return null;
+
+        return formatListingProfile(
+          user,
+          personal,
+          profile,
+          rec.scoreDetail || { score: 0, reasons: [] },
+          "none"
+        );
+      })
+    );
+
+    const validResults = formattedResults.filter((r) => r !== null);
+    const paginatedResults = validResults.slice(skip, skip + limitNum);
+
+    res.json({
+      success: true,
+      data: paginatedResults,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: validResults.length,
+        hasMore: skip + limitNum < validResults.length
+      }
+    });
+  } catch (error) {
+    logger.error("Error fetching recommendations:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch recommendations"
+    });
+  }
+};
+
+export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user?.id;
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required"
+      });
+    }
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const matches = await findMatchingUsers(userObjectId, 70);
+
+    if (matches.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: 0,
+          hasMore: false
+        }
+      });
+    }
+
+    const candidateIds = matches.map(
+      (m: any) => new mongoose.Types.ObjectId(m.user.userId)
+    );
+
+    const [users, personals, profiles] = await Promise.all([
+      User.find(
+        { _id: { $in: candidateIds } },
+        "firstName lastName dateOfBirth"
+      ).lean(),
+      UserPersonal.find({ userId: { $in: candidateIds } }).lean(),
+      Profile.find({ userId: { $in: candidateIds } }).lean()
+    ]);
+
+    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
+
+    const formattedResults = await Promise.all(
+      matches.map((match: any) => {
+        const candidateId = match.user.userId;
+        const user = userMap.get(candidateId);
+        const personal = personalMap.get(candidateId);
+        const profile = profileMap.get(candidateId);
+
+        if (!user) return null;
+
+        return formatListingProfile(
+          user,
+          personal,
+          profile,
+          match.scoreDetail || { score: 0, reasons: [] },
+          "none"
+        );
+      })
+    );
+
+    const validResults = formattedResults.filter((r) => r !== null);
+    const paginatedResults = validResults.slice(skip, skip + limitNum);
+
+    res.json({
+      success: true,
+      data: paginatedResults,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: validResults.length,
+        hasMore: skip + limitNum < validResults.length
+      }
+    });
+  } catch (error) {
+    logger.error("Error fetching matches:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch matches"
+    });
+  }
+};
+
+/**
+ * Get detailed profile with matching info
+ * GET /api/v1/profile/:candidateId
+ */
+export const getProfile = async (req: Request, res: Response) => {
+  try {
+    const { candidateId } = req.params;
+    const viewerId = req.user?.id;
+
+    if (!candidateId || !viewerId || typeof viewerId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "candidateId and viewerId are required"
+      });
+    }
+
+    const profile = await getDetailedProfile(
+      new ObjectId(viewerId),
+      new ObjectId(candidateId)
+    );
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: profile
+    });
+  } catch (error) {
+    logger.error("Error fetching profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch profile"
+    });
+  }
+};
+
+export const getAllProfiles = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [users, personals, profiles] = await Promise.all([
+      User.find({}, "firstName lastName dateOfBirth").lean(),
+      UserPersonal.find({}).lean(),
+      Profile.find({}).lean()
+    ]);
+
+    const personalMap = new Map(
+      personals.map((p: any) => [p.userId.toString(), p])
+    );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
+
+    const formattedResults = await Promise.all(
+      users.map((u: any) => {
+        const candidateId = u._id.toString();
+        const user = u;
+        const personal = personalMap.get(candidateId);
+        const profile = profileMap.get(candidateId);
+
+        if (!user) return null;
+
+        return formatListingProfile(
+          user,
+          personal,
+          profile,
+          { score: 0, reasons: [] },
+          "none"
+        );
+      })
+    );
+
+    const validResults = formattedResults.filter((r) => r !== null);
+    const paginatedResults = validResults.slice(skip, skip + limitNum);
+
+    res.json({
+      success: true,
+      data: paginatedResults,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: validResults.length,
+        hasMore: skip + limitNum < validResults.length
+      }
+    });
+  } catch (error) {
+    logger.error("Error fetching matches:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch matches"
+    });
+  }
+};

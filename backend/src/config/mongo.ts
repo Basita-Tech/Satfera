@@ -1,7 +1,7 @@
 import mongoose, { ConnectOptions } from "mongoose";
 import { EventEmitter } from "events";
-import { APP_CONFIG } from "./constants";
-import { logger } from "./logger";
+import { APP_CONFIG } from "../utils/constants";
+import { logger } from "../lib";
 
 class DatabaseConnection extends EventEmitter {
   private isConnected: boolean = false;
@@ -34,7 +34,7 @@ class DatabaseConnection extends EventEmitter {
         connectTimeoutMS: APP_CONFIG.MONGO.CONNECT_TIMEOUT_MS,
         heartbeatFrequencyMS: APP_CONFIG.MONGO.HEARTBEAT_FREQUENCY_MS,
         retryWrites: true,
-        retryReads: true,
+        retryReads: true
       } as ConnectOptions;
 
       await mongoose.connect(mongoUrl, options);

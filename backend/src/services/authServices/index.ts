@@ -1,20 +1,21 @@
-import { User, IUser } from "../../models/User";
+import { User, IUser, Profile } from "../../models";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import {
+  logger,
+  parseDDMMYYYYToDate,
+  redisClient,
+  sendOtpEmail,
+  sendResetPasswordEmail
+} from "../../lib";
+import { generateCustomId } from "../../lib";
 import {
   getOtp,
   incrementAttempt,
   OTP_ATTEMPT_LIMIT,
-  setOtp,
-} from "../../lib/otpRedis";
-import { redisClient } from "../..//lib/redis";
-import {
-  sendResetPasswordEmail,
-  sendOtpEmail,
-  sendWelcomeEmail,
-} from "../../lib/email";
-import { parseDDMMYYYYToDate } from "../../lib/lib";
-import { Profile } from "../../models/Profile";
+  setOtp
+} from "../../lib/redis/otpRedis";
+import { enqueueWelcomeEmail } from "../../lib/queue/enqueue";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -28,25 +29,31 @@ async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
       (user as any).lastName || ""
     }`.trim();
 
-    await sendWelcomeEmail(
-      user.email,
-      fullName,
-      username,
-      loginLink,
-      process.env.SUPPORT_CONTACT
+    const enqueued = await enqueueWelcomeEmail(
+      user._id,
+      {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username
+      },
+      loginLink
     );
 
-    user.welcomeSent = true;
-    await user.save();
-
-    console.log(`Welcome email sent to ${user.email}`);
-    return true;
+    if (enqueued) {
+      user.welcomeSent = true;
+      await user.save();
+      logger.info(`Welcome email queued for ${user.email}`);
+      return true;
+    } else {
+      logger.error(`Failed to queue welcome email for ${user.email}`);
+      return false;
+    }
   } catch (error: any) {
-    console.error(
-      `Failed to send welcome email to ${user.email}:`,
+    logger.error(
+      `Failed to queue welcome email for ${user.email}:`,
       error.message || error
     );
-
     return false;
   }
 }
@@ -69,7 +76,7 @@ export class AuthService {
     const user = await User.findOne({
       email: email.toLowerCase(),
       isActive: true,
-      isEmailLoginEnabled: true,
+      isEmailLoginEnabled: true
     });
 
     if (!user) throw new Error("Invalid credentials");
@@ -84,7 +91,7 @@ export class AuthService {
       { id: user._id, email: user.email },
       this.jwtSecret(),
       {
-        expiresIn: "7d",
+        expiresIn: "7d"
       }
     );
 
@@ -98,7 +105,7 @@ export class AuthService {
     const user = await User.findOne({
       phoneNumber: phoneNumber,
       isActive: true,
-      isMobileLoginEnabled: true,
+      isMobileLoginEnabled: true
     });
 
     if (!user) throw new Error("Invalid credentials");
@@ -110,7 +117,7 @@ export class AuthService {
       { id: user._id, phoneNumber: user.phoneNumber },
       this.jwtSecret(),
       {
-        expiresIn: "7d",
+        expiresIn: "7d"
       }
     );
 
@@ -129,9 +136,13 @@ export class AuthService {
       ? data.phoneNumber.toString().trim()
       : undefined;
 
+    if (!data.termsAndConditionsAccepted) {
+      throw new Error("You must accept the terms and conditions");
+    }
+
     const [byEmail, byPhone] = await Promise.all([
       email ? User.findOne({ email }) : Promise.resolve(null),
-      phoneNumber ? User.findOne({ phoneNumber }) : Promise.resolve(null),
+      phoneNumber ? User.findOne({ phoneNumber }) : Promise.resolve(null)
     ]);
 
     if (byEmail) throw new Error("Email already in use");
@@ -141,15 +152,19 @@ export class AuthService {
     if (dob) (data as any).dateOfBirth = dob;
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const customId = await generateCustomId((data as any).gender);
+
     const newUser = new User({
       ...(data as any),
       email,
       phoneNumber,
       password: hashedPassword,
+      customId
     });
 
     const userProfile = await Profile.create({
-      userId: newUser._id,
+      userId: newUser._id
     });
 
     if (!userProfile) {
@@ -212,7 +227,7 @@ export class AuthService {
       { id: user._id, email: user.email, hash: randomHash },
       this.jwtSecret(),
       {
-        expiresIn: "5m",
+        expiresIn: "5m"
       }
     );
 
@@ -263,7 +278,7 @@ export class AuthService {
     await user.save();
 
     const token = jwt.sign({ id: user._id }, this.jwtSecret(), {
-      expiresIn: "7d",
+      expiresIn: "7d"
     });
 
     await sendWelcomeEmailOnce(user);
@@ -273,7 +288,7 @@ export class AuthService {
       user,
       message: user.isPhoneVerified
         ? "Email verified successfully. You can now login."
-        : "Email verified successfully. You can now login.",
+        : "Email verified successfully. You can now login."
     };
   }
 

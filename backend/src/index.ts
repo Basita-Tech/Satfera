@@ -6,16 +6,18 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { db } from "./config/mongo";
 import type { Request, Response, NextFunction } from "express";
-import authRouter from "./routes/authRouter";
-import userPersonalRouter from "./routes/userPersonal";
-import { logger, morganStream } from "./config/logger";
-
+import { logger, morganStream } from "./lib/common/logger";
 import { redisClient } from "./lib/redis";
+import { startAllWorkers, closeAllWorkers } from "./workers";
+import YAML from "yamljs";
+import swaggerUi from "swagger-ui-express";
+import apiV1 from "./routes/v1";
 
 const app = express();
+const swaggerDocument = YAML.load("./docs/swagger.yaml");
 
 // Trust proxy - required for Vercel/serverless and rate limiting
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 app.use(helmet());
 app.use(express.json());
@@ -24,7 +26,7 @@ app.use(morgan("combined", { stream: morganStream }));
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
-    credentials: true,
+    credentials: true
   })
 );
 
@@ -38,26 +40,33 @@ app.get("/health", (req: Request, res: Response) => {
     status: "OK",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development",
+    environment: process.env.NODE_ENV || "development"
   });
 });
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customSiteTitle: "Satfera API Docs"
+  })
+);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({
     success: true,
     message: "Satfera API is running",
-    version: "1.0.0",
+    version: "1.0.0"
   });
 });
 
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/user-personal", userPersonalRouter);
+app.use("/api/v1/", apiV1);
 
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
-    path: req.originalUrl,
+    path: req.originalUrl
   });
 });
 
@@ -75,7 +84,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(status).json({
     success: false,
     message,
-    ...(process.env.NODE_ENV !== "production" && { stack: err?.stack }),
+    ...(process.env.NODE_ENV !== "production" && { stack: err?.stack })
   });
 });
 
@@ -94,6 +103,14 @@ let server: any;
 async function startServer() {
   try {
     await initializeDatabase();
+
+    try {
+      await startAllWorkers();
+      logger.info("BullMQ workers initialized");
+    } catch (workerError) {
+      logger.error("Failed to start workers, but continuing...", workerError);
+      // Don't exit on worker startup failure
+    }
 
     server = app.listen(PORT, () => {
       logger.info(`Server is running on http://localhost:${PORT}`);
@@ -116,11 +133,14 @@ async function gracefulShutdown(signal: string) {
   }
 
   try {
+    // Close workers
+    await closeAllWorkers();
+
     await db.disconnect();
     logger.info("Database connection closed");
 
     if (redisClient.isOpen) {
-      await redisClient.quit();
+      redisClient.disconnect();
       logger.info("Redis connection closed");
     }
 

@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { getUserHealth, saveUserHealth, updateUserHealth } from "../../api/auth";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  getUserHealth,
+  saveUserHealth,
+  updateUserHealth,
+} from "../../api/auth";
 import toast from "react-hot-toast";
 
 const HealthLifestyle = ({ onNext, onPrevious }) => {
@@ -14,15 +18,13 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     medicalHistoryDetails: "",
   });
   const [errors, setErrors] = useState({});
-  // const [isEditing, setIsEditing] = useState(false);
 
-  const handleChange = (field, value) => {
+  const handleChange = useCallback((field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
     setErrors((prev) => ({ ...prev, [field]: undefined }));
-  };
+  }, []);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors = {};
     const requiredFields = [
       "alcohol",
@@ -31,7 +33,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
       "hiv",
       "tb",
       "medicalHistory",
-      "diet"
+      "diet",
     ];
 
     requiredFields.forEach((field) => {
@@ -49,7 +51,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
   useEffect(() => {
     document.body.classList.add("bg-gray-100");
@@ -76,23 +78,18 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
 
       if (existing?.data?.data) {
         const res = await updateUserHealth(payload);
-        console.log("✅ Health data updated:", res);
         toast.success(" Health details updated successfully!");
       } else {
         const res = await saveUserHealth(payload);
-        console.log("✅ Health data saved:", res);
         toast.success(" Health details saved successfully!");
       }
 
-
-
       if (onNext) onNext("expectation");
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
-  // 🩺 Load existing health data on mount
   useEffect(() => {
     let mounted = true;
     getUserHealth()
@@ -101,7 +98,6 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
         const data = res?.data?.data || null;
         if (!data) return;
 
-        // directly map the string values from backend
         setFormData((prev) => ({
           ...prev,
           alcohol: data.isAlcoholic || "",
@@ -115,7 +111,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
         }));
       })
       .catch((err) => {
-        if (err?.response?.status === 404) return; // no record yet
+        if (err?.response?.status === 404) return;
         console.error("Failed to load health data", err);
       });
 
@@ -142,8 +138,9 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <select
               value={formData.alcohol}
               onChange={(e) => handleChange("alcohol", e.target.value)}
-              className={`${inputClass} ${errors.alcohol ? "border-red-500" : ""
-                }`}
+              className={`${inputClass} ${
+                errors.alcohol ? "border-red-500" : ""
+              }`}
             >
               <option value="">Select</option>
               <option value="yes">Yes</option>
@@ -163,8 +160,9 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <select
               value={formData.tobacco}
               onChange={(e) => handleChange("tobacco", e.target.value)}
-              className={`${inputClass} ${errors.tobacco ? "border-red-500" : ""
-                }`}
+              className={`${inputClass} ${
+                errors.tobacco ? "border-red-500" : ""
+              }`}
             >
               <option value="">Select</option>
               <option value="yes">Yes</option>
@@ -184,8 +182,9 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <select
               value={formData.tattoos}
               onChange={(e) => handleChange("tattoos", e.target.value)}
-              className={`${inputClass} ${errors.tattoos ? "border-red-500" : ""
-                }`}
+              className={`${inputClass} ${
+                errors.tattoos ? "border-red-500" : ""
+              }`}
             >
               <option value="">Select</option>
               <option value="yes">Yes</option>
@@ -243,8 +242,9 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <select
               value={formData.medicalHistory}
               onChange={(e) => handleChange("medicalHistory", e.target.value)}
-              className={`${inputClass} ${errors.medicalHistory ? "border-red-500" : ""
-                }`}
+              className={`${inputClass} ${
+                errors.medicalHistory ? "border-red-500" : ""
+              }`}
             >
               <option value="">Select</option>
               <option value="yes">Yes</option>
@@ -292,8 +292,6 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-
-
           {/* ✅ Buttons */}
           <div className="pt-6 flex  justify-between items-center gap-4">
             <button
@@ -311,12 +309,10 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               Save & Next
             </button>
           </div>
-
         </form>
       </div>
     </div>
   );
-
-}
+};
 
 export default HealthLifestyle;

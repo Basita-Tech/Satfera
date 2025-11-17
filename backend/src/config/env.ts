@@ -37,7 +37,7 @@ export function validateEnv(): EnvConfig {
     "TWILIO_VERIFY_SERVICE_SID",
     "TWILIO_PHONE_NUMBER",
     "REDIS_URL",
-    "FRONTEND_URL",
+    "FRONTEND_URL"
   ];
 
   const missing: string[] = [];
@@ -102,7 +102,7 @@ export function validateEnv(): EnvConfig {
     FRONTEND_URL: frontendUrl,
     BRAND_NAME: process.env.BRAND_NAME,
     BRAND_LOGO_URL: process.env.BRAND_LOGO_URL,
-    SUPPORT_CONTACT: process.env.SUPPORT_CONTACT,
+    SUPPORT_CONTACT: process.env.SUPPORT_CONTACT
   };
 }
 

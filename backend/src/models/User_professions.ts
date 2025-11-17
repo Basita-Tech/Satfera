@@ -14,7 +14,7 @@ const userProfessionSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
+      index: true
     },
     EmploymentStatus: {
       type: String,
@@ -25,15 +25,15 @@ const userProfessionSchema = new Schema(
         "self-employed",
         "unemployed",
         "student",
-        "business",
-      ],
+        "business"
+      ]
     },
     Occupation: { type: String, trim: true },
     AnnualIncome: { type: String, trim: true },
-    OrganizationName: { type: String, trim: true },
+    OrganizationName: { type: String, trim: true }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 

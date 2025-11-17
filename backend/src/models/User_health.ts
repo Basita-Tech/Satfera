@@ -10,12 +10,12 @@ export interface IUserHealth extends Document {
   isHaveMedicalHistory?: string;
   medicalHistoryDetails?: string;
   diet?:
-  | "vegetarian"
-  | "non-vegetarian"
-  | "eggetarian"
-  | "jain"
-  | "swaminarayan"
-  | "veg & non-veg";
+    | "vegetarian"
+    | "non-vegetarian"
+    | "eggetarian"
+    | "jain"
+    | "swaminarayan"
+    | "veg & non-veg";
 }
 
 const userHealthSchema = new Schema<IUserHealth>(
@@ -24,42 +24,42 @@ const userHealthSchema = new Schema<IUserHealth>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
+      unique: true
     },
     isAlcoholic: {
       type: String,
       enum: ["yes", "no", "occasional", ""],
-      default: "",
+      default: ""
     },
     isTobaccoUser: {
       type: String,
       enum: ["yes", "no", "occasional", ""],
-      default: "",
+      default: ""
     },
     isHaveTattoos: {
       type: String,
       enum: ["yes", "no", ""],
-      default: "",
+      default: ""
     },
     isHaveHIV: {
       type: String,
       enum: ["yes", "no", ""],
-      default: "",
+      default: ""
     },
     isPositiveInTB: {
       type: String,
       enum: ["yes", "no", ""],
-      default: "",
+      default: ""
     },
     isHaveMedicalHistory: {
       type: String,
       enum: ["yes", "no", ""],
-      default: "",
+      default: ""
     },
     medicalHistoryDetails: {
       type: String,
       trim: true,
-      default: "",
+      default: ""
     },
     diet: {
       type: String,
@@ -70,10 +70,10 @@ const userHealthSchema = new Schema<IUserHealth>(
         "jain",
         "swaminarayan",
         "veg & non-veg",
-        "",
+        ""
       ],
-      default: "",
-    },
+      default: ""
+    }
   },
   { timestamps: true }
 );
