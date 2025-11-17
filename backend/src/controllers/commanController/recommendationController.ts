@@ -133,7 +133,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
           personal,
           profile,
           rec.scoreDetail || { score: 0, reasons: [] },
-          "none"
+          null
         );
       })
     );
@@ -177,7 +177,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
     const skip = (pageNum - 1) * limitNum;
 
-    const matches = await findMatchingUsers(userObjectId, 70);
+    const matches = await findMatchingUsers(userObjectId, 10);
 
     if (matches.length === 0) {
       return res.json({
@@ -227,7 +227,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
           personal,
           profile,
           match.scoreDetail || { score: 0, reasons: [] },
-          "none"
+          null
         );
       })
     );
@@ -330,7 +330,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
           personal,
           profile,
           { score: 0, reasons: [] },
-          "none"
+          null
         );
       })
     );

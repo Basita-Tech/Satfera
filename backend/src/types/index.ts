@@ -61,7 +61,7 @@ export type MatchingStatus =
   | "rejected"
   | "cancelled"
   | "blocked"
-  | "none";
+  | null;
 
 export interface ListingProfile {
   userId: string;

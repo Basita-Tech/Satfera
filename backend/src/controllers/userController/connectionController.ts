@@ -587,7 +587,7 @@ export const getFavorites = async (
           personal,
           viewerProfile,
           { score: 0, reasons: [] },
-          "none"
+          null
         );
       })
     );

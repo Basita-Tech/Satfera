@@ -11,6 +11,7 @@ import {
 } from "../../lib/redis/otpRedis";
 import { User, Profile } from "../../models";
 import { redisClient } from "../../lib/redis";
+import { env } from "../../config";
 
 const authService = new AuthService();
 
@@ -54,9 +55,9 @@ function sanitizeUser(user: any) {
   return rest;
 }
 const client = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+  env.GOOGLE_CLIENT_ID,
+  env.GOOGLE_CLIENT_SECRET,
+  env.GOOGLE_REDIRECT_URI
 );
 
 export class AuthController {
@@ -342,7 +343,7 @@ export class AuthController {
 
   static async forgotPasswordRequest(req: Request, res: Response) {
     try {
-      const { email }= req.body;
+      const { email } = req.body;
       if (!email)
         return res
           .status(400)

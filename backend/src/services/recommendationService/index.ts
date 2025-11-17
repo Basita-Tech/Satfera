@@ -153,15 +153,28 @@ export async function computeMatchScore(
       !candidateEducationData ||
       !candidateProfessionData
     ) {
+      // Only fetch the fields needed for scoring to reduce payload
       const [cp, ch, ce, cpf] = await Promise.all([
         candidatePersonalData ||
-          UserPersonal.findOne({ userId: candidateUserId }).lean(),
+          UserPersonal.findOne(
+            { userId: candidateUserId },
+            "userId religion subCaste full_address.state marriedStatus residingCountry"
+          ).lean(),
         candidateHealthData ||
-          UserHealth.findOne({ userId: candidateUserId }).lean(),
+          UserHealth.findOne(
+            { userId: candidateUserId },
+            "userId isAlcoholic diet"
+          ).lean(),
         candidateEducationData ||
-          UserEducation.findOne({ userId: candidateUserId }).lean(),
+          UserEducation.findOne(
+            { userId: candidateUserId },
+            "userId HighestEducation"
+          ).lean(),
         candidateProfessionData ||
-          UserProfession.findOne({ userId: candidateUserId }).lean()
+          UserProfession.findOne(
+            { userId: candidateUserId },
+            "userId Occupation"
+          ).lean()
       ]);
       candidatePersonalData = cp;
       candidateHealthData = ch;
@@ -179,7 +192,7 @@ export async function computeMatchScore(
       candidateAge !== null
         ? ageOverlapScore(seekerExpect.age, candidateAge)
         : SCORE_THRESHOLDS.NEUTRAL;
-        
+
     if (ageScoreRaw >= SCORE_THRESHOLDS.GOOD_MATCH)
       reasons.push("Age within preferred range");
 
@@ -366,14 +379,14 @@ async function getConnectionStatus(
       { status: 1 }
     ).lean();
 
-    if (!request) return "none";
+    if (!request) return null;
     return request.status as MatchingStatus;
   } catch (error: any) {
     logger.error("Error in getConnectionStatus:", {
       error: error.message,
       stack: error.stack
     });
-    return "none";
+    return null;
   }
 }
 
@@ -392,13 +405,25 @@ export async function findMatchingUsers(
       userId: seekerUserId
     }).lean();
 
+    const seekerProfile = (await Profile.findOne(
+      { userId: seekerUserId },
+      "favoriteProfiles userId"
+    ).lean()) as any;
+
     const genderValue = String(seekerUser.gender);
     const oppositeGender = genderValue === "male" ? "female" : "male";
 
-    const candidates = await User.find(
+    let candidates = (await User.find(
       { _id: { $ne: seekerUserId }, gender: oppositeGender, isActive: true },
       "firstName lastName dateOfBirth gender createdAt"
-    ).lean();
+    ).lean()) as any[];
+
+    const favoriteIds = new Set(
+      (seekerProfile?.favoriteProfiles || []).map((id: any) => id.toString())
+    );
+    if (favoriteIds.size > 0) {
+      candidates = candidates.filter((c) => !favoriteIds.has(c._id.toString()));
+    }
 
     if (candidates.length === 0) return [];
 
@@ -415,10 +440,22 @@ export async function findMatchingUsers(
       connectionRequests,
       profiles
     ] = await Promise.all([
-      UserPersonal.find({ userId: { $in: candidateIds } }).lean(),
-      UserEducation.find({ userId: { $in: candidateIds } }).lean(),
-      UserProfession.find({ userId: { $in: candidateIds } }).lean(),
-      UserHealth.find({ userId: { $in: candidateIds } }).lean(),
+      UserPersonal.find(
+        { userId: { $in: candidateIds } },
+        "userId religion subCaste full_address.state marriedStatus residingCountry"
+      ).lean(),
+      UserEducation.find(
+        { userId: { $in: candidateIds } },
+        "userId HighestEducation"
+      ).lean(),
+      UserProfession.find(
+        { userId: { $in: candidateIds } },
+        "userId Occupation"
+      ).lean(),
+      UserHealth.find(
+        { userId: { $in: candidateIds } },
+        "userId isAlcoholic diet"
+      ).lean(),
 
       ConnectionRequest.find(
         {
@@ -431,7 +468,11 @@ export async function findMatchingUsers(
       )
         .sort({ createdAt: -1 })
         .lean(),
-      Profile.find({ userId: { $in: candidateIds } }).lean()
+
+      Profile.find(
+        { userId: { $in: candidateIds } },
+        "userId photos.closerPhoto privacy isVisible ProfileViewed"
+      ).lean()
     ]);
 
     const personalMap = new Map(
@@ -488,21 +529,6 @@ export async function findMatchingUsers(
         !connectionMap.has(candidateIdStr)
     );
 
-    const photoBatchPromises = qualifiedCandidates.map(
-      ({ candidate, candidateIdStr }) => {
-        const profileData = profileMap.get(candidateIdStr);
-        return getFilteredPhotos(
-          profileData?.photos[0]?.closerPhoto,
-          seekerUserId,
-          candidate._id as unknown as mongoose.Types.ObjectId,
-          "user",
-          true
-        );
-      }
-    );
-
-    const closerPhoto = await Promise.all(photoBatchPromises);
-
     for (let i = 0; i < qualifiedCandidates.length; i++) {
       const item = qualifiedCandidates[i];
       if (!item || !item.scoreDetail) continue;
@@ -516,7 +542,7 @@ export async function findMatchingUsers(
         personal,
         profile,
         scoreDetail,
-        "none"
+        null
       );
 
       matchingUsers.push(listingProfile);
@@ -744,7 +770,7 @@ export async function getDetailedProfile(
 //     const paginatedResults = validResults.slice(skip, skip + limitNum);
 
 //     return  paginatedResults,
-      
+
 //   } catch (error) {
 //     logger.error("Error fetching matches:", error);
 //   return "Failed to fetch matches"

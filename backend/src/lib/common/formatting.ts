@@ -7,7 +7,7 @@ export async function formatListingProfile(
   personal: any,
   profile: any,
   scoreDetail?: ScoreDetail,
-  status: MatchingStatus = "none"
+  status: MatchingStatus = null
 ): Promise<any> {
   const age = calculateAge(candidate?.dateOfBirth);
   const candidateId = candidate?._id?.toString() || "";
@@ -92,7 +92,18 @@ export async function formatDetailedProfile(
       astrologicalSign: personal?.astrologicalSign,
       birthPlace: personal?.birthPlace,
       birthState: personal?.birthState,
-      dosh: personal?.dosh
+      dosh: personal?.dosh,
+      hasChildren: personal?.isHaveChildren ?? false,
+      ...(personal?.isHaveChildren
+        ? {
+            numberOfChildren: personal?.numberOfChildren ?? 0,
+            isChildrenLivingWithYou: personal?.isChildrenLivingWithYou ?? false
+          }
+        : {}),
+      isLegallySeparated: personal?.isYouLegallySeparated ?? false,
+      ...(personal?.isYouLegallySeparated
+        ? { separatedSince: personal?.separatedSince || null }
+        : {})
     },
 
     family: {
@@ -111,12 +122,7 @@ export async function formatDetailedProfile(
       nanaName: personal?.nanaName,
       nanaNativePlace: personal?.nanaNativePlace,
       naniName: personal?.naniName,
-      naniNativePlace: personal?.naniNativePlace,
-      numberOfChildren: personal?.numberOfChildren,
-      hasChildren: personal?.isHaveChildren,
-      isChildrenLivingWithYou: personal?.isChildrenLivingWithYou,
-      isLegallySeparated: personal?.isYouLegallySeparated,
-      separatedSince: personal?.separatedSince
+      naniNativePlace: personal?.naniNativePlace
     },
     education: {
       SchoolName: education?.SchoolName,

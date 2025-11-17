@@ -5,7 +5,7 @@ export function ageOverlapScore(
   expect: { from: number; to: number },
   candidateAge?: number
 ): number {
-  if (!candidateAge) return 50;
+  if (!candidateAge) return 0;
 
   if (candidateAge >= expect.from && candidateAge <= expect.to) return 100;
 
@@ -24,8 +24,8 @@ export function communityScore(
 ): number {
   const prefArray = toArrayOfStrings(prefCommunities);
   const candArray = toArrayOfStrings(candidateCommunities);
-
-  if (isNoPreference(prefArray)) return 100;
+  if (isNoPreference(prefArray))
+    return candArray && candArray.length > 0 ? 100 : 0;
   if (!candArray || candArray.length === 0) return 1;
 
   const include = prefArray.filter((p) => !p.toLowerCase().startsWith("not "));
@@ -50,8 +50,8 @@ export function professionScore(
 ): number {
   const prefArray = toArrayOfStrings(prefProfessions);
   const candArray = toArrayOfStrings(candidateProfessions);
-
-  if (isNoPreference(prefArray)) return 100;
+  if (isNoPreference(prefArray))
+    return candArray && candArray.length > 0 ? 100 : 0;
   if (!candArray || candArray.length === 0) return 1;
 
   const include = prefArray.filter((p) => !p.toLowerCase().startsWith("not "));
@@ -76,8 +76,8 @@ export function dietScore(
 ): number {
   const prefDietsArray = toArrayOfStrings(prefDiets);
   const candidateDietArray = toArrayOfStrings(candidateDiet);
-
-  if (isNoPreference(prefDietsArray)) return 100;
+  if (isNoPreference(prefDietsArray))
+    return candidateDietArray && candidateDietArray.length > 0 ? 100 : 0;
   if (!candidateDietArray || candidateDietArray.length === 0) return 1;
 
   const include = prefDietsArray.filter(
@@ -131,8 +131,7 @@ export function educationScore(
   candidateEducationLevel: string | undefined
 ): number {
   const prefArray = toArrayOfStrings(prefEducations);
-
-  if (isNoPreference(prefArray)) return 100;
+  if (isNoPreference(prefArray)) return candidateEducationLevel ? 100 : 0;
 
   if (!candidateEducationLevel) return 50;
 
@@ -164,7 +163,8 @@ export function alcoholScore(
   seekerPref: string | undefined,
   candidateStatus: boolean | undefined
 ): number {
-  if (isNoPreference(seekerPref)) return 100;
+  if (isNoPreference(seekerPref))
+    return candidateStatus !== undefined ? 100 : 0;
   if (seekerPref === "occasionally") return 100;
   if (seekerPref === "yes" && candidateStatus === true) return 100;
   if (seekerPref === "no" && candidateStatus === false) return 100;

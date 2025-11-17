@@ -214,7 +214,7 @@ export async function searchService(
         personal,
         profile,
         scoreDetail,
-        "none"
+        null
       );
       return listing;
     })

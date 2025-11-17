@@ -22,6 +22,9 @@ interface EnvConfig {
   BRAND_NAME: string | undefined;
   BRAND_LOGO_URL: string | undefined;
   SUPPORT_CONTACT: string | undefined;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_REDIRECT_URI: string;
 }
 
 export function validateEnv(): EnvConfig {
@@ -37,7 +40,10 @@ export function validateEnv(): EnvConfig {
     "TWILIO_VERIFY_SERVICE_SID",
     "TWILIO_PHONE_NUMBER",
     "REDIS_URL",
-    "FRONTEND_URL"
+    "FRONTEND_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_REDIRECT_URI"
   ];
 
   const missing: string[] = [];
@@ -102,7 +108,10 @@ export function validateEnv(): EnvConfig {
     FRONTEND_URL: frontendUrl,
     BRAND_NAME: process.env.BRAND_NAME,
     BRAND_LOGO_URL: process.env.BRAND_LOGO_URL,
-    SUPPORT_CONTACT: process.env.SUPPORT_CONTACT
+    SUPPORT_CONTACT: process.env.SUPPORT_CONTACT,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
+    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI!
   };
 }
 
