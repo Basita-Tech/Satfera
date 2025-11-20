@@ -39,7 +39,6 @@ export interface IProfile extends Document {
     showPhotosToConnectionsOnly: boolean;
   };
   settings: {
-    receiveConnectionRequests: boolean;
     notifyOnNewConnectionRequest: boolean;
     emailNotifications: boolean;
     pushNotifications: boolean;

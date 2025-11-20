@@ -30,7 +30,10 @@ export async function getAllConnectionRequests(
 ) {
   try {
     const userId = req.user!.id;
-    const requests = await ConnectionRequest.find({ receiver: userId })
+    const requests = await ConnectionRequest.find({
+      receiver: userId,
+      status: { $ne: "withdrawn" }
+    })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -53,7 +56,8 @@ export async function getSentRequests(
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const sentRequests = await ConnectionRequest.find({
-      sender: userObjectId
+      sender: userObjectId,
+      status: { $ne: "withdrawn" }
     })
       .populate("receiver", "firstName lastName dateOfBirth gender")
       .lean();
@@ -99,20 +103,27 @@ export async function getSentRequests(
 
         const scoreDetail = await computeMatchScore(userObjectId, receiverId);
 
-        return formatListingProfile(
+        const formatted = await formatListingProfile(
           receiverUser,
           receiverPersonal,
           receiverProfile,
           scoreDetail || { score: 0, reasons: [] },
           connReq.status
         );
+
+        if (connReq.status === "pending" && connReq._id) {
+          formatted.user = formatted.user || {};
+          formatted.user.connectionId = connReq._id.toString();
+        }
+
+        return formatted;
       })
     );
 
     const validResults = result.filter((r) => r !== null);
 
     logger.info(
-      `Sent requests fetched for user ${userId} - Total: ${validResults.length}`
+      `Sent requests fetched for user ${userId} - Total: ${validResults}`
     );
 
     res.status(200).json({
@@ -140,7 +151,8 @@ export async function getReceivedRequests(
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const receivedRequests = await ConnectionRequest.find({
-      receiver: userObjectId
+      receiver: userObjectId,
+      status: { $ne: "withdrawn" }
     })
       .populate("sender", "firstName lastName dateOfBirth gender")
       .lean();
@@ -177,7 +189,6 @@ export async function getReceivedRequests(
       receivedRequests.map(async (connReq: any) => {
         const senderId = connReq.sender._id || connReq.sender;
         const senderIdStr = senderId.toString();
-
         const senderUser = userMap.get(senderIdStr);
         const senderPersonal = personalMap.get(senderIdStr);
         const senderProfile = profileMap.get(senderIdStr);
@@ -186,13 +197,20 @@ export async function getReceivedRequests(
 
         const scoreDetail = await computeMatchScore(userObjectId, senderId);
 
-        return formatListingProfile(
+        const formatted = await formatListingProfile(
           senderUser,
           senderPersonal,
           senderProfile,
           scoreDetail || { score: 0, reasons: [] },
           connReq.status
         );
+
+        if (connReq.status === "pending" && connReq._id) {
+          formatted.user = formatted.user || {};
+          formatted.user.connectionId = connReq._id.toString();
+        }
+
+        return formatted;
       })
     );
 
@@ -501,18 +519,29 @@ export async function withdrawConnection(
     const userId = req.user!.id;
     const { connectionId } = req.body;
 
-    const connection = await ConnectionRequest.findOneAndDelete({
+    const connection = await ConnectionRequest.findOneAndUpdate({
       _id: connectionId,
-      $or: [{ sender: userId }, { receiver: userId }],
-      status: { $in: ["accepted", "pending"] }
+      $or: [{ sender: userId }, { receiver: userId }]
     });
 
     if (!connection) {
       return res.status(404).json({
         success: false,
-        message: "Connection not found or already withdrawn."
+        message: "Connection request not found"
       });
     }
+    if (connection.status === "accepted") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot withdraw an accepted connection."
+      });
+    }
+
+    if (connection.status === "pending") {
+      connection.status = "withdrawn";
+      await connection.save();
+    }
+
     res.status(200).json({
       success: true,
       message: "Connection withdrawn successfully."
@@ -563,30 +592,36 @@ export const getFavorites = async (
       });
     }
 
-    const [users, personals] = await Promise.all([
+    const [users, personals, profiles] = await Promise.all([
       User.find(
         { _id: { $in: favoriteIds } },
         "firstName lastName dateOfBirth"
       ).lean(),
-      UserPersonal.find({ userId: { $in: favoriteIds } }).lean()
+      UserPersonal.find({ userId: { $in: favoriteIds } }).lean(),
+      Profile.find({ userId: { $in: favoriteIds } }).lean()
     ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
     );
+    const profileMap = new Map(
+      profiles.map((p: any) => [p.userId.toString(), p])
+    );
 
     const formattedResults = await Promise.all(
-      favoriteIds.map((fid: any) => {
+      favoriteIds.map(async (fid: any) => {
         const cid = fid.toString();
         const user = userMap.get(cid);
         const personal = personalMap.get(cid);
+        const candidateProfile = profileMap.get(cid) || null;
         if (!user) return null;
+        const score = await computeMatchScore(viewerObjectId, fid);
         return formatListingProfile(
           user,
           personal,
-          viewerProfile,
-          { score: 0, reasons: [] },
+          candidateProfile,
+          score || { score: 0, reasons: [] },
           null
         );
       })
@@ -633,6 +668,17 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
       return res
         .status(404)
         .json({ success: false, message: "Target user not found" });
+    }
+
+    const alreadyFav = await Profile.findOne({
+      userId: new mongoose.Types.ObjectId(authUser.id),
+      favoriteProfiles: new mongoose.Types.ObjectId(profileId)
+    }).lean();
+    if (alreadyFav) {
+      return res.status(409).json({
+        success: false,
+        message: "User is already in favorites"
+      });
     }
 
     const updated = await Profile.findOneAndUpdate(

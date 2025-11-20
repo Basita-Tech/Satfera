@@ -40,8 +40,8 @@ async function areUsersConnected(
 /**
  * Check if user is admin
  */
-function isAdmin(user: any): boolean {
-  return user?.role === "admin" || user?.isAdmin === true;
+function isAdmin(role: string): boolean {
+  return role === "admin";
 }
 
 /**
@@ -54,7 +54,7 @@ export async function getFilteredPhotos(
   viewerRole: string = "user",
   isBlurred: boolean = true
 ): Promise<FilteredPhotos> {
-  const isViewerAdmin = isAdmin({ role: viewerRole });
+  const isViewerAdmin = isAdmin(viewerRole);
   const isViewingOwnProfile = viewerId.toString() === profileOwnerId.toString();
   const isConnected =
     !isViewingOwnProfile && !isViewerAdmin

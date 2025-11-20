@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface ConnectionRequestDocument extends Document {
   sender: mongoose.Types.ObjectId;
   receiver: mongoose.Types.ObjectId;
-  status: "pending" | "accepted" | "rejected" | "cancelled" | "blocked";
+  status: "pending" | "accepted" | "rejected" | "withdrawn" | "blocked";
   actionedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -25,7 +25,7 @@ const ConnectionRequestSchema = new Schema<ConnectionRequestDocument>(
     },
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected", "cancelled", "blocked"],
+      enum: ["pending", "accepted", "rejected", "blocked", "withdrawn"],
       default: "pending",
       index: true
     },

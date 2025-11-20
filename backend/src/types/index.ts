@@ -59,7 +59,7 @@ export type MatchingStatus =
   | "pending"
   | "accepted"
   | "rejected"
-  | "cancelled"
+  | "withdrawn"
   | "blocked"
   | null;
 

@@ -9,7 +9,8 @@ import {
   UserHealth,
   Profile,
   ProfileView,
-  Notification
+  Notification,
+  UserFamily
 } from "../../models";
 import {
   logger,
@@ -414,7 +415,12 @@ export async function findMatchingUsers(
     const oppositeGender = genderValue === "male" ? "female" : "male";
 
     let candidates = (await User.find(
-      { _id: { $ne: seekerUserId }, gender: oppositeGender, isActive: true },
+      {
+        _id: { $ne: seekerUserId },
+        gender: oppositeGender,
+        isActive: true
+        // isOnboardingCompleted: true
+      },
       "firstName lastName dateOfBirth gender createdAt"
     ).lean()) as any[];
 
@@ -573,6 +579,7 @@ export async function getDetailedProfile(
       personal,
       education,
       profession,
+      family,
       health,
       scoreDetail,
       status,
@@ -580,11 +587,12 @@ export async function getDetailedProfile(
     ] = await Promise.all([
       User.findById(
         candidateId,
-        "firstName lastName dateOfBirth gender isActive createdAt phoneNumber email customId"
+        "firstName lastName middleName dateOfBirth gender isActive createdAt phoneNumber email customId"
       ).lean(),
       UserPersonal.findOne({ userId: candidateId }).lean(),
       UserEducation.findOne({ userId: candidateId }).lean(),
       UserProfession.findOne({ userId: candidateId }).lean(),
+      UserFamily.findOne({ userId: candidateId }).lean(),
       UserHealth.findOne({ userId: candidateId }).lean(),
       computeMatchScore(viewerId, candidateId),
       getConnectionStatus(viewerId, candidateId),
@@ -597,6 +605,11 @@ export async function getDetailedProfile(
       userId: candidateId
     }).lean()) as any;
     const score = scoreDetail || { score: 0, reasons: [] };
+
+    const viewerProfile = (await Profile.findOne(
+      { userId: viewerId },
+      "favoriteProfiles userId"
+    ).lean()) as any;
 
     let filteredPhotos = await getFilteredPhotos(
       profileData?.photos,
@@ -700,12 +713,20 @@ export async function getDetailedProfile(
         stack: err.stack
       });
     }
-
+    const isFavorite = !!(
+      viewerProfile?.favoriteProfiles &&
+      viewerProfile.favoriteProfiles.some(
+        (id: any) => id.toString() === candidateId.toString()
+      )
+    );
+    
     const detailedProfile = await formatDetailedProfile(
       candidate,
       personal,
       education,
       profession,
+      family,
+      isFavorite,
       health,
       score,
       status
@@ -713,7 +734,11 @@ export async function getDetailedProfile(
 
     return {
       ...detailedProfile,
-      closerPhoto: filteredPhotos?.closerPhoto ?? null
+      closerPhoto: filteredPhotos?.closerPhoto ?? null,
+      familyPhoto: filteredPhotos?.familyPhoto ?? null,
+      otherPhotos: Array.isArray(filteredPhotos?.otherPhotos)
+        ? filteredPhotos!.otherPhotos.slice(0, 2)
+        : []
     };
   } catch (error: any) {
     logger.error("Error in getDetailedProfile:", {

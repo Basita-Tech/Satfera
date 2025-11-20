@@ -91,7 +91,7 @@ export class AuthService {
       { id: user._id, email: user.email },
       this.jwtSecret(),
       {
-        expiresIn: "7d"
+        expiresIn: "1d"
       }
     );
 
@@ -117,7 +117,7 @@ export class AuthService {
       { id: user._id, phoneNumber: user.phoneNumber },
       this.jwtSecret(),
       {
-        expiresIn: "7d"
+        expiresIn: "1d"
       }
     );
 
@@ -278,7 +278,7 @@ export class AuthService {
     await user.save();
 
     const token = jwt.sign({ id: user._id }, this.jwtSecret(), {
-      expiresIn: "7d"
+      expiresIn: "1d"
     });
 
     await sendWelcomeEmailOnce(user);

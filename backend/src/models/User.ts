@@ -22,6 +22,7 @@ export interface IUser extends Document {
   isOnboardingCompleted: boolean;
   completedSteps?: string[];
   termsAndConditionsAccepted: boolean;
+  customId?: string;
 }
 
 const userSchema: Schema = new Schema(

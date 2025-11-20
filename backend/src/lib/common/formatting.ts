@@ -1,6 +1,14 @@
 import { maskEmail, maskPhoneNumber } from "./dataMasking";
 import { MatchingStatus, ScoreDetail } from "../../types";
 import { calculateAge } from "../../utils/utils";
+import {
+  IUser,
+  IUserEducation,
+  IUserFamily,
+  IUserHealth,
+  IUserPersonal,
+  IUserProfession
+} from "../../models";
 
 export async function formatListingProfile(
   candidate: any,
@@ -18,7 +26,6 @@ export async function formatListingProfile(
     ) || false;
 
   const closerPhotoUrl = profile?.photos?.closerPhoto?.url || null;
-
   return {
     user: {
       userId: candidateId,
@@ -45,6 +52,8 @@ export async function formatDetailedProfile(
   personal: any,
   education: any,
   profession: any,
+  family: any,
+  isFavorite: boolean,
   health: any,
   scoreDetail?: ScoreDetail,
   status?: MatchingStatus
@@ -58,6 +67,37 @@ export async function formatDetailedProfile(
       : "****"
     : "****";
 
+  const ms = String(personal?.marriedStatus || "").toLowerCase();
+  const hasChildren = !!personal?.isHaveChildren;
+  const extraPersonalFields: Record<string, any> = {};
+
+  if (ms.indexOf("never") === -1 && ms !== "") {
+    extraPersonalFields.hasChildren = hasChildren;
+    if (hasChildren) {
+      extraPersonalFields.numberOfChildren = personal?.numberOfChildren ?? 0;
+      extraPersonalFields.isChildrenLivingWithYou =
+        personal?.isChildrenLivingWithYou;
+    }
+  }
+
+  if (ms.indexOf("separat") !== -1 || personal?.isYouLegallySeparated) {
+    extraPersonalFields.isLegallySeparated =
+      personal?.isYouLegallySeparated ?? false;
+    if (personal?.isYouLegallySeparated) {
+      extraPersonalFields.separatedSince = personal?.separatedSince || null;
+    }
+  }
+
+  if (ms.indexOf("divorc") !== -1) {
+    extraPersonalFields.divorceStatus = personal?.divorceStatus || null;
+    if (hasChildren) {
+      extraPersonalFields.numberOfChildren = personal?.numberOfChildren ?? 0;
+      extraPersonalFields.isChildrenLivingWithYou =
+        personal?.isChildrenLivingWithYou;
+      extraPersonalFields.hasChildren = true;
+    }
+  }
+
   return {
     userId: candidate?._id?.toString(),
     firstName: candidate?.firstName,
@@ -65,7 +105,8 @@ export async function formatDetailedProfile(
     middleName: candidate?.middleName,
     gender: candidate?.gender,
     age: age,
-
+    dateOfBirth: candidate?.dateOfBirth,
+    isFavorite: isFavorite,
     email: candidate?.email ? maskEmail(candidate.email) : null,
     phoneNumber: candidate?.phoneNumber
       ? maskPhoneNumber(candidate.phoneNumber)
@@ -92,37 +133,33 @@ export async function formatDetailedProfile(
       astrologicalSign: personal?.astrologicalSign,
       birthPlace: personal?.birthPlace,
       birthState: personal?.birthState,
+      timeOfBirth: personal?.timeOfBirth,
       dosh: personal?.dosh,
-      hasChildren: personal?.isHaveChildren ?? false,
-      ...(personal?.isHaveChildren
-        ? {
-            numberOfChildren: personal?.numberOfChildren ?? 0,
-            isChildrenLivingWithYou: personal?.isChildrenLivingWithYou ?? false
-          }
-        : {}),
-      isLegallySeparated: personal?.isYouLegallySeparated ?? false,
-      ...(personal?.isYouLegallySeparated
-        ? { separatedSince: personal?.separatedSince || null }
-        : {})
+      ...extraPersonalFields
     },
 
     family: {
-      fatherName: personal?.fatherName,
-      motherName: personal?.motherName,
-      fatherOccupation: personal?.fatherOccupation,
-      motherOccupation: personal?.motherOccupation,
-      fatherNativePlace: personal?.fatherNativePlace,
-      motherNativePlace: personal?.motherNativePlace,
-      siblings: personal?.howManySiblings,
-      siblingDetails: personal?.siblingDetails?.map((s: any) => ({
-        name: s?.name,
-        relation: s?.relation,
-        maritalStatus: s?.maritalStatus
-      })),
-      nanaName: personal?.nanaName,
-      nanaNativePlace: personal?.nanaNativePlace,
-      naniName: personal?.naniName,
-      naniNativePlace: personal?.naniNativePlace
+      fatherName: family?.fatherName,
+      motherName: family?.motherName,
+      fatherOccupation: family?.fatherOccupation,
+      motherOccupation: family?.motherOccupation,
+      fatherNativePlace: family?.fatherNativePlace,
+      ...(family?.haveSibling
+        ? {
+            siblings: family?.howManySiblings,
+            siblingDetails: family?.siblingDetails?.map((s: any) => ({
+              name: s?.name,
+              relation: s?.relation,
+              maritalStatus: s?.maritalStatus
+            }))
+          }
+        : {}),
+      grandFatherName: family?.grandFatherName,
+      grandMotherName: family?.grandMotherName,
+      nanaName: family?.nanaName,
+      nanaNativePlace: family?.nanaNativePlace,
+      naniName: family?.naniName,
+      familyType: family?.familyType
     },
     education: {
       SchoolName: education?.SchoolName,
@@ -131,14 +168,12 @@ export async function formatDetailedProfile(
       University: education?.University,
       CountryOfEducation: education?.CountryOfEducation
     },
-
     professional: {
       OrganizationName: profession?.OrganizationName,
       EmploymentStatus: profession?.EmploymentStatus,
       AnnualIncome: annualIncome,
       Occupation: profession?.Occupation
     },
-
     healthAndLifestyle: {
       isAlcoholic: health?.isAlcoholic,
       isTobaccoUser: health?.isTobaccoUser,
