@@ -7,12 +7,10 @@ const workers = [mainWorker];
 export async function startAllWorkers() {
   try {
     if (mongoose.connection.readyState !== 1) {
-      logger.error("MongoDB not ready. Worker startup aborted.");
-      process.exit(1);
+      throw new Error("MongoDB not ready. Worker startup aborted.");
     }
 
     logger.info("Starting all BullMQ workers...");
-
     for (const worker of workers) {
       await worker.waitUntilReady();
       logger.info(`✓ ${worker.name} worker ready`);

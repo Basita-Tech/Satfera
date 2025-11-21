@@ -398,7 +398,7 @@ export async function findMatchingUsers(
   try {
     const seekerUser = await User.findById(
       seekerUserId,
-      "firstName lastName dateOfBirth gender"
+      "firstName lastName dateOfBirth gender blockedUsers"
     ).lean();
     if (!seekerUser) return [];
 
@@ -414,13 +414,19 @@ export async function findMatchingUsers(
     const genderValue = String(seekerUser.gender);
     const oppositeGender = genderValue === "male" ? "female" : "male";
 
+    const excludedIds: any[] = (seekerUser as any)?.blockedUsers || [];
+    const baseQuery: any = {
+      _id: { $ne: seekerUserId },
+      gender: oppositeGender,
+      isActive: true,
+      blockedUsers: { $ne: seekerUserId }
+    };
+    if (excludedIds.length > 0) {
+      baseQuery._id.$nin = excludedIds;
+    }
+
     let candidates = (await User.find(
-      {
-        _id: { $ne: seekerUserId },
-        gender: oppositeGender,
-        isActive: true
-        // isOnboardingCompleted: true
-      },
+      baseQuery,
       "firstName lastName dateOfBirth gender createdAt"
     ).lean()) as any[];
 
@@ -587,7 +593,7 @@ export async function getDetailedProfile(
     ] = await Promise.all([
       User.findById(
         candidateId,
-        "firstName lastName middleName dateOfBirth gender isActive createdAt phoneNumber email customId"
+        "firstName lastName middleName dateOfBirth gender isActive createdAt phoneNumber email customId blockedUsers"
       ).lean(),
       UserPersonal.findOne({ userId: candidateId }).lean(),
       UserEducation.findOne({ userId: candidateId }).lean(),
@@ -596,10 +602,32 @@ export async function getDetailedProfile(
       UserHealth.findOne({ userId: candidateId }).lean(),
       computeMatchScore(viewerId, candidateId),
       getConnectionStatus(viewerId, candidateId),
-      User.findById(viewerId, "firstName lastName").lean()
+      User.findById(viewerId, "firstName lastName blockedUsers").lean()
     ]);
 
     if (!candidate) return null;
+
+    try {
+      const viewerBlockedCandidate =
+        (viewer as any)?.blockedUsers &&
+        Array.isArray((viewer as any).blockedUsers) &&
+        (viewer as any).blockedUsers.some(
+          (id: any) => String(id) === String(candidateId)
+        );
+
+      const candidateBlockedViewer =
+        (candidate as any)?.blockedUsers &&
+        Array.isArray((candidate as any).blockedUsers) &&
+        (candidate as any).blockedUsers.some(
+          (id: any) => String(id) === String(viewerId)
+        );
+
+      if (viewerBlockedCandidate || candidateBlockedViewer) {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
 
     const profileData = (await Profile.findOne({
       userId: candidateId
@@ -719,7 +747,7 @@ export async function getDetailedProfile(
         (id: any) => id.toString() === candidateId.toString()
       )
     );
-    
+
     const detailedProfile = await formatDetailedProfile(
       candidate,
       personal,

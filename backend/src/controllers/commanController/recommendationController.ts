@@ -199,7 +199,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     const [users, personals, profiles] = await Promise.all([
       User.find(
         { _id: { $in: candidateIds } },
-        "firstName lastName dateOfBirth"
+        "firstName lastName dateOfBirth createdAt"
       ).lean(),
       UserPersonal.find({ userId: { $in: candidateIds } }).lean(),
       Profile.find({ userId: { $in: candidateIds } }).lean()
@@ -304,7 +304,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const skip = (pageNum - 1) * limitNum;
 
     const [users, personals, profiles] = await Promise.all([
-      User.find({}, "firstName lastName dateOfBirth").lean(),
+      User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
       UserPersonal.find({}).lean(),
       Profile.find({}).lean()
     ]);

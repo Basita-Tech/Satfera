@@ -1,14 +1,6 @@
 import { maskEmail, maskPhoneNumber } from "./dataMasking";
 import { MatchingStatus, ScoreDetail } from "../../types";
 import { calculateAge } from "../../utils/utils";
-import {
-  IUser,
-  IUserEducation,
-  IUserFamily,
-  IUserHealth,
-  IUserPersonal,
-  IUserProfession
-} from "../../models";
 
 export async function formatListingProfile(
   candidate: any,
@@ -41,7 +33,10 @@ export async function formatListingProfile(
       isFavorite: isFavorite,
       closerPhoto: {
         url: closerPhotoUrl
-      }
+      },
+      createdAt: candidate?.createdAt
+        ? new Date(candidate.createdAt).toISOString()
+        : null
     },
     scoreDetail: scoreDetail || { score: 0, reasons: [] }
   };

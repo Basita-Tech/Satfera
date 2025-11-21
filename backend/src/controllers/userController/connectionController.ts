@@ -9,6 +9,7 @@ import {
   Profile
 } from "../../models";
 import { logger } from "../../lib/common/logger";
+import { isEitherBlocked } from "../../lib/common/blockUtils";
 import { computeMatchScore } from "../../services";
 import { formatListingProfile } from "../../lib/common/formatting";
 
@@ -73,13 +74,14 @@ export async function getSentRequests(
       (r: any) => r.receiver._id || r.receiver
     );
 
-    const [personals, profiles, users] = await Promise.all([
+    const [personals, profiles, users, authUser] = await Promise.all([
       UserPersonal.find({ userId: { $in: receiverIds } }).lean(),
       Profile.find({ userId: { $in: receiverIds } }).lean(),
       User.find(
         { _id: { $in: receiverIds } },
-        "firstName lastName dateOfBirth"
-      ).lean()
+        "firstName lastName dateOfBirth blockedUsers"
+      ).lean(),
+      User.findById(userObjectId).select("blockedUsers").lean()
     ]);
 
     const personalMap = new Map(
@@ -94,10 +96,20 @@ export async function getSentRequests(
       sentRequests.map(async (connReq: any) => {
         const receiverId = connReq.receiver._id || connReq.receiver;
         const receiverIdStr = receiverId.toString();
-
         const receiverUser = userMap.get(receiverIdStr);
         const receiverPersonal = personalMap.get(receiverIdStr);
         const receiverProfile = profileMap.get(receiverIdStr);
+
+        try {
+          const blockedByAuth = (authUser as any)?.blockedUsers || [];
+          const blockedByReceiver = (receiverUser as any)?.blockedUsers || [];
+          if (
+            blockedByAuth.some((id: any) => String(id) === receiverIdStr) ||
+            blockedByReceiver.some((id: any) => String(id) === userId)
+          ) {
+            return null;
+          }
+        } catch (e) {}
 
         if (!receiverUser) return null;
 
@@ -168,13 +180,14 @@ export async function getReceivedRequests(
       (r: any) => r.sender._id || r.sender
     );
 
-    const [personals, profiles, users] = await Promise.all([
+    const [personals, profiles, users, authUser] = await Promise.all([
       UserPersonal.find({ userId: { $in: senderIds } }).lean(),
       Profile.find({ userId: { $in: senderIds } }).lean(),
       User.find(
         { _id: { $in: senderIds } },
-        "firstName lastName dateOfBirth"
-      ).lean()
+        "firstName lastName dateOfBirth blockedUsers"
+      ).lean(),
+      User.findById(userObjectId).select("blockedUsers").lean()
     ]);
 
     const personalMap = new Map(
@@ -192,6 +205,17 @@ export async function getReceivedRequests(
         const senderUser = userMap.get(senderIdStr);
         const senderPersonal = personalMap.get(senderIdStr);
         const senderProfile = profileMap.get(senderIdStr);
+
+        try {
+          const blockedByAuth = (authUser as any)?.blockedUsers || [];
+          const blockedBySender = (senderUser as any)?.blockedUsers || [];
+          if (
+            blockedByAuth.some((id: any) => String(id) === senderIdStr) ||
+            blockedBySender.some((id: any) => String(id) === userId)
+          ) {
+            return null;
+          }
+        } catch (e) {}
 
         if (!senderUser) return null;
 
@@ -262,6 +286,21 @@ export async function sendConnectionRequest(
       return res
         .status(404)
         .json({ success: false, message: "Receiver not found." });
+    }
+
+    try {
+      const blocked = await isEitherBlocked(senderId, receiverId);
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+    } catch (e) {
+      return res.status(403).json({
+        success: false,
+        message: "Action not allowed."
+      });
     }
 
     const existing = await ConnectionRequest.findOne({
@@ -335,6 +374,20 @@ export async function acceptConnectionRequest(
       });
     }
 
+    try {
+      const blocked = await isEitherBlocked(String(request.sender), userId);
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+    } catch (e) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Action not allowed." });
+    }
+
     const receiver = await User.findById(userId).lean();
 
     await createNotificationBatch([
@@ -377,6 +430,20 @@ export async function rejectConnectionRequest(
         success: false,
         message: "Connection request not found or already processed."
       });
+    }
+
+    try {
+      const blocked = await isEitherBlocked(String(request.sender), userId);
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+    } catch (e) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Action not allowed." });
     }
 
     const receiver = await User.findById(userId).lean();
@@ -446,17 +513,18 @@ export async function getApprovedConnections(
       return senderId === userId ? receiverId : senderId;
     });
 
-    const [users, personals, profiles] = await Promise.all([
+    const [users, personals, profiles, authUser] = await Promise.all([
       User.find(
         {
           _id: {
             $in: otherUserIds.map((id) => new mongoose.Types.ObjectId(id))
           }
         },
-        "firstName lastName dateOfBirth"
+        "firstName lastName dateOfBirth blockedUsers"
       ).lean(),
       UserPersonal.find({ userId: { $in: otherUserIds } }).lean(),
-      Profile.find({ userId: { $in: otherUserIds } }).lean()
+      Profile.find({ userId: { $in: otherUserIds } }).lean(),
+      User.findById(userObjectId).select("blockedUsers").lean()
     ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
@@ -475,6 +543,17 @@ export async function getApprovedConnections(
             : conn.sender.toString();
 
         const otherUser = userMap.get(otherUserId);
+
+        try {
+          const blockedByAuth = (authUser as any)?.blockedUsers || [];
+          const blockedByOther = (otherUser as any)?.blockedUsers || [];
+          if (
+            blockedByAuth.some((id: any) => String(id) === otherUserId) ||
+            blockedByOther.some((id: any) => String(id) === userId)
+          ) {
+            return null;
+          }
+        } catch (e) {}
         if (!otherUser) return null;
 
         const personal = personalMap.get(otherUserId);
@@ -538,8 +617,7 @@ export async function withdrawConnection(
     }
 
     if (connection.status === "pending") {
-      connection.status = "withdrawn";
-      await connection.save();
+      await connection.deleteOne();
     }
 
     res.status(200).json({
@@ -592,13 +670,14 @@ export const getFavorites = async (
       });
     }
 
-    const [users, personals, profiles] = await Promise.all([
+    const [users, personals, profiles, authUser] = await Promise.all([
       User.find(
         { _id: { $in: favoriteIds } },
-        "firstName lastName dateOfBirth"
+        "firstName lastName dateOfBirth blockedUsers"
       ).lean(),
       UserPersonal.find({ userId: { $in: favoriteIds } }).lean(),
-      Profile.find({ userId: { $in: favoriteIds } }).lean()
+      Profile.find({ userId: { $in: favoriteIds } }).lean(),
+      User.findById(viewerObjectId).select("blockedUsers").lean()
     ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
@@ -615,6 +694,17 @@ export const getFavorites = async (
         const user = userMap.get(cid);
         const personal = personalMap.get(cid);
         const candidateProfile = profileMap.get(cid) || null;
+
+        try {
+          const blockedByAuth = (authUser as any)?.blockedUsers || [];
+          const blockedByOther = (user as any)?.blockedUsers || [];
+          if (
+            blockedByAuth.some((id: any) => String(id) === cid) ||
+            blockedByOther.some((id: any) => String(id) === viewerId)
+          ) {
+            return null;
+          }
+        } catch (e) {}
         if (!user) return null;
         const score = await computeMatchScore(viewerObjectId, fid);
         return formatListingProfile(
@@ -668,6 +758,23 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
       return res
         .status(404)
         .json({ success: false, message: "Target user not found" });
+    }
+
+    try {
+      const blocked = await isEitherBlocked(
+        String(authUser.id),
+        String(profileId)
+      );
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+    } catch (e) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Action not allowed." });
     }
 
     const alreadyFav = await Profile.findOne({

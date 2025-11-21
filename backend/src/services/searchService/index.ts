@@ -1,5 +1,6 @@
 import { User, UserPersonal, UserProfession, Profile } from "../../models";
 import { formatListingProfile } from "../../lib/common/formatting";
+import mongoose from "mongoose";
 
 export async function searchService(
   filters: {
@@ -17,7 +18,8 @@ export async function searchService(
     sortBy?: string;
   } = {},
   page = 1,
-  limit = 20
+  limit = 20,
+  authUserId?: string
 ) {
   const match: any = { isActive: true };
 
@@ -69,6 +71,27 @@ export async function searchService(
   }
 
   const pipeline: any[] = [{ $match: match }];
+
+  // If authenticated user provided, exclude users that the auth user blocked
+  // and users who have blocked the auth user
+  if (authUserId && mongoose.Types.ObjectId.isValid(authUserId)) {
+    const authObjId = new mongoose.Types.ObjectId(authUserId);
+    try {
+      const authUser = await User.findById(authObjId)
+        .select("blockedUsers")
+        .lean();
+      const blockedIds: any[] = (authUser as any)?.blockedUsers || [];
+      if (blockedIds.length > 0) {
+        match._id = match._id || {};
+        match._id.$nin = blockedIds;
+      }
+
+      // Exclude users who have blocked the auth user
+      match.blockedUsers = { $ne: authObjId };
+    } catch (e) {
+      // If fetching auth user fails, proceed without block filters (best-effort)
+    }
+  }
 
   pipeline.push(
     {

@@ -26,7 +26,7 @@ const ConnectionRequestSchema = new Schema<ConnectionRequestDocument>(
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected", "blocked", "withdrawn"],
-      default: "pending",
+      default: null,
       index: true
     },
     actionedBy: { type: Schema.Types.ObjectId, ref: "User" }

@@ -12,6 +12,12 @@ import {
 } from "../../../../controllers";
 import userPersonalRouter from "./userPersonal";
 import { searchController } from "../../../../controllers/userController/searchController";
+import {
+  blockController,
+  unblockController,
+  listBlockedController,
+  getUserProfileViewsController
+} from "../../../../controllers/userController";
 
 const user = Router();
 
@@ -32,5 +38,10 @@ user.patch("/user/notifications/:id/read", authenticate, markAsRead);
 user.patch("/user/notifications/mark-all-read", authenticate, markAllAsRead);
 
 user.get("/user/search", authenticate, searchController);
+user.post("/user/block", authenticate, blockController);
+user.post("/user/unblock", authenticate, unblockController);
+user.get("/user/blocked", authenticate, listBlockedController);
+
+user.get("/user/profile-views", authenticate, getUserProfileViewsController);
 
 export default user;

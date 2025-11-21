@@ -145,6 +145,22 @@ components:
             $ref: "#/components/schemas/ListingProfile"
         pagination:
           $ref: "#/components/schemas/Pagination"
+    BlockedUser:
+      type: object
+      properties:
+        name:
+          type: string
+        customId:
+          type: string
+    BlockedListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlockedUser"
 
 paths:
   /health:
@@ -1200,5 +1216,92 @@ paths:
                         hasMore: true
         "400":
           $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/block:
+    post:
+      summary: Block another user by customId
+      description: Block a user's profile so they are not visible to the blocker. Action is protected by a 24-hour cooldown per blocker.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customId:
+                  type: string
+              required: [customId]
+      responses:
+        "200":
+          description: User blocked successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Action rate limited (once per 24 hours)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/unblock:
+    post:
+      summary: Unblock a previously blocked user by customId
+      description: Remove a user from the authenticated user's blocked list. This action is rate-limited to once per 24 hours.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customId:
+                  type: string
+              required: [customId]
+      responses:
+        "200":
+          description: User unblocked successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Action rate limited (once per 24 hours)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/blocked:
+    get:
+      summary: List blocked users for authenticated user
+      description: Returns an array of blocked users with display name and customId.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Blocked users list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedListResponse"
         "401":
           $ref: "#/components/schemas/ErrorResponse"

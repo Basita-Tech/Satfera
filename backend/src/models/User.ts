@@ -23,6 +23,7 @@ export interface IUser extends Document {
   completedSteps?: string[];
   termsAndConditionsAccepted: boolean;
   customId?: string;
+  blockedUsers?: mongoose.Types.ObjectId[];
 }
 
 const userSchema: Schema = new Schema(
@@ -53,7 +54,12 @@ const userSchema: Schema = new Schema(
     isOnboardingCompleted: { type: Boolean, default: false },
     completedSteps: { type: [String], default: [] },
     termsAndConditionsAccepted: { type: Boolean, default: false },
-    customId: { type: String, unique: true, sparse: true }
+    customId: { type: String, unique: true, sparse: true },
+    blockedUsers: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: []
+    }
   },
   { timestamps: true }
 );

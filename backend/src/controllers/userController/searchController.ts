@@ -49,7 +49,7 @@ export async function searchController(req: Request, res: Response) {
       Math.max(1, parseInt(String(limit), 10) || 20)
     );
 
-    const result = await searchService(filters, pageNum, limitNum);
+    const result = await searchService(filters, pageNum, limitNum, authUserId);
 
     return res.json({
       success: true,

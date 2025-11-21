@@ -101,16 +101,6 @@ export async function safeRedisOperation<T>(
   }
 }
 
-connectRedis().catch((err) => {
-  logger.error(
-    "Redis: Failed to establish initial connection:",
-    err.message || err
-  );
-  logger.warn(
-    "Redis: Application will continue, but OTP features may be limited"
-  );
-});
-
 if (typeof process !== "undefined" && process && process.once) {
   process.once("SIGINT", async () => {
     try {
