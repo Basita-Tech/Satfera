@@ -9,6 +9,7 @@ import {
 import { formatListingProfile, logger } from "../../lib";
 import { UserPersonal, User, Profile } from "../../models";
 import { AuthenticatedRequest } from "../../types";
+import { APP_CONFIG } from "../../utils/constants";
 
 export const testMatchScore = async (req: Request, res: Response) => {
   try {
@@ -177,7 +178,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
     const skip = (pageNum - 1) * limitNum;
 
-    const matches = await findMatchingUsers(userObjectId, 70);
+    const matches = await findMatchingUsers(userObjectId, APP_CONFIG.MATCHING_SCORE);
 
     if (matches.length === 0) {
       return res.json({

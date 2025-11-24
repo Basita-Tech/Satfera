@@ -12,10 +12,11 @@ import {
 import { User, Profile } from "../../models";
 import { redisClient } from "../../lib/redis";
 import { env } from "../../config";
+import { APP_CONFIG } from "../../utils/constants";
 
 const authService = new AuthService();
 
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const COOKIE_MAX_AGE = APP_CONFIG.COOKIE_MAX_AGE;
 
 function formatValidationErrors(req: Request) {
   const errors = validationResult(req);
