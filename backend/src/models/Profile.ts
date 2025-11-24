@@ -127,6 +127,7 @@ const ProfileSchema = new Schema(
       smsNotifications: { type: Boolean, default: false }
     },
     favoriteProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    compareProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     accountType: {
       type: String,
       enum: ["free", "premium"],
