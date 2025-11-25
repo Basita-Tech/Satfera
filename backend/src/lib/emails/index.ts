@@ -7,8 +7,10 @@ import {
   buildProfileApprovedHtml,
   buildProfileRejectedHtml,
   buildAccountDeactivationHtml,
-  buildAccountDeletionHtml
+  buildAccountDeletionHtml,
+  buildAccountActivationHtml
 } from "./email-templates";
+import { APP_CONFIG } from "../../utils/constants";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -47,8 +49,8 @@ export async function sendOtpEmail(
   context: "signup" | "forgot-password"
 ) {
   const options = {
-    brandName: "Satfera",
-    logoUrl: "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME,
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildOtpHtml(
@@ -67,8 +69,8 @@ export async function sendOtpEmail(
 
 export async function sendResetPasswordEmail(to: string, resetLink: string) {
   const options = {
-    brandName: "Satfera",
-    logoUrl: "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME,
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
   const { html, text } = buildResetPasswordHtml(
     resetLink,
@@ -87,8 +89,8 @@ export async function sendWelcomeEmail(
   supportContact?: string
 ) {
   const options = {
-    brandName: process.env.BRAND_NAME || "SATFERA",
-    logoUrl: process.env.BRAND_LOGO_URL
+    brandName: APP_CONFIG.BRAND_NAME || "SATFERA",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildWelcomeHtml(
@@ -109,10 +111,8 @@ export async function sendProfileReviewSubmissionEmail(
   userName: string
 ) {
   const options = {
-    brandName: process.env.BRAND_NAME || "Satfera",
-    logoUrl:
-      process.env.BRAND_LOGO_URL ||
-      "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildProfileReviewSubmissionHtml(
@@ -131,10 +131,8 @@ export async function sendProfileApprovedEmail(
   dashboardLink: string
 ) {
   const options = {
-    brandName: process.env.BRAND_NAME || "Satfera",
-    logoUrl:
-      process.env.BRAND_LOGO_URL ||
-      "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildProfileApprovedHtml(
@@ -154,10 +152,8 @@ export async function sendProfileRejectedEmail(
   reason: string
 ) {
   const options = {
-    brandName: process.env.BRAND_NAME || "Satfera",
-    logoUrl:
-      process.env.BRAND_LOGO_URL ||
-      "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildProfileRejectedHtml(
@@ -176,10 +172,8 @@ export async function sendAccountDeactivationEmail(
   userName: string
 ) {
   const options = {
-    brandName: process.env.BRAND_NAME || "Satfera",
-    logoUrl:
-      process.env.BRAND_LOGO_URL ||
-      "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildAccountDeactivationHtml(
@@ -192,15 +186,10 @@ export async function sendAccountDeactivationEmail(
   return sendMail({ to, subject, html, text });
 }
 
-export async function sendAccountDeletionEmail(
-  to: string,
-  userName: string
-) {
+export async function sendAccountDeletionEmail(to: string, userName: string) {
   const options = {
-    brandName: process.env.BRAND_NAME || "Satfera",
-    logoUrl:
-      process.env.BRAND_LOGO_URL ||
-      "https://nodemailer.com/img/nm_logo_200x136.png"
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
   };
 
   const { html, text } = buildAccountDeletionHtml(
@@ -210,5 +199,21 @@ export async function sendAccountDeletionEmail(
   );
 
   const subject = "Account Deleted - Satfera";
+  return sendMail({ to, subject, html, text });
+}
+
+export async function sendAccountActivationEmail(to: string, userName: string) {
+  const options = {
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+  };
+
+  const { html, text } = buildAccountActivationHtml(
+    userName,
+    options.brandName,
+    options.logoUrl
+  );
+
+  const subject = "Account Activated - Satfera";
   return sendMail({ to, subject, html, text });
 }

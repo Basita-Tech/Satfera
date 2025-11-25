@@ -1,17 +1,17 @@
 import { Response } from "express";
 import mongoose from "mongoose";
-import { AuthenticatedRequest } from "../../types";
+import { AuthenticatedRequest } from "../../../types";
 import {
   ConnectionRequest,
   Notification,
   User,
   UserPersonal,
   Profile
-} from "../../models";
-import { logger } from "../../lib/common/logger";
-import { isEitherBlocked } from "../../lib/common/blockUtils";
-import { computeMatchScore } from "../../services";
-import { formatListingProfile } from "../../lib/common/formatting";
+} from "../../../models";
+import { logger } from "../../../lib/common/logger";
+import { isEitherBlocked } from "../../../lib/common/blockUtils";
+import { computeMatchScore } from "../../../services";
+import { formatListingProfile } from "../../../lib/common/formatting";
 
 async function createNotificationBatch(
   notifications: Array<{

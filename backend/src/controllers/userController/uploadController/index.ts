@@ -1,7 +1,7 @@
 import { Response } from "express";
-import { AuthenticatedRequest } from "../../types";
-import { Profile } from "../../models";
-import { logger } from "../../lib/common/logger";
+import { AuthenticatedRequest } from "../../../types";
+import { Profile } from "../../../models";
+import { logger } from "../../../lib/common/logger";
 
 export const uploadPhotoController = async (
   req: AuthenticatedRequest,

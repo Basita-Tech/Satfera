@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
 import { logger } from "../../lib/common/logger";
-import { validationResult } from "express-validator";
 import { AuthenticatedRequest } from "../../types";
 import {
-  changeUserPasswordService,
   compareProfilesService,
   getUserDashboardService,
   getUserProfileViewsService,
   addCompareProfilesToProfile,
   getCompareProfilesForUser,
-  removeCompareProfilesFromProfile
+  removeCompareProfilesFromProfile,
+  searchService
 } from "../../services/userPersonalService/userService";
+import { User } from "../../models";
 
 export async function getUserDashboardController(req: Request, res: Response) {
   try {
@@ -30,41 +30,6 @@ export async function getUserDashboardController(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch dashboard data"
-    });
-  }
-}
-
-export async function changeUserPassword(req: Request, res: Response) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: errors
-        .array()
-        .map((e) => e.msg)
-        .toString()
-    });
-  }
-
-  const { oldPassword, newPassword, confirmPassword } = req.body;
-  const userId = req.user?.id;
-
-  const result = await changeUserPasswordService(
-    userId!,
-    oldPassword,
-    newPassword,
-    confirmPassword
-  );
-
-  if (result.success) {
-    return res.status(200).json({
-      success: true,
-      message: result.message
-    });
-  } else {
-    return res.status(400).json({
-      success: false,
-      message: result.message
     });
   }
 }
@@ -267,7 +232,64 @@ export async function deleteCompareController(
   }
 }
 
-export * from "./blockController";
-export * from "./accountStatusController";
-export * from "./accountDeletionController";
-export * from "./notificationSettingsController";
+export async function searchController(req: Request, res: Response) {
+  try {
+    const {
+      name,
+      newProfile,
+      ageFrom,
+      ageTo,
+      heightFrom,
+      heightTo,
+      religion,
+      caste,
+      city,
+      profession,
+      sortBy,
+      page = "1",
+      limit = "20"
+    } = req.query as any;
+
+    const filters: any = {};
+    if (name) filters.name = String(name);
+    if (newProfile) filters.newProfile = String(newProfile) as any;
+    if (ageFrom) filters.ageFrom = parseInt(String(ageFrom), 10);
+    if (ageTo) filters.ageTo = parseInt(String(ageTo), 40);
+    if (heightFrom) filters.heightFrom = Number(heightFrom);
+    if (heightTo) filters.heightTo = Number(heightTo);
+    if (religion) filters.religion = String(religion);
+    if (caste) filters.caste = String(caste);
+    if (city) filters.city = String(city);
+    if (profession) filters.profession = String(profession);
+
+    const authUserId = req.user?.id;
+
+    const authUser = await User.findById(authUserId).select("gender").lean();
+
+    if (authUser && (authUser as any).gender) {
+      const g = String((authUser as any).gender).toLowerCase();
+      if (g === "male") filters.gender = "female";
+      else if (g === "female") filters.gender = "male";
+    }
+    if (sortBy) filters.sortBy = String(sortBy);
+
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const limitNum = Math.min(
+      100,
+      Math.max(1, parseInt(String(limit), 10) || 20)
+    );
+
+    const result = await searchService(filters, pageNum, limitNum, authUserId);
+
+    return res.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination
+    });
+  } catch (err: any) {
+    console.error("searchController error:", err);
+    return res.status(500).json({ success: false, message: "Search failed" });
+  }
+}
+
+export * from "./userSettingController";

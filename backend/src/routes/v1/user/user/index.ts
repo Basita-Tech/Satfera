@@ -13,7 +13,6 @@ import {
   markAllAsRead
 } from "../../../../controllers";
 import userPersonalRouter from "./userPersonal";
-import { searchController } from "../../../../controllers/userController/searchController";
 import * as userController from "../../../../controllers/userController";
 
 const user = Router();
@@ -38,7 +37,7 @@ user.get("/user/notifications/count", authenticate, getUnreadCount);
 user.patch("/user/notifications/:id/read", authenticate, markAsRead);
 user.patch("/user/notifications/mark-all-read", authenticate, markAllAsRead);
 
-user.get("/user/search", authenticate, searchController);
+user.get("/user/search", authenticate, userController.searchController);
 user.post("/user/block", authenticate, userController.blockController);
 user.post("/user/unblock", authenticate, userController.unblockController);
 user.get("/user/blocked", authenticate, userController.listBlockedController);

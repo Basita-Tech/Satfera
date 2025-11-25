@@ -1,18 +1,18 @@
 import { Response } from "express";
 import { validationResult } from "express-validator";
-import * as userPersonalService from "../../services";
-import { AuthenticatedRequest } from "../../types";
+import * as userPersonalService from "../../../services";
+import { AuthenticatedRequest } from "../../../types";
 import {
   UserPersonal,
   Profile,
   UserHealth,
   UserProfession,
   User
-} from "../../models";
-import { invalidateUserMatchScores } from "../../lib/redis/cacheUtils";
+} from "../../../models";
+import { invalidateUserMatchScores } from "../../../lib/redis/cacheUtils";
 import mongoose from "mongoose";
-import { logger } from "../../lib/common/logger";
-import { sendProfileReviewSubmissionEmail } from "../../lib/emails";
+import { logger } from "../../../lib/common/logger";
+import { sendProfileReviewSubmissionEmail } from "../../../lib/emails";
 
 const handleCastError = (res: Response, error: any) => {
   if (error?.name === "CastError") {

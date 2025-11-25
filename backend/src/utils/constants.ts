@@ -9,8 +9,9 @@ export const APP_CONFIG = {
   OTP_ATTEMPT_LIMIT: 5,
   OTP_RESEND_LIMIT: 5,
   OTP_ATTEMPT_EXPIRY_SECONDS: 24 * 60 * 60,
-  MATCHING_SCORE: 70,
-
+  MATCHING_SCORE: 10,
+  ACCOUNT_STATUS_COOLDOWN_TTL: 24 * 3600,
+  
   RATE_LIMIT: {
     AUTH: {
       WINDOW_MS: 15 * 60 * 1000,
@@ -57,7 +58,8 @@ export const APP_CONFIG = {
     MAX: 100
   },
 
-  BRAND_NAME: "Satfera"
+  BRAND_NAME: "Satfera",
+  BRAND_LOGO_URL: "https://satfera.vercel.app/logo.png"
 };
 
 export const VALIDATION_MESSAGES = {

@@ -205,6 +205,4 @@ export const updateUserBoardingStatusService = async (
   return updated;
 };
 
-export * from "./accountStatusService";
-export * from "./accountDeletionService";
-export * from "./notificationSettingsService";
+export * from "./userSettingService";

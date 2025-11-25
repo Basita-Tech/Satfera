@@ -131,3 +131,9 @@ export type AllJobData =
   | WelcomeEmailJobData
   | ReviewEmailJobData
   | ProfileReviewJobData;
+
+export interface NotificationSettings {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  smsNotifications: boolean;
+}

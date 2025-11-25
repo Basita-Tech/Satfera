@@ -19,8 +19,6 @@ interface EnvConfig {
   TWILIO_PHONE_NUMBER: string;
   REDIS_URL: string;
   FRONTEND_URL: string;
-  BRAND_NAME: string | undefined;
-  BRAND_LOGO_URL: string | undefined;
   SUPPORT_CONTACT: string | undefined;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
@@ -106,8 +104,6 @@ export function validateEnv(): EnvConfig {
     TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER!,
     REDIS_URL: redisUrl,
     FRONTEND_URL: frontendUrl,
-    BRAND_NAME: process.env.BRAND_NAME,
-    BRAND_LOGO_URL: process.env.BRAND_LOGO_URL,
     SUPPORT_CONTACT: process.env.SUPPORT_CONTACT,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,

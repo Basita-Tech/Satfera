@@ -727,14 +727,11 @@ export function buildAccountDeletionHtml(
 
         <div class="info-box">
           <div class="info-text">✓ Deletion Confirmed</div>
-          <div style="color: #556077; font-size: 14px;">Your profile has been removed and is no longer visible to other members.</div>
+          <div style="color: #556077; font-size: 14px;">Your profile has been removed successfully.</div>
         </div>
 
         <p><strong>What happens next:</strong></p>
         <ul style="color: #556077; font-size: 14px; line-height: 1.8;">
-          <li>Your profile is hidden from all members</li>
-          <li>You won't receive any notifications or connection requests</li>
-          <li>Your data is retained for administrative purposes but not visible to other users</li>
           <li>You can create a new account anytime using the same email or phone number</li>
         </ul>
 
@@ -775,6 +772,103 @@ Changed your mind? You're always welcome back! You can create a new account anyt
 We'd love to hear your feedback on how we can improve ${brandName}. If you have a moment, please let us know why you decided to leave.
 
 Thank you for being part of ${brandName}. We wish you all the best in your journey.
+
+Team ${brandName}
+Your Trusted Matrimony Partner`
+  };
+}
+
+export function buildAccountActivationHtml(
+  userName: string,
+  brandName = "Satfera",
+  logoUrl?: string
+) {
+  const title = "Account Activated";
+  const preheader = "Welcome back! Your account has been activated.";
+
+  return {
+    html: `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+    <style>
+      body { background: #f4f6fb; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #333; }
+      .container { max-width: 620px; margin: 28px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(20,30,60,0.08); }
+      .header { padding: 22px; text-align: center; border-bottom: 1px solid #eef2f7; }
+      .logo { height: 44px; display: inline-block; margin-bottom: 6px; }
+      .content { padding: 28px; }
+      .title { font-size: 20px; font-weight: 600; margin: 0 0 8px; color: #27ae60; }
+      .subtitle { margin: 0 0 18px; color: #556077; font-size: 14px; }
+      .info-box { background: #d5f4e6; border-left: 4px solid #27ae60; padding: 16px; border-radius: 8px; margin: 16px 0; }
+      .info-text { font-weight: 600; color: #27ae60; margin-bottom: 4px; }
+      .note { font-size: 13px; color: #7a8598; margin-top: 14px; line-height: 1.6; }
+      .footer { padding: 18px; text-align: center; font-size: 12px; color: #9aa3b2; border-top: 1px solid #f0f4fb; }
+      @media (max-width:420px) { .content { padding: 18px; } }
+    </style>
+  </head>
+  <body>
+    <span style="display:none;max-height:0px;overflow:hidden;">${preheader}</span>
+    <div class="container" role="article" aria-label="${title}">
+      <div class="header">
+        ${
+          logoUrl
+            ? `<img src="${logoUrl}" alt="${brandName} logo" class="logo">`
+            : `<div style="font-weight:700;color:#0b63ff;font-size:18px">${brandName}</div>`
+        }
+      </div>
+      <div class="content">
+        <h1 class="title">🎉 Account Activated!</h1>
+        <p class="subtitle">Dear ${userName},</p>
+
+        <p>Welcome back to <strong>${brandName}</strong>! Your account has been successfully activated.</p>
+
+        <div class="info-box">
+          <div class="info-text">✓ Activation Confirmed</div>
+          <div style="color: #556077; font-size: 14px;">Your profile is now visible to other members and you can resume your matrimony journey.</div>
+        </div>
+
+        <p><strong>What's enabled:</strong></p>
+        <ul style="color: #556077; font-size: 14px; line-height: 1.8;">
+          <li>Your profile is visible to other members</li>
+          <li>You can browse and connect with potential matches</li>
+          <li>You'll receive connection requests and notifications</li>
+          <li>All features are now accessible</li>
+        </ul>
+
+        <p class="note">
+          You can now log in and continue exploring profiles to find your perfect match!
+        </p>
+
+        <p style="margin-top: 20px;">We're glad to have you back!<br><br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
+      </div>
+      <div class="footer">
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+      </div>
+    </div>
+  </body>
+</html>
+    `,
+    text: `${title}
+
+Dear ${userName},
+
+Welcome back to ${brandName}! Your account has been successfully activated.
+
+Activation Confirmed:
+Your profile is now visible to other members and you can resume your matrimony journey.
+
+What's enabled:
+- Your profile is visible to other members
+- You can browse and connect with potential matches
+- You'll receive connection requests and notifications
+- All features are now accessible
+
+You can now log in and continue exploring profiles to find your perfect match!
+
+We're glad to have you back!
 
 Team ${brandName}
 Your Trusted Matrimony Partner`
