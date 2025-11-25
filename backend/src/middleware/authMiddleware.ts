@@ -41,12 +41,20 @@ export const authenticate = async (
           .json({ success: false, message: "Unauthorized Access" });
 
       const user = await User.findById(decoded.id).select(
-        "email role phoneNumber"
+        "email role phoneNumber isDeleted"
       );
       if (!user)
         return res
           .status(401)
           .json({ success: false, message: "User not found" });
+
+      if ((user as any).isDeleted) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Account has been deleted. Please contact support or create a new account."
+        });
+      }
 
       const emailFromToken = (decoded as any).email;
       const phoneFromToken = (decoded as any).phoneNumber;

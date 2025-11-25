@@ -419,6 +419,7 @@ export async function findMatchingUsers(
       _id: { $ne: seekerUserId },
       gender: oppositeGender,
       isActive: true,
+      isDeleted: false,
       blockedUsers: { $ne: seekerUserId }
     };
     if (excludedIds.length > 0) {

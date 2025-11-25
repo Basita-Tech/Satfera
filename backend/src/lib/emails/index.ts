@@ -5,7 +5,9 @@ import {
   buildWelcomeHtml,
   buildProfileReviewSubmissionHtml,
   buildProfileApprovedHtml,
-  buildProfileRejectedHtml
+  buildProfileRejectedHtml,
+  buildAccountDeactivationHtml,
+  buildAccountDeletionHtml
 } from "./email-templates";
 
 const transporter = nodemailer.createTransport({
@@ -166,5 +168,47 @@ export async function sendProfileRejectedEmail(
   );
 
   const subject = "Satfera Profile Review - Action Required";
+  return sendMail({ to, subject, html, text });
+}
+
+export async function sendAccountDeactivationEmail(
+  to: string,
+  userName: string
+) {
+  const options = {
+    brandName: process.env.BRAND_NAME || "Satfera",
+    logoUrl:
+      process.env.BRAND_LOGO_URL ||
+      "https://nodemailer.com/img/nm_logo_200x136.png"
+  };
+
+  const { html, text } = buildAccountDeactivationHtml(
+    userName,
+    options.brandName,
+    options.logoUrl
+  );
+
+  const subject = "Account Deactivated - Satfera";
+  return sendMail({ to, subject, html, text });
+}
+
+export async function sendAccountDeletionEmail(
+  to: string,
+  userName: string
+) {
+  const options = {
+    brandName: process.env.BRAND_NAME || "Satfera",
+    logoUrl:
+      process.env.BRAND_LOGO_URL ||
+      "https://nodemailer.com/img/nm_logo_200x136.png"
+  };
+
+  const { html, text } = buildAccountDeletionHtml(
+    userName,
+    options.brandName,
+    options.logoUrl
+  );
+
+  const subject = "Account Deleted - Satfera";
   return sendMail({ to, subject, html, text });
 }

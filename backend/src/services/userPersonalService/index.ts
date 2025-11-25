@@ -204,3 +204,7 @@ export const updateUserBoardingStatusService = async (
   if (!updated) throw new Error("User not found");
   return updated;
 };
+
+export * from "./accountStatusService";
+export * from "./accountDeletionService";
+export * from "./notificationSettingsService";

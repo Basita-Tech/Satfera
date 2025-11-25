@@ -174,6 +174,54 @@ components:
             $ref: "#/components/schemas/ListingProfile"
         pagination:
           $ref: "#/components/schemas/Pagination"
+    AccountStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            isActive:
+              type: boolean
+            isDeleted:
+              type: boolean
+            deactivatedAt:
+              type: string
+              format: date-time
+              nullable: true
+            deactivationReason:
+              type: string
+              nullable: true
+            canChangeStatus:
+              type: boolean
+            cooldownHoursRemaining:
+              type: integer
+              nullable: true
+    NotificationSettings:
+      type: object
+      properties:
+        emailNotifications:
+          type: boolean
+        pushNotifications:
+          type: boolean
+        smsNotifications:
+          type: boolean
+    NotificationSettingsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/NotificationSettings"
+    DeleteAccountRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+      required: [reason]
 
 paths:
   /health:
@@ -1348,3 +1396,415 @@ paths:
           $ref: "#/components/schemas/ErrorResponse"
         "500":
           $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/compare:
+    post:
+      summary: Add profiles to compare list
+      description: Add up to 5 profiles to your compare list. Cannot add own profile.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profilesIds:
+                  type: array
+                  items:
+                    type: string
+              required: [profilesIds]
+      responses:
+        "200":
+          description: Profiles added to compare list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          description: Validation error (limit exceeded, already exists, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+    get:
+      summary: Get profiles from compare list
+      description: Retrieve all profiles currently in user's compare list with full details.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Compare list profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ListingProfile"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Remove profiles from compare list
+      description: Remove one or more profiles from the compare list.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profilesIds:
+                  type: array
+                  items:
+                    type: string
+              required: [profilesIds]
+      responses:
+        "200":
+          description: Profiles removed from compare list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/account/deactivate:
+    post:
+      summary: Deactivate user account
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional reason for deactivation
+      responses:
+        "200":
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account deactivated successfully. You can reactivate after 24 hours."
+        "400":
+          description: Bad request (already deactivated, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyDeactivated:
+                  value:
+                    success: false
+                    message: "Account is already deactivated"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot deactivate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Cooldown period active (must wait 24 hours)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "You can change account status once every 24 hours"
+
+  /api/v1/user/account/activate:
+    post:
+      summary: Activate deactivated account
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Account activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account activated successfully"
+        "400":
+          description: Bad request (already active, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyActive:
+                  value:
+                    success: false
+                    message: "Account is already active"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot activate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Cooldown period active
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "You can activate your account in 18 hours. Please wait 24 hours after deactivation."
+
+  /api/v1/user/account/status:
+    get:
+      summary: Get account status and cooldown information
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Account status information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountStatusResponse"
+              examples:
+                activeAccount:
+                  value:
+                    success: true
+                    data:
+                      isActive: true
+                      isDeleted: false
+                      deactivatedAt: null
+                      deactivationReason: null
+                      canChangeStatus: true
+                deactivatedWithCooldown:
+                  value:
+                    success: true
+                    data:
+                      isActive: false
+                      isDeleted: false
+                      deactivatedAt: "2025-11-24T10:30:00Z"
+                      deactivationReason: "Taking a break"
+                      canChangeStatus: false
+                      cooldownHoursRemaining: 12
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/account:
+    delete:
+      summary: Delete user account (soft delete)
+      description: Important - Reason must be between 10-500 characters.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+            examples:
+              validRequest:
+                value:
+                  reason: "Found my life partner through this platform. Thank you!"
+      responses:
+        "200":
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account deleted successfully."
+        "400":
+          description: Validation error or already deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingReason:
+                  value:
+                    success: false
+                    message: "Deletion reason is required"
+                reasonTooShort:
+                  value:
+                    success: false
+                    message: "Deletion reason must be at least 10 characters"
+                reasonTooLong:
+                  value:
+                    success: false
+                    message: "Deletion reason must not exceed 500 characters"
+                alreadyDeleted:
+                  value:
+                    success: false
+                    message: "Account is already deleted"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/notification-settings:
+    get:
+      summary: Get notification preferences
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettingsResponse"
+              examples:
+                allEnabled:
+                  value:
+                    success: true
+                    data:
+                      emailNotifications: true
+                      pushNotifications: true
+                      smsNotifications: false
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update notification preferences
+      description: At least one setting must be provided in the request.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emailNotifications:
+                  type: boolean
+                  description: Enable/disable email notifications
+                pushNotifications:
+                  type: boolean
+                  description: Enable/disable push notifications
+                smsNotifications:
+                  type: boolean
+                  description: Enable/disable SMS notifications
+            examples:
+              disableEmail:
+                value:
+                  emailNotifications: false
+              updateAll:
+                value:
+                  emailNotifications: true
+                  pushNotifications: true
+                  smsNotifications: false
+      responses:
+        "200":
+          description: Notification settings updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  settings:
+                    $ref: "#/components/schemas/NotificationSettings"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Notification settings updated successfully"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidType:
+                  value:
+                    success: false
+                    message: "emailNotifications must be a boolean"
+                noSettings:
+                  value:
+                    success: false
+                    message: "At least one notification setting must be provided"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

@@ -752,7 +752,8 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
 
     const target = await User.findOne({
       _id: profileId,
-      isActive: true
+      isActive: true,
+      isDeleted: false
     }).lean();
     if (!target) {
       return res

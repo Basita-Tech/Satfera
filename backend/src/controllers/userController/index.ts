@@ -268,3 +268,6 @@ export async function deleteCompareController(
 }
 
 export * from "./blockController";
+export * from "./accountStatusController";
+export * from "./accountDeletionController";
+export * from "./notificationSettingsController";

@@ -575,3 +575,208 @@ Team ${brandName}
 Your Trusted Matrimony Partner`
   };
 }
+
+export function buildAccountDeactivationHtml(
+  userName: string,
+  brandName = "Satfera",
+  logoUrl?: string
+) {
+  const title = "Account Deactivated";
+  const preheader = "Your account has been deactivated as requested.";
+
+  return {
+    html: `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+    <style>
+      body { background: #f4f6fb; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #333; }
+      .container { max-width: 620px; margin: 28px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(20,30,60,0.08); }
+      .header { padding: 22px; text-align: center; border-bottom: 1px solid #eef2f7; }
+      .logo { height: 44px; display: inline-block; margin-bottom: 6px; }
+      .content { padding: 28px; }
+      .title { font-size: 20px; font-weight: 600; margin: 0 0 8px; color: #e67e22; }
+      .subtitle { margin: 0 0 18px; color: #556077; font-size: 14px; }
+      .info-box { background: #fef5e7; border-left: 4px solid #e67e22; padding: 16px; border-radius: 8px; margin: 16px 0; }
+      .info-text { font-weight: 600; color: #e67e22; margin-bottom: 4px; }
+      .note { font-size: 13px; color: #7a8598; margin-top: 14px; line-height: 1.6; }
+      .footer { padding: 18px; text-align: center; font-size: 12px; color: #9aa3b2; border-top: 1px solid #f0f4fb; }
+      @media (max-width:420px) { .content { padding: 18px; } }
+    </style>
+  </head>
+  <body>
+    <span style="display:none;max-height:0px;overflow:hidden;">${preheader}</span>
+    <div class="container" role="article" aria-label="${title}">
+      <div class="header">
+        ${
+          logoUrl
+            ? `<img src="${logoUrl}" alt="${brandName} logo" class="logo">`
+            : `<div style="font-weight:700;color:#0b63ff;font-size:18px">${brandName}</div>`
+        }
+      </div>
+      <div class="content">
+        <h1 class="title">⏸ Account Deactivated</h1>
+        <p class="subtitle">Dear ${userName},</p>
+
+        <p>Your <strong>${brandName}</strong> account has been deactivated as per your request.</p>
+
+        <div class="info-box">
+          <div class="info-text">⏰ Reactivation Period</div>
+          <div style="color: #556077; font-size: 14px;">You can reactivate your account after 24 hours from now.</div>
+        </div>
+
+        <p><strong>What this means:</strong></p>
+        <ul style="color: #556077; font-size: 14px; line-height: 1.8;">
+          <li>Your profile is hidden from other members</li>
+          <li>You won't receive connection requests or notifications</li>
+          <li>Your data is safely stored and will be restored when you reactivate</li>
+          <li>You can reactivate anytime after 24 hours</li>
+        </ul>
+
+        <p class="note">
+          <strong>Need to reactivate?</strong> Simply log in after 24 hours and click on "Activate Account" from your account settings.
+        </p>
+
+        <p class="note">
+          If you didn't request this deactivation or have any concerns, please contact our support team immediately.
+        </p>
+
+        <p style="margin-top: 20px;">Best regards,<br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
+      </div>
+      <div class="footer">
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+      </div>
+    </div>
+  </body>
+</html>
+    `,
+    text: `${title}
+
+Dear ${userName},
+
+Your ${brandName} account has been deactivated as per your request.
+
+Reactivation Period:
+You can reactivate your account after 24 hours from now.
+
+What this means:
+- Your profile is hidden from other members
+- You won't receive connection requests or notifications
+- Your data is safely stored and will be restored when you reactivate
+- You can reactivate anytime after 24 hours
+
+Need to reactivate? Simply log in after 24 hours and click on "Activate Account" from your account settings.
+
+If you didn't request this deactivation or have any concerns, please contact our support team immediately.
+
+Best regards,
+Team ${brandName}
+Your Trusted Matrimony Partner`
+  };
+}
+
+export function buildAccountDeletionHtml(
+  userName: string,
+  brandName = "Satfera",
+  logoUrl?: string
+) {
+  const title = "Account Deleted";
+  const preheader = "Your account has been deleted as requested.";
+
+  return {
+    html: `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+    <style>
+      body { background: #f4f6fb; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #333; }
+      .container { max-width: 620px; margin: 28px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(20,30,60,0.08); }
+      .header { padding: 22px; text-align: center; border-bottom: 1px solid #eef2f7; }
+      .logo { height: 44px; display: inline-block; margin-bottom: 6px; }
+      .content { padding: 28px; }
+      .title { font-size: 20px; font-weight: 600; margin: 0 0 8px; color: #c0392b; }
+      .subtitle { margin: 0 0 18px; color: #556077; font-size: 14px; }
+      .info-box { background: #fadbd8; border-left: 4px solid #e74c3c; padding: 16px; border-radius: 8px; margin: 16px 0; }
+      .info-text { font-weight: 600; color: #c0392b; margin-bottom: 4px; }
+      .note { font-size: 13px; color: #7a8598; margin-top: 14px; line-height: 1.6; }
+      .footer { padding: 18px; text-align: center; font-size: 12px; color: #9aa3b2; border-top: 1px solid #f0f4fb; }
+      @media (max-width:420px) { .content { padding: 18px; } }
+    </style>
+  </head>
+  <body>
+    <span style="display:none;max-height:0px;overflow:hidden;">${preheader}</span>
+    <div class="container" role="article" aria-label="${title}">
+      <div class="header">
+        ${
+          logoUrl
+            ? `<img src="${logoUrl}" alt="${brandName} logo" class="logo">`
+            : `<div style="font-weight:700;color:#0b63ff;font-size:18px">${brandName}</div>`
+        }
+      </div>
+      <div class="content">
+        <h1 class="title">Account Deleted</h1>
+        <p class="subtitle">Dear ${userName},</p>
+
+        <p>We're sorry to see you go. Your <strong>${brandName}</strong> account has been deleted as per your request.</p>
+
+        <div class="info-box">
+          <div class="info-text">✓ Deletion Confirmed</div>
+          <div style="color: #556077; font-size: 14px;">Your profile has been removed and is no longer visible to other members.</div>
+        </div>
+
+        <p><strong>What happens next:</strong></p>
+        <ul style="color: #556077; font-size: 14px; line-height: 1.8;">
+          <li>Your profile is hidden from all members</li>
+          <li>You won't receive any notifications or connection requests</li>
+          <li>Your data is retained for administrative purposes but not visible to other users</li>
+          <li>You can create a new account anytime using the same email or phone number</li>
+        </ul>
+
+        <p class="note">
+          <strong>Changed your mind?</strong> You're always welcome back! You can create a new account anytime by signing up again with your email or phone number.
+        </p>
+
+        <p class="note">
+          We'd love to hear your feedback on how we can improve ${brandName}. If you have a moment, please let us know why you decided to leave.
+        </p>
+
+        <p style="margin-top: 20px;">Thank you for being part of ${brandName}. We wish you all the best in your journey.<br><br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
+      </div>
+      <div class="footer">
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+      </div>
+    </div>
+  </body>
+</html>
+    `,
+    text: `${title}
+
+Dear ${userName},
+
+We're sorry to see you go. Your ${brandName} account has been deleted as per your request.
+
+Deletion Confirmed:
+Your profile has been removed and is no longer visible to other members.
+
+What happens next:
+- Your profile is hidden from all members
+- You won't receive any notifications or connection requests
+- Your data is retained for administrative purposes but not visible to other users
+- You can create a new account anytime using the same email or phone number
+
+Changed your mind? You're always welcome back! You can create a new account anytime by signing up again with your email or phone number.
+
+We'd love to hear your feedback on how we can improve ${brandName}. If you have a moment, please let us know why you decided to leave.
+
+Thank you for being part of ${brandName}. We wish you all the best in your journey.
+
+Team ${brandName}
+Your Trusted Matrimony Partner`
+  };
+}

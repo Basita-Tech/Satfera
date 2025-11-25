@@ -76,7 +76,8 @@ export class AuthService {
     const user = await User.findOne({
       email: email.toLowerCase(),
       isActive: true,
-      isEmailLoginEnabled: true
+      isEmailLoginEnabled: true,
+      isDeleted: false
     });
 
     if (!user) throw new Error("Invalid credentials");
@@ -105,7 +106,8 @@ export class AuthService {
     const user = await User.findOne({
       phoneNumber: phoneNumber,
       isActive: true,
-      isMobileLoginEnabled: true
+      isMobileLoginEnabled: true,
+      isDeleted: false
     });
 
     if (!user) throw new Error("Invalid credentials");
@@ -141,8 +143,10 @@ export class AuthService {
     }
 
     const [byEmail, byPhone] = await Promise.all([
-      email ? User.findOne({ email }) : Promise.resolve(null),
-      phoneNumber ? User.findOne({ phoneNumber }) : Promise.resolve(null)
+      email ? User.findOne({ email, isDeleted: false }) : Promise.resolve(null),
+      phoneNumber
+        ? User.findOne({ phoneNumber, isDeleted: false })
+        : Promise.resolve(null)
     ]);
 
     if (byEmail) throw new Error("Email already in use");
@@ -194,7 +198,10 @@ export class AuthService {
   async verifyForgotPasswordOtp(email: string, otp: string) {
     if (!email || !otp) throw new Error("Email and OTP are required");
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+      isDeleted: false
+    });
     if (!user) throw new Error("User not found");
 
     const attemptCount = await incrementAttempt(email, "forgot-password");
@@ -247,7 +254,10 @@ export class AuthService {
     if (!email) throw new Error("Email is required");
     if (!otp) throw new Error("OTP is required");
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+      isDeleted: false
+    });
     if (!user) throw new Error("User not found");
 
     const attemptCount = await incrementAttempt(email, "signup");
@@ -310,7 +320,7 @@ export class AuthService {
     if (!stored || stored !== token)
       throw new Error("Token not found or expired");
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({ _id: userId, isDeleted: false });
     if (!user) throw new Error("User not found");
 
     user.password = await bcrypt.hash(newPassword, 10);

@@ -9,6 +9,11 @@ export interface IUser extends Document {
   phoneNumber?: string;
   password: string;
   isActive: boolean;
+  deactivatedAt?: Date;
+  deactivationReason?: string;
+  isDeleted: boolean;
+  deletedAt?: Date;
+  deletionReason?: string;
   email: string;
   isEmailLoginEnabled: boolean;
   isMobileLoginEnabled: boolean;
@@ -33,10 +38,15 @@ const userSchema: Schema = new Schema(
     lastName: { type: String, required: true },
     gender: { type: String, enum: ["male", "female", "other"], required: true },
     role: { type: String, enum: ["user", "admin"], default: "user" },
-    phoneNumber: { type: String, unique: true, required: true },
+    phoneNumber: { type: String, required: true },
     password: { type: String, required: true },
     isActive: { type: Boolean, default: true },
-    email: { type: String, required: true, unique: true },
+    deactivatedAt: { type: Date },
+    deactivationReason: { type: String },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
+    deletionReason: { type: String },
+    email: { type: String, required: true },
     isEmailLoginEnabled: { type: Boolean, default: true },
     isMobileLoginEnabled: { type: Boolean, default: false },
     for_Profile: {
@@ -62,6 +72,15 @@ const userSchema: Schema = new Schema(
     }
   },
   { timestamps: true }
+);
+
+userSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
+userSchema.index(
+  { phoneNumber: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
 );
 
 userSchema.index({ email: 1, isActive: 1 });

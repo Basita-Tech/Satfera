@@ -96,7 +96,11 @@ export class AuthController {
       const givenName = googleUser.given_name;
       const picture = googleUser.picture;
 
-      const user = await User.findOne({ email, isActive: true });
+      const user = await User.findOne({
+        email,
+        isActive: true,
+        isDeleted: false
+      });
       if (!user) {
         const frontendLoginNoUser = `${
           process.env.FRONTEND_URL
@@ -350,7 +354,10 @@ export class AuthController {
           .status(400)
           .json({ success: false, message: "Email is required" });
 
-      const user = await User.findOne({ email: email.toLowerCase().trim() });
+      const user = await User.findOne({
+        email: email.toLowerCase().trim(),
+        isDeleted: false
+      });
       if (!user)
         return res
           .status(404)

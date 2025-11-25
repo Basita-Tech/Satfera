@@ -554,3 +554,28 @@ export const changePasswordValidation = [
     .withMessage("New password must contain at least one special character"),
   body("confirmPassword").notEmpty().withMessage("Confirm password is required")
 ];
+
+export const deleteAccountValidation = [
+  body("reason")
+    .notEmpty()
+    .withMessage("Deletion reason is required")
+    .isString()
+    .withMessage("Deletion reason must be a string")
+    .isLength({ min: 10, max: 500 })
+    .withMessage("Deletion reason must be between 10 and 500 characters")
+];
+
+export const notificationSettingsValidation = [
+  body("emailNotifications")
+    .optional()
+    .isBoolean()
+    .withMessage("emailNotifications must be a boolean"),
+  body("pushNotifications")
+    .optional()
+    .isBoolean()
+    .withMessage("pushNotifications must be a boolean"),
+  body("smsNotifications")
+    .optional()
+    .isBoolean()
+    .withMessage("smsNotifications must be a boolean")
+];

@@ -84,7 +84,10 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
         .json({ success: false, message: "OTP code is required" });
     }
     const mobileNumber = `${countryCode}${phoneNumber}`;
-    const user = await User.findOne({ phoneNumber: mobileNumber });
+    const user = await User.findOne({
+      phoneNumber: mobileNumber,
+      isDeleted: false
+    });
 
     if (!user) {
       return res
