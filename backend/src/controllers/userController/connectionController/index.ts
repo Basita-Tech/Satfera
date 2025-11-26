@@ -341,7 +341,12 @@ export async function sendConnectionRequest(
     ]);
 
     await session.commitTransaction();
-    res.status(201).json({ success: true, data: newRequest[0] });
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Connection request sent successfully."
+      });
   } catch (err) {
     await session.abortTransaction();
     logger.error("Error sending connection request:", err);

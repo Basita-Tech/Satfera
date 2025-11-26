@@ -4,12 +4,23 @@ import { logger } from "../../../lib/common/logger";
 import {
   sendAccountActivationEmail,
   sendAccountDeactivationEmail,
-  sendAccountDeletionEmail
+  sendAccountDeletionEmail,
+  sendOtpEmail
 } from "../../../lib/emails";
 import { APP_CONFIG } from "../../../utils/constants";
 import { NotificationSettings } from "../../../types";
-import { redisClient, safeRedisOperation } from "../../../lib";
+import { generateOtp, redisClient, safeRedisOperation } from "../../../lib";
 import bcrypt from "bcryptjs";
+import {
+  clearOtpData,
+  getOtp,
+  getResendCount,
+  incrementAttempt,
+  incrementResend,
+  OTP_ATTEMPT_LIMIT,
+  OTP_RESEND_LIMIT,
+  setOtp
+} from "../../../lib/redis/otpRedis";
 
 const ACCOUNT_STATUS_COOLDOWN_TTL = APP_CONFIG.ACCOUNT_STATUS_COOLDOWN_TTL;
 
@@ -542,6 +553,13 @@ export async function changeUserPasswordService(
     };
   }
 
+  if (oldPassword === newPassword) {
+    return {
+      success: false,
+      message: "New password must be different from old password"
+    };
+  }
+
   try {
     const user = await User.findById(userId).select("+password");
     if (!user) {
@@ -598,5 +616,270 @@ export async function changeUserPasswordService(
       success: false,
       message: "Failed to change password"
     };
+  }
+}
+
+export async function requestEmailChange(
+  userId: string,
+  newEmail: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    if (!newEmail || typeof newEmail !== "string") {
+      throw new Error("New email is required");
+    }
+
+    const userObjectId = validateUserId(userId);
+    const normalizedEmail = newEmail.toLowerCase().trim();
+
+    if (
+      !normalizedEmail ||
+      normalizedEmail === "@" ||
+      !normalizedEmail.includes("@")
+    ) {
+      throw new Error("Invalid email format");
+    }
+
+    const [user, existingUser, resendCount] = await Promise.all([
+      User.findById(userObjectId).select("email").lean(),
+      User.findOne({
+        email: normalizedEmail,
+        isDeleted: false,
+        _id: { $ne: userObjectId }
+      }).lean(),
+      getResendCount(normalizedEmail, "signup")
+    ]);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if ((user as any).email === normalizedEmail) {
+      throw new Error("New email must be different from current email");
+    }
+
+    if (existingUser) {
+      throw new Error("Email already in use by another account");
+    }
+
+    if (resendCount >= OTP_RESEND_LIMIT) {
+      throw new Error(
+        "Resend OTP limit reached for today. Try again tomorrow."
+      );
+    }
+
+    const otp = generateOtp(6);
+
+    await Promise.all([
+      incrementResend(normalizedEmail, "signup"),
+      setOtp(normalizedEmail, otp, "signup")
+    ]);
+
+    sendOtpEmail(normalizedEmail, otp, "signup").catch((err) => {
+      logger.error("Failed to send OTP email:", err.message);
+    });
+
+    logger.info(
+      `Email change OTP sent to ${normalizedEmail} for user ${userId}`
+    );
+
+    return {
+      success: true,
+      message: "OTP sent to new email address. Valid for 5 minutes."
+    };
+  } catch (error: any) {
+    logger.error("Error in requestEmailChange:", error.message);
+    throw error;
+  }
+}
+
+export async function verifyAndChangeEmail(
+  userId: string,
+  newEmail: string,
+  otp: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    if (!newEmail || typeof newEmail !== "string") {
+      throw new Error("New email is required");
+    }
+
+    if (!otp || typeof otp !== "string") {
+      throw new Error("OTP is required");
+    }
+
+    const userObjectId = validateUserId(userId);
+    const normalizedEmail = newEmail.toLowerCase().trim();
+
+    if (
+      !normalizedEmail ||
+      normalizedEmail === "@" ||
+      !normalizedEmail.includes("@")
+    ) {
+      throw new Error("Invalid email format");
+    }
+
+    const [user, storedOtp, attemptCount] = await Promise.all([
+      User.findById(userObjectId).select("email").lean(),
+      getOtp(normalizedEmail, "signup"),
+      incrementAttempt(normalizedEmail, "signup")
+    ]);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (attemptCount > OTP_ATTEMPT_LIMIT) {
+      throw new Error(
+        `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please try again after 24 hours.`
+      );
+    }
+
+    if (storedOtp && storedOtp !== otp) {
+      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
+      throw new Error(
+        `Invalid OTP. You have ${remainingAttempts} attempt${
+          remainingAttempts !== 1 ? "s" : ""
+        } remaining.`
+      );
+    }
+
+    if (!storedOtp) {
+      throw new Error("OTP has expired. Please request a new one.");
+    }
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+      isDeleted: false,
+      _id: { $ne: userObjectId }
+    }).lean();
+
+    if (existingUser) {
+      throw new Error("Email already in use by another account");
+    }
+
+    await Promise.all([
+      User.findByIdAndUpdate(userObjectId, {
+        email: normalizedEmail,
+        isEmailVerified: true
+      }),
+      clearOtpData(normalizedEmail, "signup")
+    ]);
+
+    logger.info(
+      `Email changed successfully for user ${userId} to ${normalizedEmail}`
+    );
+
+    return {
+      success: true,
+      message: "Email changed successfully"
+    };
+  } catch (error: any) {
+    logger.error("Error in verifyAndChangeEmail:", error);
+    throw error;
+  }
+}
+
+export async function requestPhoneChange(
+  userId: string,
+  newPhoneNumber: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    if (!newPhoneNumber || typeof newPhoneNumber !== "string") {
+      throw new Error("New phone number is required");
+    }
+
+    const userObjectId = validateUserId(userId);
+    const normalizedPhone = newPhoneNumber.trim();
+
+    if (!normalizedPhone) {
+      throw new Error("Invalid phone number format");
+    }
+
+    const [user, existingUser] = await Promise.all([
+      User.findById(userObjectId).select("phoneNumber").lean(),
+      User.findOne({
+        phoneNumber: normalizedPhone,
+        isDeleted: false,
+        _id: { $ne: userObjectId }
+      }).lean()
+    ]);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if ((user as any).phoneNumber === normalizedPhone) {
+      throw new Error(
+        "New phone number must be different from current phone number"
+      );
+    }
+
+    if (existingUser) {
+      throw new Error("Phone number already in use by another account");
+    }
+
+    logger.info(
+      `Phone change request initiated for user ${userId}. User should verify via Twilio SMS.`
+    );
+
+    return {
+      success: true,
+      message:
+        "Please verify your new phone number using the SMS verification endpoint"
+    };
+  } catch (error: any) {
+    logger.error("Error in requestPhoneChange:", error.message);
+    throw error;
+  }
+}
+
+export async function verifyAndChangePhone(
+  userId: string,
+  newPhoneNumber: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    if (!newPhoneNumber || typeof newPhoneNumber !== "string") {
+      throw new Error("New phone number is required");
+    }
+
+    const userObjectId = validateUserId(userId);
+    const normalizedPhone = newPhoneNumber.trim();
+
+    if (!normalizedPhone) {
+      throw new Error("Invalid phone number format");
+    }
+
+    const [user, existingUser] = await Promise.all([
+      User.findById(userObjectId).select("phoneNumber").lean(),
+      User.findOne({
+        phoneNumber: normalizedPhone,
+        isDeleted: false,
+        _id: { $ne: userObjectId }
+      }).lean()
+    ]);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (existingUser) {
+      throw new Error("Phone number already in use by another account");
+    }
+
+    await User.findByIdAndUpdate(userObjectId, {
+      phoneNumber: normalizedPhone,
+      isPhoneVerified: true
+    });
+
+    logger.info(
+      `Phone number changed successfully for user ${userId} to ${normalizedPhone}`
+    );
+
+    return {
+      success: true,
+      message: "Phone number changed successfully"
+    };
+  } catch (error: any) {
+    logger.error("Error in verifyAndChangePhone:", error.message);
+    throw error;
   }
 }

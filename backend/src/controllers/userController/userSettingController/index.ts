@@ -13,8 +13,13 @@ import {
   getAccountStatus,
   updateNotificationSettings,
   getNotificationSettings,
-  changeUserPasswordService
+  changeUserPasswordService,
+  requestEmailChange,
+  verifyAndChangeEmail,
+  requestPhoneChange,
+  verifyAndChangePhone
 } from "../../../services/userPersonalService/userSettingService";
+import { User } from "../../../models";
 
 export async function blockController(
   req: AuthenticatedRequest,
@@ -536,6 +541,160 @@ export async function changeUserPassword(
     return res.status(400).json({
       success: false,
       message: result.message
+    });
+  }
+}
+
+export async function requestEmailChangeController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { newEmail } = req.body;
+
+    if (!newEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "New email is required"
+      });
+    }
+
+    const result = await requestEmailChange(userId, newEmail);
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    logger.error("Error in requestEmailChangeController:", err.message);
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to send OTP to new email"
+    });
+  }
+}
+
+export async function verifyEmailChangeController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { newEmail, otp } = req.body;
+
+    if (!newEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "New email is required"
+      });
+    }
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP is required"
+      });
+    }
+
+    const result = await verifyAndChangeEmail(userId, newEmail, otp);
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    logger.error("Error in verifyEmailChangeController:", err);
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to verify and change email"
+    });
+  }
+}
+
+export async function requestPhoneChangeController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { newPhoneNumber } = req.body;
+
+    if (!newPhoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "New phone number is required"
+      });
+    }
+
+    const result = await requestPhoneChange(userId, newPhoneNumber);
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    logger.error("Error in requestPhoneChangeController:", err.message);
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to initiate phone number change"
+    });
+  }
+}
+
+export async function verifyPhoneChangeController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { newPhoneNumber } = req.body;
+
+    if (!newPhoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "New phone number is required"
+      });
+    }
+
+    const result = await verifyAndChangePhone(userId, newPhoneNumber);
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    logger.error("Error in verifyPhoneChangeController:", err.message);
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Failed to change phone number"
+    });
+  }
+}
+
+export async function getUserContactInfoController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const user = await User.findById(userId).select("email phoneNumber").lean();
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        email: user.email,
+        phoneNumber: user.phoneNumber
+      }
+    });
+  } catch (error: any) {
+    logger.error("Error fetching user contact info:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch contact information"
     });
   }
 }

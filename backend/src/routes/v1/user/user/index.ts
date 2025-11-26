@@ -4,7 +4,11 @@ import authenticate from "../../../../middleware/authMiddleware";
 import {
   changePasswordValidation,
   deleteAccountValidation,
-  notificationSettingsValidation
+  notificationSettingsValidation,
+  requestEmailChangeValidation,
+  verifyEmailChangeValidation,
+  requestPhoneChangeValidation,
+  verifyPhoneChangeValidation
 } from "../../../../validation";
 import {
   getAllUserNotifications,
@@ -94,6 +98,40 @@ user.patch(
   authenticate,
   notificationSettingsValidation,
   userController.updateNotificationSettingsController
+);
+
+user.post(
+  "/user/email/request-change",
+  authenticate,
+  requestEmailChangeValidation,
+  userController.requestEmailChangeController
+);
+
+user.post(
+  "/user/email/verify-change",
+  authenticate,
+  verifyEmailChangeValidation,
+  userController.verifyEmailChangeController
+);
+
+user.post(
+  "/user/phone/request-change",
+  authenticate,
+  requestPhoneChangeValidation,
+  userController.requestPhoneChangeController
+);
+
+user.post(
+  "/user/phone/verify-change",
+  authenticate,
+  verifyPhoneChangeValidation,
+  userController.verifyPhoneChangeController
+);
+
+user.get(
+  "/user/contact-info",
+  authenticate,
+  userController.getUserContactInfoController
 );
 
 export default user;

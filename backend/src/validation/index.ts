@@ -536,11 +536,7 @@ export const UserProfessionValidation = [
 ];
 
 export const changePasswordValidation = [
-  body("oldPassword")
-    .notEmpty()
-    .withMessage("Old password is required")
-    .isLength({ min: 6 })
-    .withMessage("Old password must be at least 6 characters long"),
+  body("oldPassword").notEmpty().withMessage("Old password is required"),
   body("newPassword")
     .notEmpty()
     .withMessage("New password is required")
@@ -578,4 +574,45 @@ export const notificationSettingsValidation = [
     .optional()
     .isBoolean()
     .withMessage("smsNotifications must be a boolean")
+];
+
+export const requestEmailChangeValidation = [
+  body("newEmail")
+    .notEmpty()
+    .withMessage("New email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail()
+];
+
+export const verifyEmailChangeValidation = [
+  body("newEmail")
+    .notEmpty()
+    .withMessage("New email is required")
+    .isEmail()
+    .withMessage("Invalid email format")
+    .normalizeEmail(),
+  body("otp")
+    .notEmpty()
+    .withMessage("OTP is required")
+    .isLength({ min: 6, max: 6 })
+    .withMessage("OTP must be 6 digits")
+    .isNumeric()
+    .withMessage("OTP must contain only numbers")
+];
+
+export const requestPhoneChangeValidation = [
+  body("newPhoneNumber")
+    .notEmpty()
+    .withMessage("New phone number is required")
+    .isMobilePhone("any")
+    .withMessage("Invalid phone number format")
+];
+
+export const verifyPhoneChangeValidation = [
+  body("newPhoneNumber")
+    .notEmpty()
+    .withMessage("New phone number is required")
+    .isMobilePhone("any")
+    .withMessage("Invalid phone number format")
 ];

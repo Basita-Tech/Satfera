@@ -61,6 +61,16 @@ export async function formatDetailedProfile(
       ? profession.AnnualIncome
       : "****"
     : "****";
+  const phoneNumber = candidate?.phoneNumber
+    ? isAccepted
+      ? candidate.phoneNumber
+      : maskPhoneNumber(candidate.phoneNumber)
+    : "****";
+  const email = candidate?.email
+    ? isAccepted
+      ? candidate.email
+      : maskEmail(candidate.email)
+    : "****";
 
   const ms = String(personal?.marriedStatus || "").toLowerCase();
   const hasChildren = !!personal?.isHaveChildren;
@@ -102,10 +112,8 @@ export async function formatDetailedProfile(
     age: age,
     dateOfBirth: candidate?.dateOfBirth,
     isFavorite: isFavorite,
-    email: candidate?.email ? maskEmail(candidate.email) : null,
-    phoneNumber: candidate?.phoneNumber
-      ? maskPhoneNumber(candidate.phoneNumber)
-      : null,
+    email: email,
+    phoneNumber: phoneNumber,
     customId: candidate?.customId || null,
     scoreDetail: scoreDetail
       ? { score: scoreDetail.score, reasons: scoreDetail.reasons }

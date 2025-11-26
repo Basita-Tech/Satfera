@@ -1808,3 +1808,308 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/email/request-change:
+    post:
+      summary: Request email change
+      description: Sends an OTP to the new email address to verify ownership before changing
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newEmail:
+                  type: string
+                  format: email
+                  description: New email address
+              required:
+                - newEmail
+            examples:
+              validRequest:
+                value:
+                  newEmail: "newemail@example.com"
+      responses:
+        "200":
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "OTP sent to new email address. Valid for 5 minutes."
+        "400":
+          description: Validation or business logic error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                sameEmail:
+                  value:
+                    success: false
+                    message: "New email must be different from current email"
+                emailInUse:
+                  value:
+                    success: false
+                    message: "Email already in use by another account"
+                resendLimit:
+                  value:
+                    success: false
+                    message: "Resend OTP limit reached for today. Try again tomorrow."
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/email/verify-change:
+    post:
+      summary: Verify and change email
+      description: Verifies the OTP and updates the email address if valid
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newEmail:
+                  type: string
+                  format: email
+                  description: New email address
+                otp:
+                  type: string
+                  pattern: '^\d{6}$'
+                  description: 6-digit OTP sent to new email
+              required:
+                - newEmail
+                - otp
+            examples:
+              validRequest:
+                value:
+                  newEmail: "newemail@example.com"
+                  otp: "123456"
+      responses:
+        "200":
+          description: Email changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Email changed successfully"
+        "400":
+          description: Validation or verification error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidOtp:
+                  value:
+                    success: false
+                    message: "Invalid OTP. You have 2 attempt(s) remaining."
+                expiredOtp:
+                  value:
+                    success: false
+                    message: "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
+                attemptLimit:
+                  value:
+                    success: false
+                    message: "Maximum OTP verification attempts (3) reached. Please request a new OTP."
+                emailTaken:
+                  value:
+                    success: false
+                    message: "Email already in use by another account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/phone/request-change:
+    post:
+      summary: Request phone number change
+      description: Initiates phone number change. User must verify new phone via SMS OTP (using existing Twilio endpoints)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPhoneNumber:
+                  type: string
+                  description: New phone number in E.164 format (e.g., +919876543210)
+              required:
+                - newPhoneNumber
+            examples:
+              validRequest:
+                value:
+                  newPhoneNumber: "+919876543210"
+      responses:
+        "200":
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Please verify your new phone number using the SMS verification endpoint"
+        "400":
+          description: Validation or business logic error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                samePhone:
+                  value:
+                    success: false
+                    message: "New phone number must be different from current phone number"
+                phoneInUse:
+                  value:
+                    success: false
+                    message: "Phone number already in use by another account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/phone/verify-change:
+    post:
+      summary: Verify and change phone number
+      description: Completes phone number change after SMS OTP verification via Twilio
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPhoneNumber:
+                  type: string
+                  description: New phone number that was verified via SMS OTP
+              required:
+                - newPhoneNumber
+            examples:
+              validRequest:
+                value:
+                  newPhoneNumber: "+919876543210"
+      responses:
+        "200":
+          description: Phone number changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Phone number changed successfully"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                phoneTaken:
+                  value:
+                    success: false
+                    message: "Phone number already in use by another account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/contact-info:
+    get:
+      summary: Get logged-in user's contact information
+      description: Returns the email and phone number of the authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Contact information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                        description: User's email address
+                      phoneNumber:
+                        type: string
+                        description: User's phone number
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      email: "user@example.com"
+                      phoneNumber: "+919876543210"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                unauthorized:
+                  value:
+                    success: false
+                    message: "Authentication required"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    success: false
+                    message: "User not found"
