@@ -1,0 +1,35 @@
+{
+  "name": "satfera-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-End tests for Satfera matrimonial application",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:codegen": "playwright codegen",
+    "test:auth": "playwright test --grep='@auth'",
+    "test:registration": "playwright test --grep='@registration'",
+    "test:profile": "playwright test --grep='@profile'",
+    "test:security": "playwright test --grep='@security'",
+    "test:performance": "playwright test --grep='@performance'",
+    "test:smoke": "playwright test --grep='@smoke'",
+    "test:regression": "playwright test --grep='@regression'",
+    "install-browsers": "playwright install"
+  },
+  "keywords": ["e2e", "testing", "playwright", "matrimonial"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "faker": "^5.5.3",
+    "@faker-js/faker": "^9.3.0",
+    "dotenv": "^16.4.7"
+  }
+}

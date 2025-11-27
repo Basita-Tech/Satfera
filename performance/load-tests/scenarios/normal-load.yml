@@ -1,0 +1,115 @@
+config:
+  target: 'http://localhost:8000'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+    publish-metrics:
+      type: statsd
+      host: localhost
+      port: 8125
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 300
+      arrivalRate: 50
+      name: "Normal load - 50 users/sec"
+    - duration: 180
+      arrivalRate: 100
+      name: "Peak normal load - 100 users/sec"
+    - duration: 60
+      arrivalRate: 10
+      name: "Cool down"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: "Complete User Registration"
+    weight: 35
+    flow:
+      - function: "generateUserData"
+      - get:
+          url: "/health"
+      - post:
+          url: "/api/v1/auth/send-email-otp"
+          json:
+            email: "{{ email }}"
+          capture:
+            - json: "$.success"
+              as: "otpSent"
+      - think: 2
+      - post:
+          url: "/api/v1/auth/signup"
+          json:
+            firstName: "{{ firstName }}"
+            lastName: "{{ lastName }}"
+            email: "{{ email }}"
+            password: "{{ password }}"
+            phone: "{{ phone }}"
+            dateOfBirth: "{{ dateOfBirth }}"
+            gender: "{{ gender }}"
+            religion: "{{ religion }}"
+            caste: "{{ caste }}"
+      - think: 5
+
+  - name: "User Login Flow"
+    weight: 25
+    flow:
+      - function: "generateLoginData"
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "{{ loginEmail }}"
+            password: "{{ loginPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.success"
+              as: "loginSuccess"
+      - think: 1
+      - get:
+          url: "/api/v1/user-personal/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          ifTrue: "loginSuccess"
+
+  - name: "Password Reset Flow"
+    weight: 15
+    flow:
+      - function: "generateEmailData"
+      - post:
+          url: "/api/v1/auth/forgot-password"
+          json:
+            email: "{{ resetEmail }}"
+      - think: 3
+
+  - name: "OTP Operations"
+    weight: 15
+    flow:
+      - function: "generatePhoneData"
+      - post:
+          url: "/api/v1/auth/send-sms-otp"
+          json:
+            phone: "{{ testPhone }}"
+      - think: 2
+      - post:
+          url: "/api/v1/auth/verify-sms-otp"
+          json:
+            phone: "{{ testPhone }}"
+            otp: "123456"
+
+  - name: "Health and Status Checks"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+      - get:
+          url: "/"
+      - think: 1
+
+functions:
+  generateUserData: "functions/user-data-generator.js"
+  generateLoginData: "functions/login-data-generator.js"
+  generateEmailData: "functions/email-data-generator.js"
+  generatePhoneData: "functions/phone-data-generator.js"

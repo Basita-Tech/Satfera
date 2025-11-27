@@ -1,0 +1,74 @@
+config:
+  target: 'http://localhost:8000'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+  phases:
+    - duration: 300
+      arrivalRate: 5
+      name: "Light load - 5 users/sec for 5 minutes"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: "User Authentication Flow"
+    weight: 30
+    flow:
+      - get:
+          url: "/health"
+          capture:
+            - json: "$.status"
+              as: "healthStatus"
+      - post:
+          url: "/api/v1/auth/send-email-otp"
+          json:
+            email: "test{{ $randomString() }}@example.com"
+          capture:
+            - json: "$.success"
+              as: "otpSent"
+      - think: 2
+
+  - name: "User Registration Flow"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/v1/auth/signup"
+          json:
+            firstName: "Test{{ $randomString() }}"
+            lastName: "User{{ $randomString() }}"
+            email: "user{{ $randomString() }}@test.com"
+            password: "TestPass123!"
+            phone: "+1555{{ $randomInt(1000000, 9999999) }}"
+            dateOfBirth: "1990-01-01"
+            gender: "{{ $pick(['Male', 'Female', 'Other']) }}"
+            religion: "Hindu"
+            caste: "General"
+      - think: 3
+
+  - name: "Health Check"
+    weight: 20
+    flow:
+      - get:
+          url: "/health"
+      - get:
+          url: "/"
+
+  - name: "Profile Data Access"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/v1/user-personal/profile"
+          headers:
+            Authorization: "Bearer fake-token-for-testing"
+        expect:
+          - statusCode: 401
+
+  - name: "API Discovery"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/v1/auth/nonexistent"
+        expect:
+          - statusCode: 404
+      - think: 1

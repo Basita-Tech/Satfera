@@ -1,0 +1,209 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\prpatel.CSE-LAB\\Documents\\BASITA\\Satfera\\e2e\\playwright.config.ts",
+    "rootDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\Users\\prpatel.CSE-LAB\\Documents\\BASITA\\Satfera\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\Users\\prpatel.CSE-LAB\\Documents\\BASITA\\Satfera\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "junit-results.xml"
+        }
+      ],
+      [
+        "line",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "setup",
+        "name": "setup",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.setup\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "cleanup",
+        "name": "cleanup",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.cleanup\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile-safari",
+        "name": "mobile-safari",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "performance",
+        "name": "performance",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.performance\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "security",
+        "name": "security",
+        "testDir": "C:/Users/prpatel.CSE-LAB/Documents/BASITA/Satfera/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.security\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 8,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Process from config.webServer exited early.",
+      "stack": "Error: Process from config.webServer exited early."
+    }
+  ],
+  "stats": {
+    "startTime": "2025-11-27T00:55:08.704Z",
+    "duration": 579.3009999999999,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

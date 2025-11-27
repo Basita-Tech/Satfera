@@ -1,0 +1,82 @@
+config:
+  target: 'http://localhost:8000'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Normal baseline"
+    - duration: 30
+      arrivalRate: 1000
+      name: "SPIKE - 1000 users in 30 seconds"
+    - duration: 60
+      arrivalRate: 10
+      name: "Recovery period"
+    - duration: 30
+      arrivalRate: 2000
+      name: "MEGA SPIKE - 2000 users in 30 seconds"
+    - duration: 120
+      arrivalRate: 5
+      name: "Extended recovery"
+    - duration: 15
+      arrivalRate: 5000
+      name: "EXTREME SPIKE - 5000 users in 15 seconds"
+    - duration: 300
+      arrivalRate: 1
+      name: "System recovery assessment"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  pool: 200
+  timeout: 120
+
+scenarios:
+  - name: "Registration Spike"
+    weight: 40
+    flow:
+      - function: "generateSpikeUserData"
+      - post:
+          url: "/api/v1/auth/signup"
+          json:
+            firstName: "Spike{{ $randomString() }}"
+            lastName: "User{{ $randomString() }}"
+            email: "spike{{ $timestamp() }}{{ $randomInt(1, 10000) }}@test.com"
+            password: "SpikeTest123!"
+            phone: "+1555{{ $randomInt(1000000, 9999999) }}"
+            dateOfBirth: "1992-06-15"
+            gender: "{{ $pick(['Male', 'Female']) }}"
+            religion: "Hindu"
+            caste: "General"
+
+  - name: "Login Spike"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "spike{{ $randomInt(1, 1000) }}@test.com"
+            password: "TestPassword123!"
+
+  - name: "OTP Spike"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/v1/auth/send-sms-otp"
+          json:
+            phone: "+1555{{ $randomInt(1000000, 9999999) }}"
+      - post:
+          url: "/api/v1/auth/send-email-otp"
+          json:
+            email: "spike{{ $timestamp() }}@otp.com"
+
+  - name: "Health Check Spike"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+      - get:
+          url: "/"
+
+functions:
+  generateSpikeUserData: "functions/spike-user-generator.js"

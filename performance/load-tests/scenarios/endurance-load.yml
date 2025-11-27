@@ -1,0 +1,132 @@
+config:
+  target: 'http://localhost:8000'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+  phases:
+    - duration: 300
+      arrivalRate: 20
+      name: "Initial load establishment"
+    - duration: 3600
+      arrivalRate: 100
+      name: "1 Hour endurance - 100 users/sec"
+    - duration: 7200
+      arrivalRate: 150
+      name: "2 Hour sustained load - 150 users/sec"
+    - duration: 10800
+      arrivalRate: 200
+      name: "3 Hour extended endurance - 200 users/sec"
+    - duration: 300
+      arrivalRate: 20
+      name: "Gradual wind down"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  pool: 75
+  timeout: 45
+
+scenarios:
+  - name: "Long-term User Behavior Simulation"
+    weight: 40
+    flow:
+      - function: "generateEnduranceUserData"
+      - get:
+          url: "/health"
+      - think: 5
+      - post:
+          url: "/api/v1/auth/send-email-otp"
+          json:
+            email: "{{ enduranceEmail }}"
+      - think: 30
+      - post:
+          url: "/api/v1/auth/signup"
+          json:
+            firstName: "{{ firstName }}"
+            lastName: "{{ lastName }}"
+            email: "{{ enduranceEmail }}"
+            password: "{{ password }}"
+            phone: "{{ phone }}"
+            dateOfBirth: "{{ dateOfBirth }}"
+            gender: "{{ gender }}"
+            religion: "{{ religion }}"
+            caste: "{{ caste }}"
+      - think: 60
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "{{ enduranceEmail }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.success"
+              as: "loginSuccess"
+      - think: 120
+      - get:
+          url: "/api/v1/user-personal/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          ifTrue: "loginSuccess"
+      - think: 300
+
+  - name: "Sustained Login Activity"
+    weight: 30
+    flow:
+      - function: "generateLoginData"
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "{{ loginEmail }}"
+            password: "{{ loginPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - think: 180
+      - get:
+          url: "/api/v1/user-personal/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - think: 600
+
+  - name: "Periodic OTP Requests"
+    weight: 15
+    flow:
+      - function: "generatePhoneData"
+      - post:
+          url: "/api/v1/auth/send-sms-otp"
+          json:
+            phone: "{{ testPhone }}"
+      - think: 300
+      - post:
+          url: "/api/v1/auth/verify-sms-otp"
+          json:
+            phone: "{{ testPhone }}"
+            otp: "123456"
+      - think: 900
+
+  - name: "Background Health Monitoring"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+      - think: 60
+      - get:
+          url: "/"
+      - think: 240
+
+  - name: "Memory Leak Detection Patterns"
+    weight: 5
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/auth/forgot-password"
+            json:
+              email: "memory{{ $randomString() }}@leak.com"
+        - think: 10
+        count: 10
+      - think: 600
+
+functions:
+  generateEnduranceUserData: "functions/endurance-user-generator.js"
+  generateLoginData: "functions/login-data-generator.js"
+  generatePhoneData: "functions/phone-data-generator.js"

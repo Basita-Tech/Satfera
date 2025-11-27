@@ -1,0 +1,71 @@
+{
+  "name": "satfera-performance-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive performance testing suite for Satfera application",
+  "main": "index.js",
+  "scripts": {
+    "test:load": "artillery run load-tests/scenarios/",
+    "test:load:light": "artillery run load-tests/scenarios/light-load.yml",
+    "test:load:normal": "artillery run load-tests/scenarios/normal-load.yml",
+    "test:load:heavy": "artillery run load-tests/scenarios/heavy-load.yml",
+    "test:load:stress": "artillery run load-tests/scenarios/stress-load.yml",
+    "test:load:spike": "artillery run load-tests/scenarios/spike-load.yml",
+    "test:load:endurance": "artillery run load-tests/scenarios/endurance-load.yml",
+    "test:db": "node database/db-performance.js",
+    "test:api": "jest api-tests/",
+    "test:frontend": "node frontend/lighthouse-tests.js",
+    "test:memory": "node memory/memory-leak-tests.js",
+    "test:sms": "node sms/sms-load-tests.js",
+    "test:all": "npm run test:db && npm run test:api && npm run test:load:normal && npm run test:frontend",
+    "test:stress-all": "npm run test:load:stress && npm run test:memory && npm run test:sms",
+    "report": "node reports/generate-report.js",
+    "monitor": "node monitoring/real-time-monitor.js",
+    "benchmark": "node benchmarks/performance-benchmarks.js"
+  },
+  "dependencies": {
+    "artillery": "^2.0.18",
+    "lighthouse": "^12.2.1",
+    "puppeteer": "^22.15.0",
+    "mongoose": "^8.19.1",
+    "redis": "^4.7.1",
+    "express": "^5.1.0",
+    "axios": "^1.12.2",
+    "clinic": "^13.0.0",
+    "0x": "^5.7.0",
+    "autocannon": "^7.15.0",
+    "loadtest": "^8.0.9",
+    "nodemailer": "^7.0.9",
+    "twilio": "^5.10.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.1",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3",
+    "dotenv": "^17.2.3",
+    "mongodb-memory-server": "^10.3.0",
+    "memwatch-next": "^0.3.0",
+    "heapdump": "^0.3.15",
+    "clinic-doctor": "^10.1.0",
+    "clinic-bubbleprof": "^10.0.0",
+    "clinic-flame": "^11.0.0",
+    "artillery-plugin-metrics-by-endpoint": "^1.8.0",
+    "artillery-plugin-publish-metrics": "^4.2.0",
+    "lighthouse-ci": "^0.14.0"
+  },
+  "keywords": [
+    "performance",
+    "load-testing",
+    "stress-testing",
+    "artillery",
+    "lighthouse",
+    "benchmarking",
+    "monitoring"
+  ],
+  "author": "Satfera Performance Team",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

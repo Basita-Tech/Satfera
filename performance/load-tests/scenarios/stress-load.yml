@@ -1,0 +1,134 @@
+config:
+  target: 'http://localhost:8000'
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+  phases:
+    - duration: 180
+      arrivalRate: 100
+      name: "Initial ramp up"
+    - duration: 300
+      arrivalRate: 500
+      name: "High stress - 500 users/sec"
+    - duration: 420
+      arrivalRate: 1000
+      name: "Extreme stress - 1000 users/sec"
+    - duration: 300
+      arrivalRate: 2000
+      name: "Breaking point - 2000 users/sec"
+    - duration: 180
+      arrivalRate: 5000
+      name: "System destruction - 5000+ users/sec"
+    - duration: 120
+      arrivalRate: 50
+      name: "Recovery period"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+  pool: 100
+  timeout: 60
+
+scenarios:
+  - name: "Database Overwhelm"
+    weight: 35
+    flow:
+      - function: "generateMassUserData"
+      - loop:
+        - post:
+            url: "/api/v1/auth/signup"
+            json:
+              firstName: "Stress{{ $randomString() }}"
+              lastName: "Test{{ $randomString() }}"
+              email: "stress{{ $randomInt(1, 1000000) }}@overload.com"
+              password: "StressTest123!"
+              phone: "+1555{{ $randomInt(1000000, 9999999) }}"
+              dateOfBirth: "{{ $pick(['1985-01-01', '1990-05-15', '1995-12-30']) }}"
+              gender: "{{ $pick(['Male', 'Female', 'Other']) }}"
+              religion: "{{ $pick(['Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist']) }}"
+              caste: "{{ $pick(['General', 'OBC', 'SC', 'ST']) }}"
+        count: 50
+
+  - name: "Authentication Storm"
+    weight: 25
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/auth/login"
+            json:
+              email: "nonexistent{{ $randomInt(1, 100000) }}@fake.com"
+              password: "WrongPassword123!"
+        - post:
+            url: "/api/v1/auth/forgot-password"
+            json:
+              email: "forgotten{{ $randomInt(1, 100000) }}@lost.com"
+        count: 25
+
+  - name: "OTP System Destruction"
+    weight: 20
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/auth/send-sms-otp"
+            json:
+              phone: "+1555{{ $randomInt(1000000, 9999999) }}"
+        - post:
+            url: "/api/v1/auth/send-email-otp"
+            json:
+              email: "otp{{ $randomInt(1, 1000000) }}@spam.com"
+        - post:
+            url: "/api/v1/auth/verify-sms-otp"
+            json:
+              phone: "+1555{{ $randomInt(1000000, 9999999) }}"
+              otp: "{{ $randomInt(100000, 999999) }}"
+        - post:
+            url: "/api/v1/auth/verify-email-otp"
+            json:
+              email: "verify{{ $randomInt(1, 1000000) }}@test.com"
+              otp: "{{ $randomInt(100000, 999999) }}"
+        count: 30
+
+  - name: "Resource Exhaustion"
+    weight: 15
+    flow:
+      - loop:
+        - get:
+            url: "/health"
+        - get:
+            url: "/"
+        - get:
+            url: "/api/v1/user-personal/profile"
+            headers:
+              Authorization: "Bearer invalid-token-{{ $randomString() }}"
+        - post:
+            url: "/api/v1/user-personal/update"
+            headers:
+              Authorization: "Bearer fake-token-{{ $randomString() }}"
+            json:
+              firstName: "Overload{{ $randomString() }}"
+              lastName: "System{{ $randomString() }}"
+              bio: "This is a very long bio that is designed to test the system's ability to handle large amounts of text data. ".repeat(50)
+        count: 100
+
+  - name: "Malformed Request Flood"
+    weight: 5
+    flow:
+      - loop:
+        - post:
+            url: "/api/v1/auth/signup"
+            json:
+              invalidField: "This should not be here"
+              email: "not-an-email"
+              password: "123"
+        - post:
+            url: "/api/v1/auth/login"
+            json:
+              email: null
+              password: ""
+        - post:
+            url: "/api/v1/auth/send-sms-otp"
+            json:
+              phone: "not-a-phone"
+        count: 20
+
+functions:
+  generateMassUserData: "functions/mass-user-generator.js"
