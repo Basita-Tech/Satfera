@@ -3,29 +3,58 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import YAML from "yamljs";
 import swaggerUi from "swagger-ui-express";
-
 import { db } from "./config/mongo";
 import type { Request, Response, NextFunction } from "express";
 import { logger, morganStream } from "./lib/common/logger";
 import { redisClient, connectRedis } from "./lib/redis";
 import { startAllWorkers, closeAllWorkers } from "./workers";
 import apiV1 from "./routes/v1";
+import * as middleware from "./middleware/securityMiddleware";
+import { ipBlockingMiddleware } from "./middleware/ipBlocking";
+import { csrfProtection } from "./middleware/csrfProtection";
 
 const app = express();
 const swaggerDocument = YAML.load("./docs/swagger.yaml");
 
 app.set("trust proxy", 1);
-app.use(helmet());
-app.use(express.json());
-app.use(morgan("combined", { stream: morganStream }));
+
+app.use(ipBlockingMiddleware);
+
 app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true
+  helmet({
+    contentSecurityPolicy: false,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
   })
 );
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(cookieParser());
+
+app.use(middleware.securityLogger);
+
+app.use(middleware.requestTimeoutProtection(30000));
+
+app.use(middleware.securityHeaders);
+
+app.use(middleware.hppProtection);
+
+app.use(middleware.xssProtection);
+
+app.use(middleware.suspiciousActivityDetector);
+
+app.use(csrfProtection);
+
+app.use(morgan("combined", { stream: morganStream }));
+
+app.use(cors(middleware.corsOptions));
 
 const PORT = parseInt(process.env.PORT || "8000", 10);
 
@@ -75,18 +104,19 @@ app.use((req: Request, res: Response) => {
 });
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  logger.error("Unhandled error:", err);
-  const status = err?.status || err?.statusCode || 500;
-  const message =
-    process.env.NODE_ENV === "production"
-      ? err?.status < 500
-        ? err?.message
-        : "Internal Server Error"
-      : err?.message || "Internal Server Error";
+  logger.error("Unhandled error:", {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip
+  });
 
-  res.status(status).json({
+  const sanitized = middleware.sanitizeError(err);
+
+  res.status(sanitized.status).json({
     success: false,
-    message,
+    message: sanitized.message,
     ...(process.env.NODE_ENV !== "production" && { stack: err?.stack })
   });
 });

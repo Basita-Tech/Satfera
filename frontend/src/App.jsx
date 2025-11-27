@@ -41,13 +41,13 @@ function App() {
         {/* 🧾 Profile & Forms */}
         <Route path="/complete-profile" element={<ProfileCompletion />} />
         <Route path="/onboarding/user" element={<MultiStepForm />} />
-        <Route
+        {/* <Route
           path="/onboarding/review"
           element={
             <ProtectedRoute>
               <ReviewPage />
             </ProtectedRoute>
-          } />
+          } /> */}
 
         {/* 👤 Dashboard Route (wildcard handles index + nested) */}
         <Route

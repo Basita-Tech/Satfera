@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { validationResult } from "express-validator";
-import { LoginRequest } from "../../types";
+import { AuthenticatedRequest, LoginRequest } from "../../types";
 import { AuthService } from "../../services";
 import jwt from "jsonwebtoken";
 import {
@@ -13,6 +13,19 @@ import { User, Profile } from "../../models";
 import { redisClient } from "../../lib/redis";
 import { env } from "../../config";
 import { APP_CONFIG } from "../../utils/constants";
+import {
+  recordFailedAttempt,
+  resetLoginAttempts
+} from "../../middleware/bruteForceProtection";
+import { sanitizeError } from "../../middleware/securityMiddleware";
+import { logger } from "../../lib/common/logger";
+import {
+  setSecureTokenCookie,
+  generateCSRFToken,
+  setCSRFTokenCookie,
+  clearAuthCookies
+} from "../../utils/secureToken";
+import { SessionService } from "../../services/sessionService";
 
 const authService = new AuthService();
 
@@ -123,12 +136,10 @@ export class AuthController {
         { expiresIn: "1d" }
       );
 
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
-      });
+      setSecureTokenCookie(res, token, { maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+      const csrfToken = generateCSRFToken();
+      setCSRFTokenCookie(res, csrfToken);
 
       const publicUser = sanitizeUser(user.toObject());
 
@@ -161,12 +172,14 @@ export class AuthController {
     try {
       const validation = formatValidationErrors(req);
       if (validation) {
+        await recordFailedAttempt(req);
         return res.status(400).json({ success: false, errors: validation });
       }
 
       const { email, phoneNumber, password }: LoginRequest = req.body;
 
       if (!password || (!email && !phoneNumber)) {
+        await recordFailedAttempt(req);
         return res.status(400).json({
           success: false,
           message: "Email or phone number and password are required"
@@ -174,11 +187,35 @@ export class AuthController {
       }
 
       let result;
-      if (email) {
-        result = await authService.loginWithEmail(email, password);
-      } else {
-        result = await authService.loginWithPhone(phoneNumber!, password);
+      try {
+        if (email) {
+          result = await authService.loginWithEmail(email, password, req);
+        } else {
+          result = await authService.loginWithPhone(
+            phoneNumber!,
+            password,
+            req
+          );
+        }
+      } catch (authError: any) {
+        await recordFailedAttempt(req);
+
+        logger.warn("Login failed", {
+          email: email || phoneNumber,
+          ip: req.ip,
+          userAgent: req.get("user-agent"),
+          reason: authError.message
+        });
+
+        const sanitized = sanitizeError(authError);
+        return res.status(401).json({
+          success: false,
+          message: sanitized.message
+        });
       }
+
+      const identifier = email || phoneNumber!;
+      await resetLoginAttempts(identifier);
 
       const userObj = result.user.toObject
         ? result.user.toObject()
@@ -201,12 +238,10 @@ export class AuthController {
         (step) => !completedSteps.includes(step)
       );
 
-      res.cookie("token", result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: COOKIE_MAX_AGE
-      });
+      setSecureTokenCookie(res, result.token, { maxAge: COOKIE_MAX_AGE });
+
+      const csrfToken = generateCSRFToken();
+      setCSRFTokenCookie(res, csrfToken);
 
       const isOnboardingCompleted =
         typeof publicUser.isOnboardingCompleted !== "undefined"
@@ -218,47 +253,44 @@ export class AuthController {
           success: false,
           message: "Onboarding is not completed",
           redirectTo: `/onboarding/user`,
-          user: publicUser,
-          token: result.token
+          user: publicUser
         });
       }
 
       const profile = await Profile.findOne({ userId: result.user._id });
 
-      if (profile.isVerified === false) {
+      if (profile && profile.isVerified === false) {
         return res.status(200).json({
           success: false,
           message: "Profile is not verified",
           redirectTo: `/onboarding/review`,
-          user: publicUser,
-          token: result.token
+          user: publicUser
         });
       }
 
-      return res
-        .status(200)
-        .json({ success: true, user: publicUser, token: result.token });
+      logger.info("Successful login", {
+        userId: publicUser.id,
+        email: email || phoneNumber,
+        ip: req.ip,
+        isNewSession: result.isNewSession
+      });
+
+      return res.status(200).json({
+        success: true,
+        user: publicUser,
+        isNewSession: result.isNewSession
+      });
     } catch (err: any) {
-      const message = (err as any)?.message || "Login failed";
+      logger.error("Login error", {
+        error: err.message,
+        stack: err.stack,
+        ip: req.ip
+      });
 
-      if (
-        message.toLowerCase().includes("verify") ||
-        message.toLowerCase().includes("verification")
-      ) {
-        return res.status(403).json({ success: false, message });
-      }
-
-      if (
-        message.toLowerCase().includes("invalid credentials") ||
-        message.toLowerCase().includes("password")
-      ) {
-        return res.status(401).json({ success: false, message });
-      }
-
-      console.error("Login error:", err);
-      return res.status(500).json({
+      const sanitized = sanitizeError(err);
+      return res.status(sanitized.status).json({
         success: false,
-        message: "An unexpected error occurred during login"
+        message: sanitized.message
       });
     }
   }
@@ -453,6 +485,89 @@ export class AuthController {
     } catch (err: any) {
       const message = (err as any)?.message || "Password reset failed";
       return res.status(500).json({ success: false, message });
+    }
+  }
+
+  static async logout(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      logger.info("Logout attempt", {
+        userId,
+        hasUser: !!req.user,
+        hasCookie: !!req.cookies?.token
+      });
+
+      if (userId) {
+        const token = req.cookies?.token;
+        if (token) {
+          try {
+            const decoded = jwt.verify(
+              token,
+              process.env.JWT_SECRET as string
+            ) as any;
+            const jti = decoded.jti;
+
+            logger.info("Token decoded", {
+              userId,
+              jti,
+              hasJti: !!jti
+            });
+
+            if (jti) {
+              const session = await SessionService.validateSession(userId, jti);
+
+              logger.info("Session validation result", {
+                userId,
+                jti,
+                sessionFound: !!session,
+                sessionId: session?._id
+              });
+
+              if (session) {
+                const logoutResult = await SessionService.logoutSession(
+                  userId,
+                  String(session._id)
+                );
+
+                logger.info("Session logout result", {
+                  userId,
+                  sessionId: session._id,
+                  success: logoutResult
+                });
+              }
+            }
+          } catch (jwtError) {
+            logger.warn("JWT verification failed during logout", {
+              userId,
+              error: (jwtError as any).message
+            });
+          }
+        }
+      }
+
+      clearAuthCookies(res);
+
+      logger.info("User logged out", {
+        userId,
+        ip: req.ip,
+        userAgent: req.get("user-agent")
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Logged out successfully"
+      });
+    } catch (err: any) {
+      logger.error("Logout error", {
+        error: err.message,
+        ip: req.ip
+      });
+
+      return res.status(500).json({
+        success: false,
+        message: "Logout failed"
+      });
     }
   }
 }

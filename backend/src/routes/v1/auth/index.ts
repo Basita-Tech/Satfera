@@ -2,10 +2,19 @@ import express from "express";
 import { AuthController, sendOtp, verifyOtp } from "../../../controllers";
 import { LoginValidation, SignupValidation } from "../../../validation";
 import { authLimiter, otpLimiter } from "../../../middleware/rateLimiter";
+import { bruteForceProtection } from "../../../middleware/bruteForceProtection";
+import authenticate from "../../../middleware/authMiddleware";
 
 const authRouter = express.Router();
 
-authRouter.post("/login", authLimiter, LoginValidation, AuthController.login);
+authRouter.post(
+  "/login",
+  bruteForceProtection({ maxAttempts: 5, lockoutDuration: 900 }),
+  authLimiter,
+  LoginValidation,
+  AuthController.login
+);
+
 authRouter.post(
   "/signup",
   authLimiter,
@@ -18,9 +27,11 @@ authRouter.get("/google/callback", AuthController.googleCallback);
 
 authRouter.post(
   "/forgot-password",
+  bruteForceProtection({ maxAttempts: 3, lockoutDuration: 1800 }),
   authLimiter,
   AuthController.forgotPasswordRequest
 );
+
 authRouter.post(
   "/reset-password/:token",
   authLimiter,
@@ -35,5 +46,7 @@ authRouter.post(
 );
 authRouter.post("/send-sms-otp", otpLimiter, sendOtp);
 authRouter.post("/verify-sms-otp", otpLimiter, verifyOtp);
+
+authRouter.post("/logout", authenticate, AuthController.logout);
 
 export default authRouter;

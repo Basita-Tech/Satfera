@@ -417,6 +417,49 @@ paths:
         "200":
           description: Verified
 
+  /api/v1/auth/logout:
+    post:
+      summary: Logout and invalidate session
+      description: |
+        Logs out the user by:
+        1. Invalidating the session in the database (sets isActive=false)
+        2. Clearing HTTP-only authentication cookies (token, csrf_token)
+        
+        This ensures the session cannot be reused even if someone obtains the cookie.
+        The endpoint handles both valid and expired tokens gracefully.
+      tags:
+        - Authentication
+      responses:
+        "200":
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Logged out successfully"
+        "500":
+          description: Server error during logout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                error:
+                  value:
+                    success: false
+                    message: "Logout failed"
+
   /api/v1/user/profile:
     get:
       summary: Get authenticated user's dashboard/profile
@@ -2113,3 +2156,233 @@ paths:
                   value:
                     success: false
                     message: "User not found"
+
+  /api/v1/sessions:
+    get:
+      summary: Get all active sessions/devices
+      description: |
+        Retrieve all active sessions (logged-in devices) for the authenticated user.
+        Shows device information, location, login time, and last activity.
+        Useful for security monitoring and multi-device management.
+        **Note**: Sensitive fields like tokens are never exposed.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Session Management
+      responses:
+        "200":
+          description: List of active sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sessions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            sessionId:
+                              type: string
+                              description: Unique session identifier
+                            device:
+                              type: string
+                              description: Formatted device string
+                              example: "Chrome on Windows"
+                            browser:
+                              type: string
+                              example: "Chrome"
+                            os:
+                              type: string
+                              example: "Windows"
+                            deviceType:
+                              type: string
+                              enum: [Desktop, Mobile, Tablet]
+                            ipAddress:
+                              type: string
+                              example: "103.45.67.89"
+                            location:
+                              type: object
+                              nullable: true
+                              properties:
+                                city:
+                                  type: string
+                                  example: "Mumbai"
+                                country:
+                                  type: string
+                                  example: "India"
+                                display:
+                                  type: string
+                                  example: "Mumbai, India"
+                            loginAt:
+                              type: string
+                              format: date-time
+                            lastActivityAt:
+                              type: string
+                              format: date-time
+                            isCurrent:
+                              type: boolean
+                              description: Whether this is the current session
+                      total:
+                        type: integer
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      sessions:
+                        - sessionId: "674567890abcdef123456789"
+                          device: "Chrome on Windows"
+                          browser: "Chrome"
+                          os: "Windows"
+                          deviceType: "Desktop"
+                          ipAddress: "103.45.67.89"
+                          location:
+                            city: "Mumbai"
+                            country: "India"
+                            display: "Mumbai, India"
+                          loginAt: "2025-11-27T10:30:00.000Z"
+                          lastActivityAt: "2025-11-27T14:45:00.000Z"
+                          isCurrent: true
+                        - sessionId: "674567890abcdef987654321"
+                          device: "Safari on iOS"
+                          browser: "Safari"
+                          os: "iOS"
+                          deviceType: "Mobile"
+                          ipAddress: "182.76.123.45"
+                          location: null
+                          loginAt: "2025-11-26T08:15:00.000Z"
+                          lastActivityAt: "2025-11-26T22:30:00.000Z"
+                          isCurrent: false
+                      total: 2
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/sessions/{sessionId}:
+    delete:
+      summary: Logout from a specific session/device
+      description: |
+        Logout from a specific device/session by session ID.
+        This allows users to remotely logout from devices they no longer use or trust.
+        The session will be marked as inactive and cannot be used again.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Session Management
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique session identifier to logout from
+          example: "674567890abcdef987654321"
+      responses:
+        "200":
+          description: Successfully logged out from device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Successfully logged out from device"
+        "400":
+          description: Missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingId:
+                  value:
+                    success: false
+                    message: "Session ID is required"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Session not found or already logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    success: false
+                    message: "Session not found or already logged out"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/sessions/logout-all:
+    post:
+      summary: Logout from all sessions/devices
+      description: |
+        Logout from all active sessions across all devices.
+        This is useful when:
+        - User suspects unauthorized access
+        - Changing password (automatically triggered)
+        - Security precaution before traveling
+        **Note**: This will logout from ALL devices including the current one.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Session Management
+      responses:
+        "200":
+          description: Successfully logged out from all devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      loggedOutCount:
+                        type: integer
+                        description: Number of sessions that were logged out
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Successfully logged out from 3 device(s)"
+                    data:
+                      loggedOutCount: 3
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
