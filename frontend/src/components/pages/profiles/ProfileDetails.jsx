@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { getViewProfiles, addToCompare as apiAddToCompare, blockUserProfile, unblockUserProfile } from "../../../api/auth";
 import {
   Sparkles,
   Clock,
@@ -18,14 +19,17 @@ import {
   Briefcase,
   Calendar,
   ChevronLeft,
-  Star
+  Star,
+  UserX,
+  Shield
 } from "lucide-react";
 
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
+import toast from 'react-hot-toast';
 
 
-export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onToggleShortlist, compareProfiles = [], onAddToCompare, onRemoveCompare, onSendRequest, onWithdraw, onAccept, onReject }) {
+export function ProfileDetails({ profiles, sentProfileIds = [], onNavigate, shortlistedIds = [], onToggleShortlist, compareProfiles = [], selectedCompareProfiles = [], onAddToCompare, onRemoveCompare, onSendRequest, onWithdraw, onAccept, onReject }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,18 +48,125 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
   });
 
 
+  // Fetch profile from backend
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [localStatus, setLocalStatus] = useState(null); // Track local status changes
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isBlockingInProgress, setIsBlockingInProgress] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    let retryCount = 0;
+    
+    async function fetchProfileWithRetry() {
+      if (!id) {
+        console.warn("⚠️ [ProfileDetails] No profile ID provided");
+        return;
+      }
+      
+      console.log("🔄 [ProfileDetails] Starting profile fetch for ID:", id);
+      if (isMounted) setLoading(true);
+      
+      let response;
+      
+      while (retryCount < 3 && isMounted) {
+        console.log(`🔄 [ProfileDetails] Attempt ${retryCount + 1} to fetch profile`);
+        response = await getViewProfiles(id);
+        
+        console.log("📦 [ProfileDetails] Response received:", {
+          success: response?.success,
+          hasData: !!response?.data,
+          dataType: typeof response?.data,
+          message: response?.message,
+          fullResponse: response
+        });
+        
+        if (response?.success && response?.data) {
+          console.log("✅ [ProfileDetails] Profile data found:", response.data);
+          console.log("✅ [ProfileDetails] Profile data fields:", Object.keys(response.data));
+          
+          if (isMounted) {
+            console.log("✅ [ProfileDetails] Setting profile state with data:", response.data);
+            setProfile(response.data);
+            setLoading(false);
+          } else {
+            console.warn("⚠️ [ProfileDetails] Component unmounted, skipping state update");
+          }
+          return;
+        } else if (response?.message && response.message.includes('timeout')) {
+          retryCount++;
+          console.warn(`⚠️ [ProfileDetails] Timeout on attempt ${retryCount}, retrying...`);
+          if (isMounted) {
+            await new Promise(res => setTimeout(res, 1000 * retryCount)); // Exponential backoff
+          }
+        } else {
+          console.error("❌ [ProfileDetails] Failed to fetch profile:", {
+            success: response?.success,
+            data: response?.data,
+            message: response?.message
+          });
+          break;
+        }
+      }
+      
+      console.error("❌ [ProfileDetails] All retry attempts exhausted or no data found");
+      if (isMounted) {
+        setProfile(null);
+        setLoading(false);
+      }
+    }
+    
+    fetchProfileWithRetry();
+    
+    return () => { 
+      console.log("🧹 [ProfileDetails] Component unmounting");
+      isMounted = false; 
+    };
+  }, [id]);
+
   const dummyImage =
     "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=600&q=80";
 
-  // pick the selected profile from props (falls back to demo data)
-  const selected = (profiles || []).find((p) => p.id?.toString() === id?.toString());
-  const selectedProfile = selected || true;
+  // Helper function to capitalize first letter
+  const capitalize = (str) => {
+    if (!str) return "—";
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
 
-  // convenience fields for demo or real data
-  const profile = typeof selectedProfile === "object" ? selectedProfile : null;
-  const profileImage = profile?.image || "https://images.unsplash.com/photo-1554733998-0ddd4f28f5d0?w=800";
-  const matchText = profile?.compatibility ? `${profile.compatibility}% Match` : "96% Match";
-  const profileId = profile?.id ?? id;
+  // convenience fields for backend data
+  console.log("🎨 [ProfileDetails] Rendering with profile:", profile);
+  console.log("🎨 [ProfileDetails] Profile structure check:", {
+    hasCloserPhoto: !!profile?.closerPhoto,
+    closerPhotoUrl: profile?.closerPhoto?.url,
+    hasScoreDetail: !!profile?.scoreDetail,
+    score: profile?.scoreDetail?.score,
+    userId: profile?.userId,
+    personal: profile?.personal ? Object.keys(profile.personal) : null,
+    education: profile?.education ? Object.keys(profile.education) : null,
+    professional: profile?.professional ? Object.keys(profile.professional) : null
+  });
+  
+  // Build gallery photos from backend
+  const photos = React.useMemo(() => {
+    const arr = [];
+    if (profile?.closerPhoto?.url) arr.push({ url: profile.closerPhoto.url, label: "Profile" });
+    if (profile?.familyPhoto?.url) arr.push({ url: profile.familyPhoto.url, label: "Family", blurred: !!profile?.familyPhoto?.isBlurred });
+    if (Array.isArray(profile?.otherPhotos)) {
+      profile.otherPhotos.forEach((p) => {
+        if (p?.url) arr.push({ url: p.url, label: "Photo" });
+      });
+    }
+    return arr;
+  }, [profile]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const totalPhotos = photos.length;
+  const activePhoto = photos[activeIndex]?.url || profile?.closerPhoto?.url || "https://images.unsplash.com/photo-1554733998-0ddd4f28f5d0?w=800";
+  const isActiveBlurred = photos[activeIndex]?.blurred === true;
+  const goPrev = () => totalPhotos > 0 && setActiveIndex((i) => (i - 1 + totalPhotos) % totalPhotos);
+  const goNext = () => totalPhotos > 0 && setActiveIndex((i) => (i + 1) % totalPhotos);
+  const matchText = profile?.scoreDetail?.score ? `${profile.scoreDetail.score}% Match` : "";
+  const profileId = String(profile?.id || profile?.userId || profile?._id || profile?.user?.userId || profile?.user?.id || id);
   // robust check: prefer parent `shortlistedIds` when provided, otherwise use localShortlisted
   const shortlistSource = Array.isArray(shortlistedIds) && shortlistedIds.length > 0 ? shortlistedIds.map((s) => String(s)) : localShortlisted;
   const isShortlisted = profileId && Array.isArray(shortlistSource)
@@ -66,7 +177,62 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
     : false;
   const [optimisticInCompare, setOptimisticInCompare] = useState(false);
   const isUiInCompare = isInCompare || optimisticInCompare;
-  const status = String(profile?.status || 'none').toLowerCase();
+
+  // Keep optimistic flag in sync with authoritative parent state.
+  // If parent reports the profile id in `compareProfiles`, clear optimistic flag.
+  React.useEffect(() => {
+    try {
+      const cp = Array.isArray(compareProfiles) ? compareProfiles.map(String) : [];
+      if (cp.includes(String(profileId))) {
+        setOptimisticInCompare(false);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [compareProfiles, profileId]);
+
+  // If parent has appended the full profile object into selectedCompareProfiles,
+  // use that as a signal to show optimistic state immediately.
+  React.useEffect(() => {
+    try {
+      const sc = Array.isArray(selectedCompareProfiles) ? selectedCompareProfiles.map(p => String(p?.id || p?.userId || p?._id)) : [];
+      if (sc.includes(String(profileId))) {
+        setOptimisticInCompare(true);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [selectedCompareProfiles, profileId]);
+
+  // Debug logs to trace UI state when user interacts
+  React.useEffect(() => {
+    try {
+      console.log('🔎 ProfileDetails state:', {
+        profileId,
+        optimisticInCompare,
+        isInCompare,
+        compareProfilesSnapshot: Array.isArray(compareProfiles) ? compareProfiles.map(String) : compareProfiles,
+        selectedCompareProfilesSnapshot: Array.isArray(selectedCompareProfiles) ? selectedCompareProfiles.map(p => String(p?.id || p?.userId || p?._id)) : selectedCompareProfiles,
+      });
+    } catch (e) {
+      // ignore
+    }
+  }, [optimisticInCompare, isInCompare, compareProfiles, selectedCompareProfiles, profileId]);
+  
+  // Determine if this is a sent or received request
+  // Check both sentProfileIds array and profiles.sent array for reliability
+  const isSentRequest = profileId && (
+    sentProfileIds.includes(String(profileId)) ||
+    profiles?.some(p => String(p.id) === String(profileId) && p.type === 'sent')
+  );
+  
+  // Get status from profiles array if available, otherwise from profile data
+  const profileFromList = profiles?.find(p => String(p.id) === String(profileId));
+  const status = localStatus 
+    ? localStatus 
+    : (profileFromList?.status 
+      ? String(profileFromList.status).toLowerCase() 
+      : String(profile?.status || 'none').toLowerCase());
 
   const handleToggle = () => {
     const idStr = String(profileId);
@@ -123,7 +289,230 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
     navigate(-1);
   }
 
-  if (selectedProfile) {
+  // Build a minimal canonical profile object to pass to parent compare handler
+  const getProfileForCompare = () => {
+    if (!profile) return null;
+    // Mirror the canonical id logic used in UserDashboard.getCanonicalId
+    const pid = profile?.id || profile?.userId || profile?._id || profile?.user?.userId || profile?.user?.id || id;
+    const user = profile?.user || profile;
+    const name = `${user?.firstName || user?.name || ''} ${user?.lastName || ''}`.trim() || user?.name || 'Unknown';
+    return {
+      id: String(pid),
+      name,
+      image: user?.closerPhoto?.url || user?.image || profile?.closerPhoto?.url || profile?.image || '',
+      city: user?.city || profile?.personal?.city || profile?.city || '',
+      profession: user?.occupation || user?.professional?.Occupation || profile?.professional?.Occupation || profile?.occupation || '',
+      age: user?.age || profile?.age || null,
+      religion: user?.religion || profile?.personal?.religion || profile?.religion || null,
+      caste: user?.subCaste || profile?.personal?.subCaste || profile?.subCaste || null,
+      education: user?.education || profile?.education || null,
+      compatibility: profile?.scoreDetail?.score ?? profile?.compatibility ?? 0,
+    };
+  };
+
+  // Centralized add-to-compare helper: prefer calling parent handler,
+  // but if it's missing (undefined), dispatch a global event as a fallback
+  const addToCompareHandler = async (id, profileObj = null) => {
+    try {
+      console.log('ProfileDetails: addToCompareHandler called', { id, hasParent: typeof onAddToCompare === 'function', hasGlobal: typeof window?.__satfera_handleAddToCompare === 'function' });
+      if (typeof onAddToCompare === 'function') {
+        console.log('ProfileDetails: calling parent onAddToCompare prop');
+        return onAddToCompare(id, profileObj);
+      }
+
+      // Try global direct callable as a stronger fallback before trying API
+      if (typeof window?.__satfera_handleAddToCompare === 'function') {
+        try {
+          console.log('ProfileDetails: calling window.__satfera_handleAddToCompare fallback');
+          return window.__satfera_handleAddToCompare(id, profileObj);
+        } catch (e) {
+          console.warn('ProfileDetails: window.__satfera_handleAddToCompare failed', e);
+        }
+      }
+
+      // As a last-resort, call the compare API directly so server state updates.
+      try {
+        const resp = await apiAddToCompare(id, compareProfiles);
+        console.log('ProfileDetails: apiAddToCompare response', id, resp);
+        if (resp && resp.success !== false) {
+          // mark local optimistic flag so the button shows "In Compare" immediately
+          setOptimisticInCompare(true);
+
+          // Notify parent via global callable or event so it can sync its pools
+          try {
+            if (typeof window?.__satfera_handleAddToCompare === 'function') {
+              window.__satfera_handleAddToCompare(id, profileObj || getProfileForCompare());
+            } else {
+              window.dispatchEvent(new CustomEvent('satfera:addToCompare', { detail: { id, profile: profileObj || getProfileForCompare() } }));
+            }
+          } catch (notifyErr) {
+            console.warn('ProfileDetails: notification fallback failed', notifyErr);
+          }
+
+          // Persist durable pending record in case parent still misses it
+          try {
+            const key = 'satfera:pendingAddToCompare';
+            const raw = localStorage.getItem(key) || '[]';
+            const list = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
+            list.push({ id: String(id), profile: profileObj || getProfileForCompare(), ts: Date.now() });
+            localStorage.setItem(key, JSON.stringify(list));
+          } catch (lsErr) {
+            console.warn('ProfileDetails: failed to persist pending addToCompare', lsErr);
+          }
+
+          return resp;
+        } else {
+          console.warn('ProfileDetails: apiAddToCompare returned no success:', resp);
+          try { toast.error(resp?.message || 'Failed to '); } catch (e) {}
+          return resp;
+        }
+      } catch (apiErr) {
+        console.error('ProfileDetails: apiAddToCompare error', apiErr);
+        try { toast.error('Failed to add to compare'); } catch (e) {}
+        // still try event + localStorage fallback so parent can pick it up
+        try {
+          window.dispatchEvent(new CustomEvent('satfera:addToCompare', { detail: { id, profile: profileObj } }));
+        } catch (e) {}
+        try {
+          const key = 'satfera:pendingAddToCompare';
+          const raw = localStorage.getItem(key) || '[]';
+          const list = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
+          list.push({ id: String(id), profile: profileObj || getProfileForCompare(), ts: Date.now() });
+          localStorage.setItem(key, JSON.stringify(list));
+        } catch (lsErr) {
+          console.warn('ProfileDetails: failed to persist pending addToCompare after api error', lsErr);
+        }
+      }
+    } catch (e) {
+      console.error('ProfileDetails: addToCompareHandler error', e);
+    }
+  };
+
+  // Helper wrappers that await parent handlers and manage optimistic UI
+  const triggerAddToCompare = async (theId) => {
+    const pid = String(theId);
+    setOptimisticInCompare(true);
+    try {
+      if (typeof onAddToCompare === 'function') {
+        const res = await onAddToCompare(pid, getProfileForCompare());
+        return res;
+      }
+      // fallback to internal handler which may perform API + dispatch
+      const res = await addToCompareHandler(pid, getProfileForCompare());
+      return res;
+    } catch (e) {
+      console.error('triggerAddToCompare error', e);
+      // revert optimistic on error
+      setOptimisticInCompare(false);
+      throw e;
+    }
+  };
+
+  const triggerRemoveFromCompare = async (theId) => {
+    const pid = String(theId);
+    // optimistic remove
+    setOptimisticInCompare(false);
+    try {
+      if (typeof onRemoveCompare === 'function') {
+        const res = await onRemoveCompare(pid);
+        return res;
+      }
+      if (typeof window?.__satfera_handleRemoveFromCompare === 'function') {
+        return await window.__satfera_handleRemoveFromCompare(pid);
+      }
+      // fallback: call addToCompareHandler with remove through event
+      return await addToCompareHandler(pid, getProfileForCompare());
+    } catch (e) {
+      console.error('triggerRemoveFromCompare error', e);
+      // revert optimistic removal on error
+      setOptimisticInCompare(true);
+      throw e;
+    }
+  };
+
+  // Centralized click handlers: only these update optimistic UI state.
+  const handleAddClick = async () => {
+    setOptimisticInCompare(true);
+    try {
+      await triggerAddToCompare(profileId);
+    } catch (e) {
+      console.warn('Add to compare failed', e);
+      setOptimisticInCompare(false);
+    }
+  };
+
+  const handleRemoveClick = async () => {
+    setOptimisticInCompare(false);
+    try {
+      await triggerRemoveFromCompare(profileId);
+    } catch (e) {
+      console.warn('Remove compare failed', e);
+      setOptimisticInCompare(true);
+    }
+  };
+
+  const handleBlockToggle = async () => {
+    if (isBlockingInProgress) return;
+    
+    const customId = profile?.customId;
+    if (!customId) {
+      toast.error('Unable to block: Profile ID not found');
+      return;
+    }
+
+    const userName = profile?.personal?.firstName || 'User';
+    
+    setIsBlockingInProgress(true);
+    try {
+      if (isBlocked) {
+        const response = await unblockUserProfile(customId);
+        if (response?.success) {
+          setIsBlocked(false);
+          toast.success(`${userName} has been unblocked`);
+        } else {
+          toast.error(response?.message || 'Failed to unblock user');
+        }
+      } else {
+        const response = await blockUserProfile(customId);
+        if (response?.success) {
+          setIsBlocked(true);
+          toast.success(`${userName} has been blocked`);
+        } else {
+          toast.error(response?.message || 'Failed to block user');
+        }
+      }
+    } catch (error) {
+      console.error('Block/unblock error:', error);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setIsBlockingInProgress(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f6f1e6] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8A227] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loading && !profile) {
+    return (
+      <div className="min-h-screen bg-[#f6f1e6] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Profile not found</p>
+          <p className="text-sm text-gray-500 mt-2">Profile ID: {id}</p>
+          <button onClick={handleBack} className="mt-4 text-[#C8A227] hover:underline">Go Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (profile) {
     return (
       <div className="min-h-screen bg-[#f6f1e6] flex justify-center container">
         <div className="w-full px-6 py-4 space-y-4 relative">
@@ -160,14 +549,56 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                     <Star size={20} className="text-[#C8A227]" />
                   )}
                 </div>
-                  <img
-                    src={profileImage}
-                    alt={profile?.name}
-                    className="w-full h-[420px] md:h-[420px] lg:h-[500px] object-cover rounded-2xl shadow-lg border border-gray-200"
-                  />
+                  <div className="relative">
+                    {totalPhotos > 0 && (
+                      <span className="absolute z-30 bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                        {activeIndex + 1}/{totalPhotos}
+                      </span>
+                    )}
+                    <img
+                      src={activePhoto}
+                      alt={profile?.name}
+                      className="w-full h-[360px] md:h-[420px] lg:h-[430px] object-cover rounded-2xl shadow-lg border border-gray-200"
+                    />
+                    {/* {totalPhotos > 1 && (
+                      // <>
+                      //   <button type="button" onClick={goPrev} aria-label="Previous photo" className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full  text-white grid place-items-center shadow-lg transition-all text-2xl font-bold">‹</button>
+                      //   <button type="button" onClick={goNext} aria-label="Next photo" className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full text-white grid place-items-center shadow-lg transition-all text-2xl font-bold">›</button>
+                      // </>
+                    )} */}
+                  </div>
                 </div>
-
-
+                {photos.length > 1 && (
+                  <div className="mt-3 flex items-center gap-3 overflow-x-auto pb-1 px-1">
+                    {photos.map((p, idx) => {
+                      const isActive = idx === activeIndex;
+                      return (
+                        <button
+                          key={`${p.url}-${idx}`}
+                          onClick={() => setActiveIndex(idx)}
+                          className={`relative shrink-0 size-20 rounded-xl overflow-hidden border transition-all duration-150 flex items-center justify-center bg-white ${isActive ? 'border-[#DDB84E] ring-2 ring-[#DDB84E]/40 shadow-md' : 'border-gray-200 hover:border-[#DDB84E]/60'}`}
+                          aria-label={`Thumbnail ${idx + 1}`}
+                          title={p.label || `Photo ${idx + 1}`}
+                        >
+                          <img
+                            src={p.url}
+                            alt={p.label || `Photo ${idx + 1}`}
+                            className={`absolute inset-0 w-full h-full object-cover  'blur-sm scale-105' : ''}`}
+                            loading="lazy"
+                          />
+                          {/* {p.blurred && (
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                              <span className="text-xs font-medium text-white bg-black/50 px-2 py-0.5 rounded-full">Blurred</span>
+                            </div>
+                          )} */}
+                          {isActive && (
+                            <span className="absolute -top-1 -right-1 bg-[#DDB84E] text-white text-[10px] px-1.5 py-0.5 rounded-full shadow">Active</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -175,35 +606,60 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
               {/* 🔝 Header */}
               <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 w-full overflow-hidden">
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-3xl font-semibold text-[#222] leading-tight">
-                      Aarohi Shah
+                      {profile?.firstName || "—"} {profile?.middleName ? profile.middleName + " " : ""}{profile?.lastName || ""}
                     </h2>
-                    <Badge className="bg-[#FFF8E1] text-[#C8A227] border border-[#F0E0A2] flex items-center gap-2 px-3 py-1 rounded-full text-sm shadow-sm transform -translate-y-1">
-                      <CheckCircle size={14} />
-                      Verified
-                    </Badge>
+                    <img 
+                      src="/badge.png" 
+                      alt="Verified" 
+                      className="w-6 h-6 object-contain"
+                      title="Verified Profile"
+                    />
                   </div>
                   <p className="text-[#5C5C5C] text-[15px] leading-relaxed">
-                    26 years • Mumbai • Senior Marketing Manager
+                    {profile?.age || "—"} years • {capitalize(profile?.gender)} • {profile?.personal?.city || "—"}, {profile?.personal?.state || "—"} • {profile?.professional?.Occupation || "—"}
                   </p>
+                  {(profile?.email || profile?.phoneNumber) && (
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-1">
+                      {profile?.email && (
+                        <div className="flex items-center gap-1">
+                          <MessageCircle size={14} />
+                          <span>{profile.email}</span>
+                        </div>
+                      )}
+                      {profile?.phoneNumber && (
+                        <div className="flex items-center gap-1">
+                          <span>📱</span>
+                          <span>{profile.phoneNumber}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {profile?.customId && (
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-1">
+                      <span className="bg-gray-100 px-2 py-1 rounded">
+                        ID: {profile.customId}
+                      </span>
+                    </div>
+                  )}
                   <hr className="my-3 border-gray-200" />
                   <div className="grid grid-cols-2 sm:grid-cols-4 text-center text-sm">
                     <div>
                       <p className="text-gray-500">Height</p>
-                      <p className="font-semibold">5'6"</p>
+                      <p className="font-semibold">{profile?.personal?.height || "—"}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Religion</p>
-                      <p className="font-semibold">Hindu</p>
+                      <p className="font-semibold">{profile?.personal?.religion || "—"}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Education</p>
-                      <p className="font-semibold">MBA</p>
+                      <p className="font-semibold">{profile?.education?.HighestEducation || "—"}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Diet</p>
-                      <p className="font-semibold">Vegetarian</p>
+                      <p className="font-semibold">{profile?.healthAndLifestyle?.diet || "—"}</p>
                     </div>
                   </div>
                 </div>
@@ -219,251 +675,438 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8 text-sm">
-                    <div className="flex items-start gap-2">
-                      <Calendar className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Date of Birth</p>
-                        <p className="font-semibold text-[#222]">15/03/1998</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                    {/* Row 1 */}
+                    {profile?.gender && (
+                      <div className="flex items-start gap-2">
+                        <User className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Gender</p>
+                          <p className="font-semibold text-[#222]">{capitalize(profile.gender)}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Clock className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Time of Birth</p>
-                        <p className="font-semibold text-[#222]">14:30</p>
+                    )}
+                    
+                    {/* Row 2 */}
+                    {profile?.dateOfBirth && (
+                      <div className="flex items-start gap-2">
+                        <Calendar className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Date of Birth</p>
+                          <p className="font-semibold text-[#222]">{new Date(profile.dateOfBirth).toLocaleDateString()}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <MapPin className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Birthplace</p>
-                        <p className="font-semibold text-[#222]">Mumbai, Maharashtra</p>
+                    )}
+                    {profile?.personal?.birthPlace && profile?.personal?.birthState && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Birthplace</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.birthPlace}, {profile.personal.birthState}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Ruler className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Height</p>
-                        <p className="font-semibold text-[#222]">5'6" (168 cm)</p>
+                    )}
+                    
+                    {/* Row 3 */}
+                    {profile?.personal?.timeOfBirth && (
+                      <div className="flex items-start gap-2">
+                        <AlarmClock className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Time of Birth</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.timeOfBirth}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Weight className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Weight</p>
-                        <p className="font-semibold text-[#222]">58 kg (128 lbs)</p>
+                    )}
+                    {profile?.personal?.marriedStatus && (
+                      <div className="flex items-start gap-2">
+                        <Calendar className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Marital Status</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.marriedStatus}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Moon className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Astrological Sign</p>
-                        <p className="font-semibold text-[#222]">Pisces (Meen)</p>
+                    )}
+                    
+                    {/* Row 4 */}
+                    {profile?.personal?.height && (
+                      <div className="flex items-start gap-2">
+                        <Ruler className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Height</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.height}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Dosh Information</p>
-                        <p className="font-semibold text-[#222]">Non-Manglik</p>
+                    )}
+                    {profile?.personal?.weight && (
+                      <div className="flex items-start gap-2">
+                        <Weight className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Weight</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.weight}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <User className="text-[#C8A227]" size={18} />
-                      <div>
-                        <p className="text-gray-500 text-[13px]">Caste & Subcaste</p>
-                        <p className="font-semibold text-[#222]">Patel - Kadva Patel</p>
+                    )}
+                    
+                    {/* Row 5 */}
+                    {profile?.personal?.complexion && (
+                      <div className="flex items-start gap-2">
+                        <User className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Complexion</p>
+                          <p className="font-semibold text-[#222]">{capitalize(profile.personal.complexion)}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    {profile?.personal?.hasChildren !== undefined && (
+                      <div className="flex items-start gap-2">
+                        <User className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Has Children</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.hasChildren ? "Yes" : "No"}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Row 6 */}
+                    {profile?.personal?.divorceStatus && (
+                      <div className="flex items-start gap-2">
+                        <Calendar className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Divorce Status</p>
+                          <p className="font-semibold text-[#222]">{capitalize(profile.personal.divorceStatus)}</p>
+                        </div>
+                      </div>
+                    )}
+                    {profile?.personal?.motherTongue && (
+                      <div className="flex items-start gap-2">
+                        <MessageCircle className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Mother Tongue</p>
+                          <p className="font-semibold text-[#222]">{capitalize(profile.personal.motherTongue)}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Row 7 */}
+                    {profile?.personal?.religion && (
+                      <div className="flex items-start gap-2">
+                        <Heart className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Religion</p>
+                          <p className="font-semibold text-[#222]">{capitalize(profile.personal.religion)}</p>
+                        </div>
+                      </div>
+                    )}
+                    {profile?.personal?.caste && (
+                      <div className="flex items-start gap-2">
+                        <User className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Caste</p>
+                          <p className="font-semibold text-[#222]">{capitalize(profile.personal.caste)}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Row 8 */}
+                    {profile?.personal?.subCaste && (
+                      <div className="flex items-start gap-2">
+                        <User className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Subcaste</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.subCaste}</p>
+                        </div>
+                      </div>
+                    )}
+                    {profile?.personal?.astrologicalSign && (
+                      <div className="flex items-start gap-2">
+                        <Moon className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Astrological Sign</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.astrologicalSign}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Row 9 */}
+                    {profile?.personal?.dosh && (
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Dosh Information</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.dosh}</p>
+                        </div>
+                      </div>
+                    )}
+                    {profile?.personal?.marryToOtherReligion !== undefined && (
+                      <div className="flex items-start gap-2">
+                        <Heart className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Open to Other Religion</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.marryToOtherReligion ? "Yes" : "No"}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Row 10 */}
+                    {profile?.personal?.nationality && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Nationality</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.nationality}</p>
+                        </div>
+                      </div>
+                    )}
+                    {profile?.personal?.country && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Country</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.country}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Row 11 */}
+                    {profile?.personal?.city && profile?.personal?.state && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Current Location</p>
+                          <p className="font-semibold text-[#222]">{profile.personal.city}, {profile.personal.state}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* 👨‍👩‍👧 Family Details */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                   {/* Header */}
-                  <div className="flex items-center gap-2 mb-5">
+                  <div className="flex items-center gap-2 mb-3">
                     <User className="text-[#C8A227]" size={20} />
                     <h3 className="text-lg font-semibold text-[#222]">Family Details</h3>
                   </div>
 
-                  {/* Parents & Grandparents */}
-                  <div className="grid sm:grid-cols-2 gap-6 text-sm mb-6">
-                    <div>
-                      <p className="text-gray-500">Father</p>
-                      <p className="font-medium text-[#222]">Rajesh Kumar Sharma</p>
-                      <p className="text-gray-600">Business Owner • Ahmedabad, Gujarat</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Mother</p>
-                      <p className="font-medium text-[#222]">Sunita Sharma</p>
-                      <p className="text-gray-600">Homemaker • Mumbai, Maharashtra</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Grandfather (Paternal)</p>
-                      <p className="font-medium text-[#222]">Late Shri Ramesh Sharma</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Grandmother (Paternal)</p>
-                      <p className="font-medium text-[#222]">Smt. Kamala Sharma</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Nana (Maternal)</p>
-                      <p className="font-medium text-[#222]">Late Shri Mohan Verma</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Nani (Maternal)</p>
-                      <p className="font-medium text-[#222]">Smt. Sharda Verma</p>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-gray-100 my-4"></div>
-
-                  {/* 👨‍👩‍👧 Siblings */}
-                  <div className="mb-6">
-                    <p className="text-gray-500 mb-2">Siblings</p>
+                  <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    {/* Father's Details Column */}
                     <div className="space-y-3">
-                      {/* Elder Brother */}
-                      <div className="flex items-center justify-between bg-[#FAF6EF] rounded-xl p-4 border border-gray-100">
+                      {profile?.family?.fatherName && (
                         <div>
-                          <p className="font-semibold text-[#222]">Rahul Sharma</p>
-                          <p className="text-gray-600 text-sm">Elder Brother • 29 years</p>
+                          <p className="text-gray-500">Father's Name</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.fatherName)}</p>
                         </div>
-                        <span className="bg-[#F9F4EB] text-[#C8A227] text-xs font-medium px-3 py-1 rounded-full">
-                          Married
-                        </span>
-                      </div>
-
-                      {/* Younger Sister */}
-                      <div className="flex items-center justify-between bg-[#FAF6EF] rounded-xl p-4 border border-gray-100">
+                      )}
+                      
+                      {profile?.family?.fatherOccupation && (
                         <div>
-                          <p className="font-semibold text-[#222]">Neha Sharma</p>
-                          <p className="text-gray-600 text-sm">Younger Sister • 23 years</p>
+                          <p className="text-gray-500">Father's Occupation</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.fatherOccupation)}</p>
                         </div>
-                        <span className="bg-[#F9F4EB] text-[#C8A227] text-xs font-medium px-3 py-1 rounded-full">
-                          Unmarried
-                        </span>
-                      </div>
+                      )}
+                      
+                      {profile?.family?.fatherNativePlace && (
+                        <div>
+                          <p className="text-gray-500">Father's Native Place</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.fatherNativePlace)}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Mother's Details Column */}
+                    <div className="space-y-3">
+                      {profile?.family?.motherName && (
+                        <div>
+                          <p className="text-gray-500">Mother's Name</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.motherName)}</p>
+                        </div>
+                      )}
+                      
+                      {profile?.family?.motherOccupation && (
+                        <div>
+                          <p className="text-gray-500">Mother's Occupation</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.motherOccupation)}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Family Type */}
-                  <div>
-                    <p className="text-gray-500">Family Type</p>
-                    <p className="font-semibold text-[#222]">Nuclear</p>
+                  
+                  {/* Grandparents Row */}
+                  <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm mt-6">
+                    <div className="space-y-3">
+                      {profile?.family?.grandFatherName && (
+                        <div>
+                          <p className="text-gray-500">Paternal Grandfather</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.grandFatherName)}</p>
+                        </div>
+                      )}
+                      
+                      {profile?.family?.nanaName && (
+                        <div>
+                          <p className="text-gray-500">Maternal Grandfather</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.nanaName)}</p>
+                        </div>
+                      )}
+                      
+                      {profile?.family?.nanaNativePlace && (
+                        <div>
+                          <p className="text-gray-500">Nana's Native Place</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.nanaNativePlace)}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {profile?.family?.grandMotherName && (
+                        <div>
+                          <p className="text-gray-500">Paternal Grandmother</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.grandMotherName)}</p>
+                        </div>
+                      )}
+                      
+                      {profile?.family?.naniName && (
+                        <div>
+                          <p className="text-gray-500">Maternal Grandmother</p>
+                          <p className="font-medium text-[#222]">{capitalize(profile.family.naniName)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Family Type */}
+                  {profile?.family?.familyType && (
+                    <div className="mt-6 text-sm">
+                      <p className="text-gray-500">Family Type</p>
+                      <p className="font-medium text-[#222]">{capitalize(profile.family.familyType)}</p>
+                    </div>
+                  )}
+                  
+                  {/* Siblings */}
+                  {profile?.family?.siblings !== undefined && (
+                    <div className="mt-6 text-sm">
+                      <p className="text-gray-500">Number of Siblings</p>
+                      <p className="font-medium text-[#222]">{profile.family.siblings}</p>
+                    </div>
+                  )}
+                  
+                  {profile?.family?.siblingDetails && profile.family.siblingDetails.length > 0 && (
+                    <div className="mt-6">
+                      <p className="text-gray-500 font-semibold mb-3">Sibling Details</p>
+                      <div className="space-y-3">
+                        {profile.family.siblingDetails.map((sibling, index) => (
+                          <div key={index} className="bg-[#f6f1e7] p-3 rounded-lg">
+                            <p className="font-medium text-[#222]">{capitalize(sibling.name)}</p>
+                            <p className="text-sm text-gray-600">{capitalize(sibling.relation)} • {capitalize(sibling.maritalStatus)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 🎓 Education Details */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <div className="flex items-center gap-2 mb-5">
+                  <div className="flex items-center gap-2 mb-3">
                     <GraduationCap className="text-[#C8A227]" size={20} />
                     <h3 className="text-lg font-semibold text-[#222]">
                       Education Details
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">School</p>
-                      <p className="font-semibold text-[#222]">
-                        St. Xavier&apos;s High School, Mumbai
-                      </p>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    {profile?.education?.SchoolName && (
+                      <div>
+                        <p className="text-gray-500">School</p>
+                        <p className="font-semibold text-[#222]">
+                          {profile?.education?.SchoolName}
+                        </p>
+                      </div>
+                    )}
 
                     <div>
                       <p className="text-gray-500">Highest Qualification</p>
-                      <p className="font-semibold text-[#222]">MBA</p>
+                      <p className="font-semibold text-[#222]">{profile?.education?.HighestEducation || "—"}</p>
                     </div>
 
-                    <div>
-                      <p className="text-gray-500">University / College</p>
-                      <p className="font-semibold text-[#222]">
-                        Indian Institute of Management, Ahmedabad
-                      </p>
-                    </div>
+                    {profile?.education?.University && (
+                      <div>
+                        <p className="text-gray-500">University / College</p>
+                        <p className="font-semibold text-[#222]">
+                          {profile?.education?.University}
+                        </p>
+                      </div>
+                    )}
 
-                    <div>
-                      <p className="text-gray-500">Field of Study</p>
-                      <p className="font-semibold text-[#222]">Marketing</p>
-                    </div>
+                    {profile?.education?.FieldOfStudy && (
+                      <div>
+                        <p className="text-gray-500">Field of Study</p>
+                        <p className="font-semibold text-[#222]">{profile?.education?.FieldOfStudy}</p>
+                      </div>
+                    )}
 
-                    <div>
-                      <p className="text-gray-500">Country of Education</p>
-                      <p className="font-semibold text-[#222]">India</p>
-                    </div>
+                    {profile?.education?.CountryOfEducation && (
+                      <div>
+                        <p className="text-gray-500">Country of Education</p>
+                        <p className="font-semibold text-[#222]">{profile?.education?.CountryOfEducation}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* 💼 Professional Details */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
                     <Briefcase className="text-[#C8A227]" size={20} />
                     <h3 className="text-lg font-semibold text-[#222]">
                       Professional Details
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
                     <div>
                       <p className="text-gray-500">Employment Status</p>
-                      <p className="font-semibold text-[#222]">Employed</p>
+                      <p className="font-semibold text-[#222]">{capitalize(profile?.professional?.EmploymentStatus)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Company</p>
                       <p className="font-semibold text-[#222]">
-                        Tata Consultancy Services
+                        {profile?.professional?.OrganizationName || "—"}
                       </p>
                     </div>
                     <div>
                       <p className="text-gray-500">Job Title</p>
-                      <p className="font-semibold text-[#222]">Senior Marketing Manager</p>
+                      <p className="font-semibold text-[#222]">{profile?.professional?.Occupation || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 mb-2">Annual Income</p>
-                      <Button className="bg-[#C8A227] hover:bg-[#b99620] text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2">
-                        <Lock size={16} />
-                        Upgrade to View
-                      </Button>
+                      <p className="text-gray-500">Annual Income</p>
+                      <p className="font-semibold text-[#222]">{profile?.professional?.AnnualIncome || "Not Disclosed"}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* ❤️ Health & Lifestyle */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                  <div className="flex items-center gap-2 mb-5">
+                  <div className="flex items-center gap-2 mb-3">
                     <Heart className="text-[#C8A227]" size={20} />
                     <h3 className="text-lg font-semibold text-[#222]">Health & Lifestyle</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 text-sm">
                     <div>
                       <p className="text-gray-500">Alcohol</p>
-                      <p className="font-semibold text-[#222]">No</p>
+                      <p className="font-semibold text-[#222]">{capitalize(profile?.healthAndLifestyle?.isAlcoholic)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Tobacco</p>
-                      <p className="font-semibold text-[#222]">No</p>
+                      <p className="font-semibold text-[#222]">{capitalize(profile?.healthAndLifestyle?.isTobaccoUser)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Tattoos</p>
-                      <p className="font-semibold text-[#222]">No</p>
+                      <p className="font-semibold text-[#222]">{capitalize(profile?.healthAndLifestyle?.isHaveTattoos)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Diet</p>
-                      <p className="font-semibold text-[#222]">Vegetarian</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Medical History</p>
-                      <p className="font-semibold text-[#222]">None</p>
+                      <p className="font-semibold text-[#222]">{capitalize(profile?.healthAndLifestyle?.diet)}</p>
                     </div>
                   </div>
 
@@ -488,7 +1131,7 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                     <>
                       {onSendRequest && (
                         <Button
-                          onClick={() => onSendRequest(profile.id)}
+                          onClick={() => onSendRequest(profileId)}
                           className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
                         >
                           Send Request
@@ -496,15 +1139,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                       )}
                       {isUiInCompare ? (
                         <Button
-                          onClick={() => {
-                            setOptimisticInCompare(false);
-                            onRemoveCompare?.(profile.id);
-                          }}
+                          onClick={handleRemoveClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(false);
-                              onRemoveCompare?.(profile.id);
+                              handleRemoveClick();
                             }
                           }}
                           className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
@@ -513,17 +1152,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                         </Button>
                       ) : (
                         <Button
-                          onTouchStart={() => setOptimisticInCompare(true)}
-                          onMouseDown={() => setOptimisticInCompare(true)}
-                          onClick={() => {
-                            setOptimisticInCompare(true);
-                            onAddToCompare?.(profile.id);
-                          }}
+                          onClick={handleAddClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(true);
-                              onAddToCompare?.(profile.id);
+                              handleAddClick();
                             }
                           }}
                           className="flex-1 bg-[#f6f1e7] hover:bg-[#C8A227] hover:text-white border-2 border-[#c8a227] text-[#c8a227] rounded-[12px] h-12"
@@ -534,13 +1167,46 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                     </>
                   )}
 
-                  {status === 'pending' && onWithdraw && !onAccept && !onReject && (
-                    <Button
-                      onClick={() => onWithdraw(profile.id)}
-                      className="flex-1 bg-[#f6f1e7] hover:text-white hover:bg-[#d95655] border-2 border-[#d64545] text-[#d95655] rounded-[8px] h-12"
-                    >
-                      Withdraw Request
-                    </Button>
+                  {status === 'pending' && isSentRequest && onWithdraw && (
+                    <>
+                      <Button
+                        onClick={async () => {
+                          await onWithdraw(profileId);
+                          setLocalStatus('withdrawn');
+                        }}
+                        className="flex-1 bg-[#f6f1e7] hover:text-white hover:bg-[#d95655] border-2 border-[#d64545] text-[#d95655] rounded-[8px] h-12"
+                      >
+                        Withdraw Request
+                      </Button>
+
+                      {isUiInCompare ? (
+                        <Button
+                          onClick={handleRemoveClick}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleRemoveClick();
+                            }
+                          }}
+                          className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
+                        >
+                          In Compare
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleAddClick}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleAddClick();
+                            }
+                          }}
+                          className="flex-1 bg-[#f6f1e7] hover:bg-[#C8A227] hover:text-white border-2 border-[#c8a227] text-[#c8a227] rounded-[12px] h-12"
+                        >
+                          Add to Compare
+                        </Button>
+                      )}
+                    </>
                   )}
 
                   {status === 'withdrawn' && (
@@ -556,15 +1222,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                     <>
                       {isUiInCompare ? (
                         <Button
-                          onClick={() => {
-                            setOptimisticInCompare(false);
-                            onRemoveCompare?.(profile.id);
-                          }}
+                          onClick={handleRemoveClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(false);
-                              onRemoveCompare?.(profile.id);
+                              handleRemoveClick();
                             }
                           }}
                           className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
@@ -573,17 +1235,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                         </Button>
                       ) : (
                         <Button
-                          onTouchStart={() => setOptimisticInCompare(true)}
-                          onMouseDown={() => setOptimisticInCompare(true)}
-                          onClick={() => {
-                            setOptimisticInCompare(true);
-                            onAddToCompare?.(profile.id);
-                          }}
+                          onClick={handleAddClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(true);
-                              onAddToCompare?.(profile.id);
+                              handleAddClick();
                             }
                           }}
                           className="flex-1 bg-[#f6f1e7] hover:bg-[#C8A227] hover:text-white border-2 border-[#c8a227] text-[#c8a227] rounded-[12px] h-12"
@@ -594,17 +1250,17 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                     </>
                   )}
 
-                  {status === 'pending' && onAccept && onReject && (
+                  {status === 'pending' && !isSentRequest && onAccept && onReject && (
                     <>
                       <Button
-                        onClick={() => onAccept(profile.id)}
+                        onClick={() => onAccept(profileId)}
                         className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
                       >
                         Accept
                       </Button>
 
                       <Button
-                        onClick={() => onReject(profile.id)}
+                        onClick={() => onReject(profileId)}
                         className="flex-1 bg-[#f6f1e7] hover:text-white hover:bg-[#d95655] border-2 border-[#d64545] text-[#d95655] rounded-[8px] h-12"
                       >
                         Reject
@@ -612,15 +1268,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
 
                       {isUiInCompare ? (
                         <Button
-                          onClick={() => {
-                            setOptimisticInCompare(false);
-                            onRemoveCompare?.(profile.id);
-                          }}
+                          onClick={handleRemoveClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(false);
-                              onRemoveCompare?.(profile.id);
+                              handleRemoveClick();
                             }
                           }}
                           className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
@@ -629,17 +1281,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                         </Button>
                       ) : (
                         <Button
-                          onTouchStart={() => setOptimisticInCompare(true)}
-                          onMouseDown={() => setOptimisticInCompare(true)}
-                          onClick={() => {
-                            setOptimisticInCompare(true);
-                            onAddToCompare?.(profile.id);
-                          }}
+                          onClick={handleAddClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(true);
-                              onAddToCompare?.(profile.id);
+                              handleAddClick();
                             }
                           }}
                           className="flex-1 bg-[#f6f1e7] hover:bg-[#C8A227] hover:text-white border-2 border-[#c8a227] text-[#c8a227] rounded-[12px] h-12"
@@ -662,15 +1308,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                       
                       {isUiInCompare ? (
                         <Button
-                          onClick={() => {
-                            setOptimisticInCompare(false);
-                            onRemoveCompare?.(profile.id);
-                          }}
+                          onClick={handleRemoveClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(false);
-                              onRemoveCompare?.(profile.id);
+                              handleRemoveClick();
                             }
                           }}
                           className="flex-1 bg-[#DDB84E] hover:bg-[#C8A227] text-white rounded-[12px] h-12"
@@ -679,17 +1321,11 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
                         </Button>
                       ) : (
                         <Button
-                          onTouchStart={() => setOptimisticInCompare(true)}
-                          onMouseDown={() => setOptimisticInCompare(true)}
-                          onClick={() => {
-                            setOptimisticInCompare(true);
-                            onAddToCompare?.(profile.id);
-                          }}
+                          onClick={handleAddClick}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setOptimisticInCompare(true);
-                              onAddToCompare?.(profile.id);
+                              handleAddClick();
                             }
                           }}
                           className="flex-1 bg-[#f6f1e7] hover:bg-[#C8A227] hover:text-white border-2 border-[#c8a227] text-[#c8a227] rounded-[12px] h-12"
@@ -718,3 +1354,5 @@ export function ProfileDetails({ profiles, onNavigate, shortlistedIds = [], onTo
     </div>
   );
 }
+
+

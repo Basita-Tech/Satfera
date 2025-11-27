@@ -26,11 +26,11 @@ const LoginForm = () => {
       const redirectTo = params.get("redirectTo");
 
       if (token) {
+        // ✅ Token is now stored in HTTP-only cookie by backend
+        // No need to store in localStorage (XSS protection)
+        
         try {
-          localStorage.setItem("authToken", token);
-        } catch (e) {}
-
-        try {
+          // Update context if needed for UI state
           if (ctxLogin) ctxLogin({ token });
         } catch (e) {}
 
@@ -44,9 +44,8 @@ const LoginForm = () => {
     const checkLoggedInAndRedirect = async () => {
       if (handleUrlToken()) return;
 
-      const savedToken = ctxToken || localStorage.getItem("authToken");
-      if (!savedToken) return;
-
+      // ✅ Check authentication via API call (cookie sent automatically)
+      // No localStorage check needed - more secure!
       try {
         const os = await getOnboardingStatus();
         const onboardingData = os?.data?.data || os?.data || {};
@@ -96,26 +95,43 @@ const LoginForm = () => {
 
   const handleAuthResponse = async (apiResponse) => {
     try {
-      const resp = apiResponse?.data || apiResponse || {};
-      const token = resp.token || resp?.data?.token;
+      const resp = apiResponse || {};
+      const token = resp.token;
 
-      if (token) {
-        try {
-          localStorage.setItem("authToken", token);
-        } catch (e) {}
+      // Treat onboarding / review redirects as partial success even if success:false
+      const isOnboardingRedirect =
+        !!resp.redirectTo && ["/onboarding/user", "/onboarding/review"].includes(resp.redirectTo);
 
+      if (token && ctxLogin) {
         try {
-          if (ctxLogin) ctxLogin({ token });
-        } catch (e) {}
+          ctxLogin({ token });
+        } catch (_) {}
       }
 
       if (resp.message) {
-        if (resp.success) toast.success(resp.message);
-        else toast.error(resp.message);
+        if (resp.success) {
+          toast.success(resp.message);
+        } else if (isOnboardingRedirect) {
+          // Neutral / info style for onboarding continuation
+          toast((t) => (
+            <span>
+              {resp.message} – please complete remaining steps.
+            </span>
+          ));
+        } else {
+          toast.error(resp.message);
+        }
       }
 
-      const serverRedirect = resp.redirectTo || "/";
-      navigate(serverRedirect);
+      if (resp.redirectTo) {
+        navigate(resp.redirectTo);
+        return;
+      }
+
+      // Default navigation after successful auth
+      if (resp.success) {
+        navigate("/");
+      }
     } catch (e) {
       console.error("Error handling auth response:", e);
     }
@@ -132,8 +148,19 @@ const LoginForm = () => {
     setLoading(true);
     setError("");
 
+    // Import sanitization at component level for clarity
+    const { sanitizeEmail, sanitizePhone, sanitizePassword, containsXSSPatterns } = 
+      await import("../../utils/sanitization");
+
+    // Check for XSS attempts
+    if (containsXSSPatterns(formData.username) || containsXSSPatterns(formData.password)) {
+      setError("Invalid input detected. Please remove special characters.");
+      setLoading(false);
+      return;
+    }
+
     const isEmail = formData.username.includes("@");
-    const isPhone = /^[0-9]+$/.test(formData.username);
+    const isPhone = /^[0-9+\-\s()]+$/.test(formData.username);
 
     if (!isEmail && !isPhone) {
       setError("Enter a valid email or phone number");
@@ -141,11 +168,24 @@ const LoginForm = () => {
       return;
     }
 
+    // Sanitize inputs before sending
+    const sanitizedUsername = isEmail 
+      ? sanitizeEmail(formData.username) 
+      : sanitizePhone(formData.username);
+    
+    const sanitizedPassword = sanitizePassword(formData.password);
+
+    if (!sanitizedUsername || !sanitizedPassword) {
+      setError("Invalid credentials format");
+      setLoading(false);
+      return;
+    }
+
     const payload = {
-      password: formData.password,
+      password: sanitizedPassword,
       ...(isEmail
-        ? { email: formData.username }
-        : { phoneNumber: formData.username }),
+        ? { email: sanitizedUsername }
+        : { phoneNumber: sanitizedUsername }),
     };
 
     try {
@@ -153,7 +193,8 @@ const LoginForm = () => {
       await handleAuthResponse(response);
     } catch (err) {
       console.error("Login error:", err);
-      setError(err?.response?.data?.message || "Login failed. Try again.");
+      // Generic error message to prevent user enumeration
+      setError("Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }

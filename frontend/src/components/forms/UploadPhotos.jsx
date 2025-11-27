@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import axios from "../../api/http";
 import {
   getUserPhotos,
   getGovernmentId,
@@ -124,28 +125,27 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     }
   }, []);
 
-  const handlePhotoChange = useCallback((e, type) => {
+  const handlePhotoChange = useCallback(async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const validTypes =
-      type === "governmentId"
-        ? ["image/jpeg", "image/png", "application/pdf"]
-        : ["image/jpeg", "image/png"];
+    // Import validation utilities
+    const { validateProfilePhoto, validateGovernmentID } = 
+      await import("../../utils/fileValidation");
 
-    if (!validTypes.includes(file.type)) {
-      toast.error("Invalid file type. Please select a valid image or PDF.");
-      e.target.value = "";
-      return;
-    }
+    // Perform comprehensive validation
+    const validation = type === "governmentId"
+      ? await validateGovernmentID(file)
+      : await validateProfilePhoto(file);
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File must be smaller than 2 MB.");
+    if (!validation.valid) {
+      toast.error(validation.errors[0] || "File validation failed");
       e.target.value = "";
       return;
     }
 
     setPhotos((prev) => ({ ...prev, [type]: file }));
+    toast.success("File validated successfully");
   }, []);
 
   const hasAllRequired = () =>
@@ -165,7 +165,7 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
 
     setUploading(true);
     setUploadedCloudinaryUrls([]);
-    const token = localStorage.getItem("authToken");
+    // ✅ No need to get token - axios interceptor handles authentication
     const API_BASE_URL =
       import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -218,23 +218,16 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             : `${API_BASE_URL}/user-personal/upload/photos`;
 
         const body =
-          key === "governmentId"
+          key === \"governmentId\"
             ? { url }
-            : { photoType: typeMap[key] || "other", url };
+            : { photoType: typeMap[key] || \"other\", url };
 
-        return fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(body),
-        }).then(async (res) => {
-          if (!res.ok) {
-            const msg = await res.text();
-            throw new Error(msg || "Backend rejected file");
-          }
+        // ✅ Use axios instead of fetch - handles authentication automatically via cookies
+        return axios.post(endpoint, body).then((res) => {
           return { key, url };
+        }).catch((error) => {
+          const msg = error.response?.data?.message || error.message || \"Backend rejected file\";
+          throw new Error(msg);
         });
       });
 

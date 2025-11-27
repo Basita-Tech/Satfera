@@ -166,8 +166,9 @@ const VerifyOTP = () => {
 
         toast.success("✅ Email verified successfully!");
 
+        // ✅ Token is automatically stored in HTTP-only cookie by backend
+        // No need to store in localStorage (XSS protection)
         const token = res?.token || res?.data?.token || res?.data?.data?.token;
-        if (token) localStorage.setItem("authToken", token);
 
         setTimeout(() => {
           navigate("/success", {

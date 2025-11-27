@@ -4,6 +4,7 @@ import { Button } from '../../ui/button';
 
 export function Shortlisted({
   profiles,
+  loading = false,
   onViewProfile,
   onSendRequest,
   onAddToCompare,
@@ -13,8 +14,66 @@ export function Shortlisted({
   shortlistedIds,
   onToggleShortlist,
 }) {
-  // Profiles are already filtered in App.jsx
-  const shortlistedProfiles = profiles;
+  console.log("📋 Shortlisted - Raw profiles:", profiles);
+  
+  // Map backend profile structure to frontend format
+  // Backend returns: { user: {...}, scoreDetail: {...} }
+  const shortlistedProfiles = (profiles || []).map((item, index) => {
+    const user = item.user || item;
+    const scoreDetail = item.scoreDetail || user.scoreDetail;
+        console.log(`📋 Profile ${index} - Full user object:`, {
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          closerPhoto: user.closerPhoto,
+          hasCloserPhoto: !!user.closerPhoto,
+          closerPhotoUrl: user.closerPhoto?.url
+        });
+    
+    
+    const mappedProfile = {
+      ...user, // Spread user fields first
+      id: user.userId || user.id || user._id,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+      age: user.age,
+      height: user.personal?.height,
+      city: user.personal?.city || user.city,
+      country: user.personal?.country || user.country,
+      profession: user.professional?.Occupation || user.occupation,
+      religion: user.personal?.religion || user.religion,
+      caste: user.personal?.subCaste || user.subCaste,
+      education: user.education?.HighestEducation,
+      diet: user.healthAndLifestyle?.diet,
+      // If no user image, keep empty string (no fallback photo)
+      image: user.closerPhoto?.url || '',
+      compatibility: scoreDetail?.score || '0',
+      status: user.status
+    };
+    
+    console.log(`📋 Profile ${index} - Mapped:`, { 
+      name: mappedProfile.name,
+      image: mappedProfile.image,
+      closerPhotoFromUser: user.closerPhoto
+    });
+    return mappedProfile;
+  });
+  // Filter out placeholder/test profiles: require id and one meaningful field
+  const isMeaningful = (p) => {
+    if (!p || !p.id) return false;
+    return Boolean(p.image || p.city || p.age || p.profession);
+  };
+  const filteredShortlisted = shortlistedProfiles.filter(isMeaningful);
+
+  if (loading) {
+    return (
+      <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
+        <div className="text-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8A227] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading favorites...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 space-y-4 md:space-y-6">
@@ -39,9 +98,9 @@ export function Shortlisted({
       </div>
 
       {/* Shortlisted Profiles Grid */}
-      {shortlistedProfiles.length > 0 ? (
+      {filteredShortlisted.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {shortlistedProfiles.map((profile) => (
+          {filteredShortlisted.map((profile) => (
             <div
               key={profile.id}
               className="bg-white rounded-[20px] shadow-[0_4px_15px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all duration-300 h-full"
@@ -53,7 +112,7 @@ export function Shortlisted({
                 onSendRequest={onSendRequest}
                 onAddToCompare={onAddToCompare}
                 onRemoveCompare={onRemoveCompare}
-                isInCompare={compareProfiles.includes(profile.id)}
+                isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
                 isShortlisted={true}
                 onToggleShortlist={onToggleShortlist}
               />
@@ -81,7 +140,7 @@ export function Shortlisted({
       )}
 
       {/* Compare Info Card */}
-      {shortlistedProfiles.length > 0 && compareProfiles.length < 2 && (
+      {filteredShortlisted.length > 0 && compareProfiles.length < 2 && (
         <div className="bg-beige rounded-[20px] p-6 border border-border-subtle">
           <p className="text-sm text-muted-foreground text-center m-0">
             💡 Tip: Select 2 or more profiles using "Add to Compare" to see side-by-side comparison

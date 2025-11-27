@@ -155,15 +155,15 @@ export function Requests({
                     key={profile.id}
                     className="bg-white rounded-[20px] shadow-[0_4px_15px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all duration-300 h-full"
                   >
-                    <ProfileCard
+                      <ProfileCard
                       {...profile}
                       variant={profile.status === "accepted" ? "approved" : "sent"}
                       status={profile.status}
                       onView={onViewProfile}
                       onWithdraw={() => onWithdraw?.(profile.id)}
-                      onAddToCompare={() => onAddToCompare?.(profile.id)}
-                      onRemoveCompare={() => onRemoveCompare?.(profile.id)}
-                      isInCompare={compareProfiles.includes(profile.id)}
+                      onAddToCompare={async (pid, p) => { try { if (onAddToCompare) return await onAddToCompare(profile.id, profile); } catch (e) { console.warn(e); } }}
+                      onRemoveCompare={async (pid) => { try { if (onRemoveCompare) return await onRemoveCompare(profile.id); } catch (e) { console.warn(e); } }}
+                      isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
                       isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
                       onToggleShortlist={() => onToggleShortlist?.(profile.id)}
                       onChat={() => onChat?.(profile)}
@@ -192,9 +192,9 @@ export function Requests({
                       onView={onViewProfile}
                       onAccept={() => onAccept?.(profile)}
                       onReject={() => onReject?.(profile)}
-                      onAddToCompare={() => onAddToCompare?.(profile.id)}
-                      onRemoveCompare={() => onRemoveCompare?.(profile.id)}
-                      isInCompare={compareProfiles.includes(profile.id)}
+                      onAddToCompare={async (pid, p) => { try { if (onAddToCompare) return await onAddToCompare(profile.id, profile); } catch (e) { console.warn(e); } }}
+                      onRemoveCompare={async (pid) => { try { if (onRemoveCompare) return await onRemoveCompare(profile.id); } catch (e) { console.warn(e); } }}
+                      isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
                       isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
                       onToggleShortlist={() => onToggleShortlist?.(profile.id)}
                       onChat={() => onChat?.(profile)}

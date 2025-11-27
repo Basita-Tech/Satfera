@@ -5,7 +5,8 @@ export default {
   theme: {
   	extend: {
   		colors: {
-  			'gold-light': '#E4C48A',
+				'gold': '#D4A052',
+				'gold-light': '#E4C48A',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

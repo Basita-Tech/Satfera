@@ -1,31 +1,46 @@
 import { Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Loader2 } from "lucide-react";
 
-// 🏠 Home Pages
+// 🧭 Layout Components
+import ScrollToTop from "./components/ScrollToTop";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AuthMonitor from "./components/auth/AuthMonitor";
+import "./App.css";
+
+// 🏠 Home Pages (eager load for fast initial page)
 import HomePage from "./components/Home/HomePage";
 import SuccessPage from "./components/Home/SuccessPage";
 
-// 🔐 Auth Pages
+// 🔐 Auth Pages (eager load for login/signup)
 import LoginPage from "./components/auth/LoginPage";
 import SignUpPage from "./components/auth/SignUpPage";
 import VerifyOtp from "./components/auth/VerifyOtp";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ForgotUsername from "./components/auth/ForgotUsername";
-import { UserDashboard } from "./components/pages/UserDashboard";
-// 📋 Form Pages
-import ProfileCompletion from "./components/forms/ProfileCompletion";
-import MultiStepForm from "./components/MultiStepForm";
 
+// 📋 Form Pages & Dashboard (lazy load to reduce initial bundle)
+const ProfileCompletion = lazy(() => import("./components/forms/ProfileCompletion"));
+const MultiStepForm = lazy(() => import("./components/MultiStepForm"));
+const ReviewPage = lazy(() => import("./components/pages/ReviewPage"));
+const UserDashboard = lazy(() => import("./components/pages/UserDashboard").then(module => ({ default: module.UserDashboard })));
 
-// 🧭 Layout Components
-import ScrollToTop from "./components/ScrollToTop";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import "./App.css";
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <Loader2 className="w-12 h-12 animate-spin text-[#C8A227] mx-auto mb-4" />
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 
 function App() {
   return (
     <>
       <ScrollToTop />
+      <AuthMonitor />
       <Routes>
         {/* 🏠 Home Routes */}
         <Route path="/" element={<HomePage />} />
@@ -39,13 +54,23 @@ function App() {
         <Route path="/forgot-username" element={<ForgotUsername />} />
 
         {/* 🧾 Profile & Forms */}
-        <Route path="/complete-profile" element={<ProfileCompletion />} />
-        <Route path="/onboarding/user" element={<MultiStepForm />} />
+        <Route path="/complete-profile" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProfileCompletion />
+          </Suspense>
+        } />
+        <Route path="/onboarding/user" element={
+          <Suspense fallback={<PageLoader />}>
+            <MultiStepForm />
+          </Suspense>
+        } />
         <Route
           path="/onboarding/review"
           element={
             <ProtectedRoute>
-              <ReviewPage />
+              <Suspense fallback={<PageLoader />}>
+                <ReviewPage />
+              </Suspense>
             </ProtectedRoute>
           } />
 
@@ -54,7 +79,9 @@ function App() {
           path="/dashboard/*"
           element={
             <ProtectedRoute>
-              <UserDashboard />
+              <Suspense fallback={<PageLoader />}>
+                <UserDashboard />
+              </Suspense>
             </ProtectedRoute>
           }
         />
@@ -63,7 +90,9 @@ function App() {
           path="/userdashboard/*"
           element={
             <ProtectedRoute>
-              <UserDashboard />
+              <Suspense fallback={<PageLoader />}>
+                <UserDashboard />
+              </Suspense>
             </ProtectedRoute>
           }
         />

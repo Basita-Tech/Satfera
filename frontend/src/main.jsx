@@ -5,6 +5,7 @@ import { AuthProvider } from "./components/context/AuthContext";
 import App from "./App.jsx";
 import "./index.css";
 import { Toaster } from "react-hot-toast";
+import "./utils/notificationDebug"; // Enable notification debugging
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

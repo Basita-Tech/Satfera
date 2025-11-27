@@ -59,7 +59,7 @@ export function ApprovedProfiles({
               onAddToCompare={onAddToCompare}
               onRemoveCompare={onRemoveCompare}
               onChat={() => setPremiumModal(true)}
-              isInCompare={compareProfiles.includes(profile.id)}
+              isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
               isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
               onToggleShortlist={onToggleShortlist}
             />

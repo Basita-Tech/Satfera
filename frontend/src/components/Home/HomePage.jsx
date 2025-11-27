@@ -62,12 +62,7 @@ export default function HomePage() {
   const { token } = useContext(AuthContextr);
 
   const handleAccountClick = async () => {
-    const savedToken = token || localStorage.getItem("authToken");
-    if (!savedToken) {
-      navigate("/login");
-      return;
-    }
-
+    // ✅ Authentication verified via API call (cookie sent automatically)
     try {
       const os = await getOnboardingStatus();
       const onboardingData = os?.data?.data || os?.data || {};
@@ -140,7 +135,7 @@ export default function HomePage() {
             >
               Contact
             </a>
-            {token || localStorage.getItem("authToken") ? (
+            {token ? (
               <button
                 onClick={handleAccountClick}
                 className="px-4 py-2 rounded-md font-semibold text-[#FFFFFF] bg-[#D4A052] hover:opacity-90 transition"

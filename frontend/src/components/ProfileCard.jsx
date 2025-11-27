@@ -3,18 +3,19 @@ import { Button } from "./ui/button";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { getViewProfiles } from "../api/auth";
 
 export function ProfileCard({
   id,
-  name = "Priya Sharma",
-  age = 26,
-  city = "Delhi",
-  profession = "Graphic Designer",
-  religion = "Hindu",
-  caste = "Khatri",
-  image = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80",
-  compatibility = "92",
-  status = "Pending",
+  name = "Unknown",
+  age = null,
+  city = "",
+  profession = "",
+  religion = null,
+  caste = null,
+  image = "", // no fallback image; keep empty if none provided
+  compatibility = 0,
+  status = null,
   variant = "browse", // browse | dashboard | sent | received
   onSendRequest,
   onView,
@@ -29,33 +30,52 @@ export function ProfileCard({
   onToggleShortlist,
   hideStatus = false,
   profile,
+  onChat,
 }) {
   const navigate = useNavigate();
   const [optimisticInCompare, setOptimisticInCompare] = React.useState(false);
   const isUiInCompare = isInCompare || optimisticInCompare;
-  // ⭐ Favorite toggle stored in localStorage
-  const [isFavorite, setIsFavorite] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem(`favorite_profile_${id}`);
-      return saved ? JSON.parse(saved) : false;
-    } catch {
-      return false;
-    }
-  });
 
-  React.useEffect(() => {
+  // Centralized compare click handlers to avoid pre-click optimistic toggles
+  const handleAddClick = async (e) => {
     try {
-      localStorage.setItem(`favorite_profile_${id}`, JSON.stringify(isFavorite));
-    } catch { }
-  }, [isFavorite, id]);
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    } catch (err) { /* ignore */ }
+    setOptimisticInCompare(true);
+    try {
+      const resp = id ? await onAddToCompare?.(id, profile) : null;
+      // If response explicitly indicates failure, treat as error
+      if (resp && resp.success === false) {
+        try { window?.toast?.error?.(resp?.message || 'Failed to add to compare'); } catch(e) { /* ignore */ }
+        setOptimisticInCompare(false);
+      }
+    } catch (err) {
+      console.warn('Add to compare failed', err);
+      setOptimisticInCompare(false);
+      try { toast.error('Failed to add to compare'); } catch (e) { /* ignore */ }
+    }
+  };
+
+  const handleRemoveClick = async (e) => {
+    try {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    } catch (err) { /* ignore */ }
+    setOptimisticInCompare(false);
+    try {
+      if (id) await onRemoveCompare?.(id);
+    } catch (err) {
+      console.warn('Remove compare failed', err);
+      setOptimisticInCompare(true);
+    }
+  };
 
   // ⚡ Render action buttons for each variant
   const renderActions = () => {
     switch (variant) {
       case "browse":
         return (
-          <div className="space-y-2">
-            <div className="flex gap-3 mt-2">
+          <div className="space-y-2 mt-2">
+            <div className="flex gap-3">
               <Button
                 onClick={() =>
                   navigate(`/dashboard/profile/${profile?.id || id}`)
@@ -78,10 +98,7 @@ export function ProfileCard({
               {isUiInCompare ? (
                 <Button
                   size="sm"
-                  onClick={() => {
-                    setOptimisticInCompare(false);
-                    onRemoveCompare?.(id);
-                  }}
+                  onClick={handleRemoveClick}
                   className="flex-1 bg-[#DDB84E] text-white rounded-[12px]"
                 >
                   Remove Compare
@@ -90,11 +107,7 @@ export function ProfileCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOptimisticInCompare(true);
-                    onAddToCompare?.(id);
-                  }}
+                  onClick={handleAddClick}
                   className="flex-1 border-[1.5px] border-[#c8a227] text-[#c8a227] font-medium rounded-full py-2.5 bg-[#f9f5ed] hover:bg-[#c8a227] hover:text-white transition-all duration-200"
                 >
                   Add to Compare
@@ -112,7 +125,7 @@ export function ProfileCard({
               onClick={() =>
                 navigate(`/dashboard/profile/${profile?.id || id}`)
               }
-              className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium 
+              className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#e0c36a] rounded-full font-medium 
               hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200"
             >
               View
@@ -140,7 +153,17 @@ export function ProfileCard({
             </Button>
             {onWithdraw && (() => {
               const s = String(status || "").toLowerCase();
-              return s === "rejected" ? null : (
+              if (s === "rejected" || s === "withdrawn") {
+                return (
+                  <Button
+                    disabled
+                    className="flex-1 h-[38px] bg-gray-100 text-gray-500 border-[1.3px] border-gray-300 rounded-full font-medium cursor-not-allowed opacity-60"
+                  >
+                    {s === "withdrawn" ? "Withdrawn" : "Rejected"}
+                  </Button>
+                );
+              }
+              return (
                 <Button
                   onClick={() => onWithdraw?.(id)}
                   className=" flex-1  h-[38px] bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full font-medium 
@@ -157,8 +180,7 @@ export function ProfileCard({
         return (
           <div className="flex flex-col gap-3 mt-3">
             {/* Top Buttons: View Profile + Compare */}
-            <div className="flex items-center gap-2 -mx-2 px-0">
-
+            <div className="flex items-center gap-2">
               {/* 👁 View Profile */}
               <Button
                 onClick={() => onView?.(profile || { id })}
@@ -170,18 +192,8 @@ export function ProfileCard({
 
               {/* ⚖️ Compare */}
               <Button
-                onTouchStart={() => setOptimisticInCompare(true)}
-                onMouseDown={() => setOptimisticInCompare(true)}
-                onClick={() => {
-                  if (isUiInCompare) {
-                    setOptimisticInCompare(false);
-                    onRemoveCompare?.(id);
-                  } else {
-                    setOptimisticInCompare(true);
-                    onAddToCompare?.(id);
-                  }
-                }}
-                className={`flex-1 rounded-full font-medium py-2 border transition-all duration-200 ${isUiInCompare
+                onClick={(e) => { if (isUiInCompare) handleRemoveClick(e); else handleAddClick(e); }}
+                className={`flex-1 rounded-full font-medium py-2 px-3 border transition-all duration-200 whitespace-nowrap ${isUiInCompare
                   ? "bg-[#c8a227] text-white border-[#c8a227] hover:bg-[#c8a227]"
                   : "bg-[#f9f5ed] text-[#c8a227]  border-[1.3px] hover:text-white border-[#c8a227] hover:bg-[#c8a227]"
                   }`}
@@ -190,14 +202,16 @@ export function ProfileCard({
               </Button>
             </div>
 
-            {/* 💬 Chat Button (Full width) */}
-            <Button
-              onClick={() => onChat?.(profile || { id })}
-              className="w-full bg-[#c8a227] text-white rounded-full py-2 font-medium flex items-center justify-center gap-2 
-        hover:bg-[#b8941e] transition-all duration-200"
-            >
-              💬 Chat
-            </Button>
+            {/* 💬 Chat Button (Full width) - Only show when both users accepted */}
+            {status === "accepted" && onChat && (
+              <Button
+                onClick={() => onChat?.(profile || { id })}
+                className="w-full bg-[#c8a227] text-white rounded-full py-2 font-medium flex items-center justify-center gap-2 
+          hover:bg-[#b8941e] transition-all duration-200"
+              >
+                💬 Chat
+              </Button>
+            )}
           </div>
         );
 
@@ -231,17 +245,7 @@ export function ProfileCard({
 
               {/* Compare */}
               <Button
-                onTouchStart={() => setOptimisticInCompare(true)}
-                onMouseDown={() => setOptimisticInCompare(true)}
-                onClick={() => {
-                  if (isUiInCompare) {
-                    setOptimisticInCompare(false);
-                    onRemoveCompare?.(id);
-                  } else {
-                    setOptimisticInCompare(true);
-                    onAddToCompare?.(id);
-                  }
-                }}
+                onClick={(e) => { if (isUiInCompare) handleRemoveClick(e); else handleAddClick(e); }}
                 className={`flex-1 h-11 rounded-full font-medium text-[14px] border transition-all duration-200 ${isUiInCompare
                   ? "bg-[#c8a227] text-white border-[#c8a227]"
                   : "bg-[#f9f5ed] text-[#c8a227] border-[1.3px] hover:bg-[#c8a227] hover:text-white border-[#c8a227]"
@@ -249,92 +253,32 @@ export function ProfileCard({
               >
                 {isUiInCompare ? "Added" : "Compare"}
               </Button>
+              <Button
+                onClick={(e) => { if (isUiInCompare) handleRemoveClick(e); else handleAddClick(e); }}
+                className={`flex-1 h-[38px] rounded-full font-medium text-[13px] border transition-all duration-200 px-4 ${isUiInCompare
+                  ? "bg-[#c8a227] text-white border-[#c8a227]"
+                  : "bg-[#f9f5ed] text-[#c8a227]  border-[1.3px] border-[#c8a227] hover:bg-[#c8a227] hover:text-white"
+                  }`}
+              >
+                {isUiInCompare ? "Remove From Compare" : "Add to Compare"}
+              </Button>
             </div>
 
-            {/* 💬 Chat Button (Full width with icon) */}
-            <Button
-              onClick={() => onChat?.(profile || { id })}
-              className="w-full bg-[#c8a227] text-white rounded-full h-12 font-medium flex items-center justify-center gap-3 shadow-md hover:bg-[#b8941e] transition-all duration-200"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5">
-                <path fill="#ffffff" d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z" />
-              </svg>
-              <span className="text-base font-semibold">Chat</span>
-            </Button>
+            {/* 💬 Chat Button (Full width) - Only show when both users accepted */}
+            {status === "accepted" && onChat && (
+              <Button
+                onClick={() => onChat?.(profile || { id })}
+                className="w-full bg-[#c8a227] text-white rounded-full h-12 font-medium flex items-center justify-center gap-3 shadow-md hover:bg-[#b8941e] transition-all duration-200"
+              >
+                💬 Chat
+              </Button>
+            )}
           </div>
         );
 
-
-
-      case "received":
-        {
-          const s = String(status || "").toLowerCase();
-          // If the received request is rejected, show only 'View Profile'
-          if (s === "rejected") {
-            return (
-              <div className="flex gap-2 mt-3">
-                <Button
-                  onClick={() => onView?.(profile || { id })}
-                  className="flex-1 h-[38px] bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium 
-            hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200"
-                >
-                  View Profile
-                </Button>
-              </div>
-            );
-          }
-
-          return (
-            <div className="flex flex-col gap-3 mt-3">
-              {/* 👁️ View Profile Button */}
-              <Button
-                onClick={() => onView?.(profile || { id })}
-                className="flex items-center justify-center gap-2 bg-[#f9f5ed]   text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium 
-          hover:bg-[#c8a227]  hover:text-white  transition-all duration-200"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="#b8860b"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 12s3.75-7.5 9.75-7.5S21.75 12 21.75 12s-3.75 7.5-9.75 7.5S2.25 12 2.25 12z"
-                  />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                View Profile
-              </Button>
-
-              {/* ✅ Accept / ❌ Reject Buttons */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => onAccept?.(id)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#c8a227] text-white rounded-full font-medium 
-            hover:bg-[#c8a227] transition-all duration-200"
-                >
-                  ✓ Accept
-                </Button>
-
-                <Button
-                  onClick={() => onReject?.(id)}
-                  className="flex-1 bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full font-medium 
-                hover:bg-[#d64545] hover:text-white hover:border-[#d64545] transition-all duration-200"
-                >
-                  ✕ Reject
-                </Button>
-              </div>
-            </div>
-          );
-        }
-
       case "newprofiles":
         return (
-          <div className="space-y-3 mt-3">
+          <div className="mt-2 flex flex-col gap-2">
             {/* View and Compare Buttons Row */}
             <div className="flex gap-2 items-center">
               <Button
@@ -349,23 +293,13 @@ export function ProfileCard({
               </Button>
 
               <Button
-                onTouchStart={() => setOptimisticInCompare(true)}
-                onMouseDown={() => setOptimisticInCompare(true)}
-                onClick={() => {
-                  if (isUiInCompare) {
-                    setOptimisticInCompare(false);
-                    onRemoveCompare?.(id);
-                  } else {
-                    setOptimisticInCompare(true);
-                    onAddToCompare?.(id);
-                  }
-                }}
+                onClick={(e) => { if (isUiInCompare) handleRemoveClick(e); else handleAddClick(e); }}
                 className={`flex-1 h-[38px] rounded-full font-medium text-[13px] border transition-all duration-200 px-4 ${isUiInCompare
                   ? "bg-[#c8a227] text-white border-[#c8a227]"
-                  : "bg-[#f9f5ed] text-[#c8a227] border border-[#c8a227] hover:bg-[#c8a227] hover:text-white"
+                  : "bg-[#f9f5ed] text-[#c8a227]  border-[1.3px] border-[#c8a227] hover:bg-[#c8a227] hover:text-white"
                   }`}
               >
-                {isUiInCompare ? "Added" : "Compare"}
+                {isUiInCompare ? "Added" : " Compare"}
               </Button>
             </div>
 
@@ -387,15 +321,44 @@ export function ProfileCard({
     }
   };
 
+  // Prefetch profile data on hover for instant navigation
+  const handleMouseEnter = () => {
+    if (id) {
+      getViewProfiles(id, { useCache: true }).catch(err => {
+        console.log('Prefetch error:', err);
+      });
+    }
+  };
+
   return (
-    <div className="bg-white rounded-[20px] overflow-hidden shadow hover:shadow-lg transition-all duration-300">
-      {/* 🖼️ Profile Image */}
+    <div
+      className="bg-white rounded-[20px] overflow-hidden shadow hover:shadow-lg transition-all duration-300 flex flex-col max-w-[380px] mx-auto"
+      onMouseEnter={handleMouseEnter}
+    >
+      {/* 🖼️ Profile Image (blank if none) */}
       <div className="relative w-full overflow-visible rounded-t-[20px]">
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-[280px] object-cover object-center"
-        />
+        {image ? (
+          <img
+            src={image}
+            alt={name}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-[220px] object-cover object-center"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement.classList.add('bg-gray-100');
+            }}
+          />
+        ) : (
+          <div className="w-full h-[220px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center rounded-t-[20px]">
+            <div className="text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <p className="text-xs text-gray-400 font-medium">No Photo</p>
+            </div>
+          </div>
+        )}
 
         {/* 💛 Compatibility Tag (only show in browse) */}
         {variant === "browse" && compatibility && (
@@ -440,12 +403,15 @@ export function ProfileCard({
       </div>
 
       {/* 💬 Profile Info */}
-      <div className="px-6 pb-6 pt-3 relative">
+      <div className="px-6 pb-6 pt-3 relative flex flex-col flex-1">
         {/* ⭐ Shortlist Star Button */}
         {onToggleShortlist && (
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => onToggleShortlist(id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleShortlist(id);
+            }}
             className={`absolute top-3 right-3 p-2 rounded-full flex items-center justify-center 
     shadow-none border-none bg-transparent hover:bg-[#fff8e1]/60 transition-all z-50
     ${isShortlisted ? "bg-[#fff8e1]/80" : ""}`}
@@ -465,33 +431,33 @@ export function ProfileCard({
           <img src="/badge.png" alt="Verified" className="w-4 h-4 object-contain" />
         </div>
 
-        <p className="text-sm text-gray-600 mb-3">
+        <p className="text-sm text-gray-600 mb-1">
           {city}, India • {profession}
         </p>
 
-        {(religion || caste) && (
-          <div className="flex flex-wrap gap-2 mb-4 mt-2">
-            {religion && (
-              <span
-                className="text-black px-4 py-[4px] rounded-full text-sm font-semibold"
-                style={{ backgroundColor: "#f6f1e6" }}
-              >
-                {religion}
-              </span>
-            )}
-            {caste && (
-              <span
-                className="text-black px-4 py-[4px] rounded-full text-sm font-semibold"
-                style={{ backgroundColor: "#f6f1e6" }}
-              >
-                {caste}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex gap-2 mb-1 mt-0.5 h-[36px] items-start">
+          {religion && (
+            <span
+              className="text-black px-4 py-[4px] rounded-full text-sm font-semibold whitespace-nowrap"
+              style={{ backgroundColor: "#f6f1e6" }}
+            >
+              {religion}
+            </span>
+          )}
+          {caste && (
+            <span
+              className="text-black px-4 py-[4px] rounded-full text-sm font-semibold whitespace-nowrap"
+              style={{ backgroundColor: "#f6f1e6" }}
+            >
+              {caste}
+            </span>
+          )}
+        </div>
 
         {/* 🎯 Actions */}
-        {renderActions()}
+        <div className="">
+          {renderActions()}
+        </div>
       </div>
     </div>
   );

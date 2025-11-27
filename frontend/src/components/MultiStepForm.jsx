@@ -36,16 +36,14 @@ const MultiStepForm = () => {
   const { token, user } = useContext(AuthContextr);
 
   useEffect(() => {
-    const savedToken = token || localStorage.getItem("authToken");
-    if (!savedToken) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
+    // ✅ Authentication verified via API call (cookie sent automatically)
     const fetchProgress = async () => {
       try {
         setLoading(true);
         const res = await getOnboardingStatus();
+        
+        // If API call fails with 401, user will be redirected to login automatically
+        // by axios interceptor
         const savedSteps = res?.data?.data?.completedSteps || [];
         setCompletedSteps(savedSteps);
 
