@@ -1,6 +1,7 @@
 import { User, IUser, Profile } from "../../models";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Request } from "express";
 import {
   logger,
   parseDDMMYYYYToDate,
@@ -16,6 +17,16 @@ import {
   setOtp
 } from "../../lib/redis/otpRedis";
 import { enqueueWelcomeEmail } from "../../lib/queue/enqueue";
+import {
+  TimingSafeAuth,
+  generateJTI,
+  constantTimeUserLookup,
+  constantTimePasswordValidation,
+  generateSecureOTP,
+  verifyOTPConstantTime
+} from "../../utils/timingSafe";
+import { SessionService } from "../sessionService";
+import { getClientIp } from "../../utils/ipUtils";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -70,60 +81,190 @@ export class AuthService {
     return secret;
   }
 
-  async loginWithEmail(email: string, password: string) {
-    if (!email || !password) throw new Error("Email and password are required");
+  async loginWithEmail(
+    email: string,
+    password: string,
+    req: Request
+  ): Promise<{ user: IUser; token: string; isNewSession: boolean }> {
+    const timingSafe = new TimingSafeAuth(250);
 
-    const user = await User.findOne({
-      email: email.toLowerCase(),
-      isActive: true,
-      isEmailLoginEnabled: true,
-      isDeleted: false
-    });
+    if (!email || !password) {
+      return await timingSafe.fail(
+        new Error("Email and password are required")
+      );
+    }
 
-    if (!user) throw new Error("Invalid credentials");
-
-    if (!user.isEmailVerified)
-      throw new Error("Please verify your email before logging in.");
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new Error("Invalid credentials");
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      this.jwtSecret(),
-      {
-        expiresIn: "1d"
-      }
+    const user = await constantTimeUserLookup<IUser>(
+      () =>
+        User.findOne({
+          email: email.toLowerCase(),
+          isActive: true,
+          isEmailLoginEnabled: true,
+          isDeleted: false
+        }),
+      100
     );
 
-    return { user, token };
+    if (!user) {
+      return await timingSafe.fail(new Error("Invalid credentials"));
+    }
+
+    if (!user.isEmailVerified) {
+      return await timingSafe.fail(
+        new Error("Please verify your email before logging in.")
+      );
+    }
+
+    const isPasswordValid = await constantTimePasswordValidation(
+      async () => await bcrypt.compare(password, user.password),
+      150
+    );
+
+    if (!isPasswordValid) {
+      return await timingSafe.fail(new Error("Invalid credentials"));
+    }
+
+    const userId = String(user._id);
+    const ipAddress = getClientIp(req);
+
+    const existingSession = await SessionService.findExistingSession(
+      userId,
+      req,
+      ipAddress
+    );
+
+    let token: string;
+    let isNewSession: boolean;
+
+    if (existingSession) {
+      token = existingSession.token;
+      isNewSession = false;
+
+      await SessionService.updateSessionActivity(String(existingSession._id));
+
+      logger.info(
+        `Reusing existing session for user ${userId} on ${ipAddress}`
+      );
+    } else {
+      const jti = generateJTI();
+      token = jwt.sign(
+        {
+          id: userId,
+          email: user.email,
+          jti,
+          iat: Math.floor(Date.now() / 1000)
+        },
+        this.jwtSecret(),
+        {
+          expiresIn: "1d"
+        }
+      );
+
+      await SessionService.createSession(
+        userId,
+        token,
+        jti,
+        req,
+        ipAddress,
+        86400
+      );
+      isNewSession = true;
+    }
+
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    return await timingSafe.complete({ user, token, isNewSession });
   }
 
-  async loginWithPhone(phoneNumber: string, password: string) {
-    if (!phoneNumber || !password)
-      throw new Error("Phone number and password are required");
+  async loginWithPhone(
+    phoneNumber: string,
+    password: string,
+    req: Request
+  ): Promise<{ user: IUser; token: string; isNewSession: boolean }> {
+    const timingSafe = new TimingSafeAuth(250);
 
-    const user = await User.findOne({
-      phoneNumber: phoneNumber,
-      isActive: true,
-      isMobileLoginEnabled: true,
-      isDeleted: false
-    });
+    if (!phoneNumber || !password) {
+      return await timingSafe.fail(
+        new Error("Phone number and password are required")
+      );
+    }
 
-    if (!user) throw new Error("Invalid credentials");
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new Error("Invalid credentials");
-
-    const token = jwt.sign(
-      { id: user._id, phoneNumber: user.phoneNumber },
-      this.jwtSecret(),
-      {
-        expiresIn: "1d"
-      }
+    const user = await constantTimeUserLookup<IUser>(
+      () =>
+        User.findOne({
+          phoneNumber: phoneNumber,
+          isActive: true,
+          isMobileLoginEnabled: true,
+          isDeleted: false
+        }),
+      100
     );
 
-    return { user, token };
+    if (!user) {
+      return await timingSafe.fail(new Error("Invalid credentials"));
+    }
+
+    const isPasswordValid = await constantTimePasswordValidation(
+      async () => await bcrypt.compare(password, user.password),
+      150
+    );
+
+    if (!isPasswordValid) {
+      return await timingSafe.fail(new Error("Invalid credentials"));
+    }
+
+    const userId = String(user._id);
+    const ipAddress = getClientIp(req);
+
+    const existingSession = await SessionService.findExistingSession(
+      userId,
+      req,
+      ipAddress
+    );
+
+    let token: string;
+    let isNewSession: boolean;
+
+    if (existingSession) {
+      token = existingSession.token;
+      isNewSession = false;
+
+      await SessionService.updateSessionActivity(String(existingSession._id));
+
+      logger.info(
+        `Reusing existing session for user ${userId} on ${ipAddress}`
+      );
+    } else {
+      const jti = generateJTI();
+      token = jwt.sign(
+        {
+          id: userId,
+          phoneNumber: user.phoneNumber,
+          jti,
+          iat: Math.floor(Date.now() / 1000)
+        },
+        this.jwtSecret(),
+        {
+          expiresIn: "1d"
+        }
+      );
+
+      await SessionService.createSession(
+        userId,
+        token,
+        jti,
+        req,
+        ipAddress,
+        86400
+      );
+      isNewSession = true;
+    }
+
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    return await timingSafe.complete({ user, token, isNewSession });
   }
 
   async signup(
@@ -183,11 +324,7 @@ export class AuthService {
   }
 
   async generateAndStoreOtp(email: string, type: "signup" | "forgot-password") {
-    const otp =
-      Math.random()
-        .toString()
-        .slice(2, 2 + 6) ||
-      Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateSecureOTP(6);
 
     await setOtp(email, otp, type);
 
@@ -195,138 +332,209 @@ export class AuthService {
     return otp;
   }
 
-  async verifyForgotPasswordOtp(email: string, otp: string) {
-    if (!email || !otp) throw new Error("Email and OTP are required");
+  async verifyForgotPasswordOtp(
+    email: string,
+    otp: string
+  ): Promise<{ message: string; tokenSent: boolean }> {
+    const timingSafe = new TimingSafeAuth(200);
 
-    const user = await User.findOne({
-      email: email.toLowerCase().trim(),
-      isDeleted: false
-    });
-    if (!user) throw new Error("User not found");
+    if (!email || !otp) {
+      return await timingSafe.fail(new Error("Email and OTP are required"));
+    }
+
+    const user = await constantTimeUserLookup<IUser>(
+      () =>
+        User.findOne({
+          email: email.toLowerCase().trim(),
+          isDeleted: false
+        }),
+      100
+    );
+
+    if (!user) {
+      return await timingSafe.fail(new Error("User not found"));
+    }
 
     const attemptCount = await incrementAttempt(email, "forgot-password");
     if (attemptCount > OTP_ATTEMPT_LIMIT) {
-      throw new Error(
-        `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please request a new OTP or try again after 24 hours.`
+      return await timingSafe.fail(
+        new Error(
+          `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please request a new OTP or try again after 24 hours.`
+        )
       );
     }
 
     const redisOtp = await getOtp(email, "forgot-password");
     if (!redisOtp) {
-      throw new Error(
-        "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
-      );
-    }
-    if (redisOtp !== otp) {
-      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
-      throw new Error(
-        `Invalid OTP. You have ${remainingAttempts} attempt${
-          remainingAttempts !== 1 ? "s" : ""
-        } remaining.`
+      return await timingSafe.fail(
+        new Error(
+          "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
+        )
       );
     }
 
-    const randomHash = await bcrypt.hash(
-      Math.random().toString(36).substring(2),
-      10
-    );
+    const isValid = await verifyOTPConstantTime(otp, redisOtp);
+    if (!isValid) {
+      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
+      return await timingSafe.fail(
+        new Error(
+          `Invalid OTP. You have ${remainingAttempts} attempt${
+            remainingAttempts !== 1 ? "s" : ""
+          } remaining.`
+        )
+      );
+    }
+
+    const jti = generateJTI();
     const token = jwt.sign(
-      { id: user._id, email: user.email, hash: randomHash },
+      {
+        id: String(user._id),
+        email: user.email,
+        jti,
+        purpose: "password-reset"
+      },
       this.jwtSecret(),
       {
         expiresIn: "5m"
       }
     );
 
-    await redisClient.set(
-      `forgot-password-token:${user.id.toString()}`,
-      token,
-      { EX: 300 }
+    await redisClient.setEx(
+      `forgot-password-token:${String(user._id)}`,
+      300,
+      token
     );
 
     const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     await sendResetPasswordEmail(user.email, url);
 
-    return { message: "Password reset link sent to email", tokenSent: true };
+    return await timingSafe.complete({
+      message: "Password reset link sent to email",
+      tokenSent: true
+    });
   }
 
-  async verifySignupOtp(email: string, otp: string) {
-    if (!email) throw new Error("Email is required");
-    if (!otp) throw new Error("OTP is required");
+  async verifySignupOtp(
+    email: string,
+    otp: string
+  ): Promise<{ token: string; user: IUser; message: string }> {
+    const timingSafe = new TimingSafeAuth(200);
 
-    const user = await User.findOne({
-      email: email.toLowerCase().trim(),
-      isDeleted: false
-    });
-    if (!user) throw new Error("User not found");
+    if (!email) {
+      return await timingSafe.fail(new Error("Email is required"));
+    }
+    if (!otp) {
+      return await timingSafe.fail(new Error("OTP is required"));
+    }
+
+    const user = await constantTimeUserLookup<IUser>(
+      () =>
+        User.findOne({
+          email: email.toLowerCase().trim(),
+          isDeleted: false
+        }),
+      100
+    );
+
+    if (!user) {
+      return await timingSafe.fail(new Error("User not found"));
+    }
 
     const attemptCount = await incrementAttempt(email, "signup");
     if (attemptCount > OTP_ATTEMPT_LIMIT) {
-      throw new Error(
-        `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please request a new OTP or try again after 24 hours.`
+      return await timingSafe.fail(
+        new Error(
+          `Maximum OTP verification attempts (${OTP_ATTEMPT_LIMIT}) reached. Please request a new OTP or try again after 24 hours.`
+        )
       );
     }
 
     const redisOtp = await getOtp(email, "signup");
     if (!redisOtp) {
-      throw new Error(
-        "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
-      );
-    }
-    if (redisOtp !== otp) {
-      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
-      throw new Error(
-        `Invalid OTP. You have ${remainingAttempts} attempt${
-          remainingAttempts !== 1 ? "s" : ""
-        } remaining.`
+      return await timingSafe.fail(
+        new Error(
+          "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
+        )
       );
     }
 
-    if (user.isEmailVerified) throw new Error("Email is already verified");
+    const isValid = await verifyOTPConstantTime(otp, redisOtp);
+    if (!isValid) {
+      const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
+      return await timingSafe.fail(
+        new Error(
+          `Invalid OTP. You have ${remainingAttempts} attempt${
+            remainingAttempts !== 1 ? "s" : ""
+          } remaining.`
+        )
+      );
+    }
+
+    if (user.isEmailVerified) {
+      return await timingSafe.fail(new Error("Email is already verified"));
+    }
 
     user.isEmailVerified = true;
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, this.jwtSecret(), {
-      expiresIn: "1d"
-    });
+    const jti = generateJTI();
+    const token = jwt.sign(
+      { id: String(user._id), jti, iat: Math.floor(Date.now() / 1000) },
+      this.jwtSecret(),
+      {
+        expiresIn: "1d"
+      }
+    );
 
     await sendWelcomeEmailOnce(user);
 
-    return {
+    return await timingSafe.complete({
       token,
       user,
       message: user.isPhoneVerified
         ? "Email verified successfully. You can now login."
         : "Email verified successfully. You can now login."
-    };
+    });
   }
 
   async resetPasswordWithToken(token: string, newPassword: string) {
-    if (!token || !newPassword)
-      throw new Error("Token and newPassword are required");
+    const timingSafe = new TimingSafeAuth(200);
+
+    if (!token || !newPassword) {
+      return await timingSafe.fail(
+        new Error("Token and newPassword are required")
+      );
+    }
 
     let payload: any;
     try {
       payload = jwt.verify(token, this.jwtSecret()) as any;
     } catch (err) {
-      throw new Error("Invalid or expired token");
+      return await timingSafe.fail(new Error("Invalid or expired token"));
     }
 
     const userId = payload.id;
-    if (!userId) throw new Error("Invalid token payload");
+    if (!userId) {
+      return await timingSafe.fail(new Error("Invalid token payload"));
+    }
 
     const stored = await redisClient.get(`forgot-password-token:${userId}`);
-    if (!stored || stored !== token)
-      throw new Error("Token not found or expired");
+    if (!stored || stored !== token) {
+      return await timingSafe.fail(new Error("Token not found or expired"));
+    }
 
     const user = await User.findOne({ _id: userId, isDeleted: false });
-    if (!user) throw new Error("User not found");
+    if (!user) {
+      return await timingSafe.fail(new Error("User not found"));
+    }
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
+    await SessionService.logoutAllSessions(userId);
+
     await redisClient.del(`forgot-password-token:${userId}`);
-    return { message: "Password reset successful" };
+
+    return await timingSafe.complete({ message: "Password reset successful" });
   }
 }

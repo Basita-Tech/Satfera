@@ -4,6 +4,7 @@ export * from "./Notification";
 export * from "./Profile";
 export * from "./ProfileView";
 export * from "./User";
+export * from "./UserSession";
 export * from "./User_educations";
 export * from "./User_expectations";
 export * from "./User_family";

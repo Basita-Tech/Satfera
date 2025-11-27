@@ -72,7 +72,7 @@ function App() {
                 <ReviewPage />
               </Suspense>
             </ProtectedRoute>
-          } />
+          } /> 
 
         {/* 👤 Dashboard Route (wildcard handles index + nested) */}
         <Route
