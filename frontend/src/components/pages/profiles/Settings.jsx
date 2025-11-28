@@ -11,7 +11,7 @@ import { ChangePasswordModal } from '../../ChangePasswordModal';
 import { EditContactModal } from '../../EditContactModal';
 import { BlockedUsersList } from '../../BlockedUsersList';
 import { BlockUserDialog } from '../../BlockUserDialog';
-import { getUserProfileDetails, getBlockedUsers, getNotificationSettings, updateNotificationSettings, getUserContactInfo } from '../../../api/auth';
+import { getUserProfileDetails, getBlockedUsers, getNotificationSettings, updateNotificationSettings, getUserContactInfo, getSessions, logoutSession, logoutAllSessions } from '../../../api/auth';
 import { AuthContextr } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -66,11 +66,19 @@ export function Settings() {
     heightRange: [160, 180],
   });
 
+  // Sessions state
+  const [sessions, setSessions] = useState([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [loggingOutSessionId, setLoggingOutSessionId] = useState(null);
+  const [sessionsError, setSessionsError] = useState(null);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+
   useEffect(() => {
     fetchUserProfile();
     fetchBlockedCount();
     fetchNotificationSettings();
     fetchContactInfo();
+    fetchSessions();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -195,6 +203,67 @@ export function Settings() {
     fetchContactInfo(); // Refresh contact info after update
   };
 
+  // Sessions fetcher
+  const fetchSessions = async () => {
+    setIsLoadingSessions(true);
+    setSessionsError(null);
+    try {
+      const res = await getSessions();
+      // Support both {data: [...]} and {data: {sessions: [...]}}
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.data?.sessions)
+          ? res.data.sessions
+          : [];
+      setSessions(list);
+    } catch (err) {
+      console.error('Failed to fetch sessions:', err);
+      toast.error('Failed to load sessions');
+      setSessionsError(err?.message || 'Failed to load sessions');
+      setSessions([]);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  const handleLogoutSession = async (sessionId) => {
+    if (!sessionId) return;
+    setLoggingOutSessionId(sessionId);
+    try {
+      const res = await logoutSession(sessionId);
+      if (res?.success) {
+        toast.success('Session logged out');
+        await fetchSessions();
+      } else {
+        toast.error(res?.message || 'Failed to logout session');
+      }
+    } catch (err) {
+      console.error('Logout session error:', err);
+      toast.error('Failed to logout session');
+    } finally {
+      setLoggingOutSessionId(null);
+    }
+  };
+
+  const handleLogoutAllSessions = async () => {
+    if (!window.confirm('Logout all other sessions?')) return;
+    try {
+      setIsLoggingOutAll(true);
+      const res = await logoutAllSessions();
+      if (res?.success) {
+        toast.success('Logged out all other sessions');
+        await fetchSessions();
+      } else {
+        toast.error(res?.message || 'Failed to logout all sessions');
+      }
+    } catch (err) {
+      console.error('Logout all sessions error:', err);
+      toast.error('Failed to logout all sessions');
+    } finally {
+      setIsLoggingOutAll(false);
+    }
+  };
+
   const recentDevices = [
     { device: 'Chrome on Windows', location: 'Mumbai, India', time: '2 hours ago', current: true },
     { device: 'Safari on iPhone', location: 'Mumbai, India', time: '1 day ago', current: false },
@@ -304,6 +373,99 @@ export function Settings() {
                 <Trash2 className="w-4 h-4 mr-3" />
                 Delete Account
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Security */}
+        <div className="bg-white rounded-[20px] p-6 satfera-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-gold" />
+            </div>
+            <h3 className="m-0">Security</h3>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="m-0">Recent Login Activity</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-[8px] border-red-accent text-red-accent hover:bg-red-accent hover:text-white"
+                  onClick={handleLogoutAllSessions}
+                  disabled={isLoggingOutAll || isLoadingSessions}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  {isLoggingOutAll ? 'Logging out...' : 'Logout All'}
+                </Button>
+              </div>
+
+              {sessionsError && (
+                <div className="p-3 mb-3 rounded-[8px] border border-red-200 bg-red-50 text-red-700 flex items-center justify-between">
+                  <span className="text-sm">{sessionsError}</span>
+                  <Button size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-100" onClick={fetchSessions}>
+                    Retry
+                  </Button>
+                </div>
+              )}
+
+              {isLoadingSessions ? (
+                <div className="flex items-center justify-center py-6 text-muted-foreground">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold mx-auto mb-2"></div>
+                    <p className="text-sm">Loading sessions...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sessions.length === 0 ? (
+                    <div className="p-4 bg-beige rounded-[12px] text-sm text-muted-foreground">No active sessions found.</div>
+                  ) : (
+                    sessions.map((s, idx) => (
+                      <div
+                        key={s.sessionId || idx}
+                        className="flex items-start justify-between p-4 border border-border-subtle rounded-[12px]"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-beige flex items-center justify-center mt-1">
+                            <Monitor className="w-5 h-5 text-gold" />
+                          </div>
+
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              {(
+                                typeof s.device === 'string'
+                                  ? s.device
+                                  : s?.device?.display || s?.device?.name || s?.userAgent?.display || 'Unknown Device'
+                              )}
+                              {s.isCurrent && (
+                                <Badge className="bg-gold/10 text-gold border-gold/20 text-xs">Current</Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              IP {s.ipAddress || '—'} • Logged in: {s.loginTime ? new Date(s.loginTime).toLocaleString() : '—'} • Last active: {s.lastActive ? new Date(s.lastActive).toLocaleString() : '—'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {!s.isCurrent && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-[8px] border-red-accent/50 text-red-accent hover:bg-red-50"
+                            onClick={() => handleLogoutSession(s.sessionId)}
+                            disabled={loggingOutSessionId === s.sessionId}
+                          >
+                            {loggingOutSessionId === s.sessionId ? 'Logging out...' : 'Logout'}
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -431,6 +593,71 @@ export function Settings() {
             </div>
           )}
         </div>
+
+        {/* Security */}
+<div className="bg-white rounded-[20px] p-6 satfera-shadow">
+  <div className="flex items-center gap-3 mb-6">
+    <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
+      <Lock className="w-5 h-5 text-gold" />
+    </div>
+    <h3 className="m-0">Security</h3>
+  </div>
+
+  <div className="space-y-6">
+
+    {/* 🔥 Removed Two-Factor Authentication */}
+
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="m-0">Recent Login Activity</h4>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-[8px] border-red-accent text-red-accent hover:bg-red-accent hover:text-white"
+          onClick={() => toast.success('Logged out from all other devices')}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout All
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {recentDevices.map((device, idx) => (
+          <div 
+            key={idx} 
+            className="flex items-start justify-between p-4 border border-border-subtle rounded-[12px]"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-beige flex items-center justify-center mt-1">
+                <Monitor className="w-5 h-5 text-gold" />
+              </div>
+
+              <div>
+                <div className="font-medium flex items-center gap-2">
+                  {device.device}
+                  {device.current && (
+                    <Badge className="bg-gold/10 text-gold border-gold/20 text-xs">
+                      Current
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  {device.location}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {device.time}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+  </div>
+</div>
+
 
       
 

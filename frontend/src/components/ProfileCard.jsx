@@ -176,6 +176,40 @@ export function ProfileCard({
           </div>
         );
 
+      case "received":
+        return (
+          <div className="flex flex-col gap-2 mt-2 pr-6 pb-6">
+            {/* Full-width View Profile (sent styling) */}
+            <Button
+              onClick={() => onView?.(profile || { id })}
+              className="w-full h-[38px] bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium 
+              hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <span className="inline-block" aria-hidden>👁</span>
+              <span>View Profile</span>
+            </Button>
+
+            {/* Accept and Reject on the same line */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => onAccept?.(profile || { id })}
+                className="flex-1 h-[38px] bg-[#c8a227] text-white rounded-full font-medium 
+                hover:bg-[#b8941e] transition-all duration-200"
+              >
+                ✓ Accept
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onReject?.(profile || { id })}
+                className="flex-1 h-[38px] bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full font-medium 
+                hover:bg-[#d64545] hover:text-white hover:border-[#d64545] transition-all duration-200"
+              >
+                ✕ Reject
+              </Button>
+            </div>
+          </div>
+        );
+
       case "approved":
         return (
           <div className="flex flex-col gap-3 mt-3">
@@ -268,7 +302,8 @@ export function ProfileCard({
             {status === "accepted" && onChat && (
               <Button
                 onClick={() => onChat?.(profile || { id })}
-                className="w-full bg-[#c8a227] text-white rounded-full h-12 font-medium flex items-center justify-center gap-3 shadow-md hover:bg-[#b8941e] transition-all duration-200"
+                className="w-full bg-[#c8a227] text-white rounded-full py-2 font-medium flex items-center justify-center gap-2 
+          hover:bg-[#b8941e] transition-all duration-200"
               >
                 💬 Chat
               </Button>

@@ -7,6 +7,7 @@ import weddingCoupleImage from "../../assets/wedding.png";
 import couple1 from "../../assets/couple1.png";
 import couple2 from "../../assets/couple2.png";
 import couple3 from "../../assets/couple3.png";
+import useGoToAccount from "../hooks/useGoToAccount";
 
 const colors = {
   maroon: "#800000",
@@ -59,39 +60,11 @@ const successStories = [
 export default function HomePage() {
   const navigate = useNavigate();
 
-  const { token } = useContext(AuthContextr);
+  const { isAuthenticated } = useContext(AuthContextr);
+  const { goToAccount, loading: accountLoading } = useGoToAccount();
 
   const handleAccountClick = async () => {
-    // ✅ Authentication verified via API call (cookie sent automatically)
-    try {
-      const os = await getOnboardingStatus();
-      const onboardingData = os?.data?.data || os?.data || {};
-      const isOnboardingCompleted =
-        typeof onboardingData.isOnboardingCompleted !== "undefined"
-          ? onboardingData.isOnboardingCompleted
-          : Array.isArray(onboardingData.completedSteps)
-          ? onboardingData.completedSteps.length >= 6
-          : true;
-
-      if (!isOnboardingCompleted) {
-        navigate("/onboarding/user");
-        return;
-      }
-
-      const pr = await getProfileReviewStatus();
-      if (pr && pr.success && pr.data) {
-        const status = pr.data.profileReviewStatus;
-        if (status && status !== "approved") {
-          navigate("/onboarding/review");
-          return;
-        }
-      }
-
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Error navigating to account:", err);
-      navigate("/");
-    }
+    await goToAccount();
   };
 
   return (
@@ -135,12 +108,13 @@ export default function HomePage() {
             >
               Contact
             </a>
-            {token ? (
+            {isAuthenticated ? (
               <button
                 onClick={handleAccountClick}
-                className="px-4 py-2 rounded-md font-semibold text-[#FFFFFF] bg-[#D4A052] hover:opacity-90 transition"
+                disabled={accountLoading}
+                className="px-4 py-2 rounded-md font-semibold text-[#FFFFFF] bg-[#D4A052] hover:opacity-90 transition disabled:opacity-60"
               >
-                My Account
+                {accountLoading ? "Opening…" : "My Account"}
               </button>
             ) : (
               <>

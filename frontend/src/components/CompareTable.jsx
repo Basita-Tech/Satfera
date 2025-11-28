@@ -300,9 +300,9 @@ export function CompareTable({
                     className={`absolute top-2 left-2 w-6 h-6 cursor-pointer z-[999] transition-all ${
                       Array.isArray(shortlistedIds) && shortlistedIds.some((sid) => String(sid) === String(getProfileId(profile)))
                         ? 'text-[#c8a227] fill-[#c8a227]'
-                        : 'text-white fill-white'
+                        : 'text-[#c8a227] hover:text-[#a88a1e]'
                     }`}
-                    fill={Array.isArray(shortlistedIds) && shortlistedIds.some((sid) => String(sid) === String(getProfileId(profile))) ? 'currentColor' : 'currentColor'}
+                    fill={Array.isArray(shortlistedIds) && shortlistedIds.some((sid) => String(sid) === String(getProfileId(profile))) ? 'currentColor' : 'none'}
                   />
 
                   {/* Red X (Remove) Icon */}

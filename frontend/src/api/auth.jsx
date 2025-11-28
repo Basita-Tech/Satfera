@@ -1174,6 +1174,55 @@ export const getUnreadNotificationsCount = async () => {
   }
 };
 
+// -------------------------------------------------------------
+// 🔹 SESSIONS/APPS & DEVICES APIs
+// -------------------------------------------------------------
+export const getSessions = async () => {
+  try {
+    const response = await axios.get(`${API}/sessions`, {
+      headers: getAuthHeaders(),
+    });
+    console.log("✅ Sessions API Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Sessions Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      data: { sessions: [], total: 0 },
+      message: error.response?.data?.message || "Failed to fetch sessions",
+    };
+  }
+};
+
+export const logoutSession = async (sessionId) => {
+  try {
+    if (!sessionId) {
+      return { success: false, message: "Session ID is required" };
+    }
+    const response = await axios.delete(`${API}/sessions/${sessionId}`, {
+      headers: getAuthHeaders(),
+    });
+    console.log("✅ Logout Session Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Logout Session Error:", error.response?.data || error.message);
+    return { success: false, message: error.response?.data?.message || "Failed to logout session" };
+  }
+};
+
+export const logoutAllSessions = async () => {
+  try {
+    const response = await axios.post(`${API}/sessions/logout-all`, {}, {
+      headers: getAuthHeaders(),
+    });
+    console.log("✅ Logout All Sessions Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Logout All Sessions Error:", error.response?.data || error.message);
+    return { success: false, message: error.response?.data?.message || "Failed to logout all sessions" };
+  }
+};
+
 // 📝 Mark a Notification as Read
 export const markNotificationAsRead = async (notificationId) => {
   try {
