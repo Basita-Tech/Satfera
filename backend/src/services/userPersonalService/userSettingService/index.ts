@@ -24,7 +24,7 @@ import {
 
 const ACCOUNT_STATUS_COOLDOWN_TTL = APP_CONFIG.ACCOUNT_STATUS_COOLDOWN_TTL;
 
-const validateUserId = (userId: string) => {
+export const validateUserId = (userId: string) => {
   if (!userId) throw new Error("userId is required");
   if (!Types.ObjectId.isValid(userId)) throw new Error("Invalid userId");
   return new Types.ObjectId(userId);

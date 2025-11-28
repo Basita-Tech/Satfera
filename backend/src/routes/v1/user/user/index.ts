@@ -134,4 +134,10 @@ user.get(
   userController.getUserContactInfoController
 );
 
+user.get(
+  "/user/download-pdf",
+  authenticate,
+  userController.downloadMyPdfDataController
+);
+
 export default user;

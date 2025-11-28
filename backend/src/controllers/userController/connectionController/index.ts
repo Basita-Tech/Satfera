@@ -304,15 +304,57 @@ export async function sendConnectionRequest(
     }
 
     const existing = await ConnectionRequest.findOne({
-      sender: senderId,
-      receiver: receiverId,
-      status: "pending"
+      $or: [
+        { sender: senderId, receiver: receiverId },
+        { sender: receiverId, receiver: senderId }
+      ],
+      status: { $ne: "withdrawn" }
     }).session(session);
 
     if (existing) {
+      const existingStatus = existing.status;
+      const isOutgoing = String(existing.sender) === String(senderId);
+
+      if (existingStatus === "pending") {
+        if (isOutgoing) {
+          return res.status(409).json({
+            success: false,
+            message: "A pending connection request already exists."
+          });
+        }
+
+        return res.status(409).json({
+          success: false,
+          message:
+            "This user has already sent you a connection request. Check your received requests to accept or reject."
+        });
+      }
+
+      if (existingStatus === "accepted") {
+        return res.status(409).json({
+          success: false,
+          message: "You are already connected with this user."
+        });
+      }
+
+      if (existingStatus === "rejected") {
+        return res.status(409).json({
+          success: false,
+          message:
+            "A previous connection request was rejected. You cannot send a new request at this time."
+        });
+      }
+
+      if (existingStatus === "blocked") {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+
       return res.status(409).json({
         success: false,
-        message: "A pending connection request already exists."
+        message: "A connection record already exists between these users."
       });
     }
 
@@ -341,12 +383,10 @@ export async function sendConnectionRequest(
     ]);
 
     await session.commitTransaction();
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Connection request sent successfully."
-      });
+    res.status(201).json({
+      success: true,
+      message: "Connection request sent successfully."
+    });
   } catch (err) {
     await session.abortTransaction();
     logger.error("Error sending connection request:", err);
