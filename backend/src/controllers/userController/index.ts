@@ -8,7 +8,8 @@ import {
   addCompareProfilesToProfile,
   getCompareProfilesForUser,
   removeCompareProfilesFromProfile,
-  searchService
+  searchService,
+  downloadMyPdfData
 } from "../../services/userPersonalService/userService";
 import { User } from "../../models";
 
@@ -289,6 +290,37 @@ export async function searchController(req: Request, res: Response) {
   } catch (err: any) {
     console.error("searchController error:", err);
     return res.status(500).json({ success: false, message: "Search failed" });
+  }
+}
+
+export async function downloadMyPdfDataController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    const data = await downloadMyPdfData(userId);
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error: any) {
+    logger.error("Error downloading user PDF data:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download PDF data"
+    });
   }
 }
 

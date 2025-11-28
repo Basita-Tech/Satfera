@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { formatListingProfile } from "../../lib";
+import { formatListingProfile, logger } from "../../lib";
 import {
   User,
   UserEducation,
@@ -13,6 +13,7 @@ import {
 } from "../../models";
 import { calculateAge } from "../../utils/utils";
 import { computeMatchScore } from "../recommendationService";
+import { validateUserId } from "./userSettingService";
 
 export async function getUserDashboardService(userId: string) {
   const [user, userPersonal, userProfile, userProfession, sentRequests] =
@@ -536,4 +537,49 @@ export async function searchService(
       hasMore: skip + listings.length < total
     }
   };
+}
+
+export async function downloadMyPdfData(userId: string) {
+  try {
+    const userObjectId = validateUserId(userId);
+
+    const [user, userPersonal, userFamily, educations, profession, profile] =
+      await Promise.all([
+        User.findById(userObjectId)
+          .select(
+            "firstName middleName lastName gender phoneNumber email dateOfBirth customId"
+          )
+          .lean(),
+        UserPersonal.findOne({ userId: userObjectId })
+          .select("-createdAt -updatedAt -__v")
+          .lean(),
+        UserFamily.findOne({ userId: userObjectId })
+          .select("-createdAt -updatedAt -__v")
+          .lean(),
+        UserEducation.find({ userId: userObjectId })
+          .select("-createdAt -updatedAt -__v")
+          .lean(),
+        UserProfession.findOne({ userId: userObjectId })
+          .select("-createdAt -updatedAt -__v")
+          .lean(),
+        Profile.findOne({ userId: userObjectId })
+          .select("photos.closerPhoto.url ")
+          .lean()
+      ]);
+
+    return {
+      user: user || null,
+      userPersonal: userPersonal || null,
+      family: userFamily || null,
+      educations: Array.isArray(educations) ? educations : [],
+      profession: profession || null,
+      closerPhoto:
+        (Array.isArray(profile)
+          ? profile[0]?.photos?.closerPhoto
+          : (profile as any)?.photos?.closerPhoto) || null
+    };
+  } catch (error: any) {
+    logger.error("Error in downloadMyPdfData:", error?.message || error);
+    throw error;
+  }
 }
