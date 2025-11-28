@@ -41,7 +41,8 @@ export class SessionService {
     jti: string,
     req: Request,
     ipAddress: string,
-    expiresInSeconds: number = 86400
+    expiresInSeconds: number = 86400,
+    fingerprint?: string
   ): Promise<IUserSession> {
     const deviceInfo = getDeviceInfo(req);
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
@@ -50,6 +51,7 @@ export class SessionService {
       userId: new mongoose.Types.ObjectId(userId),
       token,
       jti,
+      fingerprint,
       deviceInfo,
       ipAddress,
       loginAt: new Date(),

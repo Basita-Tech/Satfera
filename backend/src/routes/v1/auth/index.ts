@@ -47,6 +47,8 @@ authRouter.post(
 authRouter.post("/send-sms-otp", otpLimiter, sendOtp);
 authRouter.post("/verify-sms-otp", otpLimiter, verifyOtp);
 
+authRouter.get("/me", authenticate, AuthController.me);
+
 authRouter.post("/logout", authenticate, AuthController.logout);
 
 export default authRouter;

@@ -2,7 +2,7 @@ import axios from "./http";
 import toast from "react-hot-toast";
 import { cachedFetch, dataCache } from "../utils/cache";
 import { dedupeRequest } from "../utils/optimize";
-import { getAuthToken, clearAuthToken, updateActivity } from "../utils/secureStorage";
+import { clearClientAuthData, updateActivity } from "../utils/secureStorage";
 import { getCSRFToken } from "../utils/csrfProtection";
 
 const API = import.meta.env.VITE_API_URL;
@@ -11,54 +11,64 @@ const API = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true; // CRITICAL: Send cookies with every request
 
 // Create global axios interceptors with enhanced security
-axios.interceptors.request.use((config) => {
-  try {
-    config.headers = config.headers || {};
-    
-    // Set default Content-Type if not already set
-    if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json';
-    }
-    
-    // Add CSRF token for state-changing requests (NOT for GET requests)
-    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
-      const csrfToken = getCSRFToken();
-      if (csrfToken) {
-        config.headers['X-CSRF-Token'] = csrfToken;
+axios.interceptors.request.use(
+  (config) => {
+    try {
+      config.headers = config.headers || {};
+
+      // Set default Content-Type if not already set
+      if (!config.headers["Content-Type"]) {
+        config.headers["Content-Type"] = "application/json";
       }
+
+      // Add CSRF token for state-changing requests (NOT for GET requests)
+      if (
+        ["post", "put", "patch", "delete"].includes(
+          config.method?.toLowerCase()
+        )
+      ) {
+        const csrfToken = getCSRFToken();
+        console.log(
+          "🌐 [auth] Adding CSRF token to request headers",
+          csrfToken
+        );
+        if (csrfToken) {
+          config.headers["X-CSRF-Token"] = csrfToken;
+        }
+      }
+
+      // Update activity timestamp on each request
+      updateActivity();
+
+      // Do NOT set Authorization header from frontend storage. Authentication
+      // is handled via httpOnly cookie sent automatically by the browser.
+    } catch (e) {
+      console.error("Error in request interceptor:", e);
     }
-    
-    // Update activity timestamp on each request
-    updateActivity();
-    
-    // ⚠️ TEMPORARY: Keep token support for backward compatibility during transition
-    // Backend will prioritize cookie-based auth, this is fallback only
-    const token = getAuthToken();
-    if (token && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch (e) {
-    console.error('Error in request interceptor:', e);
-  }
-  return config;
-}, (err) => Promise.reject(err));
+    return config;
+  },
+  (err) => Promise.reject(err)
+);
 
 axios.interceptors.response.use(
   (res) => res,
   (error) => {
     try {
       if (error?.response?.status === 401) {
-        console.warn('🌐 [auth] Global 401 response detected:', error.response?.data || error.message);
+        console.warn(
+          "🌐 [auth] Global 401 response detected:",
+          error.response?.data || error.message
+        );
         // Clear auth token securely and redirect to login
-        clearAuthToken();
-        
+        clearClientAuthData();
+
         // Redirect to login if not already there
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
         }
       }
     } catch (e) {
-      console.error('Error in response interceptor:', e);
+      console.error("Error in response interceptor:", e);
     }
     return Promise.reject(error);
   }
@@ -117,7 +127,10 @@ export const loginUser = async (formData) => {
 
     if (status === 403) {
       toast.error(data.message || "Verification required.");
-      return { success: false, message: data.message || "Verification required" };
+      return {
+        success: false,
+        message: data.message || "Verification required",
+      };
     }
 
     toast.error(data.message || "Login failed. Please retry.");
@@ -751,23 +764,27 @@ export const rejectProfile = async (userId, reason) => {
 
 // 📥 Get User Profile Details
 export const getUserProfileDetails = async (useCache = true) => {
-  const cacheKey = 'user_profile';
-  
+  const cacheKey = "user_profile";
+
   if (useCache) {
-    return cachedFetch(cacheKey, async () => {
-      try {
-        const response = await axios.get(`${API}/user/profile`, {
-          headers: getAuthHeaders(),
-        });
-        return response.data;
-      } catch (error) {
-        console.error(
-          "❌ Get User Profile Error:",
-          error.response?.data || error.message
-        );
-        return null;
-      }
-    }, 60000); // Cache for 60 seconds
+    return cachedFetch(
+      cacheKey,
+      async () => {
+        try {
+          const response = await axios.get(`${API}/user/profile`, {
+            headers: getAuthHeaders(),
+          });
+          return response.data;
+        } catch (error) {
+          console.error(
+            "❌ Get User Profile Error:",
+            error.response?.data || error.message
+          );
+          return null;
+        }
+      },
+      60000
+    ); // Cache for 60 seconds
   }
 
   try {
@@ -789,18 +806,22 @@ export const getUserProfileDetails = async (useCache = true) => {
 // Success response: { success: true, data: { email, phoneNumber } }
 export const getUserContactInfo = async () => {
   try {
-    console.log('📧 Fetching user contact information...');
+    console.log("📧 Fetching user contact information...");
     const response = await axios.get(`${API}/user/contact-info`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
-    console.log('✅ Get Contact Info Response:', response.data);
+    console.log("✅ Get Contact Info Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Get Contact Info Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Get Contact Info Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
       data: null,
-      message: error.response?.data?.message || 'Failed to fetch contact information'
+      message:
+        error.response?.data?.message || "Failed to fetch contact information",
     };
   }
 };
@@ -813,19 +834,24 @@ export const getUserContactInfo = async () => {
 // Success response: { success: true, message: "OTP sent to new email address. Valid for 5 minutes." }
 export const requestEmailChange = async (newEmail) => {
   try {
-    console.log('📧 Requesting email change to:', newEmail);
+    console.log("📧 Requesting email change to:", newEmail);
     const response = await axios.post(
       `${API}/user/email/request-change`,
       { newEmail },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ Request Email Change Response:', response.data);
+    console.log("✅ Request Email Change Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Request Email Change Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Request Email Change Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to send OTP. Please try again.'
+      message:
+        error.response?.data?.message ||
+        "Failed to send OTP. Please try again.",
     };
   }
 };
@@ -834,19 +860,24 @@ export const requestEmailChange = async (newEmail) => {
 // Success response: { success: true, message: "Email changed successfully" }
 export const verifyEmailChange = async (newEmail, otp) => {
   try {
-    console.log('✅ Verifying email change with OTP...');
+    console.log("✅ Verifying email change with OTP...");
     const response = await axios.post(
       `${API}/user/email/verify-change`,
       { newEmail, otp },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ Verify Email Change Response:', response.data);
+    console.log("✅ Verify Email Change Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Verify Email Change Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Verify Email Change Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to verify OTP. Please try again.'
+      message:
+        error.response?.data?.message ||
+        "Failed to verify OTP. Please try again.",
     };
   }
 };
@@ -859,19 +890,24 @@ export const verifyEmailChange = async (newEmail, otp) => {
 // Success response: { success: true, message: "Please verify your new phone number using the SMS verification endpoint" }
 export const requestPhoneChange = async (newPhoneNumber) => {
   try {
-    console.log('📱 Requesting phone change to:', newPhoneNumber);
+    console.log("📱 Requesting phone change to:", newPhoneNumber);
     const response = await axios.post(
       `${API}/user/phone/request-change`,
       { newPhoneNumber },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ Request Phone Change Response:', response.data);
+    console.log("✅ Request Phone Change Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Request Phone Change Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Request Phone Change Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to initiate phone change. Please try again.'
+      message:
+        error.response?.data?.message ||
+        "Failed to initiate phone change. Please try again.",
     };
   }
 };
@@ -880,19 +916,24 @@ export const requestPhoneChange = async (newPhoneNumber) => {
 // Success response: { success: true, message: "Phone number changed successfully" }
 export const verifyPhoneChange = async (newPhoneNumber) => {
   try {
-    console.log('✅ Completing phone number change...');
+    console.log("✅ Completing phone number change...");
     const response = await axios.post(
       `${API}/user/phone/verify-change`,
       { newPhoneNumber },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ Verify Phone Change Response:', response.data);
+    console.log("✅ Verify Phone Change Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Verify Phone Change Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Verify Phone Change Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to complete phone change. Please try again.'
+      message:
+        error.response?.data?.message ||
+        "Failed to complete phone change. Please try again.",
     };
   }
 };
@@ -904,7 +945,7 @@ export const searchProfiles = async (query) => {
     console.log("🔍 API URL:", `${API}/user/search`);
     const response = await axios.get(`${API}/user/search`, {
       headers: getAuthHeaders(),
-      params: { name: query, limit: 10 }
+      params: { name: query, limit: 10 },
     });
     console.log("✅ Search Results - Full Response:", response);
     console.log("✅ Search Results - Data:", response.data);
@@ -916,42 +957,50 @@ export const searchProfiles = async (query) => {
     return {
       success: false,
       data: [],
-      message: error.response?.data?.message || "Failed to search profiles"
+      message: error.response?.data?.message || "Failed to search profiles",
     };
   }
 };
 
 // 📥 Get User Matched Profiles
-export const getMatches = async ({ useCache = true, page = 1, limit = 20 } = {}) => {
+export const getMatches = async ({
+  useCache = true,
+  page = 1,
+  limit = 20,
+} = {}) => {
   const cacheKey = `user_matches_${page}_${limit}`;
-  
+
   if (useCache) {
-    return cachedFetch(cacheKey, async () => {
-      try {
-        const response = await axios.get(`${API}/matches`, {
-          headers: getAuthHeaders(),
-          params: { page, limit }
-        });
-        console.log("✅ Matches API Response:", response.data);
-        return response.data;
-      } catch (error) {
-        console.error(
-          "❌ Get User Matches Error:",
-          error.response?.data || error.message
-        );
-        return {
-          success: false,
-          data: [],
-          message: error.response?.data?.message || "Failed to fetch matches"
-        };
-      }
-    }, 45000); // Cache for 45 seconds
+    return cachedFetch(
+      cacheKey,
+      async () => {
+        try {
+          const response = await axios.get(`${API}/matches`, {
+            headers: getAuthHeaders(),
+            params: { page, limit },
+          });
+          console.log("✅ Matches API Response:", response.data);
+          return response.data;
+        } catch (error) {
+          console.error(
+            "❌ Get User Matches Error:",
+            error.response?.data || error.message
+          );
+          return {
+            success: false,
+            data: [],
+            message: error.response?.data?.message || "Failed to fetch matches",
+          };
+        }
+      },
+      45000
+    ); // Cache for 45 seconds
   }
 
   try {
     const response = await axios.get(`${API}/matches`, {
       headers: getAuthHeaders(),
-      params: { page, limit }
+      params: { page, limit },
     });
     console.log("✅ Matches API Response:", response.data);
     dataCache.set(cacheKey, response.data, 45000);
@@ -964,7 +1013,7 @@ export const getMatches = async ({ useCache = true, page = 1, limit = 20 } = {})
     return {
       success: false,
       data: [],
-      message: error.response?.data?.message || "Failed to fetch matches"
+      message: error.response?.data?.message || "Failed to fetch matches",
     };
   }
 };
@@ -974,7 +1023,7 @@ export const getViewProfiles = async (id, options = {}) => {
   const cacheKey = `profile_${id}`;
   const requestKey = `profile_request_${id}`;
   const useCache = options?.useCache !== false;
-  
+
   if (useCache) {
     const cached = dataCache.get(cacheKey);
     if (cached) {
@@ -986,38 +1035,38 @@ export const getViewProfiles = async (id, options = {}) => {
   // Deduplicate concurrent requests for the same profile
   return dedupeRequest(requestKey, async () => {
     try {
-    console.log("🔍 [getViewProfiles] Fetching profile for ID:", id);
-    console.log("🔍 [getViewProfiles] Request URL:", `${API}/profile/${id}`);
+      console.log("🔍 [getViewProfiles] Fetching profile for ID:", id);
+      console.log("🔍 [getViewProfiles] Request URL:", `${API}/profile/${id}`);
 
-    const config = {
-      headers: getAuthHeaders(),
-    };
+      const config = {
+        headers: getAuthHeaders(),
+      };
 
-    // Support passing fetch AbortController signal for canceling the request
-    if (options?.signal) {
-      config.signal = options.signal;
-    }
+      // Support passing fetch AbortController signal for canceling the request
+      if (options?.signal) {
+        config.signal = options.signal;
+      }
 
-    const response = await axios.get(`${API}/profile/${id}`, config);
+      const response = await axios.get(`${API}/profile/${id}`, config);
 
-    console.log("✅ [getViewProfiles] Raw API Response:", response);
-    console.log("✅ [getViewProfiles] Response Data:", response.data);
-    console.log("✅ [getViewProfiles] Response Data Structure:", {
-      success: response.data?.success,
-      hasData: !!response.data?.data,
-      dataKeys: response.data?.data ? Object.keys(response.data.data) : [],
-      message: response.data?.message
-    });
+      console.log("✅ [getViewProfiles] Raw API Response:", response);
+      console.log("✅ [getViewProfiles] Response Data:", response.data);
+      console.log("✅ [getViewProfiles] Response Data Structure:", {
+        success: response.data?.success,
+        hasData: !!response.data?.data,
+        dataKeys: response.data?.data ? Object.keys(response.data.data) : [],
+        message: response.data?.message,
+      });
 
-    // Cache the successful response
-    if (response.data?.success) {
-      dataCache.set(cacheKey, response.data, 120000); // Cache for 2 minutes
-    }
+      // Cache the successful response
+      if (response.data?.success) {
+        dataCache.set(cacheKey, response.data, 120000); // Cache for 2 minutes
+      }
 
       return response.data;
     } catch (error) {
       // If request was canceled (component unmounted), don't treat as an error
-      if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') {
+      if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED") {
         console.info("ℹ️ [getViewProfiles] Request canceled by caller");
         return { success: false, data: null, message: "Request canceled" };
       }
@@ -1029,7 +1078,9 @@ export const getViewProfiles = async (id, options = {}) => {
       return {
         success: false,
         data: [],
-        message: error.response?.data?.message || "Failed to fetch user view profile details",
+        message:
+          error.response?.data?.message ||
+          "Failed to fetch user view profile details",
       };
     }
   });
@@ -1040,37 +1091,46 @@ export const getViewProfiles = async (id, options = {}) => {
 // -------------------------------------------------------------
 
 // 📥 Get All Notifications with pagination
-export const getNotifications = async (page = 1, limit = 20, useCache = true) => {
+export const getNotifications = async (
+  page = 1,
+  limit = 20,
+  useCache = true
+) => {
   const cacheKey = `notifications_${page}_${limit}`;
-  
+
   if (useCache) {
-    return cachedFetch(cacheKey, async () => {
-      try {
-        const response = await axios.get(`${API}/user/notifications`, {
-          headers: getAuthHeaders(),
-          params: { page, limit }
-        });
-        console.log("✅ Notifications API Response:", response.data);
-        return response.data;
-      } catch (error) {
-        console.error(
-          "❌ Get Notifications Error:",
-          error.response?.data || error.message
-        );
-        return {
-          success: false,
-          data: [],
-          pagination: { page: 1, limit: 20, total: 0, hasMore: false },
-          message: error.response?.data?.message || "Failed to fetch notifications"
-        };
-      }
-    }, 20000); // Cache for 20 seconds
+    return cachedFetch(
+      cacheKey,
+      async () => {
+        try {
+          const response = await axios.get(`${API}/user/notifications`, {
+            headers: getAuthHeaders(),
+            params: { page, limit },
+          });
+          console.log("✅ Notifications API Response:", response.data);
+          return response.data;
+        } catch (error) {
+          console.error(
+            "❌ Get Notifications Error:",
+            error.response?.data || error.message
+          );
+          return {
+            success: false,
+            data: [],
+            pagination: { page: 1, limit: 20, total: 0, hasMore: false },
+            message:
+              error.response?.data?.message || "Failed to fetch notifications",
+          };
+        }
+      },
+      20000
+    ); // Cache for 20 seconds
   }
 
   try {
     const response = await axios.get(`${API}/user/notifications`, {
       headers: getAuthHeaders(),
-      params: { page, limit }
+      params: { page, limit },
     });
     console.log("✅ Notifications API Response:", response.data);
     dataCache.set(cacheKey, response.data, 20000);
@@ -1084,7 +1144,7 @@ export const getNotifications = async (page = 1, limit = 20, useCache = true) =>
       success: false,
       data: [],
       pagination: { page: 1, limit: 20, total: 0, hasMore: false },
-      message: error.response?.data?.message || "Failed to fetch notifications"
+      message: error.response?.data?.message || "Failed to fetch notifications",
     };
   }
 };
@@ -1099,7 +1159,7 @@ export const getUnreadNotificationsCount = async () => {
     // Backend returns: { success: true, data: { unreadCount: number } }
     return {
       success: response.data.success,
-      count: response.data.data?.unreadCount || 0
+      count: response.data.data?.unreadCount || 0,
     };
   } catch (error) {
     console.error(
@@ -1109,7 +1169,7 @@ export const getUnreadNotificationsCount = async () => {
     return {
       success: false,
       count: 0,
-      message: error.response?.data?.message || "Failed to fetch unread count"
+      message: error.response?.data?.message || "Failed to fetch unread count",
     };
   }
 };
@@ -1131,7 +1191,7 @@ export const markNotificationAsRead = async (notificationId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to mark as read"
+      message: error.response?.data?.message || "Failed to mark as read",
     };
   }
 };
@@ -1153,7 +1213,7 @@ export const markAllNotificationsAsRead = async () => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to mark all as read"
+      message: error.response?.data?.message || "Failed to mark all as read",
     };
   }
 };
@@ -1166,18 +1226,23 @@ export const markAllNotificationsAsRead = async () => {
 // Success response: { success: true, data: { emailNotifications, pushNotifications, smsNotifications } }
 export const getNotificationSettings = async () => {
   try {
-    console.log('📥 Fetching notification settings...');
+    console.log("📥 Fetching notification settings...");
     const response = await axios.get(`${API}/user/notification-settings`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
-    console.log('✅ Get Notification Settings Response:', response.data);
+    console.log("✅ Get Notification Settings Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Get Notification Settings Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Get Notification Settings Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
       data: null,
-      message: error.response?.data?.message || 'Failed to fetch notification settings'
+      message:
+        error.response?.data?.message ||
+        "Failed to fetch notification settings",
     };
   }
 };
@@ -1186,19 +1251,24 @@ export const getNotificationSettings = async () => {
 // Accepts partial updates: { emailNotifications?: boolean, pushNotifications?: boolean, smsNotifications?: boolean }
 export const updateNotificationSettings = async (settings) => {
   try {
-    console.log('📝 Updating notification settings:', settings);
+    console.log("📝 Updating notification settings:", settings);
     const response = await axios.patch(
       `${API}/user/notification-settings`,
       settings,
       { headers: getAuthHeaders() }
     );
-    console.log('✅ Update Notification Settings Response:', response.data);
+    console.log("✅ Update Notification Settings Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Update Notification Settings Error:', error.response?.data || error.message);
+    console.error(
+      "❌ Update Notification Settings Error:",
+      error.response?.data || error.message
+    );
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to update notification settings'
+      message:
+        error.response?.data?.message ||
+        "Failed to update notification settings",
     };
   }
 };
@@ -1228,7 +1298,7 @@ export const addToFavorites = async (profileId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to add to favorites"
+      message: error.response?.data?.message || "Failed to add to favorites",
     };
   }
 };
@@ -1254,12 +1324,11 @@ export const removeFromFavorites = async (profileId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to remove from favorites"
+      message:
+        error.response?.data?.message || "Failed to remove from favorites",
     };
   }
 };
-
-
 
 // 📥 Get All Favorites
 export const getFavorites = async () => {
@@ -1278,19 +1347,21 @@ export const getFavorites = async () => {
     return {
       success: false,
       data: [],
-      message: error.response?.data?.message || "Failed to fetch favorites"
+      message: error.response?.data?.message || "Failed to fetch favorites",
     };
   }
 };
-
 
 // 📥 Get All Favorites
 export const getAllProfiles = async (page = 1, limit = 10) => {
   try {
     console.log("📥 Fetching profiles...", { page, limit });
-    const response = await axios.get(`${API}/profiles?page=${page}&limit=${limit}`, {
-      headers: getAuthHeaders(),
-    });
+    const response = await axios.get(
+      `${API}/profiles?page=${page}&limit=${limit}`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     console.log("✅ Get All Profile Response:", response.data);
     return response.data;
   } catch (error) {
@@ -1302,7 +1373,7 @@ export const getAllProfiles = async (page = 1, limit = 10) => {
       success: false,
       data: [],
       pagination: { page, limit, total: 0, hasMore: false },
-      message: error.response?.data?.message || "Failed to fetch profiles"
+      message: error.response?.data?.message || "Failed to fetch profiles",
     };
   }
 };
@@ -1331,7 +1402,8 @@ export const sendConnectionRequest = async (receiverId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to send connection request"
+      message:
+        error.response?.data?.message || "Failed to send connection request",
     };
   }
 };
@@ -1353,7 +1425,7 @@ export const getSentRequests = async () => {
     return {
       success: false,
       data: [],
-      message: error.response?.data?.message || "Failed to fetch sent requests"
+      message: error.response?.data?.message || "Failed to fetch sent requests",
     };
   }
 };
@@ -1375,7 +1447,8 @@ export const getReceivedRequests = async () => {
     return {
       success: false,
       data: [],
-      message: error.response?.data?.message || "Failed to fetch received requests"
+      message:
+        error.response?.data?.message || "Failed to fetch received requests",
     };
   }
 };
@@ -1400,7 +1473,8 @@ export const acceptConnectionRequest = async (requestId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to accept connection request"
+      message:
+        error.response?.data?.message || "Failed to accept connection request",
     };
   }
 };
@@ -1425,7 +1499,8 @@ export const rejectConnectionRequest = async (requestId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to reject connection request"
+      message:
+        error.response?.data?.message || "Failed to reject connection request",
     };
   }
 };
@@ -1450,7 +1525,9 @@ export const withdrawConnectionRequest = async (connectionId) => {
     );
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to withdraw connection request"
+      message:
+        error.response?.data?.message ||
+        "Failed to withdraw connection request",
     };
   }
 };
@@ -1473,7 +1550,8 @@ export const getApprovedConnections = async (page = 1, limit = 20) => {
     return {
       success: false,
       data: [],
-      message: error.response?.data?.message || "Failed to fetch approved connections"
+      message:
+        error.response?.data?.message || "Failed to fetch approved connections",
     };
   }
 };
@@ -1487,61 +1565,97 @@ export const getApprovedConnections = async (page = 1, limit = 20) => {
 // -------------------------------------------------------------
 export const getCompare = async () => {
   try {
-    console.log('📥 Fetching compare list from server');
-    const response = await axios.get(`${API}/user/compare`, { headers: getAuthHeaders() });
-    console.log('✅ getCompare response:', response.data);
+    console.log("📥 Fetching compare list from server");
+    const response = await axios.get(`${API}/user/compare`, {
+      headers: getAuthHeaders(),
+    });
+    console.log("✅ getCompare response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ getCompare error:', error.response?.data || error.message);
-    return { success: false, data: [], message: error.response?.data?.message || 'Failed to fetch compare list' };
+    console.error(
+      "❌ getCompare error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      data: [],
+      message: error.response?.data?.message || "Failed to fetch compare list",
+    };
   }
 };
 
 export const addToCompare = async (profileIdOrIds) => {
   try {
-    const ids = Array.isArray(profileIdOrIds) ? profileIdOrIds.map(String) : [String(profileIdOrIds)];
-    console.log('📤 Adding to compare:', ids);
-    const response = await axios.post(`${API}/user/compare`, { profilesIds: ids }, { headers: getAuthHeaders() });
-    console.log('✅ addToCompare response:', response.data);
+    const ids = Array.isArray(profileIdOrIds)
+      ? profileIdOrIds.map(String)
+      : [String(profileIdOrIds)];
+    console.log("📤 Adding to compare:", ids);
+    const response = await axios.post(
+      `${API}/user/compare`,
+      { profilesIds: ids },
+      { headers: getAuthHeaders() }
+    );
+    console.log("✅ addToCompare response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ addToCompare error:', error.response?.data || error.message);
-    return { success: false, message: error.response?.data?.message || 'Failed to add to compare' };
+    console.error(
+      "❌ addToCompare error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to add to compare",
+    };
   }
 };
 
 export const removeFromCompare = async (profileIdOrIds) => {
   try {
-    const ids = Array.isArray(profileIdOrIds) ? profileIdOrIds.map(String) : [String(profileIdOrIds)];
-    console.log('🗑️ Removing from compare:', ids);
+    const ids = Array.isArray(profileIdOrIds)
+      ? profileIdOrIds.map(String)
+      : [String(profileIdOrIds)];
+    console.log("🗑️ Removing from compare:", ids);
     // axios.delete supports sending a request body via the config.data property
     const response = await axios.delete(`${API}/user/compare`, {
       headers: getAuthHeaders(),
-      data: { profilesIds: ids }
+      data: { profilesIds: ids },
     });
-    console.log('✅ removeFromCompare response:', response.data);
+    console.log("✅ removeFromCompare response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ removeFromCompare error:', error.response?.data || error.message);
-    return { success: false, message: error.response?.data?.message || 'Failed to remove from compare' };
+    console.error(
+      "❌ removeFromCompare error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to remove from compare",
+    };
   }
 };
 
 // -------------------------------------------------------------
 // 🔹 Change Password
 // -------------------------------------------------------------
-export const changePassword = async (oldPassword, newPassword, confirmPassword) => {
+export const changePassword = async (
+  oldPassword,
+  newPassword,
+  confirmPassword
+) => {
   try {
-    console.log('🔐 Changing password...');
+    console.log("🔐 Changing password...");
     const response = await axios.post(
       `${API}/user/change-password`,
       { oldPassword, newPassword, confirmPassword },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ changePassword response:', response.data);
+    console.log("✅ changePassword response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ changePassword error:', error.response?.data || error.message);
+    console.error(
+      "❌ changePassword error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -1559,29 +1673,29 @@ export const changePassword = async (oldPassword, newPassword, confirmPassword) 
 // - Generic: "Failed to block user"
 export const blockUserProfile = async (customId) => {
   try {
-    if (!customId || typeof customId !== 'string') {
-      return { success: false, message: 'Invalid customId provided' };
+    if (!customId || typeof customId !== "string") {
+      return { success: false, message: "Invalid customId provided" };
     }
-    console.log('🚫 Blocking user:', customId);
+    console.log("🚫 Blocking user:", customId);
     const response = await axios.post(
       `${API}/user/block`,
       { customId },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ blockUserProfile response:', response.data);
+    console.log("✅ blockUserProfile response:", response.data);
     return response.data;
   } catch (error) {
     const status = error?.response?.status;
     const rawMsg = error?.response?.data?.message || error.message;
     let message = rawMsg;
     if (status === 429 || /24 hours/i.test(rawMsg)) {
-      message = 'You can change block status for this profile after 24 hours';
+      message = "You can change block status for this profile after 24 hours";
     } else if (/already/i.test(rawMsg)) {
-      message = 'User is already in your blocked list';
+      message = "User is already in your blocked list";
     } else if (/cannot block yourself/i.test(rawMsg)) {
-      message = 'You cannot block your own profile';
+      message = "You cannot block your own profile";
     }
-    console.error('❌ blockUserProfile error:', rawMsg);
+    console.error("❌ blockUserProfile error:", rawMsg);
     return { success: false, message };
   }
 };
@@ -1593,27 +1707,30 @@ export const blockUserProfile = async (customId) => {
 // - "User is not in your blocked list" (400)
 export const unblockUserProfile = async (customId) => {
   try {
-    if (!customId || typeof customId !== 'string') {
-      return { success: false, message: 'Invalid customId provided' };
+    if (!customId || typeof customId !== "string") {
+      return { success: false, message: "Invalid customId provided" };
     }
-    console.log('♻️ Unblocking user:', customId);
+    console.log("♻️ Unblocking user:", customId);
     const response = await axios.post(
       `${API}/user/unblock`,
       { customId },
       { headers: getAuthHeaders() }
     );
-    console.log('✅ unblockUserProfile response:', response.data);
+    console.log("✅ unblockUserProfile response:", response.data);
     return response.data;
   } catch (error) {
     const status = error?.response?.status;
     const rawMsg = error?.response?.data?.message || error.message;
     let message = rawMsg;
     if (status === 429 || /24 hours/i.test(rawMsg)) {
-      message = 'You can change block status for this profile after 24 hours';
-    } else if (/not in your blocked list/i.test(rawMsg) || /NotBlocked/i.test(rawMsg)) {
-      message = 'User is not in your blocked list';
+      message = "You can change block status for this profile after 24 hours";
+    } else if (
+      /not in your blocked list/i.test(rawMsg) ||
+      /NotBlocked/i.test(rawMsg)
+    ) {
+      message = "User is not in your blocked list";
     }
-    console.error('❌ unblockUserProfile error:', rawMsg);
+    console.error("❌ unblockUserProfile error:", rawMsg);
     return { success: false, message };
   }
 };
@@ -1621,70 +1738,110 @@ export const unblockUserProfile = async (customId) => {
 // 📋 Get list of blocked users
 // Success response (backend): { success: true, data: [ { name, customId }, ... ] }
 export const getBlockedUsers = async (useCache = true) => {
-  const cacheKey = 'blocked_users';
+  const cacheKey = "blocked_users";
   if (useCache) {
-    return cachedFetch(cacheKey, async () => {
-      try {
-        console.log('📋 Fetching blocked users list');
-        const response = await axios.get(`${API}/user/blocked`, { headers: getAuthHeaders() });
-        return response.data;
-      } catch (error) {
-        console.error('❌ getBlockedUsers error:', error.response?.data || error.message);
-        return { success: false, data: [], message: error.response?.data?.message || 'Failed to fetch blocked users' };
-      }
-    }, 30000); // 30s cache
+    return cachedFetch(
+      cacheKey,
+      async () => {
+        try {
+          console.log("📋 Fetching blocked users list");
+          const response = await axios.get(`${API}/user/blocked`, {
+            headers: getAuthHeaders(),
+          });
+          return response.data;
+        } catch (error) {
+          console.error(
+            "❌ getBlockedUsers error:",
+            error.response?.data || error.message
+          );
+          return {
+            success: false,
+            data: [],
+            message:
+              error.response?.data?.message || "Failed to fetch blocked users",
+          };
+        }
+      },
+      30000
+    ); // 30s cache
   }
   try {
-    console.log('📋 Fetching blocked users list (no cache)');
-    const response = await axios.get(`${API}/user/blocked`, { headers: getAuthHeaders() });
+    console.log("📋 Fetching blocked users list (no cache)");
+    const response = await axios.get(`${API}/user/blocked`, {
+      headers: getAuthHeaders(),
+    });
     return response.data;
   } catch (error) {
-    console.error('❌ getBlockedUsers error:', error.response?.data || error.message);
-    return { success: false, data: [], message: error.response?.data?.message || 'Failed to fetch blocked users' };
+    console.error(
+      "❌ getBlockedUsers error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      data: [],
+      message: error.response?.data?.message || "Failed to fetch blocked users",
+    };
   }
 };
 
 // 👁️ Get profile views (who viewed my profile)
 // Returns deduplicated profile viewers ordered by latest view time
 // Supports pagination via page and limit query parameters
-export const getProfileViews = async (page = 1, limit = 10, useCache = false) => {
+export const getProfileViews = async (
+  page = 1,
+  limit = 10,
+  useCache = false
+) => {
   const cacheKey = `profile_views_${page}_${limit}`;
   if (useCache) {
-    return cachedFetch(cacheKey, async () => {
-      try {
-        console.log(`👁️ Fetching profile views - page: ${page}, limit: ${limit}`);
-        const response = await axios.get(`${API}/user/profile-views`, {
-          params: { page, limit },
-          headers: getAuthHeaders()
-        });
-        return response.data;
-      } catch (error) {
-        console.error('❌ getProfileViews error:', error.response?.data || error.message);
-        return { 
-          success: false, 
-          data: [], 
-          message: error.response?.data?.message || 'Failed to fetch profile views',
-          pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
-        };
-      }
-    }, 15000); // 15s cache
+    return cachedFetch(
+      cacheKey,
+      async () => {
+        try {
+          console.log(
+            `👁️ Fetching profile views - page: ${page}, limit: ${limit}`
+          );
+          const response = await axios.get(`${API}/user/profile-views`, {
+            params: { page, limit },
+            headers: getAuthHeaders(),
+          });
+          return response.data;
+        } catch (error) {
+          console.error(
+            "❌ getProfileViews error:",
+            error.response?.data || error.message
+          );
+          return {
+            success: false,
+            data: [],
+            message:
+              error.response?.data?.message || "Failed to fetch profile views",
+            pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+          };
+        }
+      },
+      15000
+    ); // 15s cache
   }
   try {
-    console.log(`👁️ Fetching profile views (no cache) - page: ${page}, limit: ${limit}`);
+    console.log(
+      `👁️ Fetching profile views (no cache) - page: ${page}, limit: ${limit}`
+    );
     const response = await axios.get(`${API}/user/profile-views`, {
       params: { page, limit },
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
     return response.data;
   } catch (error) {
-    console.error('❌ getProfileViews error:', error.response?.data || error.message);
-    return { 
-      success: false, 
-      data: [], 
-      message: error.response?.data?.message || 'Failed to fetch profile views',
-      pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+    console.error(
+      "❌ getProfileViews error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      data: [],
+      message: error.response?.data?.message || "Failed to fetch profile views",
+      pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
     };
   }
 };
-
-

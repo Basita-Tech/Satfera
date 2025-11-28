@@ -38,6 +38,8 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
 
+app.use(cors(middleware.corsOptions));
+
 app.use(middleware.securityLogger);
 
 app.use(middleware.requestTimeoutProtection(30000));
@@ -53,8 +55,6 @@ app.use(middleware.suspiciousActivityDetector);
 app.use(csrfProtection);
 
 app.use(morgan("combined", { stream: morganStream }));
-
-app.use(cors(middleware.corsOptions));
 
 const PORT = parseInt(process.env.PORT || "8000", 10);
 

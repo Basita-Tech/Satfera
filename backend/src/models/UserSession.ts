@@ -4,6 +4,7 @@ export interface IUserSession extends Document {
   userId: mongoose.Types.ObjectId;
   token: string;
   jti: string;
+  fingerprint?: string;
   deviceInfo: {
     browser: string;
     os: string;
@@ -49,6 +50,7 @@ const UserSessionSchema = new Schema<IUserSession>(
       device: { type: String, required: true },
       userAgent: { type: String, required: true }
     },
+    fingerprint: { type: String },
     ipAddress: {
       type: String,
       required: true,

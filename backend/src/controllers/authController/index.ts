@@ -23,7 +23,8 @@ import {
   setSecureTokenCookie,
   generateCSRFToken,
   setCSRFTokenCookie,
-  clearAuthCookies
+  clearAuthCookies,
+  verifyDeviceFingerprint
 } from "../../utils/secureToken";
 import { SessionService } from "../../services/sessionService";
 
@@ -292,6 +293,116 @@ export class AuthController {
         success: false,
         message: sanitized.message
       });
+    }
+  }
+
+  static async me(req: AuthenticatedRequest, res: Response) {
+    try {
+      const token = req.cookies?.token;
+      const csrfCookie = req.cookies?.csrf_token;
+      // const csrfHeader =
+      //   (req.headers["x-csrf-token"] as string) ||
+      //   (req.headers["csrf-token"] as string);
+
+      if (!token) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      let decoded: any = null;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+      } catch (jwtErr) {
+        logger.warn("Invalid JWT on /auth/me", {
+          error: (jwtErr as any).message,
+          ip: req.ip
+        });
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      const userId = decoded?.id || decoded?.userId || decoded?.sub;
+      const jti = decoded?.jti;
+
+      if (!userId || !jti) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      const session = await SessionService.validateSession(String(userId), jti);
+      if (!session) {
+        logger.warn("Unauthorized access", {
+          userId,
+          jti,
+          ip: req.ip
+        });
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      const reqIp = req.ip || "";
+      const reqUA = req.get("user-agent") || "";
+
+      if (session.ipAddress && reqIp && session.ipAddress !== reqIp) {
+        logger.warn("IP mismatch", {
+          userId,
+          sessionIp: session.ipAddress,
+          reqIp
+        });
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      const sessionUA = session.deviceInfo?.userAgent || "";
+      if (
+        sessionUA &&
+        reqUA &&
+        !sessionUA.startsWith(reqUA) &&
+        !reqUA.startsWith(sessionUA)
+      ) {
+        logger.warn("User-Agent mismatch", { userId });
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      const storedFingerprint = (session as any).fingerprint || "";
+      if (storedFingerprint) {
+        const ok = verifyDeviceFingerprint(storedFingerprint, reqUA, reqIp);
+        if (!ok) {
+          logger.warn("Device fingerprint mismatch", {
+            userId,
+            reqIp,
+            reqUA
+          });
+          return res
+            .status(401)
+            .json({ success: false, message: "Not authenticated" });
+        }
+      }
+
+      const userRecord =
+        req.user || (await User.findById(userId).select("-password -__v"));
+      if (!userRecord) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      const userObj = (userRecord as any).toObject
+        ? (userRecord as any).toObject()
+        : userRecord;
+      const publicUser = sanitizeUser(userObj);
+
+      return res.status(200).json({ success: true, user: publicUser });
+    } catch (err: any) {
+      logger.error("Me endpoint error", { error: err?.message, ip: req.ip });
+      return res.status(500).json({ success: false, message: "Server error" });
     }
   }
 

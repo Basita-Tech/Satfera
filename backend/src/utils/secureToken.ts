@@ -1,5 +1,6 @@
 import { Response } from "express";
 import crypto from "crypto";
+import { logger } from "../lib/common/logger";
 
 /**
  * Secure Token Management Utilities
@@ -23,14 +24,28 @@ export function setSecureTokenCookie(
 ): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: options.sameSite || "strict",
+  const frontendUrl = process.env.FRONTEND_URL || "";
+  let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
+  if (!cookieDomain && frontendUrl) {
+    try {
+      cookieDomain = new URL(frontendUrl).hostname;
+    } catch {
+      cookieDomain = undefined;
+    }
+  }
+
+  const defaultSameSite: SecureCookieOptions["sameSite"] = "none";
+
+  const tokenCookieOptions = {
+    // httpOnly: isProduction,
+    // secure: isProduction,
+    // sameSite: options.sameSite || defaultSameSite,
     maxAge: options.maxAge || COOKIE_MAX_AGE,
-    path: "/",
-    domain: isProduction ? process.env.COOKIE_DOMAIN : undefined
-  });
+    path: "/"
+    // domain: cookieDomain
+  } as any;
+
+  res.cookie("token", token, tokenCookieOptions);
 }
 
 export function generateCSRFToken(): string {
@@ -39,19 +54,73 @@ export function generateCSRFToken(): string {
 
 export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
   const isProduction = process.env.NODE_ENV === "production";
+  const enforceStrict =
+    isProduction || process.env.ENFORCE_STRICT_COOKIES === "true";
 
-  res.cookie("csrf_token", csrfToken, {
-    httpOnly: false,
-    secure: isProduction,
-    sameSite: "strict",
+  const frontendUrl = process.env.FRONTEND_URL || "";
+  let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
+  if (!cookieDomain && frontendUrl) {
+    try {
+      cookieDomain = new URL(frontendUrl).hostname;
+    } catch {
+      cookieDomain = undefined;
+    }
+  }
+
+  const defaultSameSite: SecureCookieOptions["sameSite"] = "none";
+
+  const csrfCookieOptions = {
+    // httpOnly: false,
+    // secure: enforceStrict,
+    // sameSite: defaultSameSite,
     maxAge: COOKIE_MAX_AGE,
     path: "/"
-  });
+    // domain: cookieDomain
+  } as any;
+
+  res.cookie("csrf_token", csrfToken, csrfCookieOptions);
+
+  if (!isProduction) {
+    try {
+      logger.info("Set csrf cookie", csrfCookieOptions);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log("Set csrf cookie", csrfCookieOptions);
+    }
+  }
 }
 
 export function clearAuthCookies(res: Response): void {
-  res.clearCookie("token", { path: "/" });
-  res.clearCookie("csrf_token", { path: "/" });
+  // Use same domain/sameSite as when setting cookies so they clear reliably
+  const isProduction = process.env.NODE_ENV === "production";
+  const enforceStrict =
+    isProduction || process.env.ENFORCE_STRICT_COOKIES === "true";
+
+  const frontendUrl = process.env.FRONTEND_URL || "";
+  let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
+  if (!cookieDomain && frontendUrl) {
+    try {
+      cookieDomain = new URL(frontendUrl).hostname;
+    } catch {
+      cookieDomain = undefined;
+    }
+  }
+
+  const sameSite: SecureCookieOptions["sameSite"] = "none";
+
+  res.clearCookie("token", {
+    path: "/",
+    domain: cookieDomain,
+    sameSite,
+    secure: enforceStrict
+  });
+
+  res.clearCookie("csrf_token", {
+    path: "/",
+    domain: cookieDomain,
+    sameSite,
+    secure: enforceStrict
+  });
 }
 
 /**

@@ -28,7 +28,7 @@ const LoginForm = () => {
       if (token) {
         // ✅ Token is now stored in HTTP-only cookie by backend
         // No need to store in localStorage (XSS protection)
-        
+
         try {
           // Update context if needed for UI state
           if (ctxLogin) ctxLogin({ token });
@@ -96,32 +96,6 @@ const LoginForm = () => {
   const handleAuthResponse = async (apiResponse) => {
     try {
       const resp = apiResponse || {};
-      const token = resp.token;
-
-      // Treat onboarding / review redirects as partial success even if success:false
-      const isOnboardingRedirect =
-        !!resp.redirectTo && ["/onboarding/user", "/onboarding/review"].includes(resp.redirectTo);
-
-      if (token && ctxLogin) {
-        try {
-          ctxLogin({ token });
-        } catch (_) {}
-      }
-
-      if (resp.message) {
-        if (resp.success) {
-          toast.success(resp.message);
-        } else if (isOnboardingRedirect) {
-          // Neutral / info style for onboarding continuation
-          toast((t) => (
-            <span>
-              {resp.message} – please complete remaining steps.
-            </span>
-          ));
-        } else {
-          toast.error(resp.message);
-        }
-      }
 
       if (resp.redirectTo) {
         navigate(resp.redirectTo);
@@ -130,7 +104,7 @@ const LoginForm = () => {
 
       // Default navigation after successful auth
       if (resp.success) {
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (e) {
       console.error("Error handling auth response:", e);
@@ -149,11 +123,18 @@ const LoginForm = () => {
     setError("");
 
     // Import sanitization at component level for clarity
-    const { sanitizeEmail, sanitizePhone, sanitizePassword, containsXSSPatterns } = 
-      await import("../../utils/sanitization");
+    const {
+      sanitizeEmail,
+      sanitizePhone,
+      sanitizePassword,
+      containsXSSPatterns,
+    } = await import("../../utils/sanitization");
 
     // Check for XSS attempts
-    if (containsXSSPatterns(formData.username) || containsXSSPatterns(formData.password)) {
+    if (
+      containsXSSPatterns(formData.username) ||
+      containsXSSPatterns(formData.password)
+    ) {
       setError("Invalid input detected. Please remove special characters.");
       setLoading(false);
       return;
@@ -169,10 +150,10 @@ const LoginForm = () => {
     }
 
     // Sanitize inputs before sending
-    const sanitizedUsername = isEmail 
-      ? sanitizeEmail(formData.username) 
+    const sanitizedUsername = isEmail
+      ? sanitizeEmail(formData.username)
       : sanitizePhone(formData.username);
-    
+
     const sanitizedPassword = sanitizePassword(formData.password);
 
     if (!sanitizedUsername || !sanitizedPassword) {

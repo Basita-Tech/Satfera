@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import axios from "../../api/http";
-import { getAuthToken, isSessionActive } from "../../utils/secureStorage";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -12,19 +11,8 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // First check if token exists locally
-        const token = getAuthToken();
-        const sessionActive = isSessionActive();
-        
-        if (!token || !sessionActive) {
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          return;
-        }
-
-        // ✅ Verify authentication via API call
-        // Cookie is sent automatically with request (withCredentials: true)
-        await axios.get(`${API}/user/profile`);
+        const me = await axios.get(`${API}/auth/me`, { withCredentials: true });
+        console.log(me, "protected route me");
         setIsAuthenticated(true);
       } catch (error) {
         // If 401 or any error, user is not authenticated
@@ -36,30 +24,17 @@ const ProtectedRoute = ({ children }) => {
 
     checkAuth();
 
-    // Continuously monitor for cookie/storage clearing (every 2 seconds)
-    const authCheckInterval = setInterval(() => {
-      const token = getAuthToken();
-      const sessionActive = isSessionActive();
-      
-      // If token is gone, immediately redirect
-      if (!token || !sessionActive) {
+    const authCheckInterval = setInterval(async () => {
+      try {
+        await axios.get(`${API}/auth/me`, { withCredentials: true });
+        setIsAuthenticated(true);
+      } catch (e) {
         setIsAuthenticated(false);
       }
-    }, 2000);
-
-    // Listen for storage events (checks cookies when storage changes)
-    const handleStorageChange = (e) => {
-      const token = getAuthToken();
-      if (!token) {
-        setIsAuthenticated(false);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
+    }, 30000);
 
     return () => {
       clearInterval(authCheckInterval);
-      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 

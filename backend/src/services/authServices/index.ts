@@ -26,6 +26,7 @@ import {
   verifyOTPConstantTime
 } from "../../utils/timingSafe";
 import { SessionService } from "../sessionService";
+import { generateDeviceFingerprint } from "../../utils/secureToken";
 import { getClientIp } from "../../utils/ipUtils";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
@@ -160,13 +161,19 @@ export class AuthService {
         }
       );
 
+      const fingerprint = generateDeviceFingerprint(
+        req.get("user-agent") || "",
+        ipAddress
+      );
+
       await SessionService.createSession(
         userId,
         token,
         jti,
         req,
         ipAddress,
-        86400
+        86400,
+        fingerprint
       );
       isNewSession = true;
     }
@@ -250,13 +257,19 @@ export class AuthService {
         }
       );
 
+      const fingerprint = generateDeviceFingerprint(
+        req.get("user-agent") || "",
+        ipAddress
+      );
+
       await SessionService.createSession(
         userId,
         token,
         jti,
         req,
         ipAddress,
-        86400
+        86400,
+        fingerprint
       );
       isNewSession = true;
     }

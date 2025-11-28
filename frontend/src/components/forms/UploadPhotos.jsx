@@ -130,13 +130,15 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     if (!file) return;
 
     // Import validation utilities
-    const { validateProfilePhoto, validateGovernmentID } = 
-      await import("../../utils/fileValidation");
+    const { validateProfilePhoto, validateGovernmentID } = await import(
+      "../../utils/fileValidation"
+    );
 
     // Perform comprehensive validation
-    const validation = type === "governmentId"
-      ? await validateGovernmentID(file)
-      : await validateProfilePhoto(file);
+    const validation =
+      type === "governmentId"
+        ? await validateGovernmentID(file)
+        : await validateProfilePhoto(file);
 
     if (!validation.valid) {
       toast.error(validation.errors[0] || "File validation failed");
@@ -218,17 +220,23 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             : `${API_BASE_URL}/user-personal/upload/photos`;
 
         const body =
-          key === \"governmentId\"
+          key === "governmentId"
             ? { url }
-            : { photoType: typeMap[key] || \"other\", url };
+            : { photoType: typeMap[key] || "other", url };
 
         // ✅ Use axios instead of fetch - handles authentication automatically via cookies
-        return axios.post(endpoint, body).then((res) => {
-          return { key, url };
-        }).catch((error) => {
-          const msg = error.response?.data?.message || error.message || \"Backend rejected file\";
-          throw new Error(msg);
-        });
+        return axios
+          .post(endpoint, body)
+          .then((res) => {
+            return { key, url };
+          })
+          .catch((error) => {
+            const msg =
+              error.response?.data?.message ||
+              error.message ||
+              "Backend rejected file";
+            throw new Error(msg);
+          });
       });
 
       const backendResults = await Promise.allSettled(backendPromises);
