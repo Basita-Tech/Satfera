@@ -107,9 +107,9 @@ export function ChangePasswordModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[20px] p-0 max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-md rounded-[20px] p-0 max-h-[80vh] !top-[52%] my-12 mx-4 overflow-y-auto bg-white gap-0">
         {/* Header */}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 p-6 text-center text-white relative overflow-hidden rounded-t-[20px] border-b border-gold/20">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-8 py-6 text-center text-white relative overflow-hidden rounded-t-[20px] border-b border-gold/20">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -128,7 +128,7 @@ export function ChangePasswordModal({ open, onOpenChange }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="px-8 py-6 space-y-5">
           {/* Old Password */}
           <div className="space-y-2">
             <Label htmlFor="oldPassword" className="text-sm font-medium">

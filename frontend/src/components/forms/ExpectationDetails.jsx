@@ -6,6 +6,7 @@ import {
 } from "../../api/auth";
 import { getNames } from "country-list";
 import Select from "react-select";
+import CustomSelect from "../ui/CustomSelect";
 import toast from "react-hot-toast";
 
 const ExpectationDetails = ({ onNext, onPrevious }) => {
@@ -446,16 +447,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             <label className="block text-sm font-medium mb-1">
               Where would you prefer your partner to be based?
             </label>
-            <select
+            <CustomSelect
+              name="partnerLocation"
               value={formData.partnerLocation}
               onChange={(e) => handleChange("partnerLocation", e.target.value)}
+              options={["India", "Abroad", "No preference"]}
+              placeholder="Select"
               className={inputClass}
-            >
-              <option value="">Select</option>
-              <option value="India">India</option>
-              <option value="Abroad">Abroad</option>
-              <option value="No preference">No preference</option>
-            </select>
+            />
             {errors.partnerLocation && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.partnerLocation}
@@ -573,18 +572,16 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
               Would you be open to a partner who consumes alcohol, tobacco, or
               has other habits?
             </label>
-            <select
+            <CustomSelect
+              name="openToPartnerHabits"
               value={formData.openToPartnerHabits}
               onChange={(e) =>
                 handleChange("openToPartnerHabits", e.target.value)
               }
+              options={["Yes", "No", "Occasional"]}
+              placeholder="Select"
               className={inputClass}
-            >
-              <option value="">Select</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-              <option value="Occasional">Occasional</option>
-            </select>
+            />
             {errors.openToPartnerHabits && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.openToPartnerHabits}
@@ -1087,42 +1084,36 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
               {/* FROM */}
-              <select
+              <CustomSelect
+                name="preferredAgeFrom"
                 value={formData.preferredAgeFrom}
                 onChange={(e) =>
                   handleChange("preferredAgeFrom", e.target.value)
                 }
+                options={ageOptions.map((age) => String(age))}
+                placeholder="From"
                 className={inputClass + " w-full sm:w-1/2"}
-              >
-                <option value="">From</option>
-                {ageOptions.map((age) => (
-                  <option key={age} value={String(age)}>
-                    {age}
-                  </option>
-                ))}
-              </select>
+                usePortal={true}
+              />
 
               <span className="text-sm font-medium">to</span>
 
               {/* TO */}
-              <select
+              <CustomSelect
+                name="preferredAgeTo"
                 value={formData.preferredAgeTo}
                 onChange={(e) => handleChange("preferredAgeTo", e.target.value)}
-                className={inputClass + " w-full sm:w-1/2"}
-              >
-                <option value="">To</option>
-                {ageOptions
+                options={ageOptions
                   .filter(
                     (age) =>
                       !formData.preferredAgeFrom ||
                       age >= Number(formData.preferredAgeFrom)
                   )
-                  .map((age) => (
-                    <option key={age} value={String(age)}>
-                      {age}
-                    </option>
-                  ))}
-              </select>
+                  .map((age) => String(age))}
+                placeholder="To"
+                className={inputClass + " w-full sm:w-1/2"}
+                usePortal={true}
+              />
             </div>
 
             {/* Error Messages */}

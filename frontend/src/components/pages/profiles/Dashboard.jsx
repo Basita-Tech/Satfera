@@ -266,6 +266,15 @@ export function Dashboard({
               <h2 className="text-xl md:text-2xl font-semibold">
                 {selectedProfile?.firstName} {selectedProfile?.lastName}
               </h2>
+              {(() => {
+                const customId = selectedProfile?.customId || selectedProfile?.userId || selectedProfile?.id;
+                if (!customId) return null;
+                return (
+                  <span className="inline-flex items-center rounded-full px-3 py-[4px] text-[12px] font-medium border bg-[#f9f5ed] text-[#c8a227] border-[#e9d8a6]">
+                    ID: {String(customId)}
+                  </span>
+                );
+              })()}
               <Badge className="bg-[#C8A2271A] text-[#C8A227] border border-[#C8A22733] rounded-full px-2 py-0.5 flex items-center">
                 <img src="/badge.png" alt="Verified" className="w-4 h-4 object-contain" />
               </Badge>
@@ -511,6 +520,15 @@ export function Dashboard({
                 <h2 className="text-xl md:text-2xl font-semibold">
                 {user?.firstName || "User"} {user?.lastName || ""}
               </h2>
+              {(() => {
+                const customId = user?.customId || user?.userId || user?.id;
+                if (!customId) return null;
+                return (
+                  <span className="inline-flex items-center rounded-full px-3 py-[4px] text-[12px] font-medium border bg-[#f9f5ed] text-[#c8a227] border-[#e9d8a6]">
+                    ID: {String(customId)}
+                  </span>
+                );
+              })()}
               {user?.isVerified && (
                 <Badge className="bg-[#C8A2271A] text-[#C8A227] border border-[#C8A22733] rounded-full px-2 py-0.5 flex items-center">
                   <img src="/badge.png" alt="Verified" className="w-4 h-4 object-contain" />

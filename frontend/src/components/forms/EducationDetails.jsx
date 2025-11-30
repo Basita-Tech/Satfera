@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { getNames } from "country-list";
 import CreatableSelect from "react-select/creatable";
+import CustomSelect from "../ui/CustomSelect";
 import {
   getEducationalDetails,
   saveEducationalDetails,
@@ -275,19 +276,14 @@ const EducationDetails = ({ onNext, onPrevious }) => {
             <label className="block text-sm font-medium mb-1">
               Highest Qualification
             </label>
-            <select
+            <CustomSelect
               name="highestEducation"
               value={formData.highestEducation}
               onChange={handleChange}
+              options={qualificationLevels}
+              placeholder="Select your qualification"
               className={inputClass}
-            >
-              <option value="">Select your qualification</option>
-              {qualificationLevels.map((level, idx) => (
-                <option key={idx} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Field of Study */}
@@ -382,20 +378,14 @@ const EducationDetails = ({ onNext, onPrevious }) => {
             <label className="block text-sm font-medium mb-1">
               Country of Education
             </label>
-            <select
+            <CustomSelect
               name="countryOfEducation"
               value={formData.countryOfEducation}
               onChange={handleChange}
+              options={[...countries, "Other"]}
+              placeholder="Select your country"
               className={inputClass}
-            >
-              <option value="">Select your country</option>
-              {countries.map((country, idx) => (
-                <option key={idx} value={country}>
-                  {country}
-                </option>
-              ))}
-              <option value="Other">Other</option>
-            </select>
+            />
 
             {formData.countryOfEducation === "Other" && (
               <input

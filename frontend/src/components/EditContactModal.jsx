@@ -123,9 +123,9 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[20px] p-0 max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-md rounded-[20px] p-0 max-h-[80vh] !top-[52%] my-12 mx-4 overflow-y-auto bg-white gap-0">
         {/* Header */}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 p-6 text-center text-white relative overflow-hidden rounded-t-[20px] border-b border-gold/20">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-8 py-6 text-center text-white relative overflow-hidden rounded-t-[20px] border-b border-gold/20">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -144,7 +144,7 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
         </div>
 
         {/* Form */}
-        <div className="p-6 space-y-5">
+        <div className="px-8 py-6 space-y-5">
           {/* Contact Input */}
           <div className="space-y-2">
             <Label htmlFor="contactValue" className="text-sm font-medium">
@@ -224,8 +224,8 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
           )}
 
           {/* Info Box */}
-          <div className="bg-beige rounded-[12px] p-4">
-            <p className="text-xs font-medium mb-2">Important:</p>
+          <div className="bg-beige rounded-[12px] p-5">
+            <p className="text-xs font-medium mb-2.5">Important:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
               <li>• You will receive an OTP to verify your new {isEmail ? 'email' : 'number'}</li>
               <li>• This will replace your current contact information</li>

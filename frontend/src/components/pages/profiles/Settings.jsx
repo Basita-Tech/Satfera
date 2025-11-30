@@ -291,7 +291,7 @@ export function Settings() {
           <div className="space-y-4">
             <Button
               variant="outline"
-              className="w-full justify-start border-border-subtle rounded-[12px] h-12"
+              className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
               onClick={() => navigate('/dashboard/edit-profile')}
             >
               <User className="w-4 h-4 mr-3" />
@@ -300,7 +300,7 @@ export function Settings() {
 
             <Button
               variant="outline"
-              className="w-full justify-start border-border-subtle rounded-[12px] h-12"
+              className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
               onClick={() => setIsChangePasswordModalOpen(true)}
             >
               <Lock className="w-4 h-4 mr-3" />
@@ -322,7 +322,7 @@ export function Settings() {
                     />
                     <Button 
                       variant="outline" 
-                      className="rounded-[12px] border-border-subtle whitespace-nowrap"
+                      className="rounded-[12px] border-border-subtle whitespace-nowrap hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
                       onClick={() => setEditContactModal({ open: true, type: 'email' })}
                       disabled={isLoadingContact}
                     >
@@ -342,7 +342,7 @@ export function Settings() {
                     />
                     <Button 
                       variant="outline" 
-                      className="rounded-[12px] border-border-subtle whitespace-nowrap"
+                      className="rounded-[12px] border-border-subtle whitespace-nowrap hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
                       onClick={() => setEditContactModal({ open: true, type: 'phone' })}
                       disabled={isLoadingContact}
                     >
@@ -358,7 +358,7 @@ export function Settings() {
             <div className="pt-4 border-t border-border-subtle space-y-3">
               <Button
                 variant="outline"
-                className="w-full justify-start border-red-accent/50 text-red-accent hover:bg-red-50 rounded-[12px] h-12"
+                className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all"
                 onClick={() => toast.error('Deactivate account confirmation would appear')}
               >
                 <UserX className="w-4 h-4 mr-3" />
@@ -367,7 +367,7 @@ export function Settings() {
 
               <Button
                 variant="outline"
-                className="w-full justify-start border-red-accent text-red-accent hover:bg-red-accent hover:text-white rounded-[12px] h-12"
+                className="w-full justify-start border-red-accent text-red-accent hover:!bg-red-600 hover:!text-white hover:!border-red-600 active:!bg-red-700 focus-visible:ring-2 focus-visible:ring-red-400 rounded-[12px] h-12 transition-all"
                 onClick={() => toast.error('Delete account confirmation would appear')}
               >
                 <Trash2 className="w-4 h-4 mr-3" />
@@ -393,7 +393,7 @@ export function Settings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-[8px] border-red-accent text-red-accent hover:bg-red-accent hover:text-white"
+                  className="rounded-[8px] border-red-accent text-red-accent hover:!bg-red-600 hover:!text-white hover:!border-red-600 active:!bg-red-700 focus-visible:ring-2 focus-visible:ring-red-400 transition-all"
                   onClick={handleLogoutAllSessions}
                   disabled={isLoggingOutAll || isLoadingSessions}
                 >
@@ -454,7 +454,7 @@ export function Settings() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="rounded-[8px] border-red-accent/50 text-red-accent hover:bg-red-50"
+                            className="rounded-[8px] border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 transition-all"
                             onClick={() => handleLogoutSession(s.sessionId)}
                             disabled={loggingOutSessionId === s.sessionId}
                           >
@@ -484,7 +484,7 @@ export function Settings() {
             {/* Block User Button */}
             <Button
               variant="outline"
-              className="w-full justify-start border-red-accent/50 text-red-accent hover:bg-red-50 rounded-[12px] h-12"
+              className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all"
               onClick={() => setBlockUserDialogOpen(true)}
             >
               <UserX className="w-4 h-4 mr-3" />
@@ -494,7 +494,7 @@ export function Settings() {
             {/* Blocked users */}
             <Button
               variant="outline"
-              className="w-full justify-start border-border-subtle rounded-[12px] h-12"
+              className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
               onClick={() => setBlockedUsersModalOpen(true)}
             >
               <UserX className="w-4 h-4 mr-3" />
@@ -504,7 +504,7 @@ export function Settings() {
             {/* Report */}
             <Button
               variant="outline"
-              className="w-full justify-start border-red-accent/50 text-red-accent hover:bg-red-50 rounded-[12px] h-12"
+              className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all"
               onClick={() => toast.info('Report profile form would open')}
             >
               <Shield className="w-4 h-4 mr-3" />
@@ -594,74 +594,6 @@ export function Settings() {
           )}
         </div>
 
-        {/* Security */}
-<div className="bg-white rounded-[20px] p-6 satfera-shadow">
-  <div className="flex items-center gap-3 mb-6">
-    <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center">
-      <Lock className="w-5 h-5 text-gold" />
-    </div>
-    <h3 className="m-0">Security</h3>
-  </div>
-
-  <div className="space-y-6">
-
-    {/* 🔥 Removed Two-Factor Authentication */}
-
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="m-0">Recent Login Activity</h4>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-[8px] border-red-accent text-red-accent hover:bg-red-accent hover:text-white"
-          onClick={() => toast.success('Logged out from all other devices')}
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout All
-        </Button>
-      </div>
-
-      <div className="space-y-3">
-        {recentDevices.map((device, idx) => (
-          <div 
-            key={idx} 
-            className="flex items-start justify-between p-4 border border-border-subtle rounded-[12px]"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-beige flex items-center justify-center mt-1">
-                <Monitor className="w-5 h-5 text-gold" />
-              </div>
-
-              <div>
-                <div className="font-medium flex items-center gap-2">
-                  {device.device}
-                  {device.current && (
-                    <Badge className="bg-gold/10 text-gold border-gold/20 text-xs">
-                      Current
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  {device.location}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {device.time}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-
-  </div>
-</div>
-
-
-      
-
-       
         {/* Help & Support */}
         <div className="bg-white rounded-[20px] p-6 satfera-shadow">
           <div className="flex items-center gap-3 mb-6">
@@ -675,7 +607,7 @@ export function Settings() {
             {/* Contact Support */}
             <Button
               variant="outline"
-              className="w-full justify-start border-border-subtle hover:bg-beige rounded-[12px] h-12"
+              className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
               onClick={() => toast.info('Opening contact support...')}
             >
               <MessageCircle className="w-4 h-4 mr-3" />
@@ -685,7 +617,7 @@ export function Settings() {
             {/* FAQs */}
             <Button
               variant="outline"
-              className="w-full justify-start border-border-subtle hover:bg-beige rounded-[12px] h-12"
+              className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
               onClick={() => toast.info('Opening FAQs...')}
             >
               <HelpCircle className="w-4 h-4 mr-3" />
@@ -695,7 +627,7 @@ export function Settings() {
             {/* Terms & Privacy */}
             <Button
               variant="outline"
-              className="w-full justify-start border-border-subtle hover:bg-beige rounded-[12px] h-12"
+              className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
               onClick={() => toast.info('Opening terms & privacy...')}
             >
               <FileText className="w-4 h-4 mr-3" />
@@ -706,7 +638,7 @@ export function Settings() {
             <div className="pt-3 border-t border-border-subtle">
               <Button
                 variant="outline"
-                className="w-full justify-start border-red-accent/50 text-red-accent hover:bg-red-50 hover:border-red-accent rounded-[12px] h-12"
+                className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!border-red-accent hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all"
                 onClick={async () => {
                   if (window.confirm('Are you sure you want to logout?')) {
                     try {

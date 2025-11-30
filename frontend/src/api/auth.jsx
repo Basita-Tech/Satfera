@@ -826,6 +826,49 @@ export const getUserContactInfo = async () => {
   }
 };
 
+// 📄 Download User Profile as PDF
+// Downloads the authenticated user's complete profile as a PDF file
+export const downloadUserProfilePDF = async () => {
+  try {
+    console.log("📄 Downloading user profile PDF...");
+    const response = await axios.get(`${API}/user/download-pdf`, {
+      headers: getAuthHeaders(),
+      responseType: 'blob', // Important: Handle binary data
+    });
+    
+    // Create a blob from the PDF data
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    
+    // Create a temporary URL for the blob
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create a temporary link element and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `profile_${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    console.log("✅ PDF downloaded successfully");
+    toast.success("Profile PDF downloaded successfully");
+    return { success: true };
+  } catch (error) {
+    console.error(
+      "❌ Download PDF Error:",
+      error.response?.data || error.message
+    );
+    toast.error(error.response?.data?.message || "Failed to download profile PDF");
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to download profile PDF",
+    };
+  }
+};
+
 // -------------------------------------------------------------
 // 🔹 EMAIL CHANGE APIs
 // -------------------------------------------------------------

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { allCountries } from "country-telephone-data";
 import { useNavigate } from "react-router-dom";
+import CustomSelect from "../ui/CustomSelect";
 import {
   saveUserFamilyDetails,
   getUserFamilyDetails,
@@ -399,18 +400,14 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                 <label className="text-sm font-medium mb-2">
                   How many siblings?
                 </label>
-                <select
+                <CustomSelect
+                  name="siblingCount"
                   value={formData.siblingCount}
                   onChange={(e) => handleSiblingCount(Number(e.target.value))}
+                  options={["1", "2", "3", "4", "5", "6"]}
+                  placeholder="Select"
                   className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                >
-                  <option value="">Select</option>
-                  {[1, 2, 3, 4, 5, 6].map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
-                  ))}
-                </select>
+                />
 
                 {formData.siblings.map((sibling, index) => (
                   <div
@@ -434,19 +431,16 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
 
                     <div className="flex flex-col">
                       <label className="text-sm font-medium">Relation</label>
-                      <select
+                      <CustomSelect
+                        name={`sibling-${index}-relation`}
                         value={sibling.relation}
                         onChange={(e) =>
                           handleSiblingChange(index, "relation", e.target.value)
                         }
+                        options={["Elder Brother", "Younger Brother", "Elder Sister", "Younger Sister"]}
+                        placeholder="Select"
                         className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                      >
-                        <option value="">Select</option>
-                        <option value="Elder Brother">Elder Brother</option>
-                        <option value="Younger Brother">Younger Brother</option>
-                        <option value="Elder Sister">Elder Sister</option>
-                        <option value="Younger Sister">Younger Sister</option>
-                      </select>
+                      />
                     </div>
 
                     {[
@@ -459,7 +453,8 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                         <label className="text-sm font-medium">
                           Marital Status
                         </label>
-                        <select
+                        <CustomSelect
+                          name={`sibling-${index}-maritalStatus`}
                           value={sibling.maritalStatus}
                           onChange={(e) =>
                             handleSiblingChange(
@@ -468,12 +463,10 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                               e.target.value
                             )
                           }
+                          options={["Married", "Unmarried"]}
+                          placeholder="Select"
                           className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                        >
-                          <option value="">Select</option>
-                          <option value="Married">Married</option>
-                          <option value="Unmarried">Unmarried</option>
-                        </select>
+                        />
                       </div>
                     )}
                   </div>

@@ -36,6 +36,26 @@ export function ProfileCard({
   const [optimisticInCompare, setOptimisticInCompare] = React.useState(false);
   const isUiInCompare = isInCompare || optimisticInCompare;
 
+  // Handle Send Request: no navigation
+  const handleSendRequestClick = async (e) => {
+    try { if (e?.stopPropagation) e.stopPropagation(); } catch {}
+    try {
+      await onSendRequest?.(id);
+    } catch (err) {
+      console.error('Send request error:', err);
+    }
+  };
+
+  // Handle shortlist toggle: no navigation
+  const handleToggleShortlistClick = async (e) => {
+    try { if (e?.stopPropagation) e.stopPropagation(); } catch {}
+    try {
+      await onToggleShortlist?.(id);
+    } catch (err) {
+      console.error('Shortlist toggle error:', err);
+    }
+  };
+
   // Centralized compare click handlers to avoid pre-click optimistic toggles
   const handleAddClick = async (e) => {
     try {
@@ -88,7 +108,7 @@ export function ProfileCard({
 
               <Button
                 className="flex-1 bg-[#c8a227] border-[1.5px] border-[#c8a227] text-white rounded-full font-medium hover:bg-[#c8a227] transition-all duration-200"
-                onClick={() => onSendRequest?.(id)}
+                onClick={handleSendRequestClick}
               >
                 Send Request
               </Button>
@@ -132,7 +152,7 @@ export function ProfileCard({
             </Button>
             <Button
               size="sm"
-              onClick={() => onSendRequest?.(id)}
+              onClick={handleSendRequestClick}
               className="flex-1 bg-[#c8a227] text-white rounded-[12px]"
             >
               Send Request
@@ -341,7 +361,7 @@ export function ProfileCard({
             {/* Send Request Button */}
             <div className="flex gap-2">
               <Button
-                onClick={() => onSendRequest?.(id)}
+                onClick={handleSendRequestClick}
                 className="w-full h-[38px] bg-[#c8a227] text-white rounded-full font-medium text-[13px] 
           hover:bg-[#b8941e] transition-all duration-200 px-4"
               >
@@ -443,10 +463,7 @@ export function ProfileCard({
         {onToggleShortlist && (
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleShortlist(id);
-            }}
+            onClick={handleToggleShortlistClick}
             className={`absolute top-3 right-3 p-2 rounded-full flex items-center justify-center 
     shadow-none border-none bg-transparent hover:bg-[#fff8e1]/60 transition-all z-50
     ${isShortlisted ? "bg-[#fff8e1]/80" : ""}`}

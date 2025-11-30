@@ -1,9 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import ReactSelect from 'react-select';
 import { getNames } from 'country-list';
+import CreatableSelect from 'react-select/creatable';
+import {
+  nationalities,
+  visaCategories,
+  allCastes,
+  doshOptions,
+  weightOptions,
+  heightOptions,
+} from '@/lib/constant';
 import axios from '../../../api/http';
 import { TabsComponent } from '../../TabsComponent';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
+import CustomSelect from '../../ui/CustomSelect';
 import { Textarea } from '../../ui/textarea';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -11,6 +22,26 @@ import { Checkbox } from '../../ui/checkbox';
 import { ArrowLeft, Save } from 'lucide-react';
 import {getUserPersonal,getUserFamilyDetails,getEducationalDetails,getUserProfession,getUserExpectations,getUserPhotos,getUserHealth,updateUserPersonal,updateUserFamilyDetails,updateUserExpectations,updateUserHealth,updateEducationalDetails,saveEducationalDetails,saveUserProfession,updateUserProfession,saveUserHealth,saveUserFamilyDetails,saveUserExpectations} from '../../../api/auth'
 import toast from 'react-hot-toast';
+
+// Registration reference option arrays (duplicated for Edit view; original forms untouched)
+const QUALIFICATION_LEVELS = ['High School','Undergraduate','Associates Degree','Bachelors','Honours Degree','Masters','Doctorate','Diploma','Trade School','Less Than High School'];
+const FIELD_OF_STUDY_OPTIONS = ['Aeronautical Engineering','B.Arch. - Bachelor of Architecture','BCA - Bachelor of Computer Applications','B.E. - Bachelor of Engineering','B.Plan - Bachelor of Planning','B.Sc. IT/CS - Bachelor of Science in IT/Computer Science','B.S. Eng. - Bachelor of Science in Engineering','B.Tech. - Bachelor of Technology','Other Bachelor\'s Degree in Engineering / Computers','M.Arch. - Master of Architecture','MCA - Master of Computer Applications','M.E. - Master of Engineering','M.Sc. IT/CS - Master of Science in IT/Computer Science','M.S. Eng. - Master of Science in Engineering','M.Tech. - Master of Technology','PGDCA - Post Graduate Diploma in Computer Applications','Other Master\'s Degree in Engineering / Computers','Aviation Degree','B.A. - Bachelor of Arts','B.Com. - Bachelor of Commerce','B.Ed. - Bachelor of Education','BFA - Bachelor of Fine Arts','BFT - Bachelor of Fashion Technology','BLIS - Bachelor of Library and Information Science','B.M.M. - Bachelor of Mass Media','B.Sc. - Bachelor of Science','B.S.W. - Bachelor of Social Work','B.Phil. - Bachelor of Philosophy','Other Bachelor\'s Degree in Arts / Science / Commerce','M.A. - Master of Arts','M.Com. - Master of Commerce','M.Ed. - Master of Education','MFA - Master of Fine Arts','MLIS - Master of Library and Information Science','M.Sc. - Master of Science','M.S.W. - Master of Social Work','M.Phil. - Master of Philosophy','Other Master\'s Degree in Arts / Science / Commerce','BBA - Bachelor of Business Administration','BFM - Bachelor of Financial Management','BHM - Bachelor of Hotel Management','BHA - Bachelor of Hospital Administration','Other Bachelor\'s Degree in Management','MBA - Master of Business Administration','MFM - Master of Financial Management','MHM - Master of Hotel Management','MHRM - Master of Human Resource Management','PGDM - Post Graduate Diploma in Management','MHA - Master of Hospital Administration','Other Master\'s Degree in Management','BAMS - Bachelor of Ayurvedic Medicine and Surgery','BDS - Bachelor of Dental Surgery','BHMS - Bachelor of Homeopathic Medicine and Surgery','BSMS - Bachelor of Siddha Medicine and Surgery','BUMS - Bachelor of Unani Medicine and Surgery','BVSc - Bachelor of Veterinary Science','MBBS - Bachelor of Medicine, Bachelor of Surgery','MDS - Master of Dental Surgery','Doctor of Medicine / Master of Surgery','MVSc - Master of Veterinary Science','MCh - Master of Chirurgiae','DNB - Diplomate of National Board','BPharm - Bachelor of Pharmacy','BPT - Bachelor of Physiotherapy','B.Sc. Nursing - Bachelor of Science in Nursing','Other Bachelor\'s Degree in Pharmacy / Nursing or Health Sciences','MPharm - Master of Pharmacy','MPT - Master of Physiotherapy','Other Master\'s Degree in Pharmacy / Nursing or Health Sciences','BGL - Bachelor of General Laws','BL - Bachelor of Laws','LLB - Bachelor of Legislative Law','Other Bachelor\'s Degree in Legal','LLM - Master of Laws','ML - Master of Legal Studies','Other Master\'s Degree in Legal','CA - Chartered Accountant','CFA - Chartered Financial Analyst','CS - Company Secretary','ICWA - Cost and Works Accountant','Other Degree / Qualification in Finance','IAS - Indian Administrative Service','IPS - Indian Police Service','IRS - Indian Revenue Service','IES - Indian Engineering Services','IFS - Indian Foreign Service','Other Civil Services','Ph.D. - Doctor of Philosophy','DM - Doctor of Medicine','Postdoctoral Fellow','FNB - Fellow of National Board','Diploma','Polytechnic','Other Diplomas','Higher Secondary School / High School'];
+const EMPLOYMENT_OPTIONS = ['Private Sector','Government','Business','Self-Employed','Not Working','Student'];
+const INCOME_OPTIONS = ['₹1 – 5 Lakh','₹5 – 10 Lakh','₹10 – 15 Lakh','₹15 – 20 Lakh','₹20 – 25 Lakh','₹25 – 30 Lakh','₹30 – 35 Lakh','₹35 – 40 Lakh','₹40 – 45 Lakh','₹45 – 50 Lakh','₹50 – 55 Lakh','₹55 – 60 Lakh','₹60 – 65 Lakh','₹65 – 70 Lakh','₹70 – 75 Lakh','₹75 – 80 Lakh','₹80 – 85 Lakh','₹85 – 90 Lakh','₹90 – 95 Lakh','₹95 Lakh – ₹1 Crore','More than ₹1 Crore'];
+const JOB_TITLES = ['Marketing Specialist','Marketing Manager','Graphic Designer','Product Manager','Public Relations','Brand Manager','SEO Manager','Content Marketing Manager','Copywriter','Administrative Assistant','Accountant','Software Engineer','Web Developer','DevOps Engineer','Network Administrator','Information Security Analyst','Cloud Architect','Data Analyst','Researcher','Teacher','Professor','Artist','Video Editor','Photographer','Musician','Nurse','Doctor','Physical Therapist','Chef','Restaurant Manager','Biologist','Geologist','Physicist','Counselor','Social Worker','Therapist','Beautician','Makeup Artist','Esthetician','Security Guard','Mechanic','Entrepreneur','Management Consultant','Attorney','Engineer','Operations Manager','HR','Business Analyst','Financial Analyst','Sales Executive','Customer Support Representative','Tutor','Project Manager','UX Designer & UI Developer','Application Developer','Virtual Assistant'];
+const LIFESTYLE_HABIT_OPTIONS = ['Yes','No','Occasional'];
+const LIFESTYLE_YES_NO = ['Yes','No'];
+const LIFESTYLE_DIET_OPTIONS = ['Vegetarian','Non-Vegetarian','Eggetarian','Jain','Swaminarayan','Veg & Non-veg'];
+const LEGAL_STATUSES = ['Never Married','Divorced','Widowed','Separated','Awaiting Divorce'];
+const EXPECT_MARITAL_STATUSES = ['Any','Never Married','Divorced','Widowed','Separated','Awaiting Divorce'];
+const EXPECT_PROFESSION_OPTIONS = ['Any','Private Sector','Government','Business','Self-Employed','Not Working','Student'];
+const EXPECT_CAST_OPTIONS = ['Patel-Desai','Patel-Kadva','Patel-Leva','Patel','Brahmin-Audichya','Brahmin','Jain-Digambar','Jain-Swetamber','Jain-Vanta','Vaishnav-Vania','No preference'];
+const EXPECT_EDUCATION_OPTIONS = ['Any', ...QUALIFICATION_LEVELS];
+const EXPECT_DIET_OPTIONS = ['Any','Vegetarian','Non-Vegetarian','Eggetarian','Jain','Swaminarayan','Veg & Non-Veg'];
+const AGE_OPTIONS = Array.from({length:23},(_,i)=>18+i); // 18..40
+const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jammu & Kashmir','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal'];
+const ALL_COUNTRIES = getNames().filter(c=>c!=='India');
+const ABROAD_OPTIONS = ['No preference', ...ALL_COUNTRIES];
 
 export function EditProfile({ onNavigateBack }) {
   const [activeTab, setActiveTab] = useState('personal');
@@ -93,6 +124,14 @@ export function EditProfile({ onNavigateBack }) {
   const [photos, setPhotos] = useState([]);
   const [uploadingPhotoIdx, setUploadingPhotoIdx] = useState(null);
 
+  // Immutable snapshots of initial API values per section
+  const [initialPersonal, setInitialPersonal] = useState(null);
+  const [initialFamily, setInitialFamily] = useState(null);
+  const [initialEducation, setInitialEducation] = useState(null);
+  const [initialProfession, setInitialProfession] = useState(null);
+  const [initialLifestyle, setInitialLifestyle] = useState(null);
+  const [initialExpectations, setInitialExpectations] = useState(null);
+
 
 
 
@@ -142,6 +181,10 @@ export function EditProfile({ onNavigateBack }) {
     divorceStatus: "",
     separatedSince: "",
   });
+
+  // State to control visibility of children and divorce fields based on marital status
+  const [showChildrenFields, setShowChildrenFields] = useState(false);
+  const [showDivorceFields, setShowDivorceFields] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -206,8 +249,7 @@ export function EditProfile({ onNavigateBack }) {
           birthMinute = parts[1] || "";
         }
 
-        setPersonal((p) => ({
-          ...p,
+        const personalMapped = {
           firstName: data.firstName || "",
           middleName: data.middleName || "",
           lastName: data.lastName || "",
@@ -227,7 +269,6 @@ export function EditProfile({ onNavigateBack }) {
               : '',
           religion: data.religion || "",
           caste: data.subCaste || "",
-          
           birthCity: data.birthPlace || "",
           birthState: data.birthState || "",
           rashi: data.astrologicalSign || "",
@@ -247,7 +288,16 @@ export function EditProfile({ onNavigateBack }) {
           livingWith: data.isChildrenLivingWithYou === true ? 'With Me' : data.isChildrenLivingWithYou === false ? 'No' : '',
           divorceStatus: data.divorceStatus || "",
           separatedSince: data.separatedSince ? String(data.separatedSince) : "",
-        }));
+        };
+        setPersonal((p) => ({ ...p, ...personalMapped }));
+        setInitialPersonal(personalMapped);
+
+        // Initialize visibility flags based on loaded marital status
+        const maritalStatus = personalMapped.maritalStatus;
+        if (maritalStatus) {
+          setShowChildrenFields(maritalStatus !== "Never Married");
+          setShowDivorceFields(maritalStatus === "Divorced" || maritalStatus === "Awaiting Divorce");
+        }
       } catch (err) {
         console.error('Failed to load personal details', err);
       }
@@ -269,13 +319,28 @@ export function EditProfile({ onNavigateBack }) {
           return;
         }
 
+        // Normalize server employment status to match EMPLOYMENT_OPTIONS casing
+        const normalizeFromOptions = (val, opts) => {
+          const s = String(val || '').trim().toLowerCase();
+          const match = opts.find((o) => o.toLowerCase() === s);
+          return match || String(val || '').trim();
+        };
+
+        // Support object or string shape from API
+        const rawEmploymentStatus =
+          typeof data?.EmploymentStatus === 'object'
+            ? (data.EmploymentStatus.value || data.EmploymentStatus.label || '')
+            : (data?.EmploymentStatus ?? data?.employmentStatus ?? data?.employment_status ?? '');
+
         // map to local profession state keys
-        setProfession({
-          employmentStatus: data.EmploymentStatus || data.employmentStatus || "",
+        const profMapped = {
+          employmentStatus: normalizeFromOptions(rawEmploymentStatus, EMPLOYMENT_OPTIONS),
           occupation: data.Occupation || data.occupation || "",
           annualIncome: data.AnnualIncome || data.annualIncome || "",
           organizationName: data.OrganizationName || data.organizationName || "",
-        });
+        };
+        setProfession(profMapped);
+        setInitialProfession(profMapped);
         console.info('Loaded profession data keys:', Object.keys(data));
       } catch (err) {
         console.error('Failed to load profession details', err);
@@ -298,8 +363,7 @@ export function EditProfile({ onNavigateBack }) {
           return;
         }
 
-        setFamily((f) => ({
-          ...f,
+        const familyMapped = {
           fatherName: data.fatherName || "",
           fatherProfession: data.fatherOccupation || "",
           fatherPhone: data.fatherContact || "",
@@ -314,14 +378,14 @@ export function EditProfile({ onNavigateBack }) {
           naniName: data.naniName || "",
           nanaNativePlace: data.nanaNativePlace || "",
           familyType: data.familyType || "",
-          // familyStatus removed per request
           // map sibling info if available
           hasSiblings: typeof data.haveSibling === 'boolean' ? data.haveSibling : null,
           siblingCount: data.howManySiblings || 0,
           siblings: data.siblingDetails || [],
           doYouHaveChildren: data.doYouHaveChildren ?? false,
-          // misc fields removed per request
-        }));
+        };
+        setFamily((f) => ({ ...f, ...familyMapped }));
+        setInitialFamily(familyMapped);
       } catch (err) {
         console.error('Failed to load family details', err);
       }
@@ -350,8 +414,7 @@ export function EditProfile({ onNavigateBack }) {
           return;
         }
 
-        setEducation((e) => ({
-          ...e,
+        const educationMapped = {
           // map canonical keys returned by the education API
           schoolName: data.SchoolName || data.schoolName || "",
           highestEducation: data.HighestEducation || data.highestEducation || "",
@@ -365,8 +428,9 @@ export function EditProfile({ onNavigateBack }) {
               ? data.CountryOfEducation.value || data.CountryOfEducation.label || String(data.CountryOfEducation)
               : data.CountryOfEducation || data.countryOfEducation || "",
           otherCountry: data.OtherCountry || data.otherCountry || "",
-          // extras removed: occupation, companyName, annualIncome
-        }));
+        };
+        setEducation((e) => ({ ...e, ...educationMapped }));
+        setInitialEducation(educationMapped);
         // Diagnostics: log keys and CountryOfEducation value to help debugging missing country
         try {
           const presentKeys = Object.keys(data || {});
@@ -444,7 +508,7 @@ export function EditProfile({ onNavigateBack }) {
           ? (data.isHaveMedicalHistory ? 'Yes' : 'No')
           : mapHabitDisplay(data.isHaveMedicalHistory ?? data.isHaveMedicalHistory ?? '');
 
-        setLifestyle({
+        const lifestyleMapped = {
           diet: mapDietDisplay(data.diet || data.Diet || ''),
           smoking: normalizedSmoking,
           drinking: normalizedDrinking,
@@ -453,7 +517,9 @@ export function EditProfile({ onNavigateBack }) {
           isHaveTattoos: mapHabitDisplay(data.isHaveTattoos || ''),
           isHaveHIV: mapHabitDisplay(data.isHaveHIV || ''),
           isPositiveInTB: mapHabitDisplay(data.isPositiveInTB || ''),
-        });
+        };
+        setLifestyle(lifestyleMapped);
+        setInitialLifestyle(lifestyleMapped);
 
         console.info('Loaded lifestyle keys:', Object.keys(data));
       } catch (err) {
@@ -513,7 +579,7 @@ export function EditProfile({ onNavigateBack }) {
 
         const toArray = (v) => (Array.isArray(v) ? v.map((e) => (e.value || e)) : []);
 
-        setExpectations({
+        const expectationsMapped = {
           partnerLocation,
           partnerStateOrCountry,
           openToPartnerHabits: mapHabitsDisplay(data.isConsumeAlcoholic ?? data.openToPartnerHabits ?? ''),
@@ -524,7 +590,9 @@ export function EditProfile({ onNavigateBack }) {
           maritalStatus: toArray(data.maritalStatus),
           preferredAgeFrom: data.age?.from !== undefined && data.age?.from !== null ? String(data.age.from) : '',
           preferredAgeTo: data.age?.to !== undefined && data.age?.to !== null ? String(data.age.to) : '',
-        });
+        };
+        setExpectations(expectationsMapped);
+        setInitialExpectations(expectationsMapped);
       } catch (err) {
         if (err?.response?.status === 404) return; // no expectations yet
         console.error('Failed to load expectations', err);
@@ -584,29 +652,7 @@ export function EditProfile({ onNavigateBack }) {
   // ---------------------------------------
   // PERSONAL DETAILS TAB
   // ---------------------------------------
-  const handlePersonalChange = (field) => (e) => {
-    const value = e?.target ? e.target.value : e;
-    setPersonal((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const getDobParts = (isoDate) => {
-    if (!isoDate) return { day: '', month: '', year: '' };
-    const parts = String(isoDate).split('-');
-    if (parts.length === 3) return { year: parts[0] || '', month: parts[1] || '', day: parts[2] || '' };
-    return { day: '', month: '', year: '' };
-  };
-
-  const handleDobPartChange = (part) => (e) => {
-    const raw = e?.target ? e.target.value : e;
-    const val = String(raw).replace(/\D/g, '').slice(0, part === 'year' ? 4 : 2);
-    const curr = getDobParts(personal.dateOfBirth);
-    const next = { ...curr, [part]: val };
-    if (next.year && next.month && next.day) {
-      setPersonal((p) => ({ ...p, dateOfBirth: `${next.year}-${next.month.padStart(2, '0')}-${next.day.padStart(2, '0')}` }));
-    } else {
-      setPersonal((p) => ({ ...p, dateOfBirth: `${next.year || ''}-${next.month || ''}-${next.day || ''}` }));
-    }
-  };
+  // Removed - now defined above with EditableInput
 
   const handleSave = async () => {
     try {
@@ -857,6 +903,15 @@ export function EditProfile({ onNavigateBack }) {
           console.error('Failed to log profession submissionData', logErr);
         }
 
+        // Optimistic UI update so selection reflects immediately
+        setProfession((prev) => ({
+          ...prev,
+          employmentStatus: submissionData.EmploymentStatus,
+          occupation: submissionData.Occupation,
+          annualIncome: submissionData.AnnualIncome,
+          organizationName: submissionData.OrganizationName,
+        }));
+
         const existingProf = await getUserProfession();
         if (existingProf?.data?.data) {
           const resUpdate = await updateUserProfession(submissionData);
@@ -864,11 +919,16 @@ export function EditProfile({ onNavigateBack }) {
           try {
             const refetch = await getUserProfession();
             const server = refetch?.data?.data || {};
+            const normalizeFromOptions = (val, opts) => {
+              const s = String(val || '').trim().toLowerCase();
+              const match = opts.find(o => o.toLowerCase() === s);
+              return match || String(val || '').trim();
+            };
             setProfession({
-              employmentStatus: server.EmploymentStatus || server.employmentStatus || submissionData.EmploymentStatus,
-              occupation: server.Occupation || server.occupation || submissionData.Occupation,
-              annualIncome: server.AnnualIncome || server.annualIncome || submissionData.AnnualIncome,
-              organizationName: server.OrganizationName || server.organizationName || submissionData.OrganizationName,
+              employmentStatus: normalizeFromOptions((server.EmploymentStatus ?? server.employmentStatus ?? ''), EMPLOYMENT_OPTIONS) || submissionData.EmploymentStatus,
+              occupation: (server.Occupation ?? server.occupation ?? '').toString() || submissionData.Occupation,
+              annualIncome: (server.AnnualIncome ?? server.annualIncome ?? '').toString() || submissionData.AnnualIncome,
+              organizationName: (server.OrganizationName ?? server.organizationName ?? '').toString() || submissionData.OrganizationName,
             });
           } catch (refetchErr) {
             console.error('Failed to refetch profession after update', refetchErr);
@@ -881,11 +941,16 @@ export function EditProfile({ onNavigateBack }) {
           try {
             const refetch = await getUserProfession();
             const server = refetch?.data?.data || {};
+            const normalizeFromOptions = (val, opts) => {
+              const s = String(val || '').trim().toLowerCase();
+              const match = opts.find(o => o.toLowerCase() === s);
+              return match || String(val || '').trim();
+            };
             setProfession({
-              employmentStatus: server.EmploymentStatus || server.employmentStatus || submissionData.EmploymentStatus,
-              occupation: server.Occupation || server.occupation || submissionData.Occupation,
-              annualIncome: server.AnnualIncome || server.annualIncome || submissionData.AnnualIncome,
-              organizationName: server.OrganizationName || server.organizationName || submissionData.OrganizationName,
+              employmentStatus: normalizeFromOptions((server.EmploymentStatus ?? server.employmentStatus ?? ''), EMPLOYMENT_OPTIONS) || submissionData.EmploymentStatus,
+              occupation: (server.Occupation ?? server.occupation ?? '').toString() || submissionData.Occupation,
+              annualIncome: (server.AnnualIncome ?? server.annualIncome ?? '').toString() || submissionData.AnnualIncome,
+              organizationName: (server.OrganizationName ?? server.organizationName ?? '').toString() || submissionData.OrganizationName,
             });
           } catch (refetchErr) {
             console.error('Failed to refetch profession after save', refetchErr);
@@ -897,19 +962,63 @@ export function EditProfile({ onNavigateBack }) {
       }
 
         if (activeTab === 'lifestyle') {
-          const normalize = (v) => (v === undefined || v === null ? "" : String(v));
-          const submissionData = {
-            diet: normalize(lifestyle.diet),
-            isAlcoholic: normalize(lifestyle.drinking) || "",
-            isTobaccoUser: normalize(lifestyle.smoking) || "",
-            // prefer explicit flag if user set it, otherwise infer from details presence
-            isHaveMedicalHistory:
-              normalize(lifestyle.isHaveMedicalHistory) || (lifestyle.healthIssues && String(lifestyle.healthIssues).trim() !== '' ? 'yes' : 'no'),
-            medicalHistoryDetails: normalize(lifestyle.healthIssues),
-            isHaveTattoos: normalize(lifestyle.isHaveTattoos) || "",
-            isHaveHIV: normalize(lifestyle.isHaveHIV) || "",
-            isPositiveInTB: normalize(lifestyle.isPositiveInTB) || "",
+          const toYesNo = (v) => {
+            const s = String(v || '').toLowerCase();
+            if (s === 'yes' || s === 'true') return 'yes';
+            if (s === 'no' || s === 'false') return 'no';
+            return '';
           };
+          const normalizeDiet = (v) => {
+            const s = String(v || '').trim().toLowerCase();
+            if (!s) return '';
+            if (s === 'vegetarian') return 'vegetarian';
+            if (s === 'non-vegetarian' || s === 'non vegetarian') return 'non-vegetarian';
+            if (s === 'eggetarian') return 'eggetarian';
+            if (s === 'jain') return 'jain';
+            if (s === 'swaminarayan') return 'swaminarayan';
+            if (s === 'veg & non-veg' || s === 'veg and non-veg') return 'veg & non-veg';
+            return s;
+          };
+          const inferredMedical = (() => {
+            const explicit = toYesNo(lifestyle.isHaveMedicalHistory);
+            if (explicit) return explicit;
+            const hasText = Boolean(lifestyle.healthIssues && String(lifestyle.healthIssues).trim().length);
+            return hasText ? 'yes' : 'no';
+          })();
+          const submissionData = {
+            diet: normalizeDiet(lifestyle.diet),
+            isAlcoholic: toYesNo(lifestyle.drinking),
+            isTobaccoUser: toYesNo(lifestyle.smoking),
+            isHaveMedicalHistory: inferredMedical,
+            medicalHistoryDetails: String(lifestyle.healthIssues || ''),
+            isHaveTattoos: toYesNo(lifestyle.isHaveTattoos),
+            isHaveHIV: toYesNo(lifestyle.isHaveHIV),
+            isPositiveInTB: toYesNo(lifestyle.isPositiveInTB),
+          };
+
+          // Optimistic UI: reflect changes immediately in local state
+          const toDisplay = (yesNo) => {
+            const s = String(yesNo || '').toLowerCase();
+            if (s === 'yes') return 'Yes';
+            if (s === 'no') return 'No';
+            return '';
+          };
+          const dietDisplay = (val) => {
+            const s = String(val || '').trim();
+            if (!s) return '';
+            return s.charAt(0).toUpperCase() + s.slice(1);
+          };
+          setLifestyle((prev) => ({
+            ...prev,
+            diet: dietDisplay(submissionData.diet),
+            drinking: toDisplay(submissionData.isAlcoholic),
+            smoking: toDisplay(submissionData.isTobaccoUser),
+            isHaveMedicalHistory: toDisplay(submissionData.isHaveMedicalHistory),
+            isHaveTattoos: toDisplay(submissionData.isHaveTattoos),
+            isHaveHIV: toDisplay(submissionData.isHaveHIV),
+            isPositiveInTB: toDisplay(submissionData.isPositiveInTB),
+            healthIssues: submissionData.medicalHistoryDetails,
+          }));
 
           try {
             console.info('Lifestyle submissionData ->', submissionData);
@@ -924,24 +1033,26 @@ export function EditProfile({ onNavigateBack }) {
             try {
               const refetch = await getUserHealth();
               const server = refetch?.data?.data || {};
+              const toDisplayYesNo = (val) => {
+                if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+                const s = String(val || '').toLowerCase();
+                if (s === 'yes') return 'Yes';
+                if (s === 'no') return 'No';
+                return '';
+              };
+              const dietDisplay = (val) => {
+                const s = String(val || '').trim();
+                return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+              };
               setLifestyle({
-                diet: server.diet || server.Diet || '',
-                smoking:
-                  (typeof server.isTobaccoUser === 'boolean'
-                    ? (server.isTobaccoUser ? 'yes' : 'no')
-                    : (server.isTobaccoUser ?? server.isTobacco ?? server.smoking ?? '')),
-                drinking:
-                  (typeof server.isAlcoholic === 'boolean'
-                    ? (server.isAlcoholic ? 'yes' : 'no')
-                    : (server.isAlcoholic ?? server.alcoholic ?? server.drinking ?? '')),
+                diet: dietDisplay(server.diet || server.Diet || ''),
+                smoking: toDisplayYesNo(server.isTobaccoUser ?? server.isTobacco ?? server.smoking),
+                drinking: toDisplayYesNo(server.isAlcoholic ?? server.alcoholic ?? server.drinking),
                 healthIssues: server.medicalHistoryDetails || server.medicalHistory || server.description || '',
-                isHaveMedicalHistory:
-                  (typeof server.isHaveMedicalHistory === 'boolean'
-                    ? (server.isHaveMedicalHistory ? 'yes' : 'no')
-                    : (server.isHaveMedicalHistory ?? server.isHaveMedicalHistory ?? '')),
-                isHaveTattoos: server.isHaveTattoos || '',
-                isHaveHIV: server.isHaveHIV || '',
-                isPositiveInTB: server.isPositiveInTB || '',
+                isHaveMedicalHistory: toDisplayYesNo(server.isHaveMedicalHistory),
+                isHaveTattoos: toDisplayYesNo(server.isHaveTattoos),
+                isHaveHIV: toDisplayYesNo(server.isHaveHIV),
+                isPositiveInTB: toDisplayYesNo(server.isPositiveInTB),
               });
             } catch (refetchErr) {
               console.error('Failed to refetch lifestyle after update', refetchErr);
@@ -954,24 +1065,26 @@ export function EditProfile({ onNavigateBack }) {
             try {
               const refetch = await getUserHealth();
               const server = refetch?.data?.data || {};
+              const toDisplayYesNo2 = (val) => {
+                if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+                const s = String(val || '').toLowerCase();
+                if (s === 'yes') return 'Yes';
+                if (s === 'no') return 'No';
+                return '';
+              };
+              const dietDisplay2 = (val) => {
+                const s = String(val || '').trim();
+                return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+              };
               setLifestyle({
-                diet: server.diet || server.Diet || '',
-                smoking:
-                  (typeof server.isTobaccoUser === 'boolean'
-                    ? (server.isTobaccoUser ? 'yes' : 'no')
-                    : (server.isTobaccoUser ?? server.isTobacco ?? server.smoking ?? '')),
-                drinking:
-                  (typeof server.isAlcoholic === 'boolean'
-                    ? (server.isAlcoholic ? 'yes' : 'no')
-                    : (server.isAlcoholic ?? server.alcoholic ?? server.drinking ?? '')),
+                diet: dietDisplay2(server.diet || server.Diet || ''),
+                smoking: toDisplayYesNo2(server.isTobaccoUser ?? server.isTobacco ?? server.smoking),
+                drinking: toDisplayYesNo2(server.isAlcoholic ?? server.alcoholic ?? server.drinking),
                 healthIssues: server.medicalHistoryDetails || server.medicalHistory || server.description || '',
-                isHaveMedicalHistory:
-                  (typeof server.isHaveMedicalHistory === 'boolean'
-                    ? (server.isHaveMedicalHistory ? 'yes' : 'no')
-                    : (server.isHaveMedicalHistory ?? server.isHaveMedicalHistory ?? '')),
-                isHaveTattoos: server.isHaveTattoos || '',
-                isHaveHIV: server.isHaveHIV || '',
-                isPositiveInTB: server.isPositiveInTB || '',
+                isHaveMedicalHistory: toDisplayYesNo2(server.isHaveMedicalHistory),
+                isHaveTattoos: toDisplayYesNo2(server.isHaveTattoos),
+                isHaveHIV: toDisplayYesNo2(server.isHaveHIV),
+                isPositiveInTB: toDisplayYesNo2(server.isPositiveInTB),
               });
             } catch (refetchErr) {
               console.error('Failed to refetch lifestyle after save', refetchErr);
@@ -1066,7 +1179,8 @@ export function EditProfile({ onNavigateBack }) {
   };
 
   const handleProfessionChange = (field) => (e) => {
-    const value = e?.target ? e.target.value : e;
+    const raw = e?.target ? e.target.value : e;
+    const value = typeof raw === 'string' ? raw.trim() : raw;
     setProfession((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -1101,123 +1215,317 @@ export function EditProfile({ onNavigateBack }) {
   // Helper to treat empty/null/undefined as blank
   const isBlank = (v) => v === undefined || v === null || (typeof v === 'string' && String(v).trim() === '');
 
-  // EditableInput: disables input when its current value is blank
-  const EditableInput = ({ name, section = 'personal', value, onChange, ...rest }) => {
-    const editable = !isBlank(value);
-    return <Input name={name} value={value} onChange={onChange} disabled={!editable} {...rest} />;
-  };
+  // Helper to get DOB parts
+  const getDobParts = React.useCallback((isoDate) => {
+    if (!isoDate) return { day: '', month: '', year: '' };
+    const parts = String(isoDate).split('-');
+    if (parts.length === 3) return { year: parts[0] || '', month: parts[1] || '', day: parts[2] || '' };
+    return { day: '', month: '', year: '' };
+  }, []);
+
+  // Single stable handler for all personal inputs - uses name attribute to determine field
+  const handleInputChange = React.useCallback((e) => {
+    const { name, value } = e.target;
+    // Map name to the correct field in personal state
+    if (name.startsWith('dateOfBirth_')) {
+      // Handle DOB parts separately
+      const part = name.split('_')[1]; // 'day', 'month', or 'year'
+      const val = String(value).replace(/\D/g, '').slice(0, part === 'year' ? 4 : 2);
+      
+      setPersonal((p) => {
+        const curr = p.dateOfBirth ? String(p.dateOfBirth).split('-') : ['', '', ''];
+        const currentParts = {
+          year: curr[0] || '',
+          month: curr[1] || '',
+          day: curr[2] || ''
+        };
+        const next = { ...currentParts, [part]: val };
+        
+        if (next.year && next.month && next.day) {
+          return { ...p, dateOfBirth: `${next.year}-${next.month.padStart(2, '0')}-${next.day.padStart(2, '0')}` };
+        } else {
+          return { ...p, dateOfBirth: `${next.year || ''}-${next.month || ''}-${next.day || ''}` };
+        }
+      });
+    } else {
+      setPersonal((prev) => ({ ...prev, [name]: value }));
+    }
+  }, []);
+
+  // Handler for marital status change - mirrors PersonalDetails.jsx logic
+  const handleMaritalStatusChange = React.useCallback((e) => {
+    const status = e.target.value;
+    
+    setPersonal((prev) => ({
+      ...prev,
+      maritalStatus: status,
+      hasChildren: "",
+      numChildren: "",
+      livingWith: "",
+      divorceStatus: "",
+    }));
+
+    setShowChildrenFields(status && status !== "Never Married");
+    setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
+  }, []);
+
+  // EditableInput: Simple controlled input that uses the stable handler
+  // Only fullName and dob are non-editable (disabled). All other fields are always editable.
+  const EditableInput = React.useCallback(({ name, value, disabled = false, className = '', ...rest }) => {
+    return (
+      <input
+        name={name}
+        value={value || ''}
+        onChange={handleInputChange}
+        disabled={disabled}
+        autoComplete="off"
+        className={disabled 
+          ? 'w-full border border-gray-300 bg-gray-50 rounded-md p-3 text-sm cursor-not-allowed opacity-60'
+          : `${inputClass} ${className}`}
+        {...rest}
+      />
+    );
+  }, [handleInputChange]);
 
 
 
   const renderPersonalDetails = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-6 py-2 md:py-4">
       {/* Full Name */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 gap-y-6">
         <div>
-          <Label>First Name *</Label>
-          <EditableInput value={personal.firstName || ''} onChange={handlePersonalChange('firstName')} className="rounded-md" name="firstName" />
+          <Label className="mb-2">First Name *</Label>
+          <EditableInput value={personal.firstName || ''} className="rounded-md" name="firstName" disabled={true} />
         </div>
         <div>
-          <Label>Middle Name</Label>
-          <EditableInput value={personal.middleName || ''} onChange={handlePersonalChange('middleName')} className="rounded-md" name="middleName" />
+          <Label className="mb-2">Middle Name</Label>
+          <EditableInput value={personal.middleName || ''} className="rounded-md" name="middleName" disabled={true} />
         </div>
         <div>
-          <Label>Last Name *</Label>
-          <EditableInput value={personal.lastName || ''} onChange={handlePersonalChange('lastName')} className="rounded-md" name="lastName" />
+          <Label className="mb-2">Last Name *</Label>
+          <EditableInput value={personal.lastName || ''} className="rounded-md" name="lastName" disabled={true} />
         </div>
       </div>
 
       {/* Date of Birth split */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 gap-y-6">
         <div>
-          <Label>Date of Birth (DD)</Label>
-          <EditableInput value={getDobParts(personal.dateOfBirth).day || ''} onChange={handleDobPartChange('day')} placeholder="DD" maxLength={2} className="rounded-md" name="dateOfBirth_day" />
+          <Label className="mb-2">Date of Birth (DD)</Label>
+          <EditableInput value={getDobParts(personal.dateOfBirth).day || ''} placeholder="DD" maxLength={2} className="rounded-md" name="dateOfBirth_day" disabled={true} />
         </div>
         <div>
-          <Label>Date of Birth (MM)</Label>
-          <EditableInput value={getDobParts(personal.dateOfBirth).month || ''} onChange={handleDobPartChange('month')} placeholder="MM" maxLength={2} className="rounded-md" name="dateOfBirth_month" />
+          <Label className="mb-2">Date of Birth (MM)</Label>
+          <EditableInput value={getDobParts(personal.dateOfBirth).month || ''} placeholder="MM" maxLength={2} className="rounded-md" name="dateOfBirth_month" disabled={true} />
         </div>
         <div>
-          <Label>Date of Birth (YYYY)</Label>
-          <EditableInput value={getDobParts(personal.dateOfBirth).year || ''} onChange={handleDobPartChange('year')} placeholder="YYYY" maxLength={4} className="rounded-md" name="dateOfBirth_year" />
+          <Label className="mb-2">Date of Birth (YYYY)</Label>
+          <EditableInput value={getDobParts(personal.dateOfBirth).year || ''} placeholder="YYYY" maxLength={4} className="rounded-md" name="dateOfBirth_year" disabled={true} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-6">
         <div>
-          <Label>Time of Birth (HH : MM)</Label>
+          <Label className="mb-2">Time of Birth (HH : MM)</Label>
           <div className="flex gap-2 mt-1">
-            <EditableInput name="birthHour" value={personal.birthHour || ''} onChange={handlePersonalChange('birthHour')} placeholder="HH" maxLength={2} className="rounded-md" />
-            <EditableInput name="birthMinute" value={personal.birthMinute || ''} onChange={handlePersonalChange('birthMinute')} placeholder="MM" maxLength={2} className="rounded-md" />
+            <EditableInput name="birthHour" value={personal.birthHour || ''} placeholder="HH" maxLength={2} className="rounded-md" />
+            <EditableInput name="birthMinute" value={personal.birthMinute || ''} placeholder="MM" maxLength={2} className="rounded-md" />
           </div>
         </div>
       </div>
 
       {/* Marital Status */}
       <div>
-        <Label>Marital Status *</Label>
-        <EditableInput value={personal.maritalStatus || ''} onChange={handlePersonalChange('maritalStatus')} className="rounded-md" name="maritalStatus" />
+        <Label className="mb-2">Marital Status *</Label>
+        <CustomSelect
+          name="maritalStatus"
+          value={personal.maritalStatus || ''}
+          onChange={handleMaritalStatusChange}
+          options={LEGAL_STATUSES}
+          placeholder="Select Marital Status"
+          className=""
+          disabled={false}
+        />
       </div>
+
+      {/* Children Fields - Show only if marital status is not "Never Married" */}
+      {showChildrenFields && (
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+          <Label className="block text-sm font-medium mb-2">Do you have children?</Label>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="hasChildren"
+                value="Yes"
+                checked={personal.hasChildren === 'Yes'}
+                onChange={() => setPersonal((p) => ({ ...p, hasChildren: 'Yes' }))}
+                className="peer hidden"
+              />
+              <span className="w-4 h-4 rounded-full border border-[#E4C48A] peer-checked:bg-[#E4C48A] peer-checked:border-[#E4C48A] transition-all"></span>
+              <span className="text-sm">Yes</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="hasChildren"
+                value="No"
+                checked={personal.hasChildren === 'No'}
+                onChange={() => setPersonal((p) => ({ ...p, hasChildren: 'No' }))}
+                className="peer hidden"
+              />
+              <span className="w-4 h-4 rounded-full border border-[#E4C48A] peer-checked:bg-[#E4C48A] peer-checked:border-[#E4C48A] transition-all"></span>
+              <span className="text-sm">No</span>
+            </label>
+          </div>
+          {personal.hasChildren === 'Yes' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <CustomSelect
+                name="numChildren"
+                value={personal.numChildren || ''}
+                onChange={handleInputChange}
+                options={[...Array(10)].map((_, i) => String(i + 1))}
+                placeholder="Number of Children"
+                className=""
+              />
+              <CustomSelect
+                name="livingWith"
+                value={personal.livingWith || ''}
+                onChange={handleInputChange}
+                options={['Yes', 'No']}
+                placeholder="Living with you?"
+                className=""
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Divorce Fields - Show only for "Divorced" or "Awaiting Divorce" */}
+      {showDivorceFields && (
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+          <Label className="block text-sm font-medium mb-1">Divorce Status</Label>
+          <CustomSelect
+            name="divorceStatus"
+            value={personal.divorceStatus || ''}
+            onChange={handleInputChange}
+            options={['filed', 'process', 'court', 'divorced']}
+            placeholder="Select Divorce Status"
+            className=""
+          />
+        </div>
+      )}
 
       {/* Height + Weight */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label>Height *</Label>
-          <EditableInput value={personal.height || ''} onChange={handlePersonalChange('height')} className="rounded-md" name="height" />
+          <Label className="mb-2">Height *</Label>
+          <CustomSelect
+            name="height"
+            value={personal.height || ''}
+            onChange={handleInputChange}
+            options={heightOptions}
+            placeholder="Select Height"
+            className=""
+            disabled={false}
+          />
         </div>
         <div>
-          <Label>Weight (kg) *</Label>
-          <EditableInput type="text" value={personal.weight || ''} onChange={handlePersonalChange('weight')} className="rounded-md" name="weight" />
+          <Label className="mb-2">Weight (kg) *</Label>
+          <CustomSelect
+            name="weight"
+            value={personal.weight || ''}
+            onChange={handleInputChange}
+            options={weightOptions}
+            placeholder="Select Weight"
+            className=""
+            disabled={false}
+          />
         </div>
       </div>
 
       {/* Rashi + Dosh */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-6">
         <div>
-          <Label>Rashi</Label>
-          <EditableInput value={personal.rashi || ''} onChange={handlePersonalChange('rashi')} className="rounded-md" name="rashi" />
+          <Label className="mb-2">Rashi</Label>
+          <CustomSelect
+            name="rashi"
+            value={personal.rashi || ''}
+            onChange={handleInputChange}
+            options={['Aries (Mesh)','Taurus (Vrishabh)','Gemini (Mithun)','Cancer (Kark)','Leo (Singh)','Virgo (Kanya)','Libra (Tula)','Scorpio (Vrischik)','Sagittarius (Dhanu)','Capricorn (Makar)','Aquarius (Kumbh)','Pisces (Meen)']}
+            placeholder="Select Rashi"
+            className=""
+            disabled={false}
+          />
         </div>
         <div>
-          <Label>Dosh</Label>
-          <EditableInput value={personal.dosh || ''} onChange={handlePersonalChange('dosh')} className="rounded-md" name="dosh" />
+          <Label className="mb-2">Dosh</Label>
+          <CustomSelect
+            name="dosh"
+            value={personal.dosh || ''}
+            onChange={handleInputChange}
+            options={doshOptions}
+            placeholder="Select Dosh"
+            className=""
+            disabled={false}
+          />
         </div>
       </div>
 
       {/* Religion + Caste */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label>Religion *</Label>
-          <EditableInput value={personal.religion || ''} onChange={handlePersonalChange('religion')} className="rounded-md" name="religion" />
+          <Label className="mb-2">Religion *</Label>
+          <CustomSelect
+            name="religion"
+            value={personal.religion || ''}
+            onChange={handleInputChange}
+            options={['Hindu','Jain']}
+            placeholder="Select Religion"
+            className=""
+            disabled={false}
+          />
         </div>
         <div>
-          <Label>Caste *</Label>
-          <EditableInput value={personal.caste || ''} onChange={handlePersonalChange('caste')} className="rounded-md" name="caste" />
+          <Label className="mb-2">Caste *</Label>
+          <CustomSelect
+            name="caste"
+            value={personal.caste || ''}
+            onChange={handleInputChange}
+            options={(personal.religion === 'Hindu' ?
+              ['Patel-Desai','Patel-Kadva','Patel-Leva','Patel','Brahmin-Audichya','Brahmin','Vaishnav-Vania'] :
+              personal.religion === 'Jain' ?
+              ['Jain-Digambar','Jain-Swetamber','Jain-Vanta'] :
+              [])}
+            placeholder="Select Caste"
+            className=""
+            disabled={false}
+          />
         </div>
       </div>
 
       {/* Birth Place */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label>Birth City</Label>
-          <EditableInput value={personal.birthCity || ''} onChange={handlePersonalChange('birthCity')} className="rounded-md" name="birthCity" />
+          <Label className="mb-2">Birth City</Label>
+          <EditableInput value={personal.birthCity || ''} className="rounded-md" name="birthCity" />
         </div>
         <div>
-          <Label>Birth State</Label>
-          <EditableInput value={personal.birthState || ''} onChange={handlePersonalChange('birthState')} className="rounded-md" name="birthState" />
+          <Label className="mb-2">Birth State</Label>
+          <EditableInput value={personal.birthState || ''} className="rounded-md" name="birthState" />
         </div>
       </div>
 
       {/* Address */}
       <div className="space-y-2 mt-4">
-        <h4 className="font-medium">Full Address</h4>
+        <h4 className="font-medium mb-2">Full Address</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <EditableInput placeholder="Street 1" value={personal.street1 || ''} onChange={handlePersonalChange('street1')} className="rounded-md" name="street1" />
-          <EditableInput placeholder="Street 2" value={personal.street2 || ''} onChange={handlePersonalChange('street2')} className="rounded-md" name="street2" />
-          <EditableInput placeholder="Pincode" value={personal.pincode || ''} onChange={handlePersonalChange('pincode')} className="rounded-md" name="pincode" />
-          <EditableInput placeholder="City" value={personal.city || ''} onChange={handlePersonalChange('city')} className="rounded-md" name="city" />
-          <EditableInput placeholder="State" value={personal.state || ''} onChange={handlePersonalChange('state')} className="rounded-md" name="state" />
+          <EditableInput placeholder="Street 1" value={personal.street1 || ''} className="rounded-md" name="street1" />
+          <EditableInput placeholder="Street 2" value={personal.street2 || ''} className="rounded-md" name="street2" />
+          <EditableInput placeholder="Pincode" value={personal.pincode || ''} className="rounded-md" name="pincode" />
+          <EditableInput placeholder="City" value={personal.city || ''} className="rounded-md" name="city" />
+          <EditableInput placeholder="State" value={personal.state || ''} className="rounded-md" name="state" />
           <div className="mt-2">
-            <Label>Is this your own house?</Label>
+            <Label className="mb-2">Is this your own house?</Label>
             <div className="flex items-center gap-6 mt-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -1251,11 +1559,19 @@ export function EditProfile({ onNavigateBack }) {
       {/* Nationality + Residing */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div>
-          <Label>Nationality</Label>
-          <EditableInput value={personal.nationality || ''} onChange={handlePersonalChange('nationality')} className="rounded-md" name="nationality" />
+          <Label className="mb-2">Nationality</Label>
+          <CustomSelect
+            name="nationality"
+            value={personal.nationality || ''}
+            onChange={handleInputChange}
+            options={nationalities}
+            placeholder="Select Nationality"
+            className=""
+            disabled={false}
+          />
         </div>
         <div>
-          <Label>Currently Residing in India?</Label>
+          <Label className="mb-2">Currently Residing in India?</Label>
           <div className="flex items-center gap-6 mt-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -1288,129 +1604,243 @@ export function EditProfile({ onNavigateBack }) {
       {personal.residingInIndia === 'no' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
           <div>
-            <Label>Residing Country</Label>
-            <EditableInput value={personal.residingCountry || ''} onChange={handlePersonalChange('residingCountry')} className="rounded-md" name="residingCountry" />
+            <Label className="mb-2">Residing Country</Label>
+            <CustomSelect
+              name="residingCountry"
+              value={personal.residingCountry || ''}
+              onChange={handleInputChange}
+              options={nationalities}
+              placeholder="Select Country"
+              className=""
+              disabled={false}
+            />
           </div>
           <div>
-            <Label>Visa Category</Label>
-            <EditableInput value={personal.visaCategory || ''} onChange={handlePersonalChange('visaCategory')} className="rounded-md" name="visaCategory" />
+            <Label className="mb-2">Visa Category</Label>
+            <CustomSelect
+              name="visaCategory"
+              value={personal.visaCategory || ''}
+              onChange={handleInputChange}
+              options={visaCategories}
+              placeholder="Select Visa Category"
+              className=""
+              disabled={false}
+            />
           </div>
         </div>
       )}
-
-      {/* Children + Divorce */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div>
-          <Label>Do you have children?</Label>
-          <div className="flex items-center gap-6 mt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="hasChildren"
-                value="Yes"
-                checked={personal.hasChildren === 'Yes'}
-                onChange={() => setPersonal((p) => ({ ...p, hasChildren: 'Yes' }))}
-                disabled={isBlank(personal.hasChildren)}
-                className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${personal.hasChildren === 'Yes' ? 'bg-[#E4C48A] border-[#E4C48A]' : 'border-gray-300'} focus:ring-1 focus:ring-[#E4C48A]`}
-              />
-              <span className="text-gray-700 text-sm">Yes</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="hasChildren"
-                value="No"
-                checked={personal.hasChildren === 'No'}
-                onChange={() => setPersonal((p) => ({ ...p, hasChildren: 'No' }))}
-                disabled={isBlank(personal.hasChildren)}
-                className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${personal.hasChildren === 'No' ? 'bg-[#E4C48A] border-[#E4C48A]' : 'border-gray-300'} focus:ring-1 focus:ring-[#E4C48A]`}
-              />
-              <span className="text-gray-700 text-sm">No</span>
-            </label>
-          </div>
-          {personal.hasChildren === 'Yes' && (
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <EditableInput value={personal.numChildren || ''} onChange={handlePersonalChange('numChildren')} placeholder="Number of children" className="rounded-md" name="numChildren" />
-              <EditableInput value={personal.livingWith || ''} onChange={handlePersonalChange('livingWith')} placeholder="Living with (With Me/No)" className="rounded-md" name="livingWith" />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <Label>Divorce Status</Label>
-          <EditableInput value={personal.divorceStatus || ''} onChange={handlePersonalChange('divorceStatus')} className="rounded-md" name="divorceStatus" />
-          <div className="mt-2">
-            <Label>Separated Since (year)</Label>
-            <EditableInput value={personal.separatedSince || ''} onChange={handlePersonalChange('separatedSince')} className="rounded-md" name="separatedSince" />
-          </div>
-        </div>
-      </div>
     </div>
   );
 
   // ---------------------------------------
   // EXPECTATIONS read-only renderer
   // ---------------------------------------
-  const renderExpectations = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <Label>Preferred Partner Location</Label>
-          <select value={expectations.partnerLocation || ''} disabled={isBlank(expectations.partnerLocation)} onChange={handlePartnerLocationChange} className={inputClass}>
-            <option value="">Select</option>
-            <option value="No preference">No preference</option>
-            <option value="India">India</option>
-            <option value="Abroad">Abroad</option>
-          </select>
-        </div>
+  const renderExpectations = () => {
+    const toOptions = (arr=[]) => arr.map(v=> ({label:v,value:v}));
+    const multiStyles = {
+      control:(base,state)=>({
+        ...base,
+        minHeight:'3rem',
+        borderColor: state.isFocused? '#9ca3af': '#d1d5db', // grey borders
+        boxShadow:'none',
+        borderRadius:'10px',
+        backgroundColor:'#ffffff', // changed to pure white
+        '&:hover':{borderColor: state.isFocused? '#6b7280':'#9ca3af'}
+      }),
+      valueContainer:(base)=>({...base,padding:'0 0.75rem'}),
+      multiValue:(base)=>({
+        ...base,
+        backgroundColor:'#e5e7eb', // light grey for selected tag
+        borderRadius:'14px',
+        padding:'2px 4px'
+      }),
+      multiValueLabel:(base)=>({...base,color:'#374151',fontSize:'0.70rem',padding:'0 2px'}),
+      multiValueRemove:(base)=>({
+        ...base,
+        color:'#4b5563',
+        ':hover':{backgroundColor:'#d1d5db',color:'#111827',borderRadius:'50%'}
+      }),
+      dropdownIndicator:(base,state)=>({
+        ...base,
+        color: state.isFocused? '#4b5563':'#6b7280',
+        ':hover':{color:'#111827'}
+      }),
+      clearIndicator:(base)=>({
+        ...base,
+        color:'#6b7280',
+        ':hover':{color:'#111827'}
+      }),
+      indicatorsContainer:(base)=>({...base,height:'3rem'}),
+      menu:(base)=>({...base,borderRadius:'10px',overflow:'hidden'}),
+      option:(base,state)=>({
+        ...base,
+        fontSize:'0.75rem',
+        backgroundColor: state.isSelected? '#d1d5db': state.isFocused? '#f3f4f6':'#ffffff',
+        color:'#111827',
+        ':active':{backgroundColor:'#e5e7eb'}
+      })
+    };
 
-        <div>
-          <Label>Preferred State / Country</Label>
-          <EditableInput value={(expectations.partnerStateOrCountry || []).join(', ') || ''} onChange={handleExpectationsArrayChange('partnerStateOrCountry')} className={inputClass} name="partnerStateOrCountry" />
-        </div>
+    const locationList = expectations.partnerLocation === 'India'
+      ? INDIAN_STATES
+      : expectations.partnerLocation === 'Abroad'
+        ? ABROAD_OPTIONS
+        : [];
 
-        <div>
-          <Label>Open To Partner Habits</Label>
-          <EditableInput value={expectations.openToPartnerHabits || ''} onChange={handleExpectationsTextChange('openToPartnerHabits')} className={inputClass} name="openToPartnerHabits" />
-        </div>
+    return (
+      <div className="space-y-6 px-4 md:px-6 py-2 md:py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6">
+          <div>
+            <Label className="mb-2">Preferred Partner Location</Label>
+            <select
+              value={expectations.partnerLocation || ''}
+              onChange={handlePartnerLocationChange}
+              className={inputClass}
+            >
+              <option value="">Select</option>
+              <option value="No preference">No preference</option>
+              <option value="India">India</option>
+              <option value="Abroad">Abroad</option>
+            </select>
+          </div>
+          {['India','Abroad'].includes(expectations.partnerLocation) && (
+            <div>
+              <Label className="mb-2">{expectations.partnerLocation === 'India' ? 'Select State(s)' : 'Select Country(ies)'}</Label>
+              <ReactSelect
+                isMulti
+                closeMenuOnSelect={false}
+                value={toOptions(expectations.partnerStateOrCountry)}
+                onChange={(sel)=> {
+                  const values = sel? sel.map(o=> o.value): [];
+                  if (values.includes('Any')) {
+                    setExpectations(prev=> ({...prev, partnerStateOrCountry: ['Any'] }));
+                  } else {
+                    setExpectations(prev=> ({...prev, partnerStateOrCountry: values }));
+                  }
+                }}
+                options={toOptions(['Any', ...locationList.filter((v,i,a)=> a.indexOf(v)===i)])}
+                classNamePrefix="react-select"
+                styles={multiStyles}
+                placeholder={expectations.partnerLocation === 'India' ? 'Select one or multiple states' : 'Select one or multiple countries'}
+                isDisabled={false}
+              />
+            </div>
+          )}
 
-        <div>
-          <Label>Preferred Education</Label>
-          <EditableInput value={(expectations.partnerEducation || []).join(', ') || ''} onChange={handleExpectationsArrayChange('partnerEducation')} className={inputClass} name="partnerEducation" />
-        </div>
+          <div>
+            <Label className="mb-2">Open To Partner Habits</Label>
+            <CustomSelect
+              name="openToPartnerHabits"
+              value={expectations.openToPartnerHabits || ''}
+              onChange={(e)=>handleExpectationsTextChange('openToPartnerHabits')(e)}
+              options={['Yes','No','Occasional','Any']}
+              placeholder="Select"
+              className=""
+            />
+          </div>
 
-        <div>
-          <Label>Preferred Diet</Label>
-          <EditableInput value={(expectations.partnerDiet || []).join(', ') || ''} onChange={handleExpectationsArrayChange('partnerDiet')} className={inputClass} name="partnerDiet" />
-        </div>
+          <div>
+            <Label className="mb-2">Preferred Education</Label>
+            <ReactSelect
+              isMulti
+              closeMenuOnSelect={false}
+              value={toOptions(expectations.partnerEducation)}
+              onChange={(sel)=> setExpectations(prev=> ({...prev, partnerEducation: sel? sel.map(o=> o.value): [] }))}
+              options={toOptions(EXPECT_EDUCATION_OPTIONS)}
+              classNamePrefix="react-select"
+              styles={multiStyles}
+              placeholder="Select education"
+            />
+          </div>
 
-        <div>
-          <Label>Preferred Community</Label>
-          <EditableInput value={(expectations.partnerCommunity || []).join(', ') || ''} onChange={handleExpectationsArrayChange('partnerCommunity')} className={inputClass} name="partnerCommunity" />
-        </div>
+          <div>
+            <Label className="mb-2">Preferred Diet</Label>
+            <ReactSelect
+              isMulti
+              closeMenuOnSelect={false}
+              value={toOptions(expectations.partnerDiet)}
+              onChange={(sel)=> setExpectations(prev=> ({...prev, partnerDiet: sel? sel.map(o=> o.value): [] }))}
+              options={toOptions(EXPECT_DIET_OPTIONS)}
+              classNamePrefix="react-select"
+              styles={multiStyles}
+              placeholder="Select diet"
+            />
+          </div>
 
-        <div>
-          <Label>Preferred Profession</Label>
-          <EditableInput value={(expectations.profession || []).join(', ') || ''} onChange={handleExpectationsArrayChange('profession')} className={inputClass} name="profession_expectations" />
-        </div>
+            <div>
+            <Label className="mb-2">Preferred Community</Label>
+            <ReactSelect
+              isMulti
+              closeMenuOnSelect={false}
+              value={toOptions(expectations.partnerCommunity)}
+              onChange={(sel)=> setExpectations(prev=> ({...prev, partnerCommunity: sel? sel.map(o=> o.value): [] }))}
+              options={toOptions(EXPECT_CAST_OPTIONS)}
+              classNamePrefix="react-select"
+              styles={multiStyles}
+              placeholder="Select community"
+            />
+          </div>
 
-        <div>
-          <Label>Marital Status Preference</Label>
-          <EditableInput value={(expectations.maritalStatus || []).join(', ') || ''} onChange={handleExpectationsArrayChange('maritalStatus')} className={inputClass} name="maritalStatus_expectations" />
-        </div>
+          <div>
+            <Label className="mb-2">Preferred Profession</Label>
+            <ReactSelect
+              isMulti
+              closeMenuOnSelect={false}
+              value={toOptions(expectations.profession)}
+              onChange={(sel)=> setExpectations(prev=> ({...prev, profession: sel? sel.map(o=> o.value): [] }))}
+              options={toOptions(EXPECT_PROFESSION_OPTIONS)}
+              classNamePrefix="react-select"
+              styles={multiStyles}
+              placeholder="Select profession"
+            />
+          </div>
 
-        <div>
-          <Label>Preferred Age From</Label>
-          <EditableInput value={expectations.preferredAgeFrom || ''} onChange={handleExpectationsTextChange('preferredAgeFrom')} className={inputClass} name="preferredAgeFrom" />
-        </div>
+          <div>
+            <Label className="mb-2">Marital Status Preference</Label>
+            <ReactSelect
+              isMulti
+              closeMenuOnSelect={false}
+              value={toOptions(expectations.maritalStatus)}
+              onChange={(sel)=> setExpectations(prev=> ({...prev, maritalStatus: sel? sel.map(o=> o.value): [] }))}
+              options={toOptions(EXPECT_MARITAL_STATUSES)}
+              classNamePrefix="react-select"
+              styles={multiStyles}
+              placeholder="Select marital status"
+            />
+          </div>
 
-        <div>
-          <Label>Preferred Age To</Label>
-          <EditableInput value={expectations.preferredAgeTo || ''} onChange={handleExpectationsTextChange('preferredAgeTo')} className={inputClass} name="preferredAgeTo" />
+          <div>
+            <Label className="mb-2">Preferred Age From</Label>
+            <CustomSelect
+              name="preferredAgeFrom"
+              value={expectations.preferredAgeFrom || ''}
+              onChange={(e)=>handleExpectationsTextChange('preferredAgeFrom')(e)}
+              options={AGE_OPTIONS.map(a=> String(a))}
+              placeholder="From"
+              className=""
+            />
+          </div>
+
+          <div>
+            <Label className="mb-2">Preferred Age To</Label>
+            <CustomSelect
+              name="preferredAgeTo"
+              value={expectations.preferredAgeTo || ''}
+              onChange={(e)=>handleExpectationsTextChange('preferredAgeTo')(e)}
+              options={AGE_OPTIONS
+                .filter(age => 
+                  !expectations.preferredAgeFrom || 
+                  age >= Number(expectations.preferredAgeFrom)
+                )
+                .map(a=> String(a))}
+              placeholder="To"
+              className=""
+            />
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ---------------------------------------
   // FAMILY DETAILS TAB
@@ -1464,24 +1894,23 @@ export function EditProfile({ onNavigateBack }) {
 
       {/* Grandparents */}
       <div className="space-y-4">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Grand Parents</h4>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Grandparents</h4>
         {[
-          { label: "Grandfather's Name", key: 'grandFatherName' },
-          { label: "Grandmother's Name", key: 'grandMotherName' },
-          { label: "Nana's Name", key: 'nanaName' },
-          { label: "Nani's Name", key: 'naniName' },
-          { label: "Nana's Native Place", key: 'nanaNativePlace' },
-        ].map(({ label, key }) => (
+          { label: "Paternal Grandfather  Name", key: 'grandFatherName', placeholder: 'e.g., Ramesh Kumar' },
+          { label: "Paternal Grandmother  Name", key: 'grandMotherName', placeholder: 'e.g., Sushma Devi' },
+          { label: "Maternal Grandfather  Name", key: 'nanaName', placeholder: 'e.g., Ramesh Kumar' },
+          { label: "Maternal Grandmother  Name", key: 'naniName', placeholder: 'e.g., Sushma Devi' },
+          { label: "Maternal Grandparents’ Native Place", key: 'nanaNativePlace', placeholder: 'e.g., Jaipur, Rajasthan' },
+        ].map(({ label, key, placeholder }) => (
           <div className="flex flex-col" key={key}>
             <label className="text-sm font-medium mb-1">{label}</label>
             <input
               type="text"
               name={key}
-              placeholder={label}
+              placeholder={placeholder || label}
               value={family[key] || ''}
               onChange={(e) => handleFamilyChange(key)(e)}
-              disabled={isBlank(family[key])}
-              className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+              className="w-full rounded-md p-3 text-sm transition-all border border-[#c8a227] focus:border-[#c8a227] focus:ring-2 focus:ring-[#E4C48A]/30 focus:outline-none"
             />
           </div>
         ))}
@@ -1540,17 +1969,14 @@ export function EditProfile({ onNavigateBack }) {
         {family.hasSiblings && (
           <div className="mt-3 space-y-3">
             <label className="text-sm font-medium mb-2">How many siblings?</label>
-            <select
-              value={family.siblingCount}
+            <CustomSelect
+              value={family.siblingCount || ''}
               onChange={(e) => handleSiblingCount(Number(e.target.value))}
               disabled={isBlank(family.siblingCount)}
-              className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-            >
-              <option value="">Select</option>
-              {[1, 2, 3, 4, 5, 6].map((num) => (
-                <option key={num} value={num}>{num}</option>
-              ))}
-            </select>
+              options={[1, 2, 3, 4, 5, 6].map(num => String(num))}
+              placeholder="Select"
+              className=""
+            />
 
             {family.siblings.map((sibling, index) => (
               <div key={index} className="border p-3 rounded-md bg-purple-50 space-y-2">
@@ -1568,33 +1994,27 @@ export function EditProfile({ onNavigateBack }) {
 
                 <div className="flex flex-col">
                   <label className="text-sm font-medium">Relation</label>
-                  <select
+                  <CustomSelect
                     value={sibling.relation}
                     disabled={isBlank(sibling.relation)}
                     onChange={(e) => handleSiblingChange(index, 'relation', e.target.value)}
-                    className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                  >
-                    <option value="">Select</option>
-                    <option value="Elder Brother">Elder Brother</option>
-                    <option value="Younger Brother">Younger Brother</option>
-                    <option value="Elder Sister">Elder Sister</option>
-                    <option value="Younger Sister">Younger Sister</option>
-                  </select>
+                    options={['Elder Brother', 'Younger Brother', 'Elder Sister', 'Younger Sister']}
+                    placeholder="Select"
+                    className=""
+                  />
                 </div>
 
                 {['Elder Brother','Younger Brother','Elder Sister','Younger Sister'].includes(sibling.relation) && (
                   <div className="flex flex-col">
                     <label className="text-sm font-medium">Marital Status</label>
-                    <select
+                    <CustomSelect
                       value={sibling.maritalStatus}
                       disabled={isBlank(sibling.maritalStatus)}
                       onChange={(e) => handleSiblingChange(index, 'maritalStatus', e.target.value)}
-                      className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                    >
-                      <option value="">Select</option>
-                      <option value="Married">Married</option>
-                      <option value="Unmarried">Unmarried</option>
-                    </select>
+                      options={['Married', 'Unmarried']}
+                      placeholder="Select"
+                      className=""
+                    />
                   </div>
                 )}
               </div>
@@ -1620,14 +2040,45 @@ export function EditProfile({ onNavigateBack }) {
       {/* Highest Qualification */}
       <div className="space-y-2">
         <Label>Highest Qualification *</Label>
-        <EditableInput value={education.highestEducation || ''} onChange={handleEducationChange('highestEducation')} className="rounded-[12px]" name="highestEducation" />
+        <CustomSelect
+          name="highestEducation"
+          value={education.highestEducation || ''}
+          onChange={(e)=>handleEducationChange('highestEducation')(e)}
+          options={QUALIFICATION_LEVELS}
+          placeholder="Select your qualification"
+          className=""
+        />
          
       </div>
 
       {/* Field of Study */}
       <div className="space-y-2">
-        <Label>Field of Study</Label>
-        <EditableInput placeholder="Field of study" value={education.fieldOfStudy || ''} onChange={handleEducationChange('fieldOfStudy')} className="rounded-[12px]" name="fieldOfStudy" />
+        <Label className="mb-2">Field of Study</Label>
+        <CreatableSelect
+          isClearable
+          name="fieldOfStudy"
+          value={education.fieldOfStudy ? { label: education.fieldOfStudy, value: education.fieldOfStudy } : null}
+          onChange={(val) => {
+            const next = val ? val.value : '';
+            setEducation((prev) => ({ ...prev, fieldOfStudy: next }));
+          }}
+          options={FIELD_OF_STUDY_OPTIONS.map((opt) => ({ label: opt, value: opt }))}
+          classNamePrefix="react-select"
+          styles={{
+            control: (base, state) => ({
+              ...base,
+              minHeight: '3rem',
+              borderColor: state.isFocused ? '#9ca3af' : '#d1d5db',
+              boxShadow: 'none',
+              backgroundColor: '#ffffff',
+              borderRadius: '10px',
+              '&:hover': { borderColor: state.isFocused ? '#6b7280' : '#9ca3af' }
+            }),
+            valueContainer: (base) => ({ ...base, padding: '0 0.75rem', height: '3rem' }),
+            indicatorsContainer: (base) => ({ ...base, height: '3rem' })
+          }}
+          menuPlacement="top"
+        />
       </div>
 
       {/* University / College */}
@@ -1639,18 +2090,14 @@ export function EditProfile({ onNavigateBack }) {
       {/* Country of Education */}
       <div className="space-y-2">
         <Label>Country of Education</Label>
-        <select
+        <CustomSelect
+          name="countryOfEducation"
           value={education.countryOfEducation || ''}
-          disabled={isBlank(education.countryOfEducation)}
           onChange={(e) => handleEducationChange('countryOfEducation')(e)}
-          className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-        >
-          <option value="">Select country</option>
-          {countries.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-          <option value="Other">Other</option>
-        </select>
+          options={[...countries, 'Other']}
+          placeholder="Select your country"
+          className=""
+        />
         {education.countryOfEducation === 'Other' && (
           <EditableInput placeholder="Please specify your country" value={education.otherCountry || ''} onChange={handleEducationChange('otherCountry')} className="rounded-[12px] mt-2" name="otherCountry" />
         )}
@@ -1665,24 +2112,61 @@ export function EditProfile({ onNavigateBack }) {
   // ---------------------------------------
   const renderProfessionDetails = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Employment Status</Label>
-          <EditableInput value={profession.employmentStatus || ''} onChange={handleProfessionChange('employmentStatus')} className="rounded-md" name="employmentStatus" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6 mt-4">
+        <div className="flex flex-col">
+          <Label className="mb-2">Employment Status</Label>
+          <CustomSelect
+            name="employmentStatus"
+            value={profession.employmentStatus || ''}
+            onChange={(e)=>handleProfessionChange('employmentStatus')(e)}
+            options={EMPLOYMENT_OPTIONS}
+            placeholder="Select Employment Status"
+            className=""
+          />
         </div>
-        <div>
-          <Label>Occupation</Label>
-          <EditableInput value={profession.occupation || ''} onChange={handleProfessionChange('occupation')} className="rounded-md" name="occupation" />
+        <div className="flex flex-col">
+          <Label className="mb-2">Occupation</Label>
+          <div style={{marginBottom:'8px'}}>
+            <CreatableSelect
+              name="occupation"
+              isClearable
+              value={profession.occupation? {label:profession.occupation,value:profession.occupation}:null}
+              onChange={(val)=> setProfession(prev=> ({...prev, occupation: val? val.value: ''}))}
+              options={JOB_TITLES.map(t=> ({label:t,value:t}))}
+              classNamePrefix="react-select"
+              styles={{
+                control:(base,state)=>({
+                  ...base,
+                  minHeight:'3rem',
+                  borderColor: state.isFocused? '#9ca3af': '#d1d5db',
+                  boxShadow:'none',
+                  backgroundColor:'#ffffff',
+                  borderRadius:'10px',
+                  '&:hover':{borderColor: state.isFocused? '#6b7280':'#9ca3af'}
+                }),
+                valueContainer:(base)=>({...base,padding:'0 0.75rem',height:'3rem'}),
+                indicatorsContainer:(base)=>({...base,height:'3rem'})
+              }}
+              menuPlacement="top"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6 mt-4">
         <div>
-          <Label>Annual Income</Label>
-          <EditableInput value={profession.annualIncome || ''} onChange={handleProfessionChange('annualIncome')} className="rounded-md" name="annualIncome" />
+          <Label className="mb-2">Annual Income</Label>
+          <CustomSelect
+            name="annualIncome"
+            value={profession.annualIncome || ''}
+            onChange={(e)=>handleProfessionChange('annualIncome')(e)}
+            options={INCOME_OPTIONS}
+            placeholder="Select Annual Income"
+            className=""
+          />
         </div>
         <div>
-          <Label>Organization Name</Label>
+          <Label className="mb-2">Organization Name</Label>
           <EditableInput value={profession.organizationName || ''} onChange={handleProfessionChange('organizationName')} className="rounded-md" name="organizationName" />
         </div>
       </div>
@@ -1693,46 +2177,101 @@ export function EditProfile({ onNavigateBack }) {
   // LIFESTYLE TAB (controlled inputs)
   // ---------------------------------------
   const renderLifestyleDetails = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-6 px-4 md:px-6 py-2 md:py-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6">
         <div>
-          <Label>Diet</Label>
-          <EditableInput value={lifestyle.diet || ''} onChange={handleLifestyleChange('diet')} className={inputClass} name="diet" />
+          <Label className="mb-2">Diet</Label>
+          <CustomSelect
+            name="diet"
+            value={lifestyle.diet || ''}
+            onChange={(e)=>handleLifestyleChange('diet')(e)}
+            options={LIFESTYLE_DIET_OPTIONS}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div>
-          <Label>Smoking / Tobacco</Label>
-          <EditableInput value={lifestyle.smoking || ''} onChange={handleLifestyleChange('smoking')} className={inputClass} name="smoking" />
+          <Label className="mb-2">Smoking / Tobacco</Label>
+          <CustomSelect
+            name="smoking"
+            value={lifestyle.smoking || ''}
+            onChange={(e)=>handleLifestyleChange('smoking')(e)}
+            options={LIFESTYLE_HABIT_OPTIONS}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div>
-          <Label>Drinking / Alcohol</Label>
-          <EditableInput value={lifestyle.drinking || ''} onChange={handleLifestyleChange('drinking')} className={inputClass} name="drinking" />
+          <Label className="mb-2">Drinking / Alcohol</Label>
+          <CustomSelect
+            name="drinking"
+            value={lifestyle.drinking || ''}
+            onChange={(e)=>handleLifestyleChange('drinking')(e)}
+            options={LIFESTYLE_HABIT_OPTIONS}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div>
-          <Label>Have Medical History?</Label>
-          <EditableInput value={lifestyle.isHaveMedicalHistory || ''} onChange={handleLifestyleChange('isHaveMedicalHistory')} className={inputClass} name="isHaveMedicalHistory" />
+          <Label className="mb-2">Have Medical History?</Label>
+          <CustomSelect
+            name="isHaveMedicalHistory"
+            value={lifestyle.isHaveMedicalHistory || ''}
+            onChange={(e)=>handleLifestyleChange('isHaveMedicalHistory')(e)}
+            options={LIFESTYLE_YES_NO}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div>
-          <Label>Have Tattoos?</Label>
-          <EditableInput value={lifestyle.isHaveTattoos || ''} onChange={handleLifestyleChange('isHaveTattoos')} className={inputClass} name="isHaveTattoos" />
+          <Label className="mb-2">Have Tattoos?</Label>
+          <CustomSelect
+            name="isHaveTattoos"
+            value={lifestyle.isHaveTattoos || ''}
+            onChange={(e)=>handleLifestyleChange('isHaveTattoos')(e)}
+            options={LIFESTYLE_YES_NO}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div>
-          <Label>HIV Positive?</Label>
-          <EditableInput value={lifestyle.isHaveHIV || ''} onChange={handleLifestyleChange('isHaveHIV')} className={inputClass} name="isHaveHIV" />
+          <Label className="mb-2">HIV Positive?</Label>
+          <CustomSelect
+            name="isHaveHIV"
+            value={lifestyle.isHaveHIV || ''}
+            onChange={(e)=>handleLifestyleChange('isHaveHIV')(e)}
+            options={LIFESTYLE_YES_NO}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div>
-          <Label>Positive in TB?</Label>
-          <EditableInput value={lifestyle.isPositiveInTB || ''} onChange={handleLifestyleChange('isPositiveInTB')} className={inputClass} name="isPositiveInTB" />
+          <Label className="mb-2">Positive in TB?</Label>
+          <CustomSelect
+            name="isPositiveInTB"
+            value={lifestyle.isPositiveInTB || ''}
+            onChange={(e)=>handleLifestyleChange('isPositiveInTB')(e)}
+            options={LIFESTYLE_YES_NO}
+            placeholder="Select"
+            className=""
+          />
         </div>
 
         <div className="md:col-span-2">
-          <Label>Medical History Details</Label>
-          <Textarea value={lifestyle.healthIssues || ''} onChange={(e) => handleLifestyleChange('healthIssues')(e)} className={inputClass} />
+          <Label className="mb-2">Medical History Details</Label>
+          {(String(lifestyle.isHaveMedicalHistory || '').toLowerCase() === 'yes' || Boolean(lifestyle.healthIssues && String(lifestyle.healthIssues).trim().length)) && (
+            <Textarea
+              value={lifestyle.healthIssues || ''}
+              onChange={(e) => handleLifestyleChange('healthIssues')(e)}
+              className={inputClass}
+            />
+          )}
         </div>
       </div>
 
@@ -1897,3 +2436,4 @@ export function EditProfile({ onNavigateBack }) {
     </div>
   );
 }
+

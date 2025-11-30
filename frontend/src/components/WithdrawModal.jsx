@@ -12,7 +12,7 @@ import {
 export function WithdrawModal({ open, onOpenChange, profileName, onConfirm }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="rounded-[20px] max-w-md">
+      <AlertDialogContent className="rounded-[20px] max-w-md !top-[52%] my-12 mx-4">
         <AlertDialogHeader>
           <AlertDialogTitle style={{ fontFamily: 'Playfair Display, serif' }}>
             Withdraw Interest?

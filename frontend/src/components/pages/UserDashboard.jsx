@@ -987,7 +987,7 @@ export function UserDashboard() {
             return updated;
           });
           
-          toast.success("Removed from favorites");
+          toast.success("Removed from shortlisted");
           console.log("✅ Removed from favorites successfully");
         } else {
           console.error("❌ Failed to remove from favorites:", response?.message);
@@ -1010,12 +1010,10 @@ export function UserDashboard() {
             console.log("✅ Fetched updated favorites count:", favoritesResponse.data.length);
           }
           
-          toast.success("Added to favorites");
+          toast.success("Profile added to shortlisted");
           console.log("✅ Added to favorites successfully");
           
-          // Navigate to shortlisted page using proper navigation
-          setActivePage("shortlisted");
-          navigate("/dashboard/shortlisted");
+          // Do not navigate; show toast only
         } else {
           console.error("❌ Failed to add to favorites:", response?.message);
           toast.error(response?.message || "Failed to add to favorites");
@@ -1040,7 +1038,7 @@ export function UserDashboard() {
       
       if (response?.success) {
         console.log("✅ Connection request sent successfully");
-        toast.success("Connection request sent successfully!");
+        toast.success("Request sent successfully");
         
         // Refresh sent requests with proper transformation
         const sentRequestsResponse = await getSentRequests();
@@ -1075,9 +1073,7 @@ export function UserDashboard() {
           }));
         }
         
-        // Navigate to requests page
-        navigate("/userdashboard/requests");
-        setActivePage("requests");
+        // Do not navigate; show toast only
       } else {
         console.error("❌ Failed to send request:", response?.message);
         toast.error(response?.message || "Failed to send connection request");

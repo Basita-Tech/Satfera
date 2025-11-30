@@ -144,14 +144,14 @@ export function AddProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden bg-white rounded-[20px] p-0">
-        <div className="p-6 border-b border-border-subtle">
+      <DialogContent className="max-w-5xl max-h-[80vh] !top-[52%] my-12 mx-4 overflow-hidden bg-white rounded-[20px] p-0 gap-0">
+        <div className="px-8 py-6 border-b border-border-subtle">
           <DialogHeader>
             <DialogTitle>Add Profile to Compare</DialogTitle>
           </DialogHeader>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+        <div className="px-8 py-6 overflow-y-auto max-h-[calc(80vh-120px)]">
           <div className="space-y-6">
             <div className="relative w-full">
               <Input

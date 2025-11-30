@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import CreatableSelect from "react-select/creatable";
+import CustomSelect from "../ui/CustomSelect";
 import {
   getUserProfession,
   saveUserProfession,
@@ -704,7 +705,7 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
           {/* Annual Income */}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">Annual Income</label>
-            <select
+            <CustomSelect
               name="annualIncome"
               value={
                 isDisabled
@@ -715,6 +716,8 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
               }
               onChange={handleChange}
               disabled={isDisabled}
+              options={incomeOptions}
+              placeholder="Select Annual Income"
               className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${
                 isDisabled
                   ? "bg-gray-100 cursor-not-allowed border-gray-300"
@@ -722,14 +725,7 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
                   ? "border-red-500 focus:ring-red-400 focus:border-red-400"
                   : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"
               }`}
-            >
-              <option value="">Select Annual Income</option>
-              {incomeOptions.map((opt, idx) => (
-                <option key={idx} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+            />
             {errors.annualIncome && (
               <p className="text-red-500 text-sm mt-1">{errors.annualIncome}</p>
             )}

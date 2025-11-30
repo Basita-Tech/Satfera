@@ -8,6 +8,7 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
 import CreatableSelect from "react-select/creatable";
+import CustomSelect from "../ui/CustomSelect";
 import {
   getOnboardingStatus,
   getUserPersonal,
@@ -852,19 +853,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <label className="block text-sm font-medium mb-1">
                 Astrological Sign (Rashi)
               </label>
-              <select
+              <CustomSelect
                 name="rashi"
                 value={formData.rashi}
                 onChange={handleChange}
-                className={`capitalize w-full p-3 rounded-md border ${
-                  errors.rashi ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              >
-                <option value="">Select Rashi</option>
-                {ZODIAC_SIGNS.map((r) => (
-                  <option key={r}>{r}</option>
-                ))}
-              </select>
+                options={ZODIAC_SIGNS}
+                placeholder="Select Rashi"
+                className={errors.rashi ? "border-red-500" : ""}
+              />
               {errors.rashi && (
                 <p className="text-xs text-red-500 mt-1">{errors.rashi}</p>
               )}
@@ -873,7 +869,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             {/* Dosh */}
             <div>
               <label className="block text-sm font-medium mb-1">Dosh</label>
-              <select
+              <CustomSelect
                 name="dosh"
                 value={formData.dosh}
                 onChange={(e) => {
@@ -884,17 +880,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     return updated;
                   });
                 }}
-                className={`capitalize w-full p-3 rounded-md border ${
-                  errors.dosh ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              >
-                <option value="">Select Type of Dosh</option>
-                {doshOptions.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+                options={doshOptions}
+                placeholder="Select Type of Dosh"
+                className={errors.dosh ? "border-red-500" : ""}
+              />
               {errors.dosh && (
                 <p className="text-xs text-red-500 mt-1">{errors.dosh}</p>
               )}
@@ -903,21 +892,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             {/* Religion */}
             <div>
               <label className="block text-sm font-medium mb-1">Religion</label>
-              <select
+              <CustomSelect
                 name="religion"
                 value={formData.religion}
                 onChange={handleChange}
-                className={`capitalize w-full p-3 rounded-md border ${
-                  errors.religion ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              >
-                <option value="">Select Religion</option>
-                {RELIGIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+                options={RELIGIONS}
+                placeholder="Select Religion"
+                className={errors.religion ? "border-red-500" : ""}
+              />
               {errors.religion && (
                 <p className="text-xs text-red-500 mt-1">{errors.religion}</p>
               )}
@@ -926,25 +908,15 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             {/* Caste */}
             <div>
               <label className="block text-sm font-medium mb-1">Caste</label>
-              <select
+              <CustomSelect
                 name="caste"
                 value={formData.caste}
                 onChange={handleChange}
-                className={`capitalize w-full p-3 rounded-md border ${
-                  errors.caste ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              >
-                <option value="">Select Caste</option>
-                {castOptions.length > 0 ? (
-                  castOptions.map((caste) => (
-                    <option key={caste} value={caste}>
-                      {caste}
-                    </option>
-                  ))
-                ) : (
-                  <option disabled>No caste options available</option>
-                )}
-              </select>
+                options={castOptions.length > 0 ? castOptions : []}
+                placeholder="Select Caste"
+                className={errors.caste ? "border-red-500" : ""}
+                disabled={castOptions.length === 0}
+              />
               {errors.caste && (
                 <p className="text-xs text-red-500 mt-1">{errors.caste}</p>
               )}
@@ -1190,21 +1162,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <label className="block text-sm font-medium mb-1">
                 Marital Status
               </label>
-              <select
+              <CustomSelect
                 name="legalStatus"
                 value={formData.legalStatus}
                 onChange={handleLegalStatus}
-                className={`capitalize w-full p-3 rounded-md border ${
-                  errors.legalStatus ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-              >
-                <option value="">Select Status</option>
-                {LEGAL_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
+                options={LEGAL_STATUSES}
+                placeholder="Select Status"
+                className={errors.legalStatus ? "border-red-500" : ""}
+              />
               {errors.legalStatus && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.legalStatus}
@@ -1218,20 +1183,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 <label className="block text-sm font-medium mb-1">
                   Divorce Status
                 </label>
-                <select
+                <CustomSelect
                   name="divorceStatus"
                   value={formData.divorceStatus}
                   onChange={handleChange}
-                  className={`capitalize w-full p-3 rounded-md border ${
-                    errors.divorceStatus ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                >
-                  <option value="">Select Divorce Status</option>
-                  <option value="filed">Filed Papers</option>
-                  <option value="process">In Process</option>
-                  <option value="court">In Court</option>
-                  <option value="divorced">Divorced</option>
-                </select>
+                  options={['filed', 'process', 'court', 'divorced']}
+                  placeholder="Select Divorce Status"
+                  className={errors.divorceStatus ? "border-red-500" : ""}
+                />
               </div>
             )}
 
@@ -1260,36 +1219,23 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
                 {formData.hasChildren === "Yes" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <select
+                    <CustomSelect
                       name="numChildren"
                       value={formData.numChildren}
                       onChange={handleChange}
-                      className={`capitalize w-full p-3 rounded-md border ${
-                        errors.numChildren
-                          ? "border-red-500"
-                          : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                    >
-                      <option value="">Number of Children</option>
-                      {[...Array(10)].map((_, i) => (
-                        <option key={i + 1}>{i + 1}</option>
-                      ))}
-                    </select>
+                      options={[...Array(10)].map((_, i) => String(i + 1))}
+                      placeholder="Number of Children"
+                      className={errors.numChildren ? "border-red-500" : ""}
+                    />
 
-                    <select
+                    <CustomSelect
                       name="livingWith"
                       value={formData.livingWith}
                       onChange={handleChange}
-                      className={`capitalize w-full p-3 rounded-md border ${
-                        errors.livingWith
-                          ? "border-red-500"
-                          : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                    >
-                      <option value="">Living with you?</option>
-                      <option>Yes</option>
-                      <option>No</option>
-                    </select>
+                      options={['Yes', 'No']}
+                      placeholder="Living with you?"
+                      className={errors.livingWith ? "border-red-500" : ""}
+                    />
                   </div>
                 )}
               </div>
@@ -1367,19 +1313,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             <label className="block text-sm font-medium mb-1">
               Nationality
             </label>
-            <select
+            <CustomSelect
               name="nationality"
               value={formData.nationality}
               onChange={handleChange}
-              className={`capitalize w-full p-3 rounded-md border ${
-                errors.nationality ? "border-red-500" : "border-[#E4C48A]"
-              } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-            >
-              <option value="">Select Nationality</option>
-              {nationalities.map((n) => (
-                <option key={n}>{n}</option>
-              ))}
-            </select>
+              options={nationalities}
+              placeholder="Select Nationality"
+              className={errors.nationality ? "border-red-500" : ""}
+            />
             {errors.nationality && (
               <p className="text-xs text-red-500 mt-1">{errors.nationality}</p>
             )}
@@ -1473,10 +1414,12 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   <label className="block text-sm font-medium mb-1 text-gray-700">
                     Residing In Which Country
                   </label>
-                  <select
+                  <CustomSelect
                     name="residingCountry"
                     value={formData.residingCountry}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      handleChange(e);
+                    }}
                     onBlur={() => {
                       if (!formData.residingCountry) {
                         setErrors({
@@ -1488,19 +1431,15 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         setErrors({ ...errors, residingCountry: "" });
                       }
                     }}
+                    options={COUNTRIES.filter((c) => c !== "India")}
+                    placeholder="Select Country"
                     className={`capitalize w-full p-3 rounded-md border ${
                       errors.residingCountry
                         ? "border-red-500"
                         : "border-[#E4C48A]"
                     } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                  >
-                    <option value="">Select Country</option>
-                    {COUNTRIES.filter((c) => c !== "India").map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    usePortal={true}
+                  />
                   {errors.residingCountry && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.residingCountry}
@@ -1513,12 +1452,12 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   <label className="block text-sm font-medium mb-1 text-gray-700">
                     Visa Category
                   </label>
-                  <select
+                  <CustomSelect
                     name="visaCategory"
                     value={formData.visaCategory}
-                    onChange={handleChange}
-                    onBlur={() => {
-                      if (!formData.visaCategory) {
+                    onChange={(e) => {
+                      handleChange(e);
+                      if (!e.target.value) {
                         setErrors({
                           ...errors,
                           visaCategory: "Please select a visa category",
@@ -1527,19 +1466,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         setErrors({ ...errors, visaCategory: "" });
                       }
                     }}
-                    className={`capitalize w-full p-3 rounded-md border ${
-                      errors.visaCategories
-                        ? "border-red-500"
-                        : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
-                  >
-                    <option value="">Select Visa Category</option>
-                    {visaCategories.map((v) => (
-                      <option key={v} value={v}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
+                    options={visaCategories}
+                    placeholder="Select Visa Category"
+                    className={errors.visaCategories ? "border-red-500" : ""}
+                  />
                   {errors.visaCategory && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.visaCategory}

@@ -16,9 +16,9 @@ export function PremiumUpgradeModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg rounded-[20px] p-0 overflow-hidden">
+      <DialogContent className="max-w-lg rounded-[20px] p-0 max-h-[80vh] !top-[52%] my-12 mx-4 overflow-y-auto gap-0">
         {/* Premium Header */}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 p-8 text-center text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-8 py-8 text-center text-white relative overflow-hidden rounded-t-[20px]">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
