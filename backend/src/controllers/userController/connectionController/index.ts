@@ -904,3 +904,164 @@ export async function removeFromFavorites(
       .json({ success: false, message: "Failed to remove from favorites" });
   }
 }
+
+export async function rejectAcceptedConnection(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { requestId } = req.body;
+
+    if (!requestId) {
+      return res.status(400).json({
+        success: false,
+        message: "requestId is required"
+      });
+    }
+
+    const request = await ConnectionRequest.findOne({
+      _id: requestId,
+      receiver: userId,
+      status: "accepted"
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Connection request not found or you are not authorized to modify it."
+      });
+    }
+
+    try {
+      const blocked = await isEitherBlocked(
+        String(request.sender),
+        String(request.receiver)
+      );
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+    } catch (e) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Action not allowed." });
+    }
+
+    await ConnectionRequest.findByIdAndUpdate(
+      requestId,
+      { status: "rejected", actionedBy: userId },
+      { new: true }
+    );
+
+    const receiver = await User.findById(userId)
+      .select("firstName lastName")
+      .lean();
+
+    await createNotificationBatch([
+      {
+        user: request.sender,
+        type: "request_rejected",
+        title: "Connection status changed",
+        message: `${
+          receiver?.firstName + " " + receiver?.lastName || "User"
+        } changed the connection status to rejected.`,
+        meta: { receiverId: userId, newStatus: "rejected" }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Connection successfully changed to rejected."
+    });
+  } catch (err) {
+    logger.error("Error rejecting accepted connection:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error updating connection status."
+    });
+  }
+}
+
+export async function acceptRejectedConnection(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user!.id;
+    const { requestId } = req.body;
+
+    if (!requestId) {
+      return res.status(400).json({
+        success: false,
+        message: "requestId is required"
+      });
+    }
+
+    const request = await ConnectionRequest.findOne({
+      _id: requestId,
+      receiver: userId,
+      status: "rejected"
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Connection request not found or you are not authorized to modify it."
+      });
+    }
+
+    try {
+      const blocked = await isEitherBlocked(
+        String(request.sender),
+        String(request.receiver)
+      );
+      if (blocked) {
+        return res.status(403).json({
+          success: false,
+          message: "Action not allowed: one of the users has blocked the other."
+        });
+      }
+    } catch (e) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Action not allowed." });
+    }
+
+    await ConnectionRequest.findByIdAndUpdate(
+      requestId,
+      { status: "accepted", actionedBy: userId },
+      { new: true }
+    );
+
+    const receiver = await User.findById(userId)
+      .select("firstName lastName")
+      .lean();
+    await createNotificationBatch([
+      {
+        user: request.sender,
+        type: "request_accepted",
+        title: "Connection status changed",
+        message: `${
+          receiver?.firstName + " " + receiver?.lastName || "User"
+        } changed the connection status to accepted.`,
+        meta: { receiverId: userId, newStatus: "accepted" }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Connection successfully changed to accepted."
+    });
+  } catch (err) {
+    logger.error("Error accepting rejected connection:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error updating connection status."
+    });
+  }
+}

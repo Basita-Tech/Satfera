@@ -29,6 +29,18 @@ requestRouter.post(
   connectionController.rejectConnectionRequest
 );
 
+requestRouter.post(
+  "/accepted/reject",
+  authenticate,
+  connectionController.rejectAcceptedConnection
+);
+
+requestRouter.post(
+  "/rejected/accept",
+  authenticate,
+  connectionController.acceptRejectedConnection
+);
+
 requestRouter.get(
   "/approve",
   authenticate,

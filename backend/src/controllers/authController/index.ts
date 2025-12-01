@@ -149,7 +149,7 @@ export class AuthController {
           ? publicUser.isOnboardingCompleted
           : (publicUser as any).isOnBordingCompleted;
 
-      let redirectTo = "/";
+      let redirectTo = "/dashboard";
       const profile = await Profile.findOne({ userId: user._id });
 
       if (!isOnboardingCompleted) {
@@ -278,8 +278,10 @@ export class AuthController {
 
       return res.status(200).json({
         success: true,
+        message: "Login successful",
         user: publicUser,
-        isNewSession: result.isNewSession
+        isNewSession: result.isNewSession,
+        redirectTo: "/dashboard"
       });
     } catch (err: any) {
       logger.error("Login error", {

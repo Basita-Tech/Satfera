@@ -659,6 +659,136 @@ paths:
         "200":
           description: Withdrawn
 
+  /api/v1/requests/accepted/reject:
+    post:
+      summary: Change accepted connection status to rejected (receiver only)
+      description: |
+        Allows the receiver of an accepted connection request to change the status back to rejected.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The connection request ID
+              required: [requestId]
+      responses:
+        "200":
+          description: Connection status successfully changed to rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Connection successfully changed to rejected."
+                  data:
+                    type: object
+        "400":
+          description: Bad request (missing requestId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (users are blocked or action not allowed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Connection request not found or user is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/requests/rejected/accept:
+    post:
+      summary: Change rejected connection status to accepted (receiver only)
+      description: |
+        Allows the receiver of a rejected connection request to change the status back to accepted.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The connection request ID
+              required: [requestId]
+      responses:
+        "200":
+          description: Connection status successfully changed to accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Connection successfully changed to accepted."
+                  data:
+                    type: object
+        "400":
+          description: Bad request (missing requestId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (users are blocked or action not allowed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Connection request not found or user is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/requests/favorites/add:
     post:
       summary: Add a profile to favorites
