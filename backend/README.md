@@ -4,7 +4,7 @@ A secure, production-ready matrimony platform backend built with Node.js, Expres
 
 ## 📋 Prerequisites
 
-- Node.js >= 18.x
+- Node.js >= 22.x
 - MongoDB >= 6.x
 - Redis >= 7.x
 - npm or yarn

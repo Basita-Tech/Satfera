@@ -11,14 +11,14 @@ import {
   ConnectionRequest,
   ProfileView
 } from "../../models";
-import { calculateAge } from "../../utils/utils";
+import { calculateAge, isAffirmative } from "../../utils/utils";
 import { computeMatchScore } from "../recommendationService";
 import { validateUserId } from "./userSettingService";
 
 export async function getUserDashboardService(userId: string) {
   const [user, userPersonal, userProfile, userProfession, sentRequests] =
     await Promise.all([
-      User.findById(userId, "firstName lastName dateOfBirth").lean(),
+      User.findById(userId, "firstName lastName dateOfBirth customId").lean(),
       UserPersonal.findOne({ userId }, "full_address.city").lean(),
       Profile.findOne(
         { userId },
@@ -46,7 +46,8 @@ export async function getUserDashboardService(userId: string) {
     isVerified: profile.isVerified || false,
     interestSentCount: sentRequests || 0,
     profileViewsCount: profile.ProfileViewed || 0,
-    shortListedCount: profile.favoriteProfiles?.length || 0
+    shortListedCount: profile.favoriteProfiles?.length || 0,
+    userId: user.customId || null
   };
   return dashboardData;
 }
@@ -365,9 +366,10 @@ export async function searchService(
   if (authUserId && mongoose.Types.ObjectId.isValid(authUserId)) {
     const authObjId = new mongoose.Types.ObjectId(authUserId);
     try {
-      const authUser = await User.findById(authObjId)
-        .select("blockedUsers")
-        .lean();
+      const [authUser, authHealth] = await Promise.all([
+        User.findById(authObjId).select("blockedUsers").lean(),
+        UserHealth.findOne({ userId: authObjId }).select("isHaveHIV").lean()
+      ]);
       const blockedIds: any[] = (authUser as any)?.blockedUsers || [];
       if (blockedIds.length > 0) {
         match._id = match._id || {};
@@ -375,6 +377,15 @@ export async function searchService(
       }
 
       match.blockedUsers = { $ne: authObjId };
+      const seekerHasAffirm =
+        authHealth && isAffirmative((authHealth as any).isHaveHIV);
+      const seekerHasNegative =
+        authHealth && !isAffirmative((authHealth as any).isHaveHIV);
+      if (seekerHasAffirm) {
+        match._seekerHIV = "positive";
+      } else if (seekerHasNegative) {
+        match._seekerHIV = "negative";
+      }
     } catch (e) {}
   }
 
@@ -405,7 +416,16 @@ export async function searchService(
         as: "profile"
       }
     },
-    { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } }
+    { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: UserHealth.collection.name,
+        localField: "_id",
+        foreignField: "userId",
+        as: "health"
+      }
+    },
+    { $unwind: { path: "$health", preserveNullAndEmptyArrays: true } }
   );
 
   const postMatch: any = {};
@@ -460,6 +480,28 @@ export async function searchService(
   }
 
   if (Object.keys(postMatch).length > 0) pipeline.push({ $match: postMatch });
+
+  const seekerHIVFilter = (match as any)._seekerHIV;
+  if (seekerHIVFilter === "positive") {
+    pipeline.push({
+      $match: {
+        $or: [
+          { "health.isHaveHIV": true },
+          { "health.isHaveHIV": "true" },
+          { "health.isHaveHIV": "yes" },
+          { "health.isHaveHIV": "1" },
+          { "health.isHaveHIV": 1 }
+        ]
+      }
+    });
+  } else if (seekerHIVFilter === "negative") {
+    // seeker explicitly negative -> include ONLY explicit negative health values
+    pipeline.push({
+      $match: {
+        "health.isHaveHIV": { $in: [false, "false", "no", "0", 0] }
+      }
+    });
+  }
 
   pipeline.push({
     $project: {

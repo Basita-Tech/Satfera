@@ -7,9 +7,10 @@ import {
   getDetailedProfile
 } from "../../services";
 import { formatListingProfile, logger } from "../../lib";
-import { UserPersonal, User, Profile } from "../../models";
+import { UserPersonal, User, Profile, UserHealth } from "../../models";
 import { AuthenticatedRequest } from "../../types";
 import { APP_CONFIG } from "../../utils/constants";
+import { isAffirmative } from "../../utils/utils";
 
 export const testMatchScore = async (req: Request, res: Response) => {
   try {
@@ -178,7 +179,10 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
     const skip = (pageNum - 1) * limitNum;
 
-    const matches = await findMatchingUsers(userObjectId, APP_CONFIG.MATCHING_SCORE);
+    const matches = await findMatchingUsers(
+      userObjectId,
+      APP_CONFIG.MATCHING_SCORE
+    );
 
     if (matches.length === 0) {
       return res.json({
@@ -304,11 +308,135 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 10));
     const skip = (pageNum - 1) * limitNum;
 
-    const [users, personals, profiles] = await Promise.all([
-      User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
-      UserPersonal.find({}).lean(),
-      Profile.find({}).lean()
-    ]);
+    const requesterId = req.user?.id;
+    let users: any[] = [];
+    let personals: any[] = [];
+    let profiles: any[] = [];
+
+    if (requesterId) {
+      try {
+        const authObjId = mongoose.Types.ObjectId.isValid(requesterId)
+          ? new mongoose.Types.ObjectId(requesterId)
+          : requesterId;
+
+        const seekerHealth = await UserHealth.findOne({ userId: authObjId })
+          .select("isHaveHIV")
+          .lean();
+        const seekerHasHIV =
+          seekerHealth && isAffirmative((seekerHealth as any).isHaveHIV);
+        const seekerHasNegative =
+          seekerHealth && !isAffirmative((seekerHealth as any).isHaveHIV);
+
+        if (seekerHasHIV) {
+          const hivUserIds = await UserHealth.find(
+            {
+              $or: [
+                { isHaveHIV: true },
+                { isHaveHIV: "true" },
+                { isHaveHIV: "yes" },
+                { isHaveHIV: "1" },
+                { isHaveHIV: 1 }
+              ]
+            },
+            "userId"
+          )
+            .lean()
+            .then((rows: any[]) => rows.map((r) => r.userId));
+
+          if (hivUserIds.length === 0) {
+            return res.json({
+              success: true,
+              data: [],
+              pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: 0,
+                hasMore: false
+              }
+            });
+          }
+
+          // Ensure ids are ObjectId instances where appropriate
+          const hivIds = hivUserIds.map((id: any) =>
+            mongoose.Types.ObjectId.isValid(String(id))
+              ? new mongoose.Types.ObjectId(id)
+              : id
+          );
+
+          [users, personals, profiles] = await Promise.all([
+            User.find(
+              { _id: { $in: hivIds } },
+              "firstName lastName dateOfBirth createdAt"
+            ).lean(),
+            UserPersonal.find({ userId: { $in: hivIds } }).lean(),
+            Profile.find({ userId: { $in: hivIds } }).lean()
+          ]);
+        } else if (seekerHasNegative) {
+          // seeker explicitly negative -> only include explicit negative profiles
+          const noHivUserIds = await UserHealth.find(
+            {
+              $or: [
+                { isHaveHIV: false },
+                { isHaveHIV: "false" },
+                { isHaveHIV: "no" },
+                { isHaveHIV: "0" },
+                { isHaveHIV: 0 }
+              ]
+            },
+            "userId"
+          )
+            .lean()
+            .then((rows: any[]) => rows.map((r) => r.userId));
+
+          if (noHivUserIds.length === 0) {
+            return res.json({
+              success: true,
+              data: [],
+              pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: 0,
+                hasMore: false
+              }
+            });
+          }
+
+          const noHivIds = noHivUserIds.map((id: any) =>
+            mongoose.Types.ObjectId.isValid(String(id))
+              ? new mongoose.Types.ObjectId(id)
+              : id
+          );
+
+          [users, personals, profiles] = await Promise.all([
+            User.find(
+              { _id: { $in: noHivIds } },
+              "firstName lastName dateOfBirth createdAt"
+            ).lean(),
+            UserPersonal.find({ userId: { $in: noHivIds } }).lean(),
+            Profile.find({ userId: { $in: noHivIds } }).lean()
+          ]);
+        } else {
+          [users, personals, profiles] = await Promise.all([
+            User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
+            UserPersonal.find({}).lean(),
+            Profile.find({}).lean()
+          ]);
+        }
+      } catch (e) {
+        // fallback to default full list on error
+        [users, personals, profiles] = await Promise.all([
+          User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
+          UserPersonal.find({}).lean(),
+          Profile.find({}).lean()
+        ]);
+      }
+    } else {
+      [users, personals, profiles] = await Promise.all([
+        User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
+        UserPersonal.find({}).lean(),
+        Profile.find({}).lean()
+      ]);
+    }
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])

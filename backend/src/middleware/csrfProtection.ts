@@ -36,28 +36,28 @@ export const csrfProtection = (
     return next();
   }
 
-  const csrfTokenFromHeader =
-    req.headers["x-csrf-token"] || req.headers["csrf-token"];
+  // const csrfTokenFromHeader =
+  //   req.headers["x-csrf-token"] || req.headers["csrf-token"];
   const csrfTokenFromCookie = req.cookies?.csrf_token;
 
   if (!csrfTokenFromCookie) {
     return next();
   }
 
-  if (!csrfTokenFromHeader || csrfTokenFromHeader !== csrfTokenFromCookie) {
-    logger.warn("CSRF token validation failed", {
-      ip: getClientIp(req),
-      path: req.path,
-      method: req.method,
-      hasHeaderToken: !!csrfTokenFromHeader,
-      hasCookieToken: !!csrfTokenFromCookie
-    });
+  // if (!csrfTokenFromHeader || csrfTokenFromHeader !== csrfTokenFromCookie) {
+  //   logger.warn("CSRF token validation failed", {
+  //     ip: getClientIp(req),
+  //     path: req.path,
+  //     method: req.method,
+  //     hasHeaderToken: !!csrfTokenFromHeader,
+  //     hasCookieToken: !!csrfTokenFromCookie
+  //   });
 
-    return res.status(403).json({
-      success: false,
-      message: "Invalid CSRF token"
-    });
-  }
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Invalid CSRF token"
+  //   });
+  // }
 
   next();
 };

@@ -80,50 +80,82 @@ export function dietScore(
     return candidateDietArray && candidateDietArray.length > 0 ? 100 : 0;
   if (!candidateDietArray || candidateDietArray.length === 0) return 1;
 
+  const normalize = (s: string) => s.trim().toLowerCase();
+
+  function canonicalDiet(s: string): string {
+    const x = normalize(s);
+    if (x.includes("swamin")) return "swaminarayan";
+    if (x.includes("jain")) return "jain";
+    if (x.includes("egg")) return "eggetarian";
+    if (x.includes("non") || x.includes("non-veg") || x.includes("nonveg"))
+      return "non-vegetarian";
+    if (
+      (x.includes("veg") && x.includes("non")) ||
+      x === "veg & non-veg" ||
+      x === "veg & non veg" ||
+      x === "both" ||
+      x === "flexible"
+    )
+      return "veg & non-veg";
+    if (x.includes("veget")) return "vegetarian";
+    return x;
+  }
+
   const include = prefDietsArray.filter(
     (p) => !p.toLowerCase().startsWith("not ")
   );
   const exclude = prefDietsArray
     .filter((p) => p.toLowerCase().startsWith("not "))
-    .map((p) => p.slice(4).toLowerCase());
+    .map((p) => canonicalDiet(p.slice(4)));
 
-  const candLower = candidateDietArray.map((d) => d.toLowerCase());
+  const allKnown = [
+    "vegetarian",
+    "non-vegetarian",
+    "eggetarian",
+    "jain",
+    "swaminarayan",
+    "veg & non-veg"
+  ];
 
-  const inExclude = exclude.some((exc) => candLower.includes(exc));
-  if (inExclude) return 1;
+  const mapPrefToAllowed = (pref: string): string[] => {
+    const p = canonicalDiet(pref);
+    switch (p) {
+      case "swaminarayan":
+        return ["swaminarayan"];
+      case "jain":
+        return ["jain"];
+      case "eggetarian":
+        return ["eggetarian", "vegetarian", "swaminarayan"];
+      case "vegetarian":
+        return ["vegetarian", "jain", "swaminarayan"];
+      case "non-vegetarian":
+      case "veg & non-veg":
+        return allKnown.slice();
+      default:
+        return [p];
+    }
+  };
 
-  // If include has specific diets, check direct matches
-  const directMatches = include.filter((p) =>
-    candLower.includes(p.toLowerCase())
-  );
-  if (directMatches.length > 0) return 100;
+  const allowed = new Set<string>();
+  if (include.length === 0) {
+    allKnown.forEach((d) => allowed.add(d));
+  } else {
+    include.forEach((pref) => {
+      mapPrefToAllowed(pref).forEach((d) => allowed.add(d));
+    });
+  }
 
-  // Category matching
-  const prefIsVeg = include.some((d) =>
-    DIET_CATEGORIES.vegetarianOptions.includes(d as any)
-  );
-  const prefIsNonVeg = include.some((d) =>
-    DIET_CATEGORIES.nonVegOptions.includes(d as any)
-  );
-  const prefIsFlexible = include.some((d) =>
-    DIET_CATEGORIES.flexibleOptions.includes(d as any)
-  );
+  exclude.forEach((exc) => {
+    for (const a of Array.from(allowed)) {
+      if (a === exc) allowed.delete(a);
+    }
+  });
 
-  const candIsVeg = candidateDietArray.some((d) =>
-    DIET_CATEGORIES.vegetarianOptions.includes(d as any)
-  );
-  const candIsNonVeg = candidateDietArray.some((d) =>
-    DIET_CATEGORIES.nonVegOptions.includes(d as any)
-  );
-  const candIsFlexible = candidateDietArray.some((d) =>
-    DIET_CATEGORIES.flexibleOptions.includes(d as any)
-  );
+  if (allowed.size === 0) return 1;
 
-  if (prefIsFlexible || candIsFlexible) return 100;
-
-  if ((prefIsVeg && candIsVeg) || (prefIsNonVeg && candIsNonVeg)) return 100;
-
-  return 1;
+  const candCanon = candidateDietArray.map((d) => canonicalDiet(d));
+  const matches = candCanon.some((c) => allowed.has(c));
+  return matches ? 100 : 1;
 }
 
 export function educationScore(

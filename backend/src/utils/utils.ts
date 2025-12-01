@@ -104,3 +104,13 @@ export function getWeekNumber(date: Date = new Date()): number {
   }
   return weekNum;
 }
+
+export function isAffirmative(v: any): boolean {
+  if (v === true) return true;
+  if (typeof v === "number") return v === 1;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "true" || s === "yes" || s === "1";
+  }
+  return false;
+}

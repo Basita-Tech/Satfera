@@ -41,7 +41,8 @@ import {
   isNoPreference,
   withDefaults,
   getWeekStartDate,
-  getWeekNumber
+  getWeekNumber,
+  isAffirmative
 } from "../../utils/utils";
 import { SCORE_WEIGHTS, DEFAULT_EXPECTATIONS } from "../../utils/constants";
 
@@ -443,7 +444,7 @@ export async function findMatchingUsers(
     const matchingUsers: { user: ListingProfile; scoreDetail: ScoreDetail }[] =
       [];
 
-    const candidateIds = candidates.map((c) => c._id);
+    let candidateIds = candidates.map((c) => c._id);
 
     const [
       personals,
@@ -451,7 +452,8 @@ export async function findMatchingUsers(
       professions,
       healths,
       connectionRequests,
-      profiles
+      profiles,
+      seekerHealth
     ] = await Promise.all([
       UserPersonal.find(
         { userId: { $in: candidateIds } },
@@ -467,7 +469,7 @@ export async function findMatchingUsers(
       ).lean(),
       UserHealth.find(
         { userId: { $in: candidateIds } },
-        "userId isAlcoholic diet"
+        "userId isAlcoholic diet isHaveHIV"
       ).lean(),
 
       ConnectionRequest.find(
@@ -485,23 +487,65 @@ export async function findMatchingUsers(
       Profile.find(
         { userId: { $in: candidateIds } },
         "userId photos.closerPhoto privacy isVisible ProfileViewed"
-      ).lean()
+      ).lean(),
+      UserHealth.findOne({ userId: seekerUserId }, "userId isHaveHIV").lean()
     ]);
+    const seekerHasHIV = seekerHealth && isAffirmative(seekerHealth.isHaveHIV);
+    const seekerHasNotHIV =
+      seekerHealth && !isAffirmative(seekerHealth.isHaveHIV);
+
+    if (seekerHasHIV) {
+      const hivCandidateIds = new Set(
+        (healths || [])
+          .filter((h: any) => h && isAffirmative(h.isHaveHIV))
+          .map((h: any) => String(h.userId))
+      );
+
+      candidates = candidates.filter((c) => hivCandidateIds.has(String(c._id)));
+      if (!candidates || candidates.length === 0) return [];
+
+      candidateIds = candidates.map((c) => c._id);
+    } else if (seekerHasNotHIV) {
+      const negativeCandidateIds = new Set(
+        (healths || [])
+          .filter((h: any) => h && !isAffirmative(h.isHaveHIV))
+          .map((h: any) => String(h.userId))
+      );
+
+      candidates = candidates.filter((c) =>
+        negativeCandidateIds.has(String(c._id))
+      );
+      if (!candidates || candidates.length === 0) return [];
+
+      candidateIds = candidates.map((c) => c._id);
+    }
+
+    const idSet = new Set(candidateIds.map((id) => String(id)));
 
     const personalMap = new Map(
-      personals.map((p: any) => [p.userId.toString(), p])
+      (personals || [])
+        .filter((p: any) => idSet.has(String(p.userId)))
+        .map((p: any) => [p.userId.toString(), p])
     );
     const educationMap = new Map(
-      educations.map((e: any) => [e.userId.toString(), e])
+      (educations || [])
+        .filter((e: any) => idSet.has(String(e.userId)))
+        .map((e: any) => [e.userId.toString(), e])
     );
     const professionMap = new Map(
-      professions.map((pr: any) => [pr.userId.toString(), pr])
+      (professions || [])
+        .filter((pr: any) => idSet.has(String(pr.userId)))
+        .map((pr: any) => [pr.userId.toString(), pr])
     );
     const healthMap = new Map(
-      healths.map((h: any) => [h.userId.toString(), h])
+      (healths || [])
+        .filter((h: any) => idSet.has(String(h.userId)))
+        .map((h: any) => [h.userId.toString(), h])
     );
     const profileMap = new Map(
-      profiles.map((p: any) => [p.userId.toString(), p])
+      (profiles || [])
+        .filter((p: any) => idSet.has(String(p.userId)))
+        .map((p: any) => [p.userId.toString(), p])
     );
 
     const connectionMap = new Map<string, string>();
@@ -510,6 +554,7 @@ export async function findMatchingUsers(
         conn.sender.toString() === seekerUserId.toString()
           ? conn.receiver.toString()
           : conn.sender.toString();
+      if (!idSet.has(key)) continue;
       if (!connectionMap.has(key)) {
         connectionMap.set(key, conn.status);
       }
