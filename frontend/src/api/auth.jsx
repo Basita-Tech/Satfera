@@ -614,13 +614,15 @@ export const updateOnboardingStatus = async (payload) => {
 };
 
 // 📤 Upload normal photo (compulsory1, compulsory2, optional1, etc.)
-export const uploadUserPhoto = async (payload) => {
+export const uploadUserPhoto = async (formData) => {
   try {
     const response = await axios.post(
       `${API}/user-personal/upload/photos`,
-      payload,
+      formData,
       {
-        headers: getAuthHeaders(),
+        headers: {
+          "Content-Type": "multipart/form-data"
+        },
       }
     );
     return response.data;
@@ -634,13 +636,15 @@ export const uploadUserPhoto = async (payload) => {
 };
 
 // 📤 Upload Government ID photo
-export const uploadGovernmentId = async (payload) => {
+export const uploadGovernmentId = async (formData) => {
   try {
     const response = await axios.post(
       `${API}/user-personal/upload/government-id`,
-      payload,
+      formData,
       {
-        headers: getAuthHeaders(),
+        headers: {
+          "Content-Type": "multipart/form-data"
+        },
       }
     );
     return response.data;
@@ -2360,6 +2364,27 @@ export const updateGovernmentId = async (formData) => {
   } catch (error) {
     console.error(
       "❌ Update Government ID Error:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const updateUserPhoto = async (formData) => {
+  try {
+    const response = await axios.put(
+      `${API}/user-personal/upload/photos`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Update User Photo Error:",
       error.response?.data || error.message
     );
     throw error;
