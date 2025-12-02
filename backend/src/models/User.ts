@@ -143,7 +143,7 @@ const userSchema: Schema = new Schema(
       required: true,
       default: "myself"
     },
-    isEmailVerified: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: true },
     isPhoneVerified: { type: Boolean, default: false },
     welcomeSent: { type: Boolean, default: false },
     dateOfBirth: {

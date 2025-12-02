@@ -61,7 +61,7 @@ const ProfileSchema = new Schema(
       required: true,
       index: true
     },
-    isVerified: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: true },
 
     photos: {
       closerPhoto: {
@@ -113,7 +113,7 @@ const ProfileSchema = new Schema(
       visibility: { type: String, enum: ["adminOnly"], default: "adminOnly" }
     },
 
-    isProfileApproved: { type: Boolean, default: false },
+    isProfileApproved: { type: Boolean, default: true },
     isVisible: { type: Boolean, default: true },
     privacy: {
       allowProfileViewOnRequest: { type: Boolean, default: false },
