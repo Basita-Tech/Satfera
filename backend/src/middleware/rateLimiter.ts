@@ -110,3 +110,19 @@ export const passwordResetLimiter = rateLimit({
     });
   }
 });
+
+export const photoUploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler("PHOTO_UPLOAD"),
+  skipSuccessfulRequests: false,
+  keyGenerator: (req) => {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return `photo_ip_${getClientIp(req)}`;
+    }
+    return `photo_user_${userId}`;
+  }
+});

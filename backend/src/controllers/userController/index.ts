@@ -237,6 +237,7 @@ export async function searchController(req: Request, res: Response) {
   try {
     const {
       name,
+      customId,
       newProfile,
       ageFrom,
       ageTo,
@@ -253,6 +254,7 @@ export async function searchController(req: Request, res: Response) {
 
     const filters: any = {};
     if (name) filters.name = String(name);
+    if (customId) filters.customId = String(customId);
     if (newProfile) filters.newProfile = String(newProfile) as any;
     if (ageFrom) filters.ageFrom = parseInt(String(ageFrom), 10);
     if (ageTo) filters.ageTo = parseInt(String(ageTo), 40);

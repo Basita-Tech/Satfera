@@ -3,8 +3,14 @@ import * as userPersonalController from "../../../../controllers/userController/
 import authenticate from "../../../../middleware/authMiddleware";
 import * as validation from "../../../../validation";
 import * as uploadController from "../../../../controllers/userController/uploadController";
+import {
+  createProfilePhotoUpload,
+  createGovernmentIdUpload
+} from "../../../../lib/fileValidation/fileValidationMiddleware";
 
 const userPersonalRouter = Router();
+const profilePhotoUpload = createProfilePhotoUpload();
+const governmentIdUpload = createGovernmentIdUpload();
 
 userPersonalRouter.post(
   "/",
@@ -127,6 +133,7 @@ userPersonalRouter.put(
 userPersonalRouter.post(
   "/upload/photos",
   authenticate,
+  profilePhotoUpload.single("file"),
   uploadController.uploadPhotoController
 );
 userPersonalRouter.get(
@@ -135,13 +142,14 @@ userPersonalRouter.get(
   uploadController.getPhotosController
 );
 userPersonalRouter.put(
-  "/upload/photos/:photoId",
+  "/upload/photos",
   authenticate,
+  profilePhotoUpload.single("file"),
   uploadController.updatePhotoController
 );
 
 userPersonalRouter.delete(
-  "/upload/photos/:photoId",
+  "/upload/photos",
   authenticate,
   uploadController.deletePhotoController
 );
@@ -149,6 +157,7 @@ userPersonalRouter.delete(
 userPersonalRouter.post(
   "/upload/government-id",
   authenticate,
+  governmentIdUpload.single("file"),
   uploadController.uploadGovernmentIdController
 );
 
@@ -161,6 +170,7 @@ userPersonalRouter.get(
 userPersonalRouter.put(
   "/upload/government-id",
   authenticate,
+  governmentIdUpload.single("file"),
   uploadController.updateGovernmentIdController
 );
 

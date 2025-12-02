@@ -307,6 +307,7 @@ export async function searchService(
     profession?: string;
     gender?: string;
     sortBy?: string;
+    customId?: string;
   } = {},
   page = 1,
   limit = 20,
@@ -327,6 +328,11 @@ export async function searchService(
       { lastName: { $regex: nameRegex } },
       { middleName: { $regex: nameRegex } }
     ];
+  }
+
+  if (filters.customId) {
+    const customIdRegex = new RegExp(`^${filters.customId}$`, "i");
+    match.customId = { $regex: customIdRegex };
   }
 
   if (filters.newProfile && filters.newProfile !== "all") {

@@ -23,6 +23,12 @@ interface EnvConfig {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_REDIRECT_URI: string;
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
+  MAX_FILE_SIZE: number;
+  MAX_PERSONAL_PHOTOS: number;
+  MAX_OTHER_PHOTOS: number;
 }
 
 export function validateEnv(): EnvConfig {
@@ -41,7 +47,10 @@ export function validateEnv(): EnvConfig {
     "FRONTEND_URL",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
-    "GOOGLE_REDIRECT_URI"
+    "GOOGLE_REDIRECT_URI",
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET"
   ];
 
   const missing: string[] = [];
@@ -107,7 +116,13 @@ export function validateEnv(): EnvConfig {
     SUPPORT_CONTACT: process.env.SUPPORT_CONTACT,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
-    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI!
+    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI!,
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME!,
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY!,
+    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET!,
+    MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || "2097152", 10),
+    MAX_PERSONAL_PHOTOS: parseInt(process.env.MAX_PERSONAL_PHOTOS || "1", 10),
+    MAX_OTHER_PHOTOS: parseInt(process.env.MAX_OTHER_PHOTOS || "2", 10)
   };
 }
 

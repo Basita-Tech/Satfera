@@ -313,12 +313,13 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     let personals: any[] = [];
     let profiles: any[] = [];
 
+    const authObjId =
+      requesterId && mongoose.Types.ObjectId.isValid(requesterId)
+        ? new mongoose.Types.ObjectId(requesterId)
+        : requesterId;
+
     if (requesterId) {
       try {
-        const authObjId = mongoose.Types.ObjectId.isValid(requesterId)
-          ? new mongoose.Types.ObjectId(requesterId)
-          : requesterId;
-
         const seekerHealth = await UserHealth.findOne({ userId: authObjId })
           .select("isHaveHIV")
           .lean();
@@ -365,11 +366,13 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
           [users, personals, profiles] = await Promise.all([
             User.find(
-              { _id: { $in: hivIds } },
+              { _id: { $in: hivIds, $ne: authObjId } },
               "firstName lastName dateOfBirth createdAt"
             ).lean(),
-            UserPersonal.find({ userId: { $in: hivIds } }).lean(),
-            Profile.find({ userId: { $in: hivIds } }).lean()
+            UserPersonal.find({
+              userId: { $in: hivIds, $ne: authObjId }
+            }).lean(),
+            Profile.find({ userId: { $in: hivIds, $ne: authObjId } }).lean()
           ]);
         } else if (seekerHasNegative) {
           // seeker explicitly negative -> only include explicit negative profiles
@@ -409,25 +412,33 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
           [users, personals, profiles] = await Promise.all([
             User.find(
-              { _id: { $in: noHivIds } },
+              { _id: { $in: noHivIds, $ne: authObjId } },
               "firstName lastName dateOfBirth createdAt"
             ).lean(),
-            UserPersonal.find({ userId: { $in: noHivIds } }).lean(),
-            Profile.find({ userId: { $in: noHivIds } }).lean()
+            UserPersonal.find({
+              userId: { $in: noHivIds, $ne: authObjId }
+            }).lean(),
+            Profile.find({ userId: { $in: noHivIds, $ne: authObjId } }).lean()
           ]);
         } else {
           [users, personals, profiles] = await Promise.all([
-            User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
-            UserPersonal.find({}).lean(),
-            Profile.find({}).lean()
+            User.find(
+              { _id: { $ne: authObjId } },
+              "firstName lastName dateOfBirth createdAt"
+            ).lean(),
+            UserPersonal.find({ userId: { $ne: authObjId } }).lean(),
+            Profile.find({ userId: { $ne: authObjId } }).lean()
           ]);
         }
       } catch (e) {
         // fallback to default full list on error
         [users, personals, profiles] = await Promise.all([
-          User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
-          UserPersonal.find({}).lean(),
-          Profile.find({}).lean()
+          User.find(
+            { _id: { $ne: authObjId } },
+            "firstName lastName dateOfBirth createdAt"
+          ).lean(),
+          UserPersonal.find({ userId: { $ne: authObjId } }).lean(),
+          Profile.find({ userId: { $ne: authObjId } }).lean()
         ]);
       }
     } else {

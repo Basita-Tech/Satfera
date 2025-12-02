@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "../../api/http";
 import {
   getUserPhotos,
   getGovernmentId,
@@ -8,9 +7,20 @@ import {
 } from "../../api/auth";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import usePhotoUpload from "../../hooks/usePhotoUpload";
 
 const UploadPhotos = ({ onNext, onPrevious }) => {
   const navigate = useNavigate();
+
+  const {
+    uploadPhotos: uploadPhotosSequentially,
+    uploadState,
+    isUploading: hookUploading,
+    progress: uploadProgress,
+    retryFailedUploads,
+    resetUpload,
+  } = usePhotoUpload();
+
   const [photos, setPhotos] = useState({
     compulsory1: null,
     compulsory2: null,
@@ -20,10 +30,18 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     governmentId: null,
   });
 
+  const initialPhotosState = {
+    compulsory1: null,
+    compulsory2: null,
+    compulsory3: null,
+    optional1: null,
+    optional2: null,
+    governmentId: null,
+  };
+
   const [uploadedUrls, setUploadedUrls] = useState({});
   const [uploading, setUploading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [uploadedCloudinaryUrls, setUploadedCloudinaryUrls] = useState([]);
   const [initialHadRequired, setInitialHadRequired] = useState(false);
 
   const requiredKeys = [
@@ -32,6 +50,15 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     "compulsory3",
     "governmentId",
   ];
+
+  const photoLabels = {
+    compulsory1: "Full Body Photo",
+    compulsory2: "Family Photo",
+    compulsory3: "Close-up Portrait",
+    optional1: "Additional Photo 1",
+    optional2: "Additional Photo 2",
+    governmentId: "Government ID",
+  };
 
   const previews = React.useMemo(() => {
     const map = {};
@@ -43,6 +70,11 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     });
     return map;
   }, [photos]);
+
+  // Whether the user has selected any new files in this step
+  const hasNewFiles = Object.keys(photos).some(
+    (k) => photos[k] instanceof File
+  );
 
   useEffect(() => {
     return () => {
@@ -58,14 +90,11 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
           getGovernmentId(),
         ]);
 
-        const photosData = photoRes?.data || {};
+        const photosData = photoRes?.data?.photos || {};
         const idData = idRes?.data || {};
 
         const urls = {
-          compulsory1:
-            photosData?.personalPhotos?.[0].url ||
-            photosData?.personalPhoto?.url ||
-            null,
+          compulsory1: photosData?.personalPhotos?.[0]?.url || null,
           compulsory2: photosData?.familyPhoto?.url || null,
           compulsory3: photosData?.closerPhoto?.url || null,
           optional1: photosData?.otherPhotos?.[0]?.url || null,
@@ -84,57 +113,14 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     loadExistingPhotos();
   }, []);
 
-  const uploadToCloudinary = useCallback(async (file) => {
-    const CLOUD_NAME = "dpmdvt00f";
-    const UPLOAD_PRESET = "satfera";
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", UPLOAD_PRESET);
-
-    try {
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      const data = await res.json();
-      if (data.secure_url) {
-        setUploadedCloudinaryUrls((prev) => [...prev, data.secure_url]);
-        return data.secure_url;
-      }
-      throw new Error(data.error?.message || "Upload failed");
-    } catch (err) {
-      console.error("❌ Cloudinary upload failed:", err);
-      throw err;
-    }
-  }, []);
-
-  const deleteFromCloudinary = useCallback(async (publicUrl) => {
-    try {
-      const urlParts = publicUrl.split("/");
-      const fileNameWithExt = urlParts[urlParts.length - 1];
-      const publicId = `satfera/${fileNameWithExt.split(".")[0]}`;
-
-      return true;
-    } catch (err) {
-      console.error("❌ Error deleting from Cloudinary:", err);
-      return false;
-    }
-  }, []);
-
   const handlePhotoChange = useCallback(async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Import validation utilities
     const { validateProfilePhoto, validateGovernmentID } = await import(
       "../../utils/fileValidation"
     );
 
-    // Perform comprehensive validation
     const validation =
       type === "governmentId"
         ? await validateGovernmentID(file)
@@ -166,10 +152,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     }
 
     setUploading(true);
-    setUploadedCloudinaryUrls([]);
-    // ✅ No need to get token - axios interceptor handles authentication
-    const API_BASE_URL =
-      import.meta.env.VITE_API_URL || "http://localhost:8000";
 
     const typeMap = {
       compulsory1: "personal",
@@ -179,85 +161,38 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
       optional2: "other",
     };
 
-    const filesToUpload = Object.keys(photos).filter(
-      (k) => photos[k] instanceof File
+    const filesToUpload = Object.keys(photos)
+      .filter((k) => photos[k] instanceof File)
+      .map((key) => ({
+        key,
+        file: photos[key],
+        photoType: key === "governmentId" ? "governmentId" : typeMap[key],
+      }));
+
+    // Safety: if this is the first time completing required photos, ensure the
+    // upload includes ALL missing required photos so the server receives a
+    // complete set. Calculate which required keys are still missing on the
+    // client (neither already uploaded nor selected now) and block submission.
+    const missingRequired = requiredKeys.filter(
+      (k) => !uploadedUrls[k] && !(photos[k] instanceof File)
     );
 
-    const newlyUploaded = {};
-    const createdCloudinaryUrls = [];
-
-    try {
-      const uploadPromises = filesToUpload.map((key) =>
-        uploadToCloudinary(photos[key]).then((url) => ({ key, url }))
+    if (!initialHadRequired && missingRequired.length > 0) {
+      toast.error(
+        `Please add the following required photos before submitting: ${missingRequired.join(
+          ", "
+        )}`
       );
+      setUploading(false);
+      return;
+    }
 
-      const uploadResults = await Promise.allSettled(uploadPromises);
-
-      const uploadFailures = uploadResults.filter(
-        (r) => r.status === "rejected"
-      );
-      const uploadSuccesses = uploadResults
-        .filter((r) => r.status === "fulfilled")
-        .map((r) => r.value);
-
-      uploadSuccesses.forEach(({ key, url }) => {
-        newlyUploaded[key] = url;
-        createdCloudinaryUrls.push(url);
-      });
-
-      if (uploadFailures.length > 0) {
-        await Promise.allSettled(
-          createdCloudinaryUrls.map((u) => deleteFromCloudinary(u))
-        );
-        throw new Error("One or more file uploads failed. Please try again.");
-      }
-
-      const backendPromises = Object.keys(newlyUploaded).map((key) => {
-        const url = newlyUploaded[key];
-        const endpoint =
-          key === "governmentId"
-            ? `${API_BASE_URL}/user-personal/upload/government-id`
-            : `${API_BASE_URL}/user-personal/upload/photos`;
-
-        const body =
-          key === "governmentId"
-            ? { url }
-            : { photoType: typeMap[key] || "other", url };
-
-        // ✅ Use axios instead of fetch - handles authentication automatically via cookies
-        return axios
-          .post(endpoint, body)
-          .then((res) => {
-            return { key, url };
-          })
-          .catch((error) => {
-            const msg =
-              error.response?.data?.message ||
-              error.message ||
-              "Backend rejected file";
-            throw new Error(msg);
-          });
-      });
-
-      const backendResults = await Promise.allSettled(backendPromises);
-      const backendFailures = backendResults.filter(
-        (r) => r.status === "rejected"
-      );
-
-      if (backendFailures.length > 0) {
-        await Promise.allSettled(
-          createdCloudinaryUrls.map((u) => deleteFromCloudinary(u))
-        );
-        throw new Error("Saving photos failed on server. Please try again.");
-      }
-
-      setUploadedUrls((prev) => ({ ...prev, ...newlyUploaded }));
-
-      const isNewlyCompleting = !initialHadRequired && hasAllRequired();
-
-      if (isNewlyCompleting) {
+    if (filesToUpload.length === 0) {
+      const isNowComplete = hasAllRequired();
+      if (!initialHadRequired && isNowComplete) {
         try {
-          await updateOnboardingStatus({
+          setUploading(true);
+          const updateRes = await updateOnboardingStatus({
             completedSteps: [
               "personal",
               "family",
@@ -269,20 +204,157 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             ],
             isOnboardingCompleted: true,
           });
+          if (updateRes && updateRes.success) {
+            toast.success("🎉 Profile marked complete.");
+            setShowReviewModal(true);
+            // Clear selected files since onboarding completed
+            setPhotos(initialPhotosState);
+            // Reset native file inputs
+            Object.keys(initialPhotosState).forEach((k) => {
+              const el = document.getElementById(k);
+              if (el && el.value) el.value = "";
+            });
+          } else {
+            toast.error(
+              "Failed to update onboarding status. Please try again."
+            );
+          }
         } catch (err) {
           console.error("⚠️ Failed to update onboarding steps:", err);
+          toast.error("Failed to update onboarding status. Please try again.");
+        } finally {
+          setUploading(false);
+        }
+        return;
+      }
+
+      toast.info("No new photos to upload.");
+      setUploading(false);
+      return;
+    }
+
+    try {
+      const uploadResult = await uploadPhotosSequentially(
+        filesToUpload,
+        uploadedUrls
+      );
+
+      if (uploadResult.failedCount > 0) {
+        const failedPhotos = uploadResult.errors.map((e) => e.key).join(", ");
+
+        if (uploadResult.successCount > 0) {
+          toast.error(
+            `${uploadResult.successCount} photo(s) uploaded successfully, but ${uploadResult.failedCount} failed: ${failedPhotos}. Please retry the failed uploads.`,
+            { duration: 6000 }
+          );
+
+          const newUrls = {};
+          uploadResult.results.forEach((result) => {
+            newUrls[result.photoKey] = result.url;
+          });
+          setUploadedUrls((prev) => ({ ...prev, ...newUrls }));
+          // Clear only the photos that uploaded successfully from selection
+          const succeededKeys = uploadResult.results.map((r) => r.photoKey);
+          if (succeededKeys.length > 0) {
+            setPhotos((prev) => {
+              const next = { ...prev };
+              succeededKeys.forEach((k) => {
+                next[k] = null;
+                const el = document.getElementById(k);
+                if (el && el.value) el.value = "";
+              });
+              return next;
+            });
+          }
+        } else {
+          toast.error(
+            `All uploads failed. Please check your internet connection and try again.`,
+            { duration: 5000 }
+          );
         }
 
-        toast.success("🎉 Photos saved successfully.");
-        setShowReviewModal(true);
-      } else {
-        toast.success("✅ Photos updated successfully.");
+        setUploading(false);
+        return;
       }
+
+      const newUrls = {};
+      uploadResult.results.forEach((result) => {
+        newUrls[result.photoKey] = result.url;
+      });
+
+      const mergedUrls = { ...(uploadedUrls || {}), ...newUrls };
+
+      setUploadedUrls((prev) => ({ ...prev, ...newUrls }));
+
+      const isNewlyCompleting =
+        !initialHadRequired &&
+        requiredKeys.every((k) =>
+          photos[k] instanceof File
+            ? Boolean(newUrls[k])
+            : Boolean(mergedUrls[k])
+        );
+
+      if (isNewlyCompleting) {
+        try {
+          const updateRes = await updateOnboardingStatus({
+            completedSteps: [
+              "personal",
+              "family",
+              "education",
+              "profession",
+              "health",
+              "expectation",
+              "photos",
+            ],
+            isOnboardingCompleted: true,
+          });
+
+          if (updateRes && updateRes.success) {
+            toast.success(
+              "🎉 All photos uploaded successfully! Profile complete."
+            );
+            setShowReviewModal(true);
+            setPhotos(initialPhotosState);
+            Object.keys(initialPhotosState).forEach((k) => {
+              const el = document.getElementById(k);
+              if (el && el.value) el.value = "";
+            });
+          } else {
+            console.error(
+              "⚠️ updateOnboardingStatus returned error:",
+              updateRes
+            );
+            toast.error(
+              "Failed to update onboarding status. Please try again."
+            );
+          }
+        } catch (err) {
+          console.error("⚠️ Failed to update onboarding steps:", err);
+          toast.error("Failed to update onboarding status. Please try again.");
+        }
+      } else {
+        toast.success(
+          `✅ ${uploadResult.successCount} photo(s) uploaded successfully.`
+        );
+        const succeeded = uploadResult.results.map((r) => r.photoKey);
+        if (succeeded.length > 0) {
+          setPhotos((prev) => {
+            const next = { ...prev };
+            succeeded.forEach((k) => {
+              next[k] = null;
+              const el = document.getElementById(k);
+              if (el && el.value) el.value = "";
+            });
+            return next;
+          });
+        }
+      }
+
+      resetUpload();
     } catch (err) {
       console.error("❌ Upload Error:", err);
       toast.error(err.message || "Upload failed. Please try again.");
     } finally {
-      setUploadedCloudinaryUrls(createdCloudinaryUrls);
       setUploading(false);
     }
   };
@@ -322,10 +394,22 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Compulsory Photos */}
           {[
-            { label: "Candidate Full Photo", key: "compulsory1" },
-            { label: "Candidate Family Photo", key: "compulsory2" },
-            { label: "Candidate Closer Photo", key: "compulsory3" },
-          ].map(({ label, key }) => {
+            {
+              label: "Candidate Full Photo(Required)",
+              key: "compulsory1",
+              hint: "Upload a clear full-length photo",
+            },
+            {
+              label: "Candidate Family Photo (Required)",
+              key: "compulsory2",
+              hint: "Upload a photo with your family members",
+            },
+            {
+              label: "Candidate Closer Photo (Required)",
+              key: "compulsory3",
+              hint: "Upload a clear close-up face photo",
+            },
+          ].map(({ label, key, hint }) => {
             const previewSrc = photos[key]
               ? previews[key]
               : uploadedUrls[key] || null;
@@ -459,18 +543,129 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             );
           })}
 
-          {/* Terms */}
-          {/* Terms moved to signup page — removed from this step */}
+          {(uploading || hookUploading) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-blue-900">
+                  Uploading Photos...
+                </span>
+                <span className="text-xs text-blue-700">
+                  {uploadState.currentPhotoIndex} / {uploadState.totalPhotos}
+                </span>
+              </div>
 
-          {/* Submit Button */}
+              {uploadState.currentPhoto && (
+                <div className="text-xs text-blue-800">
+                  Currently uploading:{" "}
+                  <span className="font-semibold">
+                    {photoLabels[uploadState.currentPhoto] ||
+                      uploadState.currentPhoto}
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                {Object.entries(uploadProgress).map(([key, info]) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <span className="text-gray-700">
+                      {photoLabels[key] || key}
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        info.status === "success"
+                          ? "text-green-600"
+                          : info.status === "error"
+                          ? "text-red-600"
+                          : info.status === "uploading"
+                          ? "text-blue-600"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {info.status === "success" && "✓ Uploaded"}
+                      {info.status === "error" && "✗ Failed"}
+                      {info.status === "uploading" && "↻ Uploading..."}
+                      {info.status === "pending" && "⋯ Pending"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {!navigator.onLine && (
+                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                  ⚠️ No internet connection. Waiting for network...
+                </div>
+              )}
+            </div>
+          )}
+
+          {!uploading && uploadState.failedCount > 0 && (
+            <button
+              type="button"
+              onClick={async () => {
+                setUploading(true);
+                const filesToUpload = Object.keys(photos)
+                  .filter((k) => photos[k] instanceof File)
+                  .map((key) => ({
+                    key,
+                    file: photos[key],
+                    photoType:
+                      key === "governmentId"
+                        ? "governmentId"
+                        : {
+                            compulsory1: "personal",
+                            compulsory2: "family",
+                            compulsory3: "closer",
+                            optional1: "other",
+                            optional2: "other",
+                          }[key],
+                  }));
+
+                const result = await retryFailedUploads(filesToUpload);
+
+                if (result.successCount > 0) {
+                  const newUrls = {};
+                  result.results.forEach((r) => {
+                    newUrls[r.photoKey] = r.url;
+                  });
+                  setUploadedUrls((prev) => ({ ...prev, ...newUrls }));
+                  toast.success(
+                    `${result.successCount} photo(s) uploaded successfully!`
+                  );
+                }
+
+                if (result.failedCount > 0) {
+                  toast.error(
+                    `${result.failedCount} upload(s) still failed. Please check your connection.`
+                  );
+                }
+
+                setUploading(false);
+              }}
+              className="w-full py-3 rounded-lg font-semibold text-white bg-orange-500 hover:bg-orange-600 transition"
+            >
+              🔄 Retry Failed Uploads ({uploadState.failedCount})
+            </button>
+          )}
+
           <button
             type="submit"
-            disabled={!hasAllRequired() || uploading}
-            className="w-full py-3 rounded-lg font-semibold transition text-white hover:brightness-90"
+            disabled={uploading || !hasNewFiles}
+            className="w-full py-3 rounded-lg font-semibold transition text-white hover:brightness-90 disabled:opacity-60"
             style={{
-              backgroundColor: hasAllRequired() ? "#D4AF37" : "#E0C97A",
-              cursor: hasAllRequired() ? "pointer" : "not-allowed",
+              backgroundColor: hasNewFiles ? "#D4AF37" : "#E0C97A",
+              cursor: uploading || !hasNewFiles ? "not-allowed" : "pointer",
             }}
+            title={
+              !hasNewFiles
+                ? "Select or update at least one photo to enable submission"
+                : uploading
+                ? "Uploading..."
+                : "Submit"
+            }
+            aria-disabled={uploading || !hasNewFiles}
           >
             {uploading ? "Uploading..." : "Submit"}
           </button>
