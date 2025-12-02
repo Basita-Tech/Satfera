@@ -15,7 +15,8 @@ import { ProfileCard } from "../../ProfileCard";
 import { getAllProfiles } from "../../../api/auth";
 import { useCompare } from "../../context/CompareContext";
 import { getNames } from "country-list";
-import { allCastes } from "../../../lib/constant";
+import { allCastes, JOB_TITLES, INDIAN_CITIES } from "../../../lib/constant";
+import CustomSelect from "../../ui/CustomSelect";
 
 // Form-validated constants (matching PersonalDetails & EducationDetails)
 const RELIGIONS = ["Hindu", "Jain"];
@@ -399,29 +400,28 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
             )}
           </div>
 
-          <div className="relative flex items-center">
-            {/* Search Icon */}
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Search className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2">
+            {/* Input with icon */}
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <Search className="w-4 h-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Enter name..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") setSearchName(searchInput.trim());
+                }}
+                className="w-full pl-10 h-10 rounded-xl border border-[#e0d3af] focus:border-[#c8a227] focus:ring-[#c8a227]/40 outline-none"
+              />
             </div>
-
-            {/* Input Field */}
-            <input
-              type="text"
-              placeholder="Enter name..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") setSearchName(searchInput.trim());
-              }}
-              className="w-full pl-10 pr-24 h-10 rounded-xl border border-[#e0d3af] focus:border-[#d4af37] focus:ring-[#d4af37]/40 outline-none"
-            />
-
             {/* Search Button */}
             <button
               onClick={() => setSearchName(searchInput.trim())}
               aria-label="Search profiles"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#d4af37] text-white text-sm font-semibold w-24 h-9 rounded-lg hover:bg-[#b9941c] transition-colors flex items-center justify-center"
+              className="bg-[#c8a227] text-white text-sm font-semibold px-4 h-10 rounded-lg hover:bg-[#b9941c] transition-colors flex items-center justify-center whitespace-nowrap"
             >
               Search
             </button>
@@ -486,20 +486,18 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
             </Select>
           </div>
 
-          {/* Caste (dynamic) */}
+          {/* Caste (searchable) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Caste</Label>
-            <Select value={selectedCaste} onValueChange={setSelectedCaste}>
-              <SelectTrigger className="rounded-xl bg-transparent text-[#3a2f00] font-medium border focus:ring-2 focus:ring-[#d4af37]/40 hover:border-[#d4af37]">
-                <SelectValue placeholder="Select caste" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Castes</SelectItem>
-                {casteOptions.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CustomSelect
+              value={selectedCaste === 'all' ? '' : selectedCaste}
+              onChange={(e) => setSelectedCaste(e.target.value && e.target.value.trim() ? e.target.value : 'all')}
+              options={casteOptions}
+              placeholder="All Castes"
+              allowCustom
+              className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
+              name="caste"
+            />
           </div>
 
 
@@ -540,59 +538,59 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
           </div>
 
 
-          {/* Country (dynamic) */}
+          {/* Country (searchable) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Country</Label>
-            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-              <SelectTrigger className="rounded-xl bg-transparent text-[#3a2f00] font-medium border focus:ring-2 focus:ring-[#d4af37]/40 hover:border-[#d4af37]">
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Countries</SelectItem>
-                {countryOptions.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CustomSelect
+              value={selectedCountry === 'all' ? '' : selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value && e.target.value.trim() ? e.target.value : 'all')}
+              options={countryOptions}
+              placeholder="All Countries"
+              allowCustom
+              className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
+              name="country"
+            />
           </div>
 
-          {/* Education (dynamic) */}
+          {/* Education (searchable) */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Education</Label>
-            <Select value={selectedEducation} onValueChange={setSelectedEducation}>
-              <SelectTrigger className="rounded-xl bg-transparent text-[#3a2f00] font-medium border focus:ring-2 focus:ring-[#d4af37]/40 hover:border-[#d4af37]">
-                <SelectValue placeholder="Select education" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Education Levels</SelectItem>
-                {educationOptions.map((e) => (
-                  <SelectItem key={e} value={e}>{e}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CustomSelect
+              value={selectedEducation === 'all' ? '' : selectedEducation}
+              onChange={(e) => setSelectedEducation(e.target.value && e.target.value.trim() ? e.target.value : 'all')}
+              options={educationOptions}
+              placeholder="All Education Levels"
+              allowCustom
+              className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
+              name="education"
+            />
           </div>
 
           {/* City */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">City</Label>
-            <Input
-              placeholder="Enter city..."
+            <CustomSelect
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="rounded-xl border-[#e0d3af] focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/30"
+              options={INDIAN_CITIES}
+              placeholder="All Cities"
+              allowCustom
+              className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
+              name="city"
             />
           </div>
 
           {/* Profession */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">
-              Profession
-            </Label>
-            <Input
-              placeholder="Enter profession..."
+            <Label className="text-sm font-medium text-gray-700">Profession</Label>
+            <CustomSelect
               value={selectedProfession}
               onChange={(e) => setSelectedProfession(e.target.value)}
-              className="rounded-xl border-[#e0d3af] focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/30"
+              options={JOB_TITLES}
+              placeholder="All Professions"
+              allowCustom
+              className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
+              name="profession"
             />
           </div>
         </div>
@@ -656,7 +654,8 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
                   />
                 ))}
               </div>
-              {totalPages > 1 && (
+              {/* Pagination Controls - Show when there are results */}
+              {paginatedProfiles.length > 0 && (
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-[#e6dec5]">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-700">
                     <span>Showing {((page-1) * limit) + 1}-{Math.min(page * limit, total)} of {total}</span>

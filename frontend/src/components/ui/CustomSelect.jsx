@@ -8,6 +8,7 @@ export default function CustomSelect({
   className = '',
   disabled = false,
   name,
+  allowCustom = false,
 }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
@@ -26,6 +27,14 @@ export default function CustomSelect({
     const term = searchTerm.toLowerCase();
     return options.filter(opt => opt.toLowerCase().includes(term));
   }, [options, searchTerm]);
+
+  const customAvailable = useMemo(() => {
+    if (!allowCustom) return false;
+    const term = searchTerm.trim();
+    if (!term) return false;
+    const lower = term.toLowerCase();
+    return !options.some((opt) => opt.toLowerCase() === lower);
+  }, [allowCustom, searchTerm, options]);
 
   useEffect(() => {
     const onDocClick = (e) => {
@@ -62,22 +71,32 @@ export default function CustomSelect({
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         setHighlightIndex((idx) => {
-          const next = Math.min((idx < 0 ? -1 : idx) + 1, filteredOptions.length - 1);
+          const maxIndex = filteredOptions.length - 1 + (customAvailable ? 1 : 0);
+          const next = Math.min((idx < 0 ? -1 : idx) + 1, maxIndex);
           return next;
         });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setHighlightIndex((idx) => {
-          const prev = Math.max((idx < 0 ? filteredOptions.length : idx) - 1, 0);
+          const start = customAvailable ? filteredOptions.length : filteredOptions.length - 1;
+          const prev = Math.max((idx < 0 ? start : idx) - 1, 0);
           return prev;
         });
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (highlightIndex >= 0 && highlightIndex < filteredOptions.length) {
+        const customIndex = filteredOptions.length;
+        if (customAvailable && (highlightIndex === customIndex || filteredOptions.length === 0 || highlightIndex < 0)) {
+          const sel = searchTerm.trim();
+          onChange && onChange({ target: { name, value: sel } });
+          setOpen(false);
+          setSearchTerm('');
+          setHighlightIndex(-1);
+        } else if (highlightIndex >= 0 && highlightIndex < filteredOptions.length) {
           const sel = filteredOptions[highlightIndex];
           onChange && onChange({ target: { name, value: sel } });
           setOpen(false);
           setSearchTerm('');
+          setHighlightIndex(-1);
         }
       }
     }
@@ -173,7 +192,7 @@ export default function CustomSelect({
                 {placeholder}
               </li>
             )}
-            {filteredOptions.length === 0 ? (
+            {filteredOptions.length === 0 && !customAvailable ? (
               <li className="px-3 py-2 text-sm text-gray-500 italic">No results found</li>
             ) : (
               filteredOptions.map((opt, idx) => {
@@ -197,6 +216,24 @@ export default function CustomSelect({
                   </li>
                 );
               })
+            )}
+            {customAvailable && (
+              <li
+                role="option"
+                aria-selected={false}
+                className={`px-3 py-2 text-sm cursor-pointer ${highlightIndex === filteredOptions.length ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
+                onMouseEnter={() => setHighlightIndex(filteredOptions.length)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  const sel = searchTerm.trim();
+                  onChange && onChange({ target: { name, value: sel } });
+                  setOpen(false);
+                  setSearchTerm('');
+                  setHighlightIndex(-1);
+                }}
+              >
+                Use "{searchTerm.trim()}"
+              </li>
             )}
           </ul>
         </div>

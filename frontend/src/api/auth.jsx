@@ -826,48 +826,6 @@ export const getUserContactInfo = async () => {
   }
 };
 
-// 📄 Download User Profile as PDF
-// Downloads the authenticated user's complete profile as a PDF file
-export const downloadUserProfilePDF = async () => {
-  try {
-    console.log("📄 Downloading user profile PDF...");
-    const response = await axios.get(`${API}/user/download-pdf`, {
-      headers: getAuthHeaders(),
-      responseType: 'blob', // Important: Handle binary data
-    });
-    
-    // Create a blob from the PDF data
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    
-    // Create a temporary URL for the blob
-    const url = window.URL.createObjectURL(blob);
-    
-    // Create a temporary link element and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `profile_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    console.log("✅ PDF downloaded successfully");
-    toast.success("Profile PDF downloaded successfully");
-    return { success: true };
-  } catch (error) {
-    console.error(
-      "❌ Download PDF Error:",
-      error.response?.data || error.message
-    );
-    toast.error(error.response?.data?.message || "Failed to download profile PDF");
-    return {
-      success: false,
-      message: error.response?.data?.message || "Failed to download profile PDF",
-    };
-  }
-};
 
 // -------------------------------------------------------------
 // 🔹 EMAIL CHANGE APIs
@@ -1597,6 +1555,58 @@ export const rejectConnectionRequest = async (requestId) => {
   }
 };
 
+// 🔄 Change Accepted Connection to Rejected (receiver only)
+export const rejectAcceptedConnection = async (requestId) => {
+  try {
+    const idStr = String(requestId);
+    console.log("🔄 Changing accepted connection to rejected:", idStr);
+
+    const response = await axios.post(
+      `${API}/requests/accepted/reject`,
+      { requestId: idStr },
+      { headers: getAuthHeaders() }
+    );
+    console.log("✅ Reject Accepted Connection Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Reject Accepted Connection Error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      message:
+        error.response?.data?.message || "Failed to change connection status to rejected",
+    };
+  }
+};
+
+// 🔄 Change Rejected Connection to Accepted (receiver only)
+export const acceptRejectedConnection = async (requestId) => {
+  try {
+    const idStr = String(requestId);
+    console.log("🔄 Changing rejected connection to accepted:", idStr);
+
+    const response = await axios.post(
+      `${API}/requests/rejected/accept`,
+      { requestId: idStr },
+      { headers: getAuthHeaders() }
+    );
+    console.log("✅ Accept Rejected Connection Response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Accept Rejected Connection Error:",
+      error.response?.data || error.message
+    );
+    return {
+      success: false,
+      message:
+        error.response?.data?.message || "Failed to change connection status to accepted",
+    };
+  }
+};
+
 // 🗑️ Withdraw Connection Request
 export const withdrawConnectionRequest = async (connectionId) => {
   try {
@@ -1935,5 +1945,423 @@ export const getProfileViews = async (
       message: error.response?.data?.message || "Failed to fetch profile views",
       pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
     };
+  }
+};
+
+
+// -------------------------------------------------------------
+// // Usage: await downloadUserPdf();
+export const downloadUserPdf = async () => {
+  try {
+    const response = await axios.get(`${API}/user/download-pdf`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+
+    if (response.status !== 200 || !response.data?.success) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const userData = response.data.data;
+
+    // Dynamically import jsPDF
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+
+    // Set up PDF styling
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 12;
+    const leftCol = margin + 3;
+    const valueCol = 45;
+    let yPosition = 18;
+
+    // Draw decorative outer border (golden)
+    doc.setDrawColor(200, 162, 39);
+    doc.setLineWidth(3);
+    doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+
+    yPosition = 20;
+
+    // Title - BIODATA
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(200, 162, 39);
+    doc.text('BIODATA', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 10;
+
+    // Helper function to add profile photo
+    const addProfilePhoto = async (photoUrl) => {
+      if (!photoUrl) return false;
+
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        return new Promise((resolve) => {
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              const imgData = canvas.toDataURL('image/jpeg');
+
+              // Add photo at top right with border
+              const imgWidth = 38;
+              const imgHeight = 48;
+              const imgX = pageWidth - margin - imgWidth - 3;
+              const imgY = yPosition;
+
+              // Add image first
+              doc.addImage(imgData, 'JPEG', imgX, imgY, imgWidth, imgHeight);
+
+              // Draw golden border touching the photo
+              doc.setDrawColor(200, 162, 39);
+              doc.setLineWidth(2.5);
+              doc.rect(imgX, imgY, imgWidth, imgHeight);
+
+              resolve(true);
+            } catch (e) {
+              console.warn('Error processing image:', e);
+              resolve(false);
+            }
+          };
+          img.onerror = () => resolve(false);
+          img.src = photoUrl;
+        });
+      } catch (e) {
+        console.warn('Could not load profile photo:', e);
+        return false;
+      }
+    };
+
+    // Helper function to add section header
+    const addSectionHeader = (title) => {
+      yPosition += 5;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(200, 162, 39);
+      doc.text(title, leftCol, yPosition);
+      yPosition += 6;
+    };
+
+    // Helper function to add field in two-column layout
+    const addFieldTwoColumn = (label1, value1, label2, value2) => {
+      const col1X = leftCol;
+      const col2X = pageWidth / 2 + 5;
+      const labelWidth = 35;
+      const maxValueWidth = (pageWidth / 2) - labelWidth - 15;
+
+      doc.setFontSize(9);
+
+      // Left column
+      if (value1) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(label1, col1X, yPosition);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        const lines1 = doc.splitTextToSize(String(value1), maxValueWidth);
+        doc.text(lines1, col1X, yPosition + 4);
+      }
+
+      // Right column
+      if (value2 && label2) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(label2, col2X, yPosition);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        const lines2 = doc.splitTextToSize(String(value2), maxValueWidth);
+        doc.text(lines2, col2X, yPosition + 4);
+      }
+
+      yPosition += 10;
+    };
+
+    // Helper: three equal-width columns with wrapping, label above value
+    const addFieldThreeColumn = (label1, value1, label2, value2, label3, value3) => {
+      const leftMargin = leftCol;
+      const rightMargin = margin + 3; // mirror of leftCol offset
+      const availableWidth = pageWidth - leftMargin - rightMargin;
+      const colWidth = availableWidth / 3;
+
+      const col1X = leftCol;
+      const col2X = col1X + colWidth;
+      const col3X = col2X + colWidth;
+
+      doc.setFontSize(9);
+
+      // Column 1
+      if (label1) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(String(label1), col1X, yPosition);
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      const lines1 = value1 !== undefined && value1 !== null && value1 !== ''
+        ? doc.splitTextToSize(String(value1), colWidth - 2)
+        : [];
+      if (lines1.length) doc.text(lines1, col1X, yPosition + 4);
+
+      // Column 2
+      if (label2) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(String(label2), col2X, yPosition);
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      const lines2 = value2 !== undefined && value2 !== null && value2 !== ''
+        ? doc.splitTextToSize(String(value2), colWidth - 2)
+        : [];
+      if (lines2.length) doc.text(lines2, col2X, yPosition + 4);
+
+      // Column 3
+      if (label3) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 100, 100);
+        doc.text(String(label3), col3X, yPosition);
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      const lines3 = value3 !== undefined && value3 !== null && value3 !== ''
+        ? doc.splitTextToSize(String(value3), colWidth - 2)
+        : [];
+      if (lines3.length) doc.text(lines3, col3X, yPosition + 4);
+
+      // Row height: base 10 (like two-column) + extra per wrapped line
+      const maxLines = Math.max(lines1.length || 1, lines2.length || 1, lines3.length || 1);
+      const rowHeight = 10 + Math.max(0, (maxLines - 1) * 4);
+      yPosition += rowHeight; // advance once after the whole row
+    };
+
+    // Helper function for single field (full width)
+    const addFieldSingle = (label, value) => {
+      if (!value) return;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 100, 100);
+      doc.text(label, leftCol, yPosition);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      const maxWidth = pageWidth - leftCol - 60;
+      const lines = doc.splitTextToSize(String(value), maxWidth);
+      doc.text(lines, leftCol, yPosition + 3);
+
+      yPosition += lines.length > 1 ? 8 + (lines.length * 3) : 10;
+    };
+
+    // Add profile photo if available
+    const photoUrl = userData.profile?.url || userData.closerPhoto?.url;
+    if (photoUrl) {
+      await addProfilePhoto(photoUrl);
+    }
+
+    // SECTION 1: PERSONAL INFORMATION
+    addSectionHeader('Personal Information');
+
+    if (userData.user) {
+      const user = userData.user;
+      const fullName = [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ');
+      addFieldSingle('Name', fullName);
+
+      let age = '';
+      let birthdate = '';
+      if (user.dateOfBirth) {
+        const birthDate = new Date(user.dateOfBirth);
+        age = `${new Date().getFullYear() - birthDate.getFullYear()} years`;
+        birthdate = birthDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+      }
+
+      const gender = user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '';
+
+      addFieldTwoColumn('Age', age, 'Gender', gender);
+      addFieldTwoColumn('Birthdate', birthdate, 'Contact No.', user.phoneNumber);
+      addFieldSingle('Email', user.email);
+    }
+
+    // SECTION 2: PERSONAL DETAILS
+    addSectionHeader('Personal Details');
+
+    if (userData.userPersonal) {
+      const personal = userData.userPersonal;
+
+      const birthPlace = personal.birthPlace && personal.birthState
+        ? `${personal.birthPlace}, ${personal.birthState}`
+        : personal.birthPlace || personal.birthState;
+
+      addFieldSingle('Birth Place', birthPlace);
+      addFieldTwoColumn('Height', personal.height, 'Weight', personal.weight);
+      addFieldTwoColumn('Religion', personal.religion, 'Caste', personal.subCaste);
+
+      if (personal.bloodGroup || personal.complexion) {
+        addFieldTwoColumn('Blood Group', personal.bloodGroup, 'Complexion', personal.complexion);
+      }
+
+      addFieldTwoColumn('Astrological Sign', personal.astrologicalSign, 'Dosh', personal.dosh);
+      addFieldTwoColumn('Marital Status', personal.marriedStatus, 'Mother Tongue', personal.motherTongue);
+
+      // Children Information
+      if (personal.isHaveChildren) {
+        const childrenInfo = personal.numberOfChildren ? `Yes (${personal.numberOfChildren})` : 'Yes';
+        addFieldTwoColumn('Have Children', childrenInfo, 'Living With', personal.isChildrenLivingWithYou ? 'Yes' : 'No');
+      }
+    }
+
+    addSectionHeader('Education & Profession');
+
+    const edu = userData.educations?.[0] || {};
+    const prof = userData.profession || {};
+
+    // -------- Row 1 --------
+    addFieldTwoColumn(
+      'Education',
+      edu.HighestEducation && edu.FieldOfStudy
+        ? `${edu.HighestEducation} in ${edu.FieldOfStudy}`
+        : edu.HighestEducation || edu.FieldOfStudy,
+      'School / College',
+      edu.SchoolName
+    );
+
+    addFieldTwoColumn(
+      'University',
+      edu.University,
+      'Country of Education',
+      edu.CountryOfEducation
+    );
+
+    // -------- Row 2 --------
+    addFieldTwoColumn(
+      'Occupation',
+      prof.Occupation,
+      'Employment Status',
+      prof.EmploymentStatus
+    );
+
+    // -------- Row 3 --------
+    addFieldTwoColumn(
+      'Organization Name',
+      prof.OrganizationName,
+      'Annual Income',
+      prof.AnnualIncome
+    );
+
+
+    // SECTION 4: FAMILY DETAILS
+    addSectionHeader('Family Details');
+
+    if (userData.family) {
+      const family = userData.family;
+
+      addFieldTwoColumn('Father Name', family.fatherName, 'Occupation', family.fatherOccupation);
+
+      if (family.motherName || family.motherOccupation) {
+        addFieldTwoColumn('Mother Name', family.motherName, 'Occupation', family.motherOccupation);
+      }
+
+      if (family.fatherNativePlace) {
+        addFieldSingle('Native Place', family.fatherNativePlace);
+      }
+
+      // Siblings
+      if (family.siblingDetails && family.siblingDetails.length > 0) {
+        const sisters = family.siblingDetails.filter(s => s.gender === 'female' || s.relation === 'sister');
+        const brothers = family.siblingDetails.filter(s => s.gender === 'male' || s.relation === 'brother');
+
+        let sistersInfo = '0';
+        let brothersInfo = '0';
+
+        if (sisters.length > 0) {
+          const marriedCount = sisters.filter(s => s.marriedStatus === 'Married').length;
+          sistersInfo = marriedCount > 0 ? `${sisters.length} (${marriedCount} Married)` : `${sisters.length}`;
+        }
+
+        if (brothers.length > 0) {
+          const marriedCount = brothers.filter(s => s.marriedStatus === 'Married').length;
+          brothersInfo = marriedCount > 0 ? `${brothers.length} (${marriedCount} Married)` : `${brothers.length}`;
+        }
+
+        addFieldTwoColumn('Sisters', sistersInfo, 'Brothers', brothersInfo);
+      } else if (family.haveSibling === false) {
+        addFieldSingle('Siblings', 'No siblings');
+      }
+    }
+
+    // SECTION 5: ADDRESS & RESIDENCE
+    addSectionHeader('Address & Residence');
+
+    if (userData.userPersonal?.full_address) {
+      const addr = userData.userPersonal.full_address;
+      const address = [addr.street1, addr.street2, addr.city, addr.state, addr.zipCode].filter(Boolean).join(', ');
+      if (address) {
+        addFieldSingle('Address', address);
+      }
+    }
+
+    if (userData.userPersonal) {
+      const personal = userData.userPersonal;
+
+      const ownHome = userData.userPersonal?.full_address?.isYourHome !== undefined
+        ? (userData.userPersonal.full_address.isYourHome ? 'Yes' : 'No')
+        : '';
+
+      addFieldTwoColumn('Nationality', personal.nationality, 'Own Home', ownHome);
+
+      const residentOfIndia = personal.isResidentOfIndia !== undefined
+        ? (personal.isResidentOfIndia ? 'Yes' : 'No')
+        : '';
+
+      if (personal.residingCountry || residentOfIndia || personal.visaType) {
+        addFieldThreeColumn(
+          'Residing Country', personal.residingCountry || '',
+          'Resident of India', residentOfIndia || '',
+          'Visa Type', personal.visaType || ''
+        );
+      }
+
+
+    }
+
+    // Save the PDF
+    const fileName = userData.user
+      ? `${userData.user.firstName}_${userData.user.lastName}_Biodata_${Date.now()}.pdf`.replace(/\s+/g, '_')
+      : `User_Biodata_${Date.now()}.pdf`;
+    doc.save(fileName);
+
+    toast.success('PDF downloaded successfully!');
+  } catch (error) {
+    console.error('Download PDF error:', error);
+    toast.error(error.response?.data?.message || 'Failed to download PDF.');
+  }
+};
+
+
+export const updateGovernmentId = async (formData) => {
+  try {
+    const response = await axios.put(
+      `${API}/user-personal/upload/government-id`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "❌ Update Government ID Error:",
+      error.response?.data || error.message
+    );
+    throw error;
   }
 };

@@ -247,7 +247,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
   const handleNext = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
 
     const mapHabits = (val) => {
       if (!val) return val;
@@ -1082,7 +1085,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
               Preferred Age
             </label>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
               {/* FROM */}
               <CustomSelect
                 name="preferredAgeFrom"
@@ -1092,11 +1095,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 }
                 options={ageOptions.map((age) => String(age))}
                 placeholder="From"
-                className={inputClass + " w-full sm:w-1/2"}
+                className={inputClass + " w-full max-w-[120px]"}
                 usePortal={true}
               />
 
-              <span className="text-sm font-medium">to</span>
+              <span className="text-sm font-medium text-center">to</span>
 
               {/* TO */}
               <CustomSelect
@@ -1111,7 +1114,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   )
                   .map((age) => String(age))}
                 placeholder="To"
-                className={inputClass + " w-full sm:w-1/2"}
+                className={inputClass + " w-full max-w-[120px]"}
                 usePortal={true}
               />
             </div>

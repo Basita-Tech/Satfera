@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   // Session expiration handler
   const handleSessionExpired = useCallback(() => {
+    console.log('[Auth] Frontend session expired after inactivity');
     setUser(null);
     clearClientAuthData();
     toast.error("Your session has expired. Please log in again.");

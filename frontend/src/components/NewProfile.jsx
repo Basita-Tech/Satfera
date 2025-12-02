@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
 import { Heart, MapPin, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { JOB_TITLES } from "../lib/constant";
+import { INDIAN_CITIES } from "../lib/constant";
 
 const NewProfile = () => {
   const navigate = useNavigate();
@@ -11,6 +13,10 @@ const NewProfile = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
+  const [professionFilter, setProfessionFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+
+  console.log('INDIAN_CITIES loaded:', INDIAN_CITIES?.length, 'cities');
 
   // Fetch profiles from API (uses current pagination.page)
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ""; // ensure env variable is set
@@ -72,6 +78,38 @@ const NewProfile = () => {
     setPagination((prev) => ({ ...prev, limit: newLimit, page: 1 })); // reset to first page
   };
 
+  // Normalize a profile's profession for filtering/display
+  const getProfession = (p) => {
+    try {
+      return (
+        p?.user?.occupation ||
+        p?.user?.professional?.Occupation ||
+        p?.professional?.Occupation ||
+        p?.occupation ||
+        ""
+      );
+    } catch {
+      return "";
+    }
+  };
+
+  // Derived visible list with profession and city filters
+  const visibleProfiles = useMemo(() => {
+    let filtered = profiles;
+    
+    if (professionFilter) {
+      const needle = professionFilter.toLowerCase();
+      filtered = filtered.filter((p) => String(getProfession(p)).toLowerCase().includes(needle));
+    }
+    
+    if (cityFilter) {
+      const cityNeedle = cityFilter.toLowerCase();
+      filtered = filtered.filter((p) => String(p?.city || '').toLowerCase().includes(cityNeedle));
+    }
+    
+    return filtered;
+  }, [profiles, professionFilter, cityFilter]);
+
   // Toggle favorite
   const toggleFavorite = async (userId) => {
     const newFavorites = new Set(favorites);
@@ -124,6 +162,36 @@ const NewProfile = () => {
                 ))}
               </select>
             </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Profession:</span>
+              <select
+                value={professionFilter}
+                onChange={(e) => setProfessionFilter(e.target.value)}
+                className="min-w-[220px] border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
+              >
+                <option value="">All</option>
+                {JOB_TITLES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">City:</span>
+              <select
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className="min-w-[220px] border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
+              >
+                <option value="">All Cities</option>
+                {INDIAN_CITIES && Array.isArray(INDIAN_CITIES) ? (
+                  INDIAN_CITIES.map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))
+                ) : (
+                  <option disabled>Cities loading...</option>
+                )}
+              </select>
+            </div>
             <div className="text-xs text-gray-500">
               Total Pages: {totalPages}
             </div>
@@ -162,10 +230,11 @@ const NewProfile = () => {
               transition={{ duration: 0.3 }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
             >
-              {profiles.map((profile, index) => (
+              {visibleProfiles.map((profile, index) => (
                 <ProfileCard
                   key={profile.user.userId}
                   profile={profile}
+                  profession={getProfession(profile)}
                   isFavorite={favorites.has(profile.user.userId)}
                   onToggleFavorite={toggleFavorite}
                   onViewProfile={handleViewProfile}
@@ -177,7 +246,7 @@ const NewProfile = () => {
         </AnimatePresence>
 
         {/* Empty State */}
-        {!loading && profiles.length === 0 && (
+        {!loading && visibleProfiles.length === 0 && (
           <div className="text-center py-20">
             <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
@@ -264,7 +333,7 @@ const NewProfile = () => {
 };
 
 // Individual Profile Card Component
-const ProfileCard = ({ profile, isFavorite, onToggleFavorite, onViewProfile, index }) => {
+const ProfileCard = ({ profile, profession, isFavorite, onToggleFavorite, onViewProfile, index }) => {
   const { user, scoreDetail } = profile;
   const hasPhoto = user.closerPhoto?.url;
   const location = [user.city, user.state, user.country]
@@ -346,6 +415,15 @@ const ProfileCard = ({ profile, isFavorite, onToggleFavorite, onViewProfile, ind
             </div>
           )}
         </div>
+
+        {/* Profession tag */}
+        {profession && (
+          <div className="mb-3">
+            <span className="bg-[#fef9f0] text-[#c8a227] text-xs font-medium px-3 py-1 rounded-full border border-[#c8a227]/20">
+              {profession}
+            </span>
+          </div>
+        )}
 
         {/* Religion and Caste */}
         {(user.religion || user.subCaste) && (

@@ -268,7 +268,7 @@ export const requiredFields = [
 export const doshOptions = [
   "No Dosh",
   "Manglik",
-  "Ashnik Manglik",
+  "Anshik Manglik",
   "Sarpa Dosh",
   "Kala Sarpa Dosh",
   "Rahu Dosh",
@@ -385,4 +385,66 @@ export const heightOptions = [
   "6'2\" / 188 cm",
   "6'3\" / 191 cm",
   "6'4\" / 193 cm",
+];
+
+// Shared: Profession job titles (used in forms and filters)
+export const JOB_TITLES = [
+  'Marketing Specialist','Marketing Manager','Graphic Designer','Product Manager','Public Relations','Brand Manager','SEO Manager','Content Marketing Manager','Copywriter','Administrative Assistant','Accountant','Software Engineer','Web Developer','DevOps Engineer','Network Administrator','Information Security Analyst','Cloud Architect','Data Analyst','Researcher','Teacher','Professor','Artist','Video Editor','Photographer','Musician','Nurse','Doctor','Physical Therapist','Chef','Restaurant Manager','Biologist','Geologist','Physicist','Counselor','Social Worker','Therapist','Beautician','Makeup Artist','Esthetician','Security Guard','Mechanic','Entrepreneur','Management Consultant','Attorney','Engineer','Operations Manager','HR','Business Analyst','Financial Analyst','Sales Executive','Customer Support Representative','Tutor','Project Manager','UX Designer & UI Developer','Application Developer','Virtual Assistant'
+];
+
+// Indian States
+export const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
+
+// Major Indian Cities (state-wise selection)
+export const INDIAN_CITIES = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata',
+  'Surat', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane',
+  'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara', 'Ghaziabad',
+  'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Kalyan-Dombivali',
+  'Vasai-Virar', 'Varanasi', 'Srinagar', 'Aurangabad', 'Dhanbad', 'Amritsar',
+  'Navi Mumbai', 'Allahabad', 'Ranchi', 'Howrah', 'Coimbatore', 'Jabalpur',
+  'Gwalior', 'Vijayawada', 'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Chandigarh',
+  'Guwahati', 'Solapur', 'Hubli-Dharwad', 'Mysore', 'Tiruchirappalli', 'Bareilly',
+  'Aligarh', 'Tiruppur', 'Moradabad', 'Jalandhar', 'Bhubaneswar', 'Salem',
+  'Warangal', 'Guntur', 'Bhiwandi', 'Saharanpur', 'Gorakhpur', 'Bikaner',
+  'Amravati', 'Noida', 'Jamshedpur', 'Bhilai', 'Cuttack', 'Firozabad',
+  'Kochi', 'Nellore', 'Bhavnagar', 'Dehradun', 'Durgapur', 'Asansol',
+  'Rourkela', 'Nanded', 'Kolhapur', 'Ajmer', 'Akola', 'Gulbarga',
+  'Jamnagar', 'Ujjain', 'Loni', 'Siliguri', 'Jhansi', 'Ulhasnagar',
+  'Jammu', 'Sangli-Miraj & Kupwad', 'Mangalore', 'Erode', 'Belgaum',
+  'Ambattur', 'Tirunelveli', 'Malegaon', 'Gaya', 'Jalgaon', 'Udaipur',
+  'Maheshtala', 'Davanagere', 'Kozhikode', 'Kurnool', 'Rajpur Sonarpur',
+  'Rajahmundry', 'Bokaro', 'South Dumdum', 'Bellary', 'Patiala', 'Gopalpur',
+  'Agartala', 'Bhagalpur', 'Muzaffarnagar', 'Bhatpara', 'Panihati', 'Latur',
+  'Dhule', 'Tirupati', 'Rohtak', 'Korba', 'Bhilwara', 'Berhampur', 'Muzaffarpur',
+  'Ahmednagar', 'Mathura', 'Kollam', 'Avadi', 'Kadapa', 'Kamarhati', 'Sambalpur',
+  'Bilaspur', 'Shahjahanpur', 'Satara', 'Bijapur', 'Rampur', 'Shivamogga',
+  'Chandrapur', 'Junagadh', 'Thrissur', 'Alwar', 'Bardhaman', 'Kulti',
+  'Kakinada', 'Nizamabad', 'Parbhani', 'Tumkur', 'Khammam', 'Ozhukarai',
+  'Bihar Sharif', 'Panipat', 'Darbhanga', 'Bally', 'Aizawl', 'Dewas',
+  'Ichalkaranji', 'Karnal', 'Bathinda', 'Jalna', 'Eluru', 'Kirari Suleman Nagar',
+  'Barasat', 'Purnia', 'Satna', 'Mau', 'Sonipat', 'Farrukhabad', 'Sagar',
+  'Durg', 'Imphal', 'Ratlam', 'Hapur', 'Arrah', 'Karimnagar',
+  'Anantapur', 'Etawah', 'Ambernath', 'North Dumdum', 'Bharatpur', 'Begusarai',
+  'New Delhi', 'Gandhidham', 'Baranagar', 'Tiruvottiyur', 'Puducherry',
+  'Sikar', 'Thoothukudi', 'Raurkela Industrial Township', 'Sri Ganganagar',
+  'Karawal Nagar', 'Mango', 'Thanjavur', 'Bulandshahr', 'Uluberia', 'Murwara',
+  'Sambhal', 'Singrauli', 'Nadiad', 'Secunderabad', 'Naihati', 'Yamunanagar',
+  'Bidhan Nagar', 'Pallavaram', 'Bidar', 'Munger', 'Panchkula', 'Burhanpur',
+  'Raurkela', 'Kharagpur', 'Dindigul', 'Gandhinagar', 'Hospet', 'Nangloi Jat',
+  'Malda', 'Ongole', 'Deoghar', 'Chapra', 'Haldia', 'Khandwa', 'Nandyal',
+  'Chittoor', 'Morena', 'Amroha', 'Anand', 'Bhind', 'Bhalswa Jahangir Pur',
+  'Madhyamgram', 'Bhiwani', 'Navi Mumbai Panvel Raigad', 'Baharampur',
+  'Ambala', 'Morbi', 'Fatehpur', 'Rae Bareli', 'Khora', 'Gonda', 'Bhimavaram',
+  'Kumbakonam', 'Vizianagaram', 'Katihar', 'Hardwar',
+  'Nagercoil', 'Thanesar', 'Murshidabad', 'Vellore'
 ];

@@ -23,6 +23,8 @@ import {
   doshOptions,
   weightOptions,
   heightOptions,
+  INDIAN_STATES,
+  INDIAN_CITIES,
 } from "@/lib/constant";
 
 const COUNTRIES = getNames();
@@ -497,6 +499,23 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         newErrors.visaCategory = "Visa category is required";
     }
 
+    // Time of Birth optional, but if one part is filled, both required and validated
+    const hour = formData.birthHour?.toString() || "";
+    const minute = formData.birthMinute?.toString() || "";
+    const anyTimeEntered = hour !== "" || minute !== "";
+    if (anyTimeEntered) {
+      if (!hour || hour.length !== 2) {
+        newErrors.birthHour = newErrors.birthHour || "Hour (HH) is required";
+      } else if (+hour < 0 || +hour > 23) {
+        newErrors.birthHour = "Hour must be between 00–23";
+      }
+      if (!minute || minute.length !== 2) {
+        newErrors.birthMinute = newErrors.birthMinute || "Minute (MM) is required";
+      } else if (+minute < 0 || +minute > 59) {
+        newErrors.birthMinute = "Minute must be between 00–59";
+      }
+    }
+
     setErrors(newErrors);
 
     return Object.keys(newErrors).length === 0;
@@ -627,6 +646,11 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
   const handleSaveNext = async (e) => {
     e.preventDefault();
+    const valid = validate();
+    if (!valid) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
     const success = await handleSavePersonalDetails();
     if (success && onNext) onNext("family");
   };
@@ -737,17 +761,17 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           <div>
             <p className="text-sm font-medium">Birth Place</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
-              {/* City Input */}
+              {/* City Dropdown */}
               <div>
                 <label className="text-xs text-gray-600">City</label>
-                <input
+                <CustomSelect
                   name="birthCity"
                   value={formData.birthCity}
                   onChange={handleChange}
-                  placeholder="Enter birth city"
-                  className={`capitalize w-full p-3 rounded-md border ${
-                    errors.birthCity ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  options={INDIAN_CITIES}
+                  placeholder="Select or type city"
+                  allowCustom
+                  className={errors.birthCity ? "border-red-500" : ""}
                 />
                 {errors.birthCity && (
                   <p className="text-xs text-red-500 mt-1">
@@ -758,16 +782,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
               <div className="mb-4">
                 <label className="text-xs text-gray-600">Birth State</label>
-                <input
-                  type="text"
+                <CustomSelect
                   name="birthState"
-                  placeholder="Enter Birth State"
                   value={formData.birthState}
                   onChange={handleChange}
-                  onBlur={validateBirthState}
-                  className={`capitalize w-full p-3 rounded-md border ${
-                    errors.birthState ? "border-red-500" : "border-[#E4C48A]"
-                  } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                  options={INDIAN_STATES}
+                  placeholder="Select or type state"
+                  allowCustom
+                  className={errors.birthState ? "border-red-500" : ""}
                 />
                 {errors.birthState && (
                   <p className="text-red-500 text-xs mt-1">
@@ -1050,14 +1072,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   {/* City */}
                   <div>
                     <label className="text-sm font-medium">City</label>
-                    <input
+                    <CustomSelect
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      placeholder="City"
-                      className={`capitalize w-full p-3 rounded-md border ${
-                        errors.city ? "border-red-500" : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                      options={INDIAN_CITIES}
+                      placeholder="Select or type city"
+                      allowCustom
+                      className={errors.city ? "border-red-500" : ""}
                     />
                     {errors.city && (
                       <p className="text-xs text-red-500 mt-1">{errors.city}</p>
@@ -1067,14 +1089,14 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   {/* State */}
                   <div>
                     <label className="text-sm font-medium">State</label>
-                    <input
+                    <CustomSelect
                       name="state"
                       value={formData.state}
                       onChange={handleChange}
-                      placeholder="State"
-                      className={`capitalize w-full p-3 rounded-md border ${
-                        errors.state ? "border-red-500" : "border-[#E4C48A]"
-                      } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                      options={INDIAN_STATES}
+                      placeholder="Select or type state"
+                      allowCustom
+                      className={errors.state ? "border-red-500" : ""}
                     />
                     {errors.state && (
                       <p className="text-xs text-red-500 mt-1">

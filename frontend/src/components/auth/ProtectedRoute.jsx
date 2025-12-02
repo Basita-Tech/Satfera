@@ -15,8 +15,14 @@ const ProtectedRoute = ({ children }) => {
         console.log(me, "protected route me");
         setIsAuthenticated(true);
       } catch (error) {
-        // If 401 or any error, user is not authenticated
-        setIsAuthenticated(false);
+        // Only redirect on 401, not on network errors
+        if (error?.response?.status === 401) {
+          setIsAuthenticated(false);
+        } else {
+          // Network error - keep current auth state, don't redirect
+          console.warn('Auth check failed (network error):', error.message);
+          setIsAuthenticated(true); // Assume still authenticated on network errors
+        }
       } finally {
         setIsLoading(false);
       }
@@ -24,14 +30,18 @@ const ProtectedRoute = ({ children }) => {
 
     checkAuth();
 
+    // Check auth less frequently (every 5 minutes instead of 30 seconds)
     const authCheckInterval = setInterval(async () => {
       try {
         await axios.get(`${API}/auth/me`, { withCredentials: true });
         setIsAuthenticated(true);
       } catch (e) {
-        setIsAuthenticated(false);
+        // Only update on actual 401 errors
+        if (e?.response?.status === 401) {
+          setIsAuthenticated(false);
+        }
       }
-    }, 30000);
+    }, 5 * 60 * 1000); // 5 minutes
 
     return () => {
       clearInterval(authCheckInterval);

@@ -134,6 +134,42 @@ export function ProfileDetails({ profiles, sentProfileIds = [], onNavigate, shor
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
+  // Compute age as years, months, days from a DOB
+  const getAgeParts = (dob) => {
+    try {
+      const birth = new Date(dob);
+      if (Number.isNaN(birth.getTime())) return null;
+      const now = new Date();
+
+      let years = now.getFullYear() - birth.getFullYear();
+      let months = now.getMonth() - birth.getMonth();
+      let days = now.getDate() - birth.getDate();
+
+      if (days < 0) {
+        const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        days += prevMonthDays;
+        months -= 1;
+      }
+      if (months < 0) {
+        months += 12;
+        years -= 1;
+      }
+      return { years, months, days };
+    } catch {
+      return null;
+    }
+  };
+
+  const formatAgeFromDob = (dob) => {
+    const parts = getAgeParts(dob);
+    if (!parts) return '—';
+    const out = [];
+    if (parts.years > 0) out.push(`${parts.years} year${parts.years !== 1 ? 's' : ''}`);
+    if (parts.months > 0) out.push(`${parts.months} month${parts.months !== 1 ? 's' : ''}`);
+    if (parts.days > 0 || out.length === 0) out.push(`${parts.days} day${parts.days !== 1 ? 's' : ''}`);
+    return out.join(' ');
+  };
+
   // convenience fields for backend data
   console.log("🎨 [ProfileDetails] Rendering with profile:", profile);
   console.log("🎨 [ProfileDetails] Profile structure check:", {
@@ -697,6 +733,15 @@ export function ProfileDetails({ profiles, sentProfileIds = [], onNavigate, shor
                         </div>
                       </div>
                     )}
+                    {profile?.dateOfBirth && (
+                      <div className="flex items-start gap-2">
+                        <Clock className="text-[#C8A227]" size={18} />
+                        <div>
+                          <p className="text-gray-500 text-[13px]">Age</p>
+                          <p className="font-semibold text-[#222]">{formatAgeFromDob(profile.dateOfBirth)}</p>
+                        </div>
+                      </div>
+                    )}
                     {profile?.personal?.birthPlace && profile?.personal?.birthState && (
                       <div className="flex items-start gap-2">
                         <MapPin className="text-[#C8A227]" size={18} />
@@ -1108,18 +1153,6 @@ export function ProfileDetails({ profiles, sentProfileIds = [], onNavigate, shor
                       <p className="text-gray-500">Diet</p>
                       <p className="font-semibold text-[#222]">{capitalize(profile?.healthAndLifestyle?.diet)}</p>
                     </div>
-                  </div>
-
-                  <hr className="my-5" />
-
-                  <div className="flex items-center justify-between">
-                    <p className="text-gray-700 text-sm font-medium">
-                      Health Screening <span className="text-gray-400">(Premium)</span>
-                    </p>
-                    <Button className="flex items-center gap-2 bg-[#C8A227] hover:bg-[#b99620] text-white px-4 py-2 rounded-lg text-sm shadow-sm">
-                      <Lock size={15} />
-                      Upgrade to View
-                    </Button>
                   </div>
                 </div>
               </div>

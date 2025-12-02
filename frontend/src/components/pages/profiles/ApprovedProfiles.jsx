@@ -2,6 +2,8 @@ import { useState } from "react";
 import { MessageCircle, Users } from "lucide-react";
 import { ProfileCard } from "../../ProfileCard"
 import { PremiumUpgradeModal } from "../../PremiumUpgradeModal"
+import { generateProfilePDF } from "../../../utils/pdfGenerator";
+import toast from 'react-hot-toast';
 
 export function ApprovedProfiles({
   profiles = [],
@@ -13,6 +15,27 @@ export function ApprovedProfiles({
   onToggleShortlist,
 }) {
   const [premiumModal, setPremiumModal] = useState(false);
+
+  // Handle PDF download
+  const handleDownloadPDF = async (profile) => {
+    try {
+      console.log('📄 Generating PDF for profile:', profile);
+      toast.loading('Generating PDF...');
+      const result = await generateProfilePDF(profile);
+      toast.dismiss();
+      
+      if (result.success) {
+        toast.success(`PDF downloaded successfully!`);
+      } else {
+        toast.error(result.error || 'Failed to generate PDF');
+        console.error('PDF generation failed:', result.error);
+      }
+    } catch (error) {
+      toast.dismiss();
+      console.error('PDF download error:', error);
+      toast.error('Error downloading PDF: ' + error.message);
+    }
+  };
 
   // ✅ Only show profiles where status is Accepted or Approved
   const approvedProfiles = profiles.filter(
@@ -59,6 +82,7 @@ export function ApprovedProfiles({
               onAddToCompare={onAddToCompare}
               onRemoveCompare={onRemoveCompare}
               onChat={() => setPremiumModal(true)}
+              onDownloadPDF={() => handleDownloadPDF(profile)}
               isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
               isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
               onToggleShortlist={onToggleShortlist}

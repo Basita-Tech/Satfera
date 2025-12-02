@@ -3,8 +3,10 @@
  * Handles token storage with session timeout and security features
  */
 
-// Session timeout: 30 minutes of inactivity
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+// Session timeout: Match backend cookie maxAge (24 hours)
+// Backend cookie: 24 * 60 * 60 * 1000 (1 day)
+// Frontend will track activity and auto-logout after 24 hours of inactivity
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const TOKEN_EXPIRY_KEY = "token_expiry";
 const LAST_ACTIVITY_KEY = "last_activity";
 
@@ -33,6 +35,12 @@ export const updateActivity = () => {
     // Update activity metadata in sessionStorage only
     sessionStorage.setItem(LAST_ACTIVITY_KEY, now.toString());
     sessionStorage.setItem(TOKEN_EXPIRY_KEY, newExpiry.toString());
+    
+    // Debug: Log every 100th activity update to avoid console spam
+    if (Math.random() < 0.01) {
+      const hoursRemaining = ((newExpiry - now) / (1000 * 60 * 60)).toFixed(1);
+      console.log(`[Session] Activity updated. Session expires in ${hoursRemaining} hours`);
+    }
   } catch (error) {
     console.error("Failed to update activity:", error);
   }
@@ -104,13 +112,14 @@ export const initSessionTracking = (onSessionExpired) => {
     document.addEventListener(event, handleActivity, { passive: true });
   });
 
-  // Check session expiry every minute
+  // Check session expiry every 5 minutes (reduced frequency since timeout is now 24 hours)
   const interval = setInterval(() => {
     if (!isSessionActive() && onSessionExpired) {
+      console.log('[Session] Session expired, logging out user');
       clearInterval(interval);
       onSessionExpired();
     }
-  }, 60000); // Check every minute
+  }, 5 * 60 * 1000); // Check every 5 minutes
 
   // Cleanup function
   return () => {

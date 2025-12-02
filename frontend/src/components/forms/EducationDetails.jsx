@@ -24,6 +24,30 @@ const EducationDetails = ({ onNext, onPrevious }) => {
   });
   const [errors, setErrors] = useState({});
 
+  // Basic sanitization: trim, collapse spaces, remove dangerous characters, limit length
+  const sanitize = (val, max = 120) => {
+    if (val === null || val === undefined) return "";
+    let s = String(val).replace(/[\x00-\x1F\x7F]/g, ""); // control chars
+    s = s.replace(/[<>`]/g, ""); // strip markup/meta
+    s = s.replace(/\s+/g, " ").trim(); // collapse whitespace
+    if (s.length > max) s = s.slice(0, max);
+    return s;
+  };
+
+  // Live sanitization used while typing: keep spaces/backspace behavior natural
+  const sanitizeLive = (val, max = 120) => {
+    if (val === null || val === undefined) return "";
+    let s = String(val).replace(/[\x00-\x1F\x7F]/g, ""); // remove control chars
+    s = s.replace(/[<>`]/g, ""); // strip markup/meta
+    if (s.length > max) s = s.slice(0, max);
+    return s;
+  };
+
+  const capitalizeFirst = (val) => {
+    if (!val) return "";
+    return val.charAt(0).toUpperCase() + val.slice(1);
+  };
+
   useEffect(() => {
     const fetchDetails = async () => {
       try {
@@ -190,27 +214,69 @@ const EducationDetails = ({ onNext, onPrevious }) => {
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    const formattedValue =
-      name === "countryOfEducation" ? value : capitalizeWords(value);
+    // Do NOT auto-capitalize or collapse spaces while typing to avoid cursor/backspace issues
+    let formattedValue = sanitizeLive(value);
+    // Capitalize first letter for text inputs except country selector
+    if (name !== "countryOfEducation") {
+      formattedValue = capitalizeFirst(formattedValue);
+    }
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+
+    // Clear error for this field when it becomes valid
+    const isEmpty = (v) => !v || (typeof v === "string" && v.trim() === "");
+    const shouldClear = !isEmpty(formattedValue);
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (shouldClear) delete next[name];
+      // If switching away from "Other" country, also clear otherCountry error
+      if (name === "countryOfEducation" && formattedValue !== "Other") {
+        delete next.otherCountry;
+      }
+      return next;
+    });
   }, []);
 
   const handleFieldOfStudyChange = useCallback((newValue) => {
-    setFormData((prev) => ({ ...prev, fieldOfStudy: newValue }));
+    const sanitized = newValue
+      ? {
+          label: sanitize(newValue.label),
+          value: sanitize(newValue.value),
+        }
+      : null;
+    setFormData((prev) => ({ ...prev, fieldOfStudy: sanitized }));
     setErrors((prev) => ({ ...prev, fieldOfStudy: undefined }));
   }, []);
 
   const handleNext = async (e) => {
     e.preventDefault();
+    // Validate required fields before submitting
+    const newErrors = {};
+    const isEmpty = (v) => !v || (typeof v === "string" && v.trim() === "");
+    if (isEmpty(formData.schoolName)) newErrors.schoolName = "School name is required";
+    if (isEmpty(formData.highestEducation)) newErrors.highestEducation = "Highest qualification is required";
+    if (!formData.fieldOfStudy || isEmpty(formData.fieldOfStudy.value)) newErrors.fieldOfStudy = "Field of study is required";
+    if (isEmpty(formData.universityName)) newErrors.universityName = "University/College name is required";
+    if (isEmpty(formData.countryOfEducation)) newErrors.countryOfEducation = "Country of education is required";
+    if (formData.countryOfEducation === "Other" && isEmpty(formData.otherCountry)) newErrors.otherCountry = "Please specify your country";
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const normalize = (val) => {
         if (val === undefined || val === null) return "";
         if (typeof val === "object") {
-          return val.value || val.label || val.text || val.name || "";
+          const v = val.value || val.label || val.text || val.name || "";
+          return sanitize(v);
         }
-        return String(val);
+        // Apply capitalization and full sanitize only at submit time
+        const capped = capitalizeWords(val);
+        return sanitize(capped);
       };
 
       const submissionData = {
@@ -246,7 +312,10 @@ const EducationDetails = ({ onNext, onPrevious }) => {
   };
 
   const inputClass =
-    "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
+    "w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition";
+
+  const getInputClass = (field) =>
+    `${inputClass} ${errors[field] ? "border-red-500 focus:ring-red-300 focus:border-red-500" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`;
 
   return (
     <div className="min-h-screen w-91 w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
@@ -267,8 +336,11 @@ const EducationDetails = ({ onNext, onPrevious }) => {
               value={formData.schoolName}
               onChange={handleChange}
               placeholder="Enter your school name"
-              className={inputClass}
+              className={getInputClass("schoolName")}
             />
+            {errors.schoolName && (
+              <p className="text-red-500 text-sm mt-1">{errors.schoolName}</p>
+            )}
           </div>
 
           {/* Highest Qualification */}
@@ -282,8 +354,11 @@ const EducationDetails = ({ onNext, onPrevious }) => {
               onChange={handleChange}
               options={qualificationLevels}
               placeholder="Select your qualification"
-              className={inputClass}
+              className={getInputClass("highestEducation")}
             />
+            {errors.highestEducation && (
+              <p className="text-red-500 text-sm mt-1">{errors.highestEducation}</p>
+            )}
           </div>
 
           {/* Field of Study */}
@@ -369,8 +444,11 @@ const EducationDetails = ({ onNext, onPrevious }) => {
               value={formData.universityName}
               onChange={handleChange}
               placeholder="Enter university name"
-              className={inputClass}
+              className={getInputClass("universityName")}
             />
+            {errors.universityName && (
+              <p className="text-red-500 text-sm mt-1">{errors.universityName}</p>
+            )}
           </div>
 
           {/* Country of Education */}
@@ -384,18 +462,26 @@ const EducationDetails = ({ onNext, onPrevious }) => {
               onChange={handleChange}
               options={[...countries, "Other"]}
               placeholder="Select your country"
-              className={inputClass}
+               className={getInputClass("countryOfEducation")}
             />
+            {errors.countryOfEducation && (
+              <p className="text-red-500 text-sm mt-1">{errors.countryOfEducation}</p>
+            )}
 
             {formData.countryOfEducation === "Other" && (
-              <input
-                type="text"
-                name="otherCountry"
-                value={formData.otherCountry}
-                onChange={handleChange}
-                placeholder="Please specify your country"
-                className={`${inputClass} mt-2`}
-              />
+              <>
+                <input
+                  type="text"
+                  name="otherCountry"
+                  value={formData.otherCountry}
+                  onChange={handleChange}
+                  placeholder="Please specify your country"
+                  className={`${getInputClass("otherCountry")} mt-2`}
+                />
+                {errors.otherCountry && (
+                  <p className="text-red-500 text-sm mt-1">{errors.otherCountry}</p>
+                )}
+              </>
             )}
           </div>
 

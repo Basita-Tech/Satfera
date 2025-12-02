@@ -14,7 +14,8 @@ export function ComparePage({
   onAddToCompare,
   shortlistedIds,
   onToggleShortlist,
-  onViewProfile
+  onViewProfile,
+  sentProfileIds = []
 }) {
   // Diagnostic log: inspect incoming data
   console.log('ComparePage: props ->', {
@@ -145,7 +146,7 @@ export function ComparePage({
           <Button
             variant="ghost"
             onClick={onNavigateBack}
-            className="mb-2 -ml-2 text-muted-foreground hover:text-gold"
+            className="mb-2 -ml-2 text-muted-foreground hover:text-[#c8a227]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -167,6 +168,7 @@ export function ComparePage({
         onAddProfile={() => setAddModalOpen(true)}
         shortlistedIds={shortlistedIds}
         onToggleShortlist={onToggleShortlist}
+        sentProfileIds={sentProfileIds}
       />
 
       {/* Add Profile Modal */}
@@ -193,7 +195,7 @@ export function ComparePage({
 
           <Button
             onClick={onNavigateBack}
-            className="mt-4 bg-gold hover:bg-gold/90 text-white rounded-[12px]"
+            className="mt-4 bg-[#c8a227] hover:bg-[#c8a227]/90 text-white rounded-[12px]"
           >
             Add More Profiles
           </Button>

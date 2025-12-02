@@ -21,6 +21,8 @@ import {
   sendConnectionRequest,
   acceptConnectionRequest,
   rejectConnectionRequest,
+  acceptRejectedConnection,
+  rejectAcceptedConnection,
   withdrawConnectionRequest,
   getSentRequests,
   getReceivedRequests,
@@ -120,20 +122,44 @@ export function UserDashboard() {
 
         console.log("📤 Sent Requests Raw:", sentResponse);
         console.log("📥 Received Requests Raw:", receivedResponse);
+        
+        // Debug: Log first item structure from each response
+        if (sentResponse?.data?.[0]) {
+          console.log("📤 First Sent Item Structure:", {
+            hasConnectionRequestId: !!sentResponse.data[0].connectionRequestId,
+            hasConnectionId: !!sentResponse.data[0].connectionId,
+            hasUserConnectionId: !!sentResponse.data[0]?.user?.connectionId,
+            item: sentResponse.data[0]
+          });
+        }
+        if (receivedResponse?.data?.[0]) {
+          console.log("📥 First Received Item Structure:", {
+            hasConnectionRequestId: !!receivedResponse.data[0].connectionRequestId,
+            hasConnectionId: !!receivedResponse.data[0].connectionId,
+            hasUserConnectionId: !!receivedResponse.data[0]?.user?.connectionId,
+            item: receivedResponse.data[0]
+          });
+        }
 
         const transformProfile = (item) => {
           const user = item?.user || {};
           const scoreDetail = item?.scoreDetail || { score: 0 };
+          
+          // Extract connectionRequestId from various possible locations
           const connectionRequestId =
             item?.connectionRequestId ||
             user?.connectionRequestId ||
+            user?.connectionId ||  // Backend sets this in user.connectionId
             item?.connectionId ||
-            user?.connectionId ||
             item?._id;
 
           if (!connectionRequestId) {
             console.warn("⚠️ Missing connectionRequestId for item:", item);
+            console.warn("⚠️ Item structure:", JSON.stringify(item, null, 2));
           }
+
+          // Get status from item level first, fallback to user.status
+          const status = item?.status || user?.status || 'pending';
 
           return {
             id: user.userId || user.id,
@@ -146,7 +172,7 @@ export function UserDashboard() {
             caste: user.subCaste,
             image: user.closerPhoto?.url || '',
             compatibility: scoreDetail.score || 0,
-            status: user.status || 'pending'
+            status
           };
         };
 
@@ -513,8 +539,9 @@ export function UserDashboard() {
       }
       
       const connectionRequestId = profile?.connectionRequestId;
+      const currentStatus = profile?.status?.toLowerCase();
       
-      console.log("✅ Accepting request:", { profileId: idKey, connectionRequestId, profile });
+      console.log("✅ Accepting request:", { profileId: idKey, connectionRequestId, currentStatus, profile });
       
       // Validate connectionRequestId exists
       if (!connectionRequestId) {
@@ -523,8 +550,16 @@ export function UserDashboard() {
         return;
       }
       
-      // Use connectionRequestId instead of user ID
-      const response = await acceptConnectionRequest(connectionRequestId);
+      // Determine which API to call based on current status
+      let response;
+      if (currentStatus === "rejected") {
+        // Toggling from rejected to accepted
+        console.log("🔄 Toggling rejected connection to accepted");
+        response = await acceptRejectedConnection(connectionRequestId);
+      } else {
+        // Normal accept for pending requests
+        response = await acceptConnectionRequest(connectionRequestId);
+      }
       
       if (response?.success) {
         setProfiles((prev) => {
@@ -538,7 +573,10 @@ export function UserDashboard() {
         });
 
         const name = typeof payload === "object" ? payload.name : undefined;
-        toast.success(`Accepted request${name ? ` from ${name}` : ""}`);
+        const message = currentStatus === "rejected" 
+          ? `Connection with ${name || "user"} changed to accepted`
+          : `Accepted request${name ? ` from ${name}` : ""}`;
+        toast.success(message);
       } else {
         console.error("❌ Failed to accept request:", response?.message);
         toast.error(response?.message || "Failed to accept connection request");
@@ -564,8 +602,9 @@ export function UserDashboard() {
       }
       
       const connectionRequestId = profile?.connectionRequestId;
+      const currentStatus = profile?.status?.toLowerCase();
       
-      console.log("❌ Rejecting request:", { profileId: idKey, connectionRequestId, profile });
+      console.log("❌ Rejecting request:", { profileId: idKey, connectionRequestId, currentStatus, profile });
       
       // Validate connectionRequestId exists
       if (!connectionRequestId) {
@@ -574,8 +613,16 @@ export function UserDashboard() {
         return;
       }
       
-      // Use connectionRequestId instead of user ID
-      const response = await rejectConnectionRequest(connectionRequestId);
+      // Determine which API to call based on current status
+      let response;
+      if (currentStatus === "accepted") {
+        // Toggling from accepted to rejected
+        console.log("🔄 Toggling accepted connection to rejected");
+        response = await rejectAcceptedConnection(connectionRequestId);
+      } else {
+        // Normal reject for pending requests
+        response = await rejectConnectionRequest(connectionRequestId);
+      }
       
       if (response?.success) {
         setProfiles((prev) => {
@@ -586,7 +633,10 @@ export function UserDashboard() {
         });
         
         const name = typeof payload === "object" ? payload.name : undefined;
-        toast.success(`Rejected request${name ? ` from ${name}` : ""}`);
+        const message = currentStatus === "accepted" 
+          ? `Connection with ${name || "user"} changed to rejected`
+          : `Rejected request${name ? ` from ${name}` : ""}`;
+        toast.success(message);
       } else {
         console.error("❌ Failed to reject request:", response?.message);
         toast.error(response?.message || "Failed to reject connection request");
@@ -1074,13 +1124,16 @@ export function UserDashboard() {
         }
         
         // Do not navigate; show toast only
+        return response; // Return response for button state update
       } else {
         console.error("❌ Failed to send request:", response?.message);
         toast.error(response?.message || "Failed to send connection request");
+        return response; // Return response even on failure
       }
     } catch (error) {
       console.error("❌ Error sending request:", error);
       toast.error("An error occurred while sending the request");
+      return { success: false, error }; // Return failure indicator
     }
   };
 
@@ -1160,6 +1213,7 @@ export function UserDashboard() {
               shortlistedIds={shortlistedIds}
               onToggleShortlist={handleToggleShortlist}
               onViewProfile={handleViewProfile}
+              sentProfileIds={sentProfileIds}
             />
           } />
           <Route path="edit-profile" element={
@@ -1265,7 +1319,7 @@ export function UserDashboard() {
               <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 py-6">
                 <div className="bg-white rounded-[20px] p-8 text-center">
                   <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c8a227]"></div>
                     <p className="text-gray-600">Loading profile views...</p>
                   </div>
                 </div>

@@ -95,7 +95,7 @@ select,
 textarea {
   width: 100%;
   background-color: #ffffff;
-  border: 1px solid #ffffff;
+  border: 1px solid #E4C48A;
   border-radius: 0.5rem;
   color: #333;
   padding: 0.75rem 1rem;
@@ -106,7 +106,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #E4C48A ;
+  border-color: #E4C48A;
   outline: none;
 }
 
@@ -125,8 +125,8 @@ textarea:focus {
    Radio buttons (Yes/No)
 ------------------------------------------------- */
 .ccc:checked { 
-  background-color: #E4C48A;
-  border-color: #E4C48A;
+  background-color: #d4a052;
+  border-color: #d4a052;
 }
 
 /* -------------------------------------------------
@@ -154,7 +154,7 @@ h1 {
    Buttons
 ------------------------------------------------- */
 button {
-  background-color: #E4C48A;
+  background-color: #d4a052;
   color: #1a1a1a;
   border-radius: 0.75rem;
   padding: 0.75rem 1.25rem;

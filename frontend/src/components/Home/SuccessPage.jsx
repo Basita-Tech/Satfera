@@ -26,7 +26,7 @@ const SuccessPage = () => {
   };
 console.log('userData', userData)
   const handleSkip = () => {
-    navigate("/dashboard");
+    navigate("/");
   };
 
   return (
@@ -74,7 +74,7 @@ console.log('userData', userData)
           </button>
           <button
             onClick={handleSkip}
-            className="border border-[#D4A052] text-[#D4A052] hover:bg-[#D4A052]/10 py-3 rounded-lg transition-all"
+            className="border-2 border-[#D4A052] bg-white text-[#D4A052] hover:bg-[#D4A052] hover:text-white py-3 rounded-lg transition-all font-semibold shadow-sm"
           >
             Skip for Now
           </button>

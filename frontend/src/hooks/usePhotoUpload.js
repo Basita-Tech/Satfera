@@ -2,7 +2,6 @@ import { useState, useCallback, useRef } from "react";
 import {
   uploadUserPhoto,
   uploadGovernmentId,
-  updateUserPhoto,
   updateGovernmentId,
 } from "../api/auth";
 
@@ -94,8 +93,7 @@ const usePhotoUpload = () => {
           }));
 
           console.log(
-            `[PhotoUpload] ${
-              isUpdate ? "Updating" : "Uploading"
+            `[PhotoUpload] ${isUpdate ? "Updating" : "Uploading"
             } ${photoKey} (${photoType}) - Attempt ${attempt}/${maxRetries}`
           );
 
@@ -116,7 +114,7 @@ const usePhotoUpload = () => {
             uploadPromise =
               photoType === "governmentId"
                 ? updateGovernmentId(formData)
-                : updateUserPhoto(formData);
+                : uploadUserPhoto(formData);
           } else {
             uploadPromise =
               photoType === "governmentId"
@@ -307,8 +305,7 @@ const usePhotoUpload = () => {
             results.push(result);
 
             console.log(
-              `[PhotoUpload] Photo ${i + 1}/${
-                photosToUpload.length
+              `[PhotoUpload] Photo ${i + 1}/${photosToUpload.length
               } uploaded successfully in ${uploadDuration}ms`
             );
           } else {
@@ -330,8 +327,7 @@ const usePhotoUpload = () => {
             errors.push({ key, error: result.error });
 
             console.error(
-              `[PhotoUpload] Photo ${i + 1}/${photosToUpload.length} failed: ${
-                result.error
+              `[PhotoUpload] Photo ${i + 1}/${photosToUpload.length} failed: ${result.error
               }`
             );
           }

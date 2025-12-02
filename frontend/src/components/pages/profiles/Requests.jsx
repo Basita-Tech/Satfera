@@ -123,24 +123,6 @@ export function Requests({
           </div>
         </div>
 
-        {/* ✅ Premium banner */}
-        {activeTab === "received" && (
-          <div className="flex items-start gap-4 bg-gradient-to-r from-[#fff8e6] to-[#fffaf0] border border-yellow-200 text-gray-800 px-6 py-4 mx-6 mt-4 rounded-[16px]">
-            <div className="bg-yellow-100 text-yellow-700 p-3 rounded-full">
-              <Eye size={22} />
-            </div>
-            <div>
-              <h3 className="font-medium text-[15px]">
-                Upgrade to view all requests
-              </h3>
-              <p className="text-sm text-gray-600">
-                Basic members can view 3 requests per day. Upgrade to Premium to
-                view unlimited requests and get priority visibility.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* ✅ Status filter (Now for both Sent & Received) */}
         {activeTab === "sent" && <StatusFilterBar counts={sentCounts} />}
         {activeTab === "received" && <StatusFilterBar counts={receivedCounts} />}

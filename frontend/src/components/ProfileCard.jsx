@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { Star } from "lucide-react";
+import { Star, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getViewProfiles } from "../api/auth";
@@ -31,6 +31,7 @@ export function ProfileCard({
   hideStatus = false,
   profile,
   onChat,
+  onDownloadPDF,
 }) {
   const navigate = useNavigate();
   const [optimisticInCompare, setOptimisticInCompare] = React.useState(false);
@@ -119,7 +120,7 @@ export function ProfileCard({
                 <Button
                   size="sm"
                   onClick={handleRemoveClick}
-                  className="flex-1 bg-[#DDB84E] text-white rounded-[12px]"
+                  className="flex-1 bg-[#c8a227] text-white rounded-[12px] hover:bg-[#c8a227]"
                 >
                   Remove Compare
                 </Button>
@@ -209,24 +210,58 @@ export function ProfileCard({
               <span>View Profile</span>
             </Button>
 
-            {/* Accept and Reject on the same line */}
-            <div className="flex gap-2">
-              <Button
-                onClick={() => onAccept?.(profile || { id })}
-                className="flex-1 h-[38px] bg-[#c8a227] text-white rounded-full font-medium 
-                hover:bg-[#b8941e] transition-all duration-200"
-              >
-                ✓ Accept
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => onReject?.(profile || { id })}
-                className="flex-1 h-[38px] bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full font-medium 
-                hover:bg-[#d64545] hover:text-white hover:border-[#d64545] transition-all duration-200"
-              >
-                ✕ Reject
-              </Button>
-            </div>
+            {/* Dynamic buttons based on status */}
+            {(() => {
+              const currentStatus = String(status || "").toLowerCase();
+              
+              // For rejected status: show only Accept button
+              if (currentStatus === "rejected") {
+                return (
+                  <Button
+                    onClick={() => onAccept?.(profile || { id })}
+                    className="w-full h-[38px] bg-[#c8a227] text-white rounded-full font-medium 
+                    hover:bg-[#b8941e] transition-all duration-200"
+                  >
+                    ✓ Accept
+                  </Button>
+                );
+              }
+              
+              // For accepted status: show only Reject button
+              if (currentStatus === "accepted") {
+                return (
+                  <Button
+                    variant="outline"
+                    onClick={() => onReject?.(profile || { id })}
+                    className="w-full h-[38px] bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full font-medium 
+                    hover:bg-[#d64545] hover:text-white hover:border-[#d64545] transition-all duration-200"
+                  >
+                    ✕ Reject
+                  </Button>
+                );
+              }
+              
+              // For pending or any other status: show both Accept and Reject buttons
+              return (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => onAccept?.(profile || { id })}
+                    className="flex-1 h-[38px] bg-[#c8a227] text-white rounded-full font-medium 
+                    hover:bg-[#b8941e] transition-all duration-200"
+                  >
+                    ✓ Accept
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => onReject?.(profile || { id })}
+                    className="flex-1 h-[38px] bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full font-medium 
+                    hover:bg-[#d64545] hover:text-white hover:border-[#d64545] transition-all duration-200"
+                  >
+                    ✕ Reject
+                  </Button>
+                </div>
+              );
+            })()}
           </div>
         );
 
@@ -256,14 +291,39 @@ export function ProfileCard({
               </Button>
             </div>
 
-            {/* 💬 Chat Button (Full width) - Only show when both users accepted */}
-            {status === "accepted" && onChat && (
+            {/* 💬 Chat & 📄 Download PDF Buttons */}
+            {status === "accepted" && (onChat || onDownloadPDF) ? (
+              <div className="flex items-center gap-2">
+                {onChat && (
+                  <Button
+                    onClick={() => onChat?.(profile || { id })}
+                    className="flex-1 bg-[#c8a227] text-white rounded-full py-2 font-medium flex items-center justify-center gap-2 
+              hover:bg-[#b8941e] transition-all duration-200"
+                  >
+                    💬 Chat
+                  </Button>
+                )}
+                {onDownloadPDF && (
+                  <Button
+                    onClick={() => onDownloadPDF?.(profile || { id })}
+                    className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full py-2 font-medium flex items-center justify-center gap-2 
+              hover:bg-[#c8a227] hover:text-white transition-all duration-200"
+                  >
+                    <Download size={16} />
+                    PDF
+                  </Button>
+                )}
+              </div>
+            ) : null}
+            
+            {/* ✕ Reject Button (Full width) */}
+            {onReject && (
               <Button
-                onClick={() => onChat?.(profile || { id })}
-                className="w-full bg-[#c8a227] text-white rounded-full py-2 font-medium flex items-center justify-center gap-2 
-          hover:bg-[#b8941e] transition-all duration-200"
+                onClick={() => onReject?.(profile || { id })}
+                className="w-full bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full py-2 font-medium flex items-center justify-center gap-2 
+          hover:bg-[#d64545] hover:text-white transition-all duration-200"
               >
-                💬 Chat
+                ✕ Reject
               </Button>
             )}
           </div>
@@ -393,24 +453,41 @@ export function ProfileCard({
       {/* 🖼️ Profile Image (blank if none) */}
       <div className="relative w-full overflow-visible rounded-t-[20px]">
         {image ? (
-          <img
-            src={image}
-            alt={name}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-[220px] object-cover object-center"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement.classList.add('bg-gray-100');
-            }}
-          />
+          <div className="relative w-full h-[220px]">
+            <img
+              src={image}
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-[220px] object-cover object-center"
+              onError={(e) => {
+                // Hide broken image and show fallback
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            {/* Fallback for broken images */}
+            <div style={{ display: 'none' }} className="absolute inset-0 w-full h-[220px] bg-gradient-to-br from-[#fefdfb] via-[#f9f5ed] to-[#f5f0e3] flex items-center justify-center rounded-t-[20px] border-b-2 border-[#e6dec5]">
+              <div className="text-center space-y-3">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white to-[#fef9f0] shadow-md flex items-center justify-center mx-auto border-4 border-[#e4c48a]/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#c8a227]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-500 font-semibold">No Photo Available</p>
+              </div>
+            </div>
+          </div>
         ) : (
-          <div className="w-full h-[220px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center rounded-t-[20px]">
-            <div className="text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <p className="text-xs text-gray-400 font-medium">No Photo</p>
+          <div className="w-full h-[220px] bg-gradient-to-br from-[#fefdfb] via-[#f9f5ed] to-[#f5f0e3] flex items-center justify-center rounded-t-[20px] border-b-2 border-[#e6dec5]">
+            <div className="text-center space-y-3">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white to-[#fef9f0] shadow-md flex items-center justify-center mx-auto border-4 border-[#e4c48a]/20">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#c8a227]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500 font-semibold">No Photo Available</p>
             </div>
           </div>
         )}

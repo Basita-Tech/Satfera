@@ -412,7 +412,17 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
   };
 
   const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
+    let { value } = e.target;
+
+    // Live auto-capitalize for organization name while preserving spaces/backspace
+    if (name === "companyName") {
+      // Only capitalize the first letter of each word, leave whitespace as typed
+      value = value
+        .split(/(\s+)/) // keep spaces in the split result
+        .map((token) => (token.trim() ? token.charAt(0).toUpperCase() + token.slice(1) : token))
+        .join("");
+    }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
 
@@ -486,8 +496,10 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
 
   const handleNext = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
 
     const mapToBackendEmployment = (val) => {
       if (!val) return val;

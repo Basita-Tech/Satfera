@@ -1,6 +1,7 @@
 import { X, Plus, Eye, Star } from 'lucide-react';
 import { Button } from './ui/button';
 import { motion } from "framer-motion";
+import { useState } from 'react';
 
 
 export function CompareTable({
@@ -10,11 +11,28 @@ export function CompareTable({
   onSendRequest,
   onAddProfile,
   shortlistedIds = [],
-  onToggleShortlist
+  onToggleShortlist,
+  sentProfileIds = []
 }) {
   const slots = Array.from({ length: 5 }, (_, i) => profiles[i] || null);
 
   const getProfileId = (p) => p?.id ?? p?.userId ?? p?._id;
+
+  const handleSendRequest = async (id) => {
+    if (!id) return;
+    console.log('🔵 CompareTable: Sending request for ID:', id);
+    try {
+      const result = await onSendRequest(id);
+      console.log('🔵 CompareTable: onSendRequest result:', result);
+    } catch (e) {
+      console.warn('CompareTable: send request failed', e);
+    }
+  };
+
+  const isSent = (id) => {
+    const idStr = String(id);
+    return Array.isArray(sentProfileIds) && sentProfileIds.some(sid => String(sid) === idStr);
+  };
 
   if (profiles.length === 0) {
     return (
@@ -26,7 +44,7 @@ export function CompareTable({
         {onAddProfile && (
           <Button
             onClick={onAddProfile}
-            className="bg-gold hover:bg-gold/90 text-white rounded-[12px] flex items-center gap-2 mx-auto"
+            className="bg-[#c8a227] hover:bg-[#c8a227]/90 text-white rounded-[12px] flex items-center gap-2 mx-auto"
           >
             <Plus className="w-4 h-4" />
             Add Profile
@@ -339,7 +357,7 @@ export function CompareTable({
                       <button
                         onClick={() => onViewProfile(getProfileId(profile))}
                         style={{ backgroundColor: '#ffffff' }}
-                        className="w-full px-2 py-1 text-xs border border-gold text-gold rounded-lg hover:bg-gold hover:text-white transition-all flex items-center justify-center gap-1"
+                        className="w-full px-2 py-1 text-xs border border-[#c8a227] text-[#c8a227] rounded-lg hover:bg-[#c8a227] hover:text-white transition-all flex items-center justify-center gap-1"
                       >
                         <Eye className="w-3 h-3" />
                         View
@@ -352,10 +370,10 @@ export function CompareTable({
                     <button
                       onClick={onAddProfile}
                       style={{ backgroundColor: '#ffffff' }}
-                      className="w-24 h-24 border-2 border-dashed border-[#e9d7af] rounded-[12px] flex flex-col items-center justify-center gap-2 hover:border-gold hover:bg-gold/5 transition-all"
+                      className="w-24 h-24 border-2 border-dashed border-[#e9d7af] rounded-[12px] flex flex-col items-center justify-center gap-2 hover:border-[#c8a227] hover:bg-[#c8a227]/5 transition-all"
                     >
-                    <Plus className="w-6 h-6 text-gold" />
-                    <span className="text-xs text-gold">Add Profile</span>
+                    <Plus className="w-6 h-6 text-[#c8a227]" />
+                    <span className="text-xs text-[#c8a227]">Add Profile</span>
                   </button>
                 )
               )}
@@ -453,17 +471,24 @@ export function CompareTable({
                       variant="outline"
                       size="sm"
                       onClick={() => onViewProfile(getProfileId(profile))}
-                      className="border-gold text-gold hover:bg-gold hover:text-white rounded-[12px]"
+                      className="border-[#c8a227] text-[#c8a227] hover:bg-[#c8a227] hover:text-white rounded-[12px]"
                     >
                       View Profile
                     </Button>
 
                     <Button
                       size="sm"
-                      onClick={() => onSendRequest(getProfileId(profile))}
-                      className="bg-gold hover:bg-gold/90 text-white rounded-[12px]"
+                      onClick={() => {
+                        const profileId = getProfileId(profile);
+                        if (isSent(profileId)) return;
+                        console.log('🔵 Button clicked for profile ID:', profileId, 'Is sent?', isSent(profileId), 'sentProfileIds:', sentProfileIds);
+                        handleSendRequest(profileId);
+                      }}
+                      className={isSent(getProfileId(profile))
+                        ? "bg-[#c8a227] hover:bg-[#c8a227] text-white rounded-[12px] cursor-default pointer-events-none"
+                        : "bg-[#c8a227] hover:bg-[#c8a227]/90 text-white rounded-[12px]"}
                     >
-                      Send Request
+                      {isSent(getProfileId(profile)) ? 'Sent' : 'Send Request'}
                     </Button>
                   </>
                 ) : (
