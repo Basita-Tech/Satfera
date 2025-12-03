@@ -90,7 +90,7 @@ export class SessionService {
         isActive: true,
         expiresAt: { $gt: new Date() }
       })
-        .select("-token -jti")
+        .select("-token -jti -ipAddress -location.display")
         .sort({ lastActivityAt: -1 });
 
       return sessions.map((session) => ({
