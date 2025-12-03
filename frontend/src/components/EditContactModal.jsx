@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -123,9 +123,14 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[20px] p-0 max-h-[80vh] !top-[52%] my-12 mx-4 overflow-y-auto bg-white gap-0">
+      <DialogContent showClose={false} className="sm:max-w-md max-w-[80vw] rounded-[22px] sm:rounded-[22px] p-0 sm:max-h-[80vh] max-h-[70vh] sm:my-12 my-10 sm:mx-4 mx-6 overflow-y-auto bg-white gap-0 shadow-2xl border border-border-subtle overscroll-contain">
         {/* Header */}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-8 py-6 text-center text-white relative overflow-hidden rounded-t-[20px] border-b border-gold/20">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-6 sm:px-8 py-5 sm:py-6 text-center text-white relative overflow-hidden rounded-t-[22px] border-b border-gold/20">
+          <DialogClose className="absolute left-3 top-3 z-50 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
+            <span className="sr-only">Close</span>
+            {/* Using an icon via css pseudo or simple × */}
+            <span className="text-lg leading-none">×</span>
+          </DialogClose>
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -144,13 +149,13 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
         </div>
 
         {/* Form */}
-        <div className="px-8 py-6 space-y-5">
+        <div className="px-6 sm:px-8 py-5 sm:py-6 space-y-5 pb-[env(safe-area-inset-bottom)]">
           {/* Contact Input */}
           <div className="space-y-2">
             <Label htmlFor="contactValue" className="text-sm font-medium">
               {isEmail ? 'New Email Address' : 'New Mobile Number'}
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="contactValue"
                 type={isEmail ? 'email' : 'tel'}
@@ -161,7 +166,7 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
                 }}
                 placeholder={placeholder}
                 disabled={isOtpSent}
-                className={`rounded-[12px] border-border-subtle ${
+                className={`rounded-[12px] border-border-subtle flex-1 ${
                   error ? 'border-red-accent' : ''
                 }`}
               />
@@ -170,7 +175,7 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
                   type="button"
                   onClick={handleSendOtp}
                   disabled={isLoading || !value}
-                  className="bg-gold hover:bg-gold/90 text-white rounded-[12px] whitespace-nowrap"
+                  className="bg-gold hover:bg-gold/90 text-white rounded-[12px] whitespace-nowrap sm:w-auto w-full"
                 >
                   {isLoading ? 'Sending...' : 'Send OTP'}
                 </Button>
@@ -234,13 +239,13 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1 rounded-[12px] border-border-subtle h-11"
+              className="flex-1 rounded-[12px] border-border-subtle h-11 sm:w-auto w-full"
             >
               Cancel
             </Button>
@@ -249,7 +254,7 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
                 type="button"
                 onClick={handleVerifyAndSave}
                 disabled={isLoading || !otp || otp.length !== 6}
-                className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11"
+                className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11 sm:w-auto w-full"
               >
                 {isLoading ? 'Verifying...' : 'Verify & Save'}
               </Button>
@@ -258,7 +263,7 @@ export function EditContactModal({ open, onOpenChange, contactType, currentValue
                 type="button"
                 onClick={handleSendOtp}
                 disabled={isLoading || !value}
-                className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11"
+                className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11 sm:w-auto w-full"
               >
                 {isLoading ? 'Sending...' : 'Send OTP'}
               </Button>

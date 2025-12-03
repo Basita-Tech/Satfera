@@ -2007,19 +2007,19 @@ export function EditProfile({ onNavigateBack }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-6">
         <div>
-          <Label className="mb-2">Time of Birth (HH : MM)</Label>
+          <Label className="mb-2">Time of Birth (24 hrs format - HH : MM)</Label>
           <div className="flex gap-2 mt-1">
             <EditableInput
               name="birthHour"
               value={personal.birthHour || ""}
-              placeholder="HH"
+              placeholder="HH (00-23)"
               maxLength={2}
               className="rounded-md"
             />
             <EditableInput
               name="birthMinute"
               value={personal.birthMinute || ""}
-              placeholder="MM"
+              placeholder="MM (00-59)"
               maxLength={2}
               className="rounded-md"
             />

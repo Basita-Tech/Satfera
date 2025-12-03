@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserX, Search, Loader2, AlertCircle } from 'lucide-react';
@@ -79,27 +79,36 @@ export function BlockedUsersList({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col bg-white">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent showClose={false} className="sm:max-w-2xl max-w-[90vw] sm:my-12 my-6 sm:mx-4 mx-3 rounded-[16px] bg-white shadow-xl border border-border-subtle max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="bg-gold/20 px-4 sm:px-6 py-3 sm:py-4 rounded-t-[16px] border-b border-gold/30 relative">
+          <DialogClose className="absolute right-3 top-3 z-50 w-8 h-8 rounded-full bg-white/70 hover:bg-white/80 text-gold flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gold/40">
+            <span className="sr-only">Close</span>
+            <span className="text-lg leading-none">×</span>
+          </DialogClose>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
             <UserX className="w-5 h-5 text-gold" />
             Blocked Users List ({blockedUsers.length})
-          </DialogTitle>
-        </DialogHeader>
+            </DialogTitle>
+          </DialogHeader>
+        </div>
 
         {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search blocked users..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 rounded-[12px] border-border-subtle"
-          />
+        <div className="px-4 sm:px-6 pt-4">
+          <div className="flex items-center h-12 rounded-[12px] border border-border-subtle bg-white">
+            <Search className="ml-3 w-5 h-5 text-muted-foreground flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Search blocked users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 h-full bg-transparent outline-none text-sm px-3"
+            />
+          </div>
         </div>
 
         {/* Users List */}
-        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+        <div className="flex-1 overflow-y-auto space-y-3 px-4 sm:px-6 pt-4 pb-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="w-8 h-8 animate-spin mb-3" />
@@ -119,9 +128,9 @@ export function BlockedUsersList({ open, onOpenChange }) {
             filteredUsers.map((user) => (
               <div
                 key={user.customId}
-                className="flex items-center justify-between p-4 border border-border-subtle rounded-[12px] hover:bg-beige/50 transition-colors"
+                className="p-4 border border-border-subtle rounded-[12px] hover:bg-beige/50 transition-colors"
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0">
                     <UserX className="w-5 h-5 text-gold" />
                   </div>
@@ -134,11 +143,10 @@ export function BlockedUsersList({ open, onOpenChange }) {
                     </div>
                   </div>
                 </div>
-
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-[8px] bg-white border-2 border-gold text-gold hover:bg-beige hover:border-gold whitespace-nowrap ml-3"
+                  className="mt-3 rounded-[8px] bg-white border-2 border-gold text-gold hover:bg-beige hover:border-gold w-full sm:w-auto"
                   onClick={() => handleUnblock(user.customId, user.name)}
                   disabled={unblockingId === user.customId}
                 >
@@ -158,7 +166,7 @@ export function BlockedUsersList({ open, onOpenChange }) {
 
         {/* Info Note */}
         {blockedUsers.length > 0 && (
-          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-[12px] text-sm">
+          <div className="mx-4 sm:mx-6 mb-4 flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-[12px] text-sm">
             <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <p className="text-blue-800 text-xs m-0">
               Note: You can change block status for a profile once every 24 hours.

@@ -314,15 +314,15 @@ export function Settings() {
               <div className="space-y-3">
                 <div>
                   <Label className="text-sm text-muted-foreground">Email Address</Label>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-1">
                     <Input 
                       value={isLoadingContact ? 'Loading...' : contactInfo?.email || 'Not provided'}
                       readOnly
-                      className="rounded-[12px] border-border-subtle bg-beige"
+                      className="rounded-[12px] border-border-subtle bg-beige flex-1"
                     />
                     <Button 
                       variant="outline" 
-                      className="rounded-[12px] border-border-subtle whitespace-nowrap hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
+                      className="rounded-[12px] border-border-subtle whitespace-nowrap hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all sm:w-auto w-full"
                       onClick={() => setEditContactModal({ open: true, type: 'email' })}
                       disabled={isLoadingContact}
                     >
@@ -334,15 +334,15 @@ export function Settings() {
 
                 <div>
                   <Label className="text-sm text-muted-foreground">Mobile Number</Label>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-1">
                     <Input 
                       value={isLoadingContact ? 'Loading...' : contactInfo?.phoneNumber || 'Not provided'}
                       readOnly
-                      className="rounded-[12px] border-border-subtle bg-beige"
+                      className="rounded-[12px] border-border-subtle bg-beige flex-1"
                     />
                     <Button 
                       variant="outline" 
-                      className="rounded-[12px] border-border-subtle whitespace-nowrap hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all"
+                      className="rounded-[12px] border-border-subtle whitespace-nowrap hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all sm:w-auto w-full"
                       onClick={() => setEditContactModal({ open: true, type: 'phone' })}
                       disabled={isLoadingContact}
                     >
@@ -532,7 +532,7 @@ export function Settings() {
           ) : (
             <div className="space-y-4">
               {/* Email */}
-              <div className="flex items-center justify-between p-4 bg-beige rounded-[12px]">
+              <div className="flex items-center justify-between gap-4 p-4 bg-beige rounded-[12px]">
                 <div className="flex-1">
                   <div className="font-medium">Email Notifications</div>
                   <div className="text-sm text-muted-foreground">Get updates via email</div>
@@ -540,7 +540,7 @@ export function Settings() {
                 <Button
                   onClick={() => handleNotificationToggle('emailNotifications', !notificationSettings.emailNotifications)}
                   disabled={updatingNotification === 'emailNotifications'}
-                  className={`min-w-[70px] h-9 rounded-[8px] font-medium transition-all ${
+                  className={`min-w-[70px] h-9 rounded-full font-medium transition-colors ml-3 active:scale-[0.98] ${
                     notificationSettings.emailNotifications 
                       ? 'bg-gold hover:bg-gold/90 text-white' 
                       : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
@@ -552,7 +552,7 @@ export function Settings() {
               </div>
 
               {/* Push */}
-              <div className="flex items-center justify-between p-4 border border-border-subtle rounded-[12px]">
+              <div className="flex items-center justify-between gap-4 p-4 border border-border-subtle rounded-[12px]">
                 <div className="flex-1">
                   <div className="font-medium">In-app / Push Notifications</div>
                   <div className="text-sm text-muted-foreground">Receive notifications on this device</div>
@@ -560,7 +560,7 @@ export function Settings() {
                 <Button
                   onClick={() => handleNotificationToggle('pushNotifications', !notificationSettings.pushNotifications)}
                   disabled={updatingNotification === 'pushNotifications'}
-                  className={`min-w-[70px] h-9 rounded-[8px] font-medium transition-all ${
+                  className={`min-w-[70px] h-9 rounded-full font-medium transition-colors ml-3 active:scale-[0.98] ${
                     notificationSettings.pushNotifications 
                       ? 'bg-gold hover:bg-gold/90 text-white' 
                       : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
@@ -572,7 +572,7 @@ export function Settings() {
               </div>
 
               {/* SMS */}
-              <div className="flex items-center justify-between p-4 border border-border-subtle rounded-[12px]">
+              <div className="flex items-center justify-between gap-4 p-4 border border-border-subtle rounded-[12px]">
                 <div className="flex-1">
                   <div className="font-medium">SMS Notifications</div>
                   <div className="text-sm text-muted-foreground">Receive text messages</div>
@@ -580,7 +580,7 @@ export function Settings() {
                 <Button
                   onClick={() => handleNotificationToggle('smsNotifications', !notificationSettings.smsNotifications)}
                   disabled={updatingNotification === 'smsNotifications'}
-                  className={`min-w-[70px] h-9 rounded-[8px] font-medium transition-all ${
+                  className={`min-w-[70px] h-9 rounded-full font-medium transition-colors ml-3 active:scale-[0.98] ${
                     notificationSettings.smsNotifications 
                       ? 'bg-gold hover:bg-gold/90 text-white' 
                       : 'bg-gray-200 hover:bg-gray-300 text-gray-700'

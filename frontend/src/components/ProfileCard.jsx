@@ -291,9 +291,18 @@ export function ProfileCard({
               </Button>
             </div>
 
-            {/* 💬 Chat & 📄 Download PDF Buttons */}
-            {status === "accepted" && (onChat || onDownloadPDF) ? (
+            {/* 💬 Chat & ✕ Reject & 📄 PDF Buttons on one line */}
+            {status === "accepted" && (onChat || onReject || onDownloadPDF) && (
               <div className="flex items-center gap-2">
+                {onReject && (
+                  <Button
+                    onClick={() => onReject?.(profile || { id })}
+                    className="flex-1 bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full py-2 font-medium flex items-center justify-center gap-2 
+              hover:bg-[#d64545] hover:text-white transition-all duration-200"
+                  >
+                    ✕ Reject
+                  </Button>
+                )}
                 {onChat && (
                   <Button
                     onClick={() => onChat?.(profile || { id })}
@@ -314,17 +323,6 @@ export function ProfileCard({
                   </Button>
                 )}
               </div>
-            ) : null}
-            
-            {/* ✕ Reject Button (Full width) */}
-            {onReject && (
-              <Button
-                onClick={() => onReject?.(profile || { id })}
-                className="w-full bg-[#f9f5ed] text-[#d64545] border-[1.3px] border-[#d64545] rounded-full py-2 font-medium flex items-center justify-center gap-2 
-          hover:bg-[#d64545] hover:text-white transition-all duration-200"
-              >
-                ✕ Reject
-              </Button>
             )}
           </div>
         );
@@ -447,7 +445,7 @@ export function ProfileCard({
 
   return (
     <div
-      className="bg-white rounded-[20px] overflow-hidden shadow hover:shadow-lg transition-all duration-300 flex flex-col max-w-[380px] mx-auto"
+      className="bg-white rounded-[20px] overflow-hidden shadow hover:shadow-lg transition-all duration-300 flex flex-col w-full max-w-[380px] mx-auto h-full"
       onMouseEnter={handleMouseEnter}
     >
       {/* 🖼️ Profile Image (blank if none) */}
@@ -541,14 +539,15 @@ export function ProfileCard({
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleToggleShortlistClick}
-            className={`absolute top-3 right-3 p-2 rounded-full flex items-center justify-center 
+            className={`absolute top-3 right-3 p-2 rounded-full flex items-center justify-center w-auto
     shadow-none border-none bg-transparent hover:bg-[#fff8e1]/60 transition-all z-50
     ${isShortlisted ? "bg-[#fff8e1]/80" : ""}`}
           >
             <Star
-              size={18}
+              size={20}
               className={`transition-all duration-200 ${isShortlisted ? "text-[#c8a227] fill-[#c8a227]" : "text-[#c8a227]"
                 }`}
+              strokeWidth={2}
             />
           </motion.button>
         )}

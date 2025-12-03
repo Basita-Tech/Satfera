@@ -65,7 +65,7 @@ export function Requests({
 
   // ✅ Common status filter bar component
   const StatusFilterBar = ({ counts }) => (
-    <div className="flex gap-6 px-6 py-4 border-b border-gray-100 text-sm">
+    <div className="flex gap-3 sm:gap-6 px-3 md:px-6 py-4 border-b border-gray-100 text-sm overflow-x-auto">
       {["all", "pending", "accepted", "rejected"].map((status) => {
         const label = status.charAt(0).toUpperCase() + status.slice(1);
         return (
@@ -89,7 +89,7 @@ export function Requests({
   );
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
+    <div className="max-w-[1440px] mx-auto px-3 md:px-6 lg:px-8 py-6 space-y-6">
       <div>
         <h2 className="mb-2 text-lg font-semibold">Requests</h2>
         <p className="text-muted-foreground">
@@ -99,7 +99,7 @@ export function Requests({
 
       <div className="bg-white rounded-[20px] satfera-shadow">
         {/* ✅ Tabs */}
-        <div className="px-6 pt-4 flex justify-between items-center">
+        <div className="px-3 md:px-6 pt-4 flex justify-between items-center">
           <div className="flex border-b border-gray-200 text-[15px] font-medium w-full">
             {[
               { key: "sent", label: "Requests Sent" },
@@ -128,29 +128,25 @@ export function Requests({
         {activeTab === "received" && <StatusFilterBar counts={receivedCounts} />}
 
         {/* ✅ Main content */}
-        <div className="p-6">
+        <div className="p-3 md:p-6">
           {activeTab === "sent" &&
             (filteredSent.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-fr">
                 {filteredSent.map((profile) => (
-                  <div
+                  <ProfileCard
                     key={profile.id}
-                    className="bg-white rounded-[20px] shadow-[0_4px_15px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all duration-300 h-full"
-                  >
-                      <ProfileCard
-                      {...profile}
-                      variant={profile.status === "accepted" ? "approved" : "sent"}
-                      status={profile.status}
-                      onView={onViewProfile}
-                      onWithdraw={() => onWithdraw?.(profile.id)}
-                      onAddToCompare={async (pid, p) => { try { if (onAddToCompare) return await onAddToCompare(profile.id, profile); } catch (e) { console.warn(e); } }}
-                      onRemoveCompare={async (pid) => { try { if (onRemoveCompare) return await onRemoveCompare(profile.id); } catch (e) { console.warn(e); } }}
-                      isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
-                      isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
-                      onToggleShortlist={() => onToggleShortlist?.(profile.id)}
-                      onChat={() => onChat?.(profile)}
-                    />
-                  </div>
+                    {...profile}
+                    variant={profile.status === "accepted" ? "approved" : "sent"}
+                    status={profile.status}
+                    onView={onViewProfile}
+                    onWithdraw={() => onWithdraw?.(profile.id)}
+                    onAddToCompare={async (pid, p) => { try { if (onAddToCompare) return await onAddToCompare(profile.id, profile); } catch (e) { console.warn(e); } }}
+                    onRemoveCompare={async (pid) => { try { if (onRemoveCompare) return await onRemoveCompare(profile.id); } catch (e) { console.warn(e); } }}
+                    isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
+                    isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
+                    onToggleShortlist={() => onToggleShortlist?.(profile.id)}
+                    onChat={() => onChat?.(profile)}
+                  />
                 ))}
               </div>
             ) : (
@@ -161,27 +157,23 @@ export function Requests({
 
           {activeTab === "received" &&
             (filteredReceived.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-fr">
                 {filteredReceived.map((profile) => (
-                  <div
+                  <ProfileCard
                     key={profile.id}
-                    className="bg-white rounded-[20px] shadow-[0_4px_15px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] transition-all duration-300 h-full"
-                  >
-                    <ProfileCard
-                      {...profile}
-                      variant={profile.status === "accepted" ? "approved" : "received"}
-                      status={profile.status}
-                      onView={onViewProfile}
-                      onAccept={() => onAccept?.(profile)}
-                      onReject={() => onReject?.(profile)}
-                      onAddToCompare={async (pid, p) => { try { if (onAddToCompare) return await onAddToCompare(profile.id, profile); } catch (e) { console.warn(e); } }}
-                      onRemoveCompare={async (pid) => { try { if (onRemoveCompare) return await onRemoveCompare(profile.id); } catch (e) { console.warn(e); } }}
-                      isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
-                      isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
-                      onToggleShortlist={() => onToggleShortlist?.(profile.id)}
-                      onChat={() => onChat?.(profile)}
-                    />
-                  </div>
+                    {...profile}
+                    variant={profile.status === "accepted" ? "approved" : "received"}
+                    status={profile.status}
+                    onView={onViewProfile}
+                    onAccept={() => onAccept?.(profile)}
+                    onReject={() => onReject?.(profile)}
+                    onAddToCompare={async (pid, p) => { try { if (onAddToCompare) return await onAddToCompare(profile.id, profile); } catch (e) { console.warn(e); } }}
+                    onRemoveCompare={async (pid) => { try { if (onRemoveCompare) return await onRemoveCompare(profile.id); } catch (e) { console.warn(e); } }}
+                    isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
+                    isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
+                    onToggleShortlist={() => onToggleShortlist?.(profile.id)}
+                    onChat={() => onChat?.(profile)}
+                  />
                 ))}
               </div>
             ) : (

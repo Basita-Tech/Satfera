@@ -149,7 +149,7 @@ export function Navigation({ activePage, onNavigate }) {
                     </div>
 
                     {/* Search - Desktop and Mobile */}
-                    <div className="hidden md:block">
+                    <div className="hidden lg:block">
                         <div className="relative w-[200px] md:w-[240px] lg:w-[280px]">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#7b3b3b]/60 pointer-events-none z-10" />
                             <input
@@ -267,13 +267,13 @@ export function Navigation({ activePage, onNavigate }) {
                                 </SheetTrigger>
                             <SheetContent
                                 side="right"
-                                className="w-[280px] sm:w-[320px] bg-[#ebe9e6]"
+                                className="w-[280px] sm:w-[320px] !bg-white"
                             >
-                                <div className="flex flex-col gap-3 pt-16 pb-6 px-2 overflow-y-auto max-h-[calc(100vh-40px)]">
+                                <div className="flex flex-col gap-3 pt-14 pb-6 px-4 overflow-y-auto max-h-screen bg-white">
                                         {/* Mobile Search */}
-                                        <div className="mb-2">
+                                        <div className="mb-3">
                                             <div className="relative">
-                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7b3b3b]/60 pointer-events-none z-10" />
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b3b3b]/60 pointer-events-none z-10" />
                                                 <input
                                                     type="text"
                                                     placeholder="Search by ID or Name..."
@@ -288,8 +288,8 @@ export function Navigation({ activePage, onNavigate }) {
                                                             setSearchQuery('');
                                                         }
                                                     }}
-                                                    style={{ paddingLeft: '36px', paddingRight: '12px' }}
-                                                    className="w-full h-10 bg-white border border-[#D4A052]/30 rounded-[12px]
+                                                    style={{ paddingLeft: '36px', paddingRight: '12px', backgroundColor: '#ffffff' }}
+                                                    className="w-full h-10 !bg-white border border-[#D4A052]/30 rounded-[12px]
                                                         text-sm text-[#222] placeholder:text-[#7b3b3b]/60 shadow-sm
                                                         caret-[#D4A052]
                                                         focus:border-[#D4A052] focus:ring-2 focus:ring-[#D4A052]/20 focus:outline-none

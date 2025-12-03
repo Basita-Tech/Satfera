@@ -421,7 +421,7 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
             <button
               onClick={() => setSearchName(searchInput.trim())}
               aria-label="Search profiles"
-              className="bg-[#c8a227] text-white text-sm font-semibold px-4 h-10 rounded-lg hover:bg-[#b9941c] transition-colors flex items-center justify-center whitespace-nowrap"
+              className="bg-[#c8a227] text-white text-sm font-semibold px-4 h-10 rounded-lg hover:bg-[#b9941c] transition-colors flex items-center justify-center whitespace-nowrap flex-shrink-0 w-auto"
             >
               Search
             </button>
@@ -638,7 +638,7 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
               </div>
             ) : (
               <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mt-4 auto-rows-fr">
                 {paginatedProfiles.map((profile) => (
                   <ProfileCard
                     key={profile.id}

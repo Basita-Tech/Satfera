@@ -146,16 +146,18 @@ export function UserDashboard() {
           const scoreDetail = item?.scoreDetail || { score: 0 };
           
           // Extract connectionRequestId from various possible locations
+          // Backend now sets both item.connectionRequestId and user.connectionId
           const connectionRequestId =
-            item?.connectionRequestId ||
+            item?.connectionRequestId ||  // New: backend sets this at top level
+            user?.connectionId ||  // Backend also sets this in user.connectionId
             user?.connectionRequestId ||
-            user?.connectionId ||  // Backend sets this in user.connectionId
             item?.connectionId ||
             item?._id;
 
           if (!connectionRequestId) {
             console.warn("⚠️ Missing connectionRequestId for item:", item);
-            console.warn("⚠️ Item structure:", JSON.stringify(item, null, 2));
+            console.warn("⚠️ Item keys:", Object.keys(item));
+            console.warn("⚠️ User keys:", Object.keys(user));
           }
 
           // Get status from item level first, fallback to user.status

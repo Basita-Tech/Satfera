@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -107,9 +107,13 @@ export function ChangePasswordModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[20px] p-0 max-h-[80vh] !top-[52%] my-12 mx-4 overflow-y-auto bg-white gap-0">
+      <DialogContent showClose={false} className="sm:max-w-md max-w-[80vw] rounded-[22px] sm:rounded-[22px] p-0 sm:max-h-[80vh] max-h-[70vh] sm:my-12 my-10 sm:mx-4 mx-6 overflow-y-auto bg-white gap-0 shadow-2xl border border-border-subtle overscroll-contain">
         {/* Header */}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-8 py-6 text-center text-white relative overflow-hidden rounded-t-[20px] border-b border-gold/20">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-6 sm:px-8 py-5 sm:py-6 text-center text-white relative overflow-hidden rounded-t-[22px] border-b border-gold/20">
+          <DialogClose className="absolute left-3 top-3 z-50 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
+            <span className="sr-only">Close</span>
+            <span className="text-lg leading-none">×</span>
+          </DialogClose>
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -128,27 +132,27 @@ export function ChangePasswordModal({ open, onOpenChange }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-8 py-6 space-y-5">
+        <form onSubmit={handleSubmit} className="px-6 sm:px-8 py-5 sm:py-6 space-y-5 pb-[env(safe-area-inset-bottom)]">
           {/* Old Password */}
           <div className="space-y-2">
             <Label htmlFor="oldPassword" className="text-sm font-medium">
               Old Password
             </Label>
-            <div className="relative">
+            <div className="relative bg-white rounded-[12px] border border-border-subtle">
               <Input
                 id="oldPassword"
                 type={showPasswords.oldPassword ? 'text' : 'password'}
                 value={formData.oldPassword}
                 onChange={(e) => handleChange('oldPassword', e.target.value)}
                 placeholder="Enter your old password"
-                className={`rounded-[12px] border-border-subtle pr-10 ${
+                className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground ${
                   errors.oldPassword ? 'border-red-accent' : ''
                 }`}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('oldPassword')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gold hover:text-gold/90 bg-gold/15 hover:bg-gold/25 rounded-full w-8 h-8 flex items-center justify-center"
               >
                 {showPasswords.oldPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -167,21 +171,21 @@ export function ChangePasswordModal({ open, onOpenChange }) {
             <Label htmlFor="newPassword" className="text-sm font-medium">
               New Password
             </Label>
-            <div className="relative">
+            <div className="relative bg-white rounded-[12px] border border-border-subtle">
               <Input
                 id="newPassword"
                 type={showPasswords.newPassword ? 'text' : 'password'}
                 value={formData.newPassword}
                 onChange={(e) => handleChange('newPassword', e.target.value)}
                 placeholder="Enter your new password"
-                className={`rounded-[12px] border-border-subtle pr-10 ${
+                className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground ${
                   errors.newPassword ? 'border-red-accent' : ''
                 }`}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('newPassword')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gold hover:text-gold/90 bg-gold/15 hover:bg-gold/25 rounded-full w-8 h-8 flex items-center justify-center"
               >
                 {showPasswords.newPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -200,21 +204,21 @@ export function ChangePasswordModal({ open, onOpenChange }) {
             <Label htmlFor="confirmPassword" className="text-sm font-medium">
               Confirm New Password
             </Label>
-            <div className="relative">
+            <div className="relative bg-white rounded-[12px] border border-border-subtle">
               <Input
                 id="confirmPassword"
                 type={showPasswords.confirmPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => handleChange('confirmPassword', e.target.value)}
                 placeholder="Confirm your new password"
-                className={`rounded-[12px] border-border-subtle pr-10 ${
+                className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground ${
                   errors.confirmPassword ? 'border-red-accent' : ''
                 }`}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('confirmPassword')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gold hover:text-gold/90 bg-gold/15 hover:bg-gold/25 rounded-full w-8 h-8 flex items-center justify-center"
               >
                 {showPasswords.confirmPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -239,20 +243,20 @@ export function ChangePasswordModal({ open, onOpenChange }) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1 rounded-[12px] border-border-subtle h-11"
+              className="flex-1 rounded-[12px] border-border-subtle h-11 sm:w-auto w-full"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11"
+              className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11 sm:w-auto w-full"
             >
               {isLoading ? 'Changing...' : 'Change Password'}
             </Button>
