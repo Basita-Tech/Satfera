@@ -236,25 +236,7 @@ export function ProfileDetails({
     [profile?.scoreDetail?.score]
   );
 
-  const totalPhotos = photos.length;
-  const activePhoto =
-    photos[activeIndex]?.url ||
-    profile?.closerPhoto?.url ||
-    "https://images.unsplash.com/photo-1554733998-0ddd4f28f5d0?w=800";
-
   const handleBack = useCallback(() => navigate(-1), [navigate]);
-
-  const goPrev = useCallback(
-    () =>
-      totalPhotos > 0 &&
-      setActiveIndex((i) => (i - 1 + totalPhotos) % totalPhotos),
-    [totalPhotos]
-  );
-
-  const goNext = useCallback(
-    () => totalPhotos > 0 && setActiveIndex((i) => (i + 1) % totalPhotos),
-    [totalPhotos]
-  );
 
   const handleToggle = useCallback(() => {
     const idStr = String(profileId);
