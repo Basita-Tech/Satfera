@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContextr } from "../context/AuthContext";
 import { getOnboardingStatus, getProfileReviewStatus } from "../../api/auth";
@@ -62,6 +62,7 @@ export default function HomePage() {
 
   const { isAuthenticated } = useContext(AuthContextr);
   const { goToAccount, loading: accountLoading } = useGoToAccount();
+  const [logoHighlighted, setLogoHighlighted] = useState(false);
 
   const handleAccountClick = async () => {
     await goToAccount();
@@ -78,7 +79,8 @@ export default function HomePage() {
               alt="Satfera Logo"
               width={220}
               height={220}
-              className="mr-3 object-contain "
+              onClick={() => setLogoHighlighted((v) => !v)}
+              className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_12px_#FFD700]" : ""} mr-3 object-contain rounded-lg transition duration-200 cursor-pointer`}
             />
           </div>
 

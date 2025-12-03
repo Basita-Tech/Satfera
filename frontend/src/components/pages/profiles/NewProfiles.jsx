@@ -92,36 +92,45 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
         }
         
         if (response?.success && Array.isArray(response?.data)) {
-          const mapped = response.data.map((p) => {
-            const user = p.user || p;
-            const scoreDetail = p.scoreDetail;
-            const compatibilityScore = scoreDetail?.score || 0;
-            
-            return {
-              id: user.userId || user.id || user._id,
-              name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
-              age: user.age,
-              city: user.city,
-              state: user.state,
-              country: user.country,
-              profession: user.profession || user.occupation || user.professional?.Occupation,
-              religion: user.religion,
-              caste: user.subCaste,
-              education: user.education?.HighestEducation,
-              height: user.personal?.height || user.height,
-              weight: user.personal?.weight || user.weight,
-              diet: user.healthAndLifestyle?.diet,
-              image: user.closerPhoto?.url || '',
-              compatibility: compatibilityScore,
-              status: null,
-              createdAt: user.createdAt,
-              scoreDetail: scoreDetail || null,
-            };
-          });
+          const mapped = response.data
+            .map((p) => {
+              const user = p.user || p;
+              const scoreDetail = p.scoreDetail;
+              const compatibilityScore = scoreDetail?.score || 0;
+              const userId = user.userId || user.id || user._id;
+              
+              // Skip profiles with invalid IDs
+              if (!userId || userId === 'undefined' || userId === 'null') {
+                console.warn('⚠️ [NewProfiles] Skipping profile with invalid ID:', user);
+                return null;
+              }
+              
+              return {
+                id: userId,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+                age: user.age,
+                city: user.city,
+                state: user.state,
+                country: user.country,
+                profession: user.profession || user.occupation || user.professional?.Occupation,
+                religion: user.religion,
+                caste: user.subCaste,
+                education: user.education?.HighestEducation,
+                height: user.personal?.height || user.height,
+                weight: user.personal?.weight || user.weight,
+                diet: user.healthAndLifestyle?.diet,
+                image: user.closerPhoto?.url || '',
+                compatibility: compatibilityScore,
+                status: null,
+                createdAt: user.createdAt,
+                scoreDetail: scoreDetail || null,
+              };
+            })
+            .filter(Boolean);
           
-          // Filter out placeholder/test profiles: require an id and at least one meaningful field
+          // Filter out placeholder/test profiles: require valid id and at least one meaningful field
           const isMeaningful = (p) => {
-            if (!p || !p.id) return false;
+            if (!p || !p.id || typeof p.id !== 'string' || p.id.length < 10) return false;
             return Boolean(p.image || p.city || p.age || p.profession || p.createdAt);
           };
           const filtered = mapped.filter(isMeaningful);
@@ -244,7 +253,17 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
       const matchEducation =
         selectedEducation === "all" || normalize(p.education || "") === normalize(selectedEducation);
 
-      const matchAge = !p.age || (p.age >= ageRange[0] && p.age <= ageRange[1]);
+      // Age: handle numeric or numeric string
+      let matchAge;
+      if (!p.age && p.age !== 0) {
+        matchAge = true;
+      } else {
+        const ageNum = typeof p.age === 'number' ? p.age : parseInt(String(p.age).match(/\d+/)?.[0] || '0', 10);
+        matchAge = ageNum >= ageRange[0] && ageNum <= ageRange[1];
+        if (!matchAge && process.env.NODE_ENV === 'development') {
+          console.log(`🔍 Age filter: ${p.name} age=${p.age} (${ageNum}) not in [${ageRange[0]}, ${ageRange[1]}]`);
+        }
+      }
 
       // Height may be stored as a string like 5'6"; if not numeric, treat as auto-match
       let matchHeight;
@@ -253,19 +272,50 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
       } else if (typeof p.height === 'number') {
         matchHeight = p.height >= heightRange[0] && p.height <= heightRange[1];
       } else {
-        // Attempt to parse feet/inches to cm; if parse fails, allow
-        const ftInMatch = String(p.height).match(/(\d+)'(\d+)?/);
+        const hStr = String(p.height).toLowerCase().trim();
+        // Parse formats like 5'6" or 5' 6 or 5ft 6in
+        const ftInMatch = hStr.match(/(\d+)\s*'\s*(\d{1,2})?/);
         if (ftInMatch) {
           const feet = parseInt(ftInMatch[1], 10);
           const inches = ftInMatch[2] ? parseInt(ftInMatch[2], 10) : 0;
           const cm = Math.round((feet * 12 + inches) * 2.54);
           matchHeight = cm >= heightRange[0] && cm <= heightRange[1];
+          if (!matchHeight && process.env.NODE_ENV === 'development') {
+            console.log(`🔍 Height filter: ${p.name} height=${p.height} (${cm} cm) not in [${heightRange[0]}, ${heightRange[1]}]`);
+          }
+        } else if (hStr.includes('cm')) {
+          const cmNum = parseFloat(hStr.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '0');
+          matchHeight = cmNum > 0 && cmNum >= heightRange[0] && cmNum <= heightRange[1];
+          if (!matchHeight && cmNum > 0 && process.env.NODE_ENV === 'development') {
+            console.log(`🔍 Height filter: ${p.name} height=${p.height} (${cmNum} cm) not in [${heightRange[0]}, ${heightRange[1]}]`);
+          }
         } else {
-          matchHeight = true;
+          // Fallback: try plain number in string as cm
+          const cmNum = parseFloat(hStr.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '0');
+          matchHeight = cmNum > 0 ? (cmNum >= heightRange[0] && cmNum <= heightRange[1]) : true;
+          if (!matchHeight && cmNum > 0 && process.env.NODE_ENV === 'development') {
+            console.log(`🔍 Height filter: ${p.name} height=${p.height} (${cmNum} cm) not in [${heightRange[0]}, ${heightRange[1]}]`);
+          }
         }
       }
 
-      const matchWeight = !p.weight || (p.weight >= weightRange[0] && p.weight <= weightRange[1]);
+      // Weight: handle numeric or strings like "70 kg"
+      let matchWeight;
+      if (!p.weight && p.weight !== 0) {
+        matchWeight = true;
+      } else if (typeof p.weight === 'number') {
+        matchWeight = p.weight >= weightRange[0] && p.weight <= weightRange[1];
+        if (!matchWeight && process.env.NODE_ENV === 'development') {
+          console.log(`🔍 Weight filter: ${p.name} weight=${p.weight} kg not in [${weightRange[0]}, ${weightRange[1]}]`);
+        }
+      } else {
+        const wStr = String(p.weight).toLowerCase().trim();
+        const wNum = parseFloat(wStr.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '0');
+        matchWeight = wNum > 0 ? (wNum >= weightRange[0] && wNum <= weightRange[1]) : true;
+        if (!matchWeight && wNum > 0 && process.env.NODE_ENV === 'development') {
+          console.log(`🔍 Weight filter: ${p.name} weight=${p.weight} (${wNum} kg) not in [${weightRange[0]}, ${weightRange[1]}]`);
+        }
+      }
 
       return (
         matchSearch &&

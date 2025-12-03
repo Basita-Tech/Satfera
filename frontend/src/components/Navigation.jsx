@@ -12,6 +12,7 @@ export function Navigation({ activePage, onNavigate }) {
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [logoHighlighted, setLogoHighlighted] = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = async () => {
@@ -109,7 +110,8 @@ export function Navigation({ activePage, onNavigate }) {
               <img
                 src="/logo.png"
                 alt="Logo"
-                className="h-[45px] sm:h-[58px] w-auto object-contain md:h-[65px] lg:h-[75px]"
+                onClick={() => setLogoHighlighted((v) => !v)}
+                className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_10px_#FFD700]" : ""} h-[45px] sm:h-[58px] w-auto object-contain md:h-[65px] lg:h-[75px] rounded-lg transition`}
               />
             </a>
           </div>

@@ -4,6 +4,14 @@ import { Star, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getViewProfiles } from "../api/auth";
+import toast from "react-hot-toast";
+
+// Helper to validate profile ID before navigation
+const isValidProfileId = (id) => {
+  if (!id || typeof id !== 'string') return false;
+  if (id === 'undefined' || id === 'null' || id.length < 10) return false;
+  return true;
+};
 
 export function ProfileCard({
   id,
@@ -98,9 +106,15 @@ export function ProfileCard({
           <div className="space-y-2 mt-2">
             <div className="flex gap-3">
               <Button
-                onClick={() =>
-                  navigate(`/dashboard/profile/${profile?.id || id}`)
-                }
+                onClick={() => {
+                  const profileId = profile?.id || id;
+                  if (!isValidProfileId(profileId)) {
+                    toast.error('Invalid profile ID');
+                    console.error('Invalid profile ID:', profileId);
+                    return;
+                  }
+                  navigate(`/dashboard/profile/${profileId}`);
+                }}
                 className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.5px] border-[#c8a227] rounded-full font-medium 
                 hover:bg-[#c8a227]   hover:text-white transition-all duration-200"
               >
@@ -143,9 +157,15 @@ export function ProfileCard({
         return (
           <div className="flex gap-2">
             <Button
-              onClick={() =>
-                navigate(`/dashboard/profile/${profile?.id || id}`)
-              }
+              onClick={() => {
+                const profileId = profile?.id || id;
+                if (!isValidProfileId(profileId)) {
+                  toast.error('Invalid profile ID');
+                  console.error('Invalid profile ID:', profileId);
+                  return;
+                }
+                navigate(`/dashboard/profile/${profileId}`);
+              }}
               className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#e0c36a] rounded-full font-medium 
               hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200"
             >
@@ -395,9 +415,15 @@ export function ProfileCard({
             {/* View and Compare Buttons Row */}
             <div className="flex gap-2 items-center">
               <Button
-                onClick={() =>
-                  navigate(`/dashboard/profile/${profile?.id || id}`)
-                }
+                onClick={() => {
+                  const profileId = profile?.id || id;
+                  if (!isValidProfileId(profileId)) {
+                    toast.error('Invalid profile ID');
+                    console.error('Invalid profile ID:', profileId);
+                    return;
+                  }
+                  navigate(`/dashboard/profile/${profileId}`);
+                }}
                 className="flex-1 h-[38px] bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full 
           font-medium text-[13px] hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] 
           transition-all duration-200 px-4"

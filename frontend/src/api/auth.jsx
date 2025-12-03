@@ -841,11 +841,43 @@ export const verifyPhoneChange = async (newPhoneNumber) => {
   }
 };
 
-export const searchProfiles = async (query) => {
+export const searchProfiles = async (filters = {}) => {
   try {
+    // Build query params based on API spec
+    const params = {};
+    
+    // String filters
+    if (filters.name) params.name = filters.name;
+    if (filters.religion) params.religion = filters.religion;
+    if (filters.caste) params.caste = filters.caste;
+    if (filters.city) params.city = filters.city;
+    if (filters.profession) params.profession = filters.profession;
+    if (filters.sortBy) params.sortBy = filters.sortBy;
+    
+    // Enum filter for new profiles duration
+    if (filters.newProfile) params.newProfile = filters.newProfile;
+    
+    // Number range filters
+    if (filters.ageFrom !== undefined && filters.ageFrom !== null) params.ageFrom = filters.ageFrom;
+    if (filters.ageTo !== undefined && filters.ageTo !== null) params.ageTo = filters.ageTo;
+    if (filters.heightFrom !== undefined && filters.heightFrom !== null) params.heightFrom = filters.heightFrom;
+    if (filters.heightTo !== undefined && filters.heightTo !== null) params.heightTo = filters.heightTo;
+    
+    // Pagination
+    params.page = filters.page || 1;
+    params.limit = filters.limit || 10;
+
+    console.log('[searchProfiles] Request params:', params);
+
     const response = await axios.get(`${API}/user/search`, {
       headers: getAuthHeaders(),
-      params: { name: query, limit: 10 },
+      params,
+    });
+
+    console.log('[searchProfiles] Response:', {
+      success: response.data?.success,
+      listingsCount: response.data?.data?.listings?.length,
+      total: response.data?.data?.pagination?.total
     });
 
     return response.data;
@@ -855,7 +887,7 @@ export const searchProfiles = async (query) => {
     console.error("❌ Error Status:", error.response?.status);
     return {
       success: false,
-      data: [],
+      data: { listings: [], pagination: { page: 1, limit: 10, total: 0, hasMore: false } },
       message: error.response?.data?.message || "Failed to search profiles",
     };
   }
@@ -951,16 +983,26 @@ export const getViewProfiles = async (id, options = {}) => {
         return { success: false, data: null, message: "Request canceled" };
       }
 
-      console.error(
-        "❌ Get User view  profile details Error:",
-        error.response?.data || error.message
-      );
+      const errorStatus = error.response?.status;
+      const errorMsg = error.response?.data?.message || error.message;
+      
+      if (errorStatus === 404) {
+        console.warn(
+          `⚠️ Profile not found (404): ${id}`,
+          errorMsg
+        );
+      } else {
+        console.error(
+          "❌ Get User view  profile details Error:",
+          `ID: ${id}, Status: ${errorStatus},`,
+          error.response?.data || error.message
+        );
+      }
+      
       return {
         success: false,
         data: [],
-        message:
-          error.response?.data?.message ||
-          "Failed to fetch user view profile details",
+        message: errorMsg || "Failed to fetch user view profile details",
       };
     }
   });
