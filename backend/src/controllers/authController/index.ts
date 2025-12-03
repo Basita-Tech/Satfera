@@ -349,15 +349,35 @@ export class AuthController {
       const reqIp = req.ip || "";
       const reqUA = req.get("user-agent") || "";
 
+      const strictSessionChecks = true;
+
+      let isSuspicious = false;
+
       if (session.ipAddress && reqIp && session.ipAddress !== reqIp) {
         logger.warn("IP mismatch", {
           userId,
           sessionIp: session.ipAddress,
           reqIp
         });
-        return res
-          .status(401)
-          .json({ success: false, message: "Not authenticated" });
+        if (strictSessionChecks) {
+          try {
+            await SessionService.logoutSession(userId, String(session._id));
+          } catch (e) {
+            logger.error("Failed to logout session after IP mismatch", {
+              error: e
+            });
+          }
+          clearAuthCookies(res);
+          return res
+            .status(401)
+            .json({ success: false, message: "Not authenticated" });
+        } else {
+          isSuspicious = true;
+          logger.info(
+            "Non-strict mode: marking session suspicious due to IP change",
+            { userId }
+          );
+        }
       }
 
       const sessionUA = session.deviceInfo?.userAgent || "";
@@ -367,10 +387,26 @@ export class AuthController {
         !sessionUA.startsWith(reqUA) &&
         !reqUA.startsWith(sessionUA)
       ) {
-        logger.warn("User-Agent mismatch", { userId });
-        return res
-          .status(401)
-          .json({ success: false, message: "Not authenticated" });
+        logger.warn("User-Agent mismatch", { userId, sessionUA, reqUA });
+        if (strictSessionChecks) {
+          try {
+            await SessionService.logoutSession(userId, String(session._id));
+          } catch (e) {
+            logger.error("Failed to logout session after UA mismatch", {
+              error: e
+            });
+          }
+          clearAuthCookies(res);
+          return res
+            .status(401)
+            .json({ success: false, message: "Not authenticated" });
+        } else {
+          isSuspicious = true;
+          logger.info(
+            "Non-strict mode: marking session suspicious due to UA change",
+            { userId }
+          );
+        }
       }
 
       const storedFingerprint = (session as any).fingerprint || "";
@@ -382,9 +418,26 @@ export class AuthController {
             reqIp,
             reqUA
           });
-          return res
-            .status(401)
-            .json({ success: false, message: "Not authenticated" });
+          if (strictSessionChecks) {
+            try {
+              await SessionService.logoutSession(userId, String(session._id));
+            } catch (e) {
+              logger.error(
+                "Failed to logout session after fingerprint mismatch",
+                { error: e }
+              );
+            }
+            clearAuthCookies(res);
+            return res
+              .status(401)
+              .json({ success: false, message: "Not authenticated" });
+          } else {
+            isSuspicious = true;
+            logger.info(
+              "Non-strict mode: marking session suspicious due to fingerprint change",
+              { userId }
+            );
+          }
         }
       }
 
@@ -400,6 +453,12 @@ export class AuthController {
         ? (userRecord as any).toObject()
         : userRecord;
       const publicUser = sanitizeUser(userObj);
+
+      if (isSuspicious) {
+        return res
+          .status(200)
+          .json({ success: true, user: publicUser, suspicious: true });
+      }
 
       return res.status(200).json({ success: true, user: publicUser });
     } catch (err: any) {

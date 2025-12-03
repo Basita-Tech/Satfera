@@ -50,7 +50,7 @@ export const uploadPhotoController = async (
       });
     }
 
-    const fileValidation = validateUploadedFile(req.file, {
+    const fileValidation = await validateUploadedFile(req.file, {
       allowedMimeTypes: ALLOWED_MIME_TYPES.profile,
       maxSize: req.body.maxSize
     });
@@ -124,7 +124,7 @@ export const updatePhotoController = async (
       });
     }
 
-    const fileValidation = validateUploadedFile(req.file, {
+    const fileValidation = await validateUploadedFile(req.file, {
       allowedMimeTypes: ALLOWED_MIME_TYPES.profile,
       maxSize: req.body.maxSize
     });
@@ -260,7 +260,7 @@ export const uploadGovernmentIdController = async (
       });
     }
 
-    const fileValidation = validateUploadedFile(req.file, {
+    const fileValidation = await validateUploadedFile(req.file, {
       allowedMimeTypes: ALLOWED_MIME_TYPES.governmentId,
       maxSize: req.body.maxSize
     });
@@ -326,7 +326,7 @@ export const updateGovernmentIdController = async (
       });
     }
 
-    const fileValidation = validateUploadedFile(req.file, {
+    const fileValidation = await validateUploadedFile(req.file, {
       allowedMimeTypes: ALLOWED_MIME_TYPES.governmentId,
       maxSize: req.body.maxSize
     });

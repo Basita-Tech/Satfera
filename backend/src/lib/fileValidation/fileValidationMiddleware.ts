@@ -1,5 +1,5 @@
 import multer, { Multer } from "multer";
-import piexif from "piexifjs";
+import sharp from "sharp";
 import { logger } from "../common/logger";
 import { env } from "../../config";
 
@@ -76,35 +76,37 @@ function detectPolyglotAttack(buffer: Buffer): boolean {
 /**
  * Strip EXIF data from image buffer
  */
-function stripExifData(buffer: Buffer, mimeType: string): Buffer {
-  if (mimeType !== "image/jpeg") {
-    return buffer;
-  }
-
+async function stripExifData(
+  buffer: Buffer,
+  mimeType: string
+): Promise<Buffer> {
   try {
-    // piexif.load expects binary string
-    const binaryString = buffer.toString("binary");
-    const exifDict = piexif.load(binaryString) as any;
+    const img = sharp(buffer, { failOnError: false });
 
-    // Remove EXIF data by creating empty IFD entries
-    if (exifDict["0th"]) {
-      exifDict["0th"] = {};
-    }
-    if (exifDict["Exif"]) {
-      exifDict["Exif"] = {};
-    }
-    if (exifDict["GPS"]) {
-      exifDict["GPS"] = {};
-    }
-    if (exifDict["1st"]) {
-      exifDict["1st"] = {};
+    let processed: Buffer | null = null;
+    if (mimeType === "image/jpeg" || mimeType === "image/jpg") {
+      processed = await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+    } else if (mimeType === "image/png") {
+      processed = await img.png().toBuffer();
+    } else if (mimeType === "image/webp") {
+      processed = await img.webp().toBuffer();
+    } else {
+      processed = await img.toBuffer();
     }
 
-    // piexif.dump returns binary string, convert back to Buffer
-    const exifBytes = piexif.dump(exifDict);
-    return Buffer.from(exifBytes, "binary");
+    if (!processed || processed.length < 200) {
+      logger.warn(
+        `Processed image buffer suspiciously small (${processed?.length}). Falling back to original buffer.`
+      );
+      return buffer;
+    }
+
+    return processed;
   } catch (error) {
-    logger.warn("Could not strip EXIF data, returning original buffer:", error);
+    logger.warn(
+      "Could not strip EXIF data using sharp, returning original buffer:",
+      error
+    );
     return buffer;
   }
 }
@@ -171,10 +173,10 @@ function createFileFilter(photoType: string = "profile") {
 /**
  * Validate uploaded file with comprehensive checks
  */
-export function validateUploadedFile(
+export async function validateUploadedFile(
   file: Express.Multer.File,
   options: FileValidationOptions = {}
-): { valid: boolean; error?: string; cleanBuffer?: Buffer } {
+): Promise<{ valid: boolean; error?: string; cleanBuffer?: Buffer }> {
   const maxSize = options.maxSize || env.MAX_FILE_SIZE;
   const allowedMimeTypes =
     options.allowedMimeTypes || ALLOWED_MIME_TYPES.profile;
@@ -225,10 +227,11 @@ export function validateUploadedFile(
   let cleanBuffer = file.buffer;
   if (file.mimetype.startsWith("image/")) {
     try {
-      cleanBuffer = stripExifData(file.buffer, file.mimetype);
+      cleanBuffer = await stripExifData(file.buffer, file.mimetype);
     } catch (error) {
       logger.warn("Error stripping EXIF data:", error);
       // Continue with original buffer if EXIF stripping fails
+      cleanBuffer = file.buffer;
     }
   }
 
