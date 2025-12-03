@@ -33,10 +33,15 @@ const AuthMonitor = () => {
         const API = import.meta.env.VITE_API_URL;
         await axios.get(`${API}/auth/me`, { withCredentials: true });
       } catch (err) {
-        logout();
-        navigate("/login", { replace: true });
+        // Only act on actual 401 (unauthorized). Ignore transient network errors.
+        if (err?.response?.status === 401) {
+          logout();
+          navigate("/login", { replace: true });
+        } else {
+          console.warn("Auth monitor network error:", err?.message || err);
+        }
       }
-    }, 5000);
+    }, 5 * 60 * 1000);
 
     return () => {
       clearInterval(authCheckInterval);

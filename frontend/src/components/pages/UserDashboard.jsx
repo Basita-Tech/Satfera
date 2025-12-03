@@ -328,47 +328,205 @@ export function UserDashboard() {
     const resolveProfiles = async () => {
       try {
         const ids = Array.isArray(compareProfiles) ? compareProfiles.map(String) : [];
-        const pool = [...profiles.sent, ...profiles.received, ...shortlistedProfiles];
-        const results = [];
-        const toFetch = [];
-
-        ids.forEach((id) => {
-          const found = pool.find((p) => String(p.id) === id || String(p.userId) === id || String(p._id) === id);
-          if (found) results.push(found);
-          else toFetch.push(id);
-        });
-
-        if (toFetch.length) {
-          const fetched = await Promise.all(
-            toFetch.map((id) => getViewProfiles(id).catch((e) => {
-              console.warn('Failed to fetch profile for compare id', id, e);
-              return null;
-            }))
-          );
-          fetched.forEach((f) => {
-            if (f && f.success && f.data) results.push(f.data);
+        
+        // Get existing profiles from current state via a callback to avoid dependency issues
+        setSelectedCompareProfiles(currentProfiles => {
+          const existingMap = new Map();
+          (Array.isArray(currentProfiles) ? currentProfiles : []).forEach(p => {
+            const key = String((p?.userId ?? p?.id ?? p?._id ?? (p?.user && (p.user.userId || p.user.id))) || '').trim();
+            if (key) existingMap.set(key, p);
           });
-        }
+          
+          const pool = [...profiles.sent, ...profiles.received, ...shortlistedProfiles];
+          const results = [];
+          const toFetchIds = [];
 
-        // Deduplicate by id (in case of duplicates)
-        const uniq = [];
-        const seen = new Set();
-        for (const r of results) {
-          const key = String(r?.userId || r?.id || r?._id || '');
-          if (!key) continue;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          uniq.push(r);
-        }
+          console.log('🔍 Compare profile resolution:', {
+            poolSize: pool.length,
+            idsToResolve: ids,
+            poolSample: pool[0] ? {
+              id: pool[0].id || pool[0].userId,
+              hasImage: !!pool[0].image,
+              hasUser: !!pool[0].user,
+              hasUserCloserPhoto: !!pool[0].user?.closerPhoto,
+              structure: Object.keys(pool[0])
+            } : 'no profiles in pool'
+          });
 
-        if (mounted) setSelectedCompareProfiles(uniq);
+          ids.forEach((id) => {
+            // First check if we already have this profile (preserve existing data to prevent flicker)
+            if (existingMap.has(id)) {
+              const cached = existingMap.get(id);
+              
+              // If cached profile lacks image, try to re-normalize it from pool
+              if (!cached.image) {
+                console.log('⚠️ Cached profile lacks image, attempting re-normalization:', id);
+                const poolProfile = pool.find((p) => {
+                  const pid = String(p?.id || p?.userId || p?._id || (p?.user && (p.user.userId || p.user.id)) || '');
+                  return pid === id;
+                });
+                
+                if (poolProfile) {
+                  const user = poolProfile?.user || poolProfile;
+                  const normalizedImage = user?.closerPhoto?.url || poolProfile?.closerPhoto?.url || user?.image || poolProfile?.image || '';
+                  
+                  if (normalizedImage) {
+                    console.log('✅ Re-normalized image from pool:', {
+                      id,
+                      imageFound: normalizedImage,
+                      source: user?.closerPhoto?.url ? 'user.closerPhoto.url' : 'fallback'
+                    });
+                    // Update cached profile with image
+                    results.push({ ...cached, image: normalizedImage });
+                    return;
+                  }
+                }
+              }
+              
+              console.log('✅ Found profile in existing cache:', {
+                id,
+                hasImage: !!cached.image,
+                imageValue: cached.image,
+                keys: Object.keys(cached)
+              });
+              results.push(cached);
+              return;
+            }
+            
+            // Then check the pool
+            const found = pool.find((p) => {
+              const pid = String(p?.id || p?.userId || p?._id || (p?.user && (p.user.userId || p.user.id)) || '');
+              return pid === id;
+            });
+            
+            if (found) {
+              // Normalize profile structure to ensure image field is present
+              // Handle both transformed profiles and raw backend profiles
+              const user = found?.user || found;
+              
+              // Extract image from various possible locations
+              const image = found.image 
+                || user.closerPhoto?.url 
+                || user.image 
+                || (found.user?.closerPhoto?.url)
+                || '';
+              
+              console.log('🔍 Found profile in pool:', {
+                id,
+                foundStructure: {
+                  hasUser: !!found.user,
+                  hasImage: !!found.image,
+                  hasCloserPhoto: !!user.closerPhoto,
+                  closerPhotoUrl: user.closerPhoto?.url,
+                  extractedImage: image
+                }
+              });
+              
+              const normalized = {
+                ...found,
+                id: found.id || found.userId || user.userId || user.id,
+                userId: found.userId || found.id || user.userId || user.id,
+                name: found.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+                image: image,
+                user: user
+              };
+              results.push(normalized);
+            } else {
+              console.log('❌ Profile not found in pool, will fetch:', id);
+              toFetchIds.push(id);
+            }
+          });
+
+          // If we need to fetch profiles, do it asynchronously
+          if (toFetchIds.length > 0 && mounted) {
+            Promise.all(
+              toFetchIds.map((id) => getViewProfiles(id).catch((e) => {
+                console.warn('Failed to fetch profile for compare id', id, e);
+                return null;
+              }))
+            ).then(fetched => {
+              if (!mounted) return;
+              
+              const fetchedProfiles = fetched
+                .filter(f => f && f.success && f.data)
+                .map(f => {
+                  // Normalize the profile structure - backend returns nested user object
+                  const rawProfile = f.data;
+                  const user = rawProfile?.user || rawProfile;
+                  const scoreDetail = rawProfile?.scoreDetail || {};
+                  
+                  console.log('🔍 Normalizing fetched profile:', {
+                    raw: rawProfile,
+                    user: user,
+                    closerPhoto: user?.closerPhoto,
+                    imageUrl: user?.closerPhoto?.url
+                  });
+                  
+                  // Create a normalized profile object
+                  return {
+                    ...rawProfile,
+                    id: user.userId || user.id || rawProfile.id,
+                    userId: user.userId || user.id,
+                    name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    age: user.age,
+                    city: user.city,
+                    image: user.closerPhoto?.url || user.image || '',
+                    closerPhoto: user.closerPhoto,
+                    profession: user.profession,
+                    religion: user.religion,
+                    subCaste: user.subCaste,
+                    user: user, // Keep original user object for backward compatibility
+                    scoreDetail: scoreDetail
+                  };
+                });
+              
+              if (fetchedProfiles.length > 0) {
+                setSelectedCompareProfiles(prev => {
+                  const combined = [...(Array.isArray(prev) ? prev : []), ...fetchedProfiles];
+                  const uniq = [];
+                  const seen = new Set();
+                  for (const r of combined) {
+                    const key = String(r?.userId || r?.id || r?._id || '');
+                    if (!key || seen.has(key)) continue;
+                    seen.add(key);
+                    // Only add if it's in the compareProfiles IDs list
+                    if (ids.includes(key)) uniq.push(r);
+                  }
+                  console.log('✅ Updated selectedCompareProfiles with fetched profiles:', uniq.length);
+                  return uniq;
+                });
+              }
+            });
+          }
+
+          // Deduplicate by id
+          const uniq = [];
+          const seen = new Set();
+          for (const r of results) {
+            const key = String(r?.userId || r?.id || r?._id || '');
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            uniq.push(r);
+          }
+
+          // Only update if we have profiles or if compareProfiles is empty
+          if (uniq.length > 0 || compareProfiles.length === 0) {
+            console.log('🔁 Resolved selectedCompareProfiles:', uniq.length, 'profiles');
+            return uniq;
+          }
+          
+          // Keep existing profiles if we couldn't resolve any
+          return currentProfiles;
+        });
       } catch (err) {
         console.error('Error resolving compare profiles', err);
       }
     };
     resolveProfiles();
     return () => { mounted = false; };
-  }, [compareProfiles, profiles, shortlistedProfiles]);
+  }, [compareProfiles, profiles.sent, profiles.received, shortlistedProfiles]);
 
   // Load compare list from backend so UI toggle matches server state
   // Reusable fetcher: backend is source-of-truth. Normalizes response to two states:
@@ -405,8 +563,16 @@ export function UserDashboard() {
           const user = raw?.user || raw || {};
           const id = String(raw?.userId ?? raw?.id ?? raw?._id ?? user?.userId ?? user?.id ?? '').trim();
           const name = raw?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.name || '';
-          const image = raw?.image || raw?.closerPhoto?.url || raw?.closerPhoto || user?.closerPhoto?.url || user?.closerPhoto || '';
+          // Fix image path - prioritize user.closerPhoto.url (backend structure)
+          const image = user?.closerPhoto?.url || raw?.closerPhoto?.url || user?.image || raw?.image || '';
           const age = raw?.age ?? user?.age ?? null;
+          console.log('🔧 normalize() called:', { 
+            rawId: raw?._id || raw?.id,
+            hasUser: !!raw?.user,
+            userCloserPhotoUrl: user?.closerPhoto?.url,
+            extractedImage: image,
+            rawKeys: Object.keys(raw || {})
+          });
           return { ...raw, id, name, image, age };
         };
 
@@ -455,8 +621,15 @@ export function UserDashboard() {
               const user = raw?.user || raw || {};
               const id = String(raw?.userId ?? raw?.id ?? raw?._id ?? user?.userId ?? user?.id ?? '').trim();
               const name = raw?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.name || '';
-              const image = raw?.image || raw?.closerPhoto?.url || raw?.closerPhoto || user?.closerPhoto?.url || user?.closerPhoto || '';
+              // Fix image path - prioritize user.closerPhoto.url (backend structure)
+              const image = user?.closerPhoto?.url || raw?.closerPhoto?.url || user?.image || raw?.image || '';
               const age = raw?.age ?? user?.age ?? null;
+              console.log('🔧 fallback normalize:', { 
+                rawId: raw?._id || raw?.id,
+                hasUser: !!raw?.user,
+                userCloserPhotoUrl: user?.closerPhoto?.url,
+                extractedImage: image
+              });
               norm.push({ ...raw, id, name, image, age });
             }
             if (norm.length > 0) setSelectedCompareProfiles(norm);

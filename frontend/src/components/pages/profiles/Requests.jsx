@@ -131,7 +131,7 @@ export function Requests({
         <div className="p-3 md:p-6">
           {activeTab === "sent" &&
             (filteredSent.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-fr">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {filteredSent.map((profile) => (
                   <ProfileCard
                     key={profile.id}
@@ -157,7 +157,7 @@ export function Requests({
 
           {activeTab === "received" &&
             (filteredReceived.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 auto-rows-fr">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {filteredReceived.map((profile) => (
                   <ProfileCard
                     key={profile.id}

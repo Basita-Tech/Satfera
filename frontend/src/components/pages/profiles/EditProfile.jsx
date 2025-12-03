@@ -326,7 +326,7 @@ const INDIAN_STATES = [
   "Uttarakhand",
   "West Bengal",
 ];
-const ALL_COUNTRIES = getNames().filter((c) => c !== "India");
+const ALL_COUNTRIES = getNames();
 const ABROAD_OPTIONS = ["No preference", ...ALL_COUNTRIES];
 
 export function EditProfile({ onNavigateBack }) {
@@ -711,7 +711,6 @@ export function EditProfile({ onNavigateBack }) {
           motherName: data.motherName || "",
           motherProfession: data.motherOccupation || "",
           motherPhone: data.motherContact || "",
-          motherNative: data.motherNativePlace || "",
           grandFatherName: data.grandFatherName || "",
           grandMotherName: data.grandMotherName || "",
           nanaName: data.nanaName || "",
@@ -1066,7 +1065,6 @@ export function EditProfile({ onNavigateBack }) {
           motherName: normalize(family.motherName),
           motherOccupation: normalize(family.motherProfession),
           motherContact: normalize(family.motherPhone),
-          motherNativePlace: normalize(family.motherNative),
           grandFatherName: normalize(family.grandFatherName),
           grandMotherName: normalize(family.grandMotherName),
           nanaName: normalize(family.nanaName),
@@ -1111,8 +1109,6 @@ export function EditProfile({ onNavigateBack }) {
               motherProfession:
                 server.motherOccupation || submissionData.motherOccupation,
               motherPhone: server.motherContact || submissionData.motherContact,
-              motherNative:
-                server.motherNativePlace || submissionData.motherNativePlace,
               grandFatherName:
                 server.grandFatherName || submissionData.grandFatherName,
               grandMotherName:
@@ -2783,16 +2779,6 @@ export function EditProfile({ onNavigateBack }) {
             name="motherPhone"
           />
         </div>
-        <div className="space-y-2">
-          <Label>Mother's Native Place</Label>
-          <EditableInput
-            placeholder="Native place"
-            value={family.motherNative || ""}
-            onChange={handleFamilyChange("motherNative")}
-            className="rounded-[12px]"
-            name="motherNative"
-          />
-        </div>
       </div>
 
       {/* Grandparents */}
@@ -2920,7 +2906,6 @@ export function EditProfile({ onNavigateBack }) {
             <CustomSelect
               value={family.siblingCount || ""}
               onChange={(e) => handleSiblingCount(Number(e.target.value))}
-              disabled={isBlank(family.siblingCount)}
               options={[1, 2, 3, 4, 5, 6].map((num) => String(num))}
               placeholder="Select"
               className=""
@@ -2939,7 +2924,6 @@ export function EditProfile({ onNavigateBack }) {
                     type="text"
                     placeholder={`Sibling ${index + 1} Name`}
                     value={sibling.name}
-                    disabled={isBlank(sibling.name)}
                     onChange={(e) =>
                       handleSiblingChange(index, "name", e.target.value)
                     }
@@ -2951,7 +2935,6 @@ export function EditProfile({ onNavigateBack }) {
                   <label className="text-sm font-medium">Relation</label>
                   <CustomSelect
                     value={sibling.relation}
-                    disabled={isBlank(sibling.relation)}
                     onChange={(e) =>
                       handleSiblingChange(index, "relation", e.target.value)
                     }
@@ -2978,7 +2961,6 @@ export function EditProfile({ onNavigateBack }) {
                     </label>
                     <CustomSelect
                       value={sibling.maritalStatus}
-                      disabled={isBlank(sibling.maritalStatus)}
                       onChange={(e) =>
                         handleSiblingChange(
                           index,
@@ -3151,6 +3133,7 @@ export function EditProfile({ onNavigateBack }) {
               }
               options={JOB_TITLES.map((t) => ({ label: t, value: t }))}
               classNamePrefix="react-select"
+              maxMenuHeight={192}
               styles={{
                 control: (base, state) => ({
                   ...base,
@@ -3291,21 +3274,16 @@ export function EditProfile({ onNavigateBack }) {
           />
         </div>
 
-        <div className="md:col-span-2">
-          <Label className="mb-2">Medical History Details</Label>
-          {(String(lifestyle.isHaveMedicalHistory || "").toLowerCase() ===
-            "yes" ||
-            Boolean(
-              lifestyle.healthIssues &&
-                String(lifestyle.healthIssues).trim().length
-            )) && (
+        {String(lifestyle.isHaveMedicalHistory || "").toLowerCase() === "yes" && (
+          <div className="md:col-span-2">
+            <Label className="mb-2">Medical History Details</Label>
             <Textarea
               value={lifestyle.healthIssues || ""}
               onChange={(e) => handleLifestyleChange("healthIssues")(e)}
               className={inputClass}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Raw server payload removed per request */}
@@ -3481,7 +3459,7 @@ export function EditProfile({ onNavigateBack }) {
         />
 
         {/* Content */}
-        <div className="mt-8">
+        <div className="mt-8 overflow-visible">
           {activeTab === "personal" && renderPersonalDetails()}
           {activeTab === "family" && renderFamilyDetails()}
           {activeTab === "education" && renderEducationDetails()}

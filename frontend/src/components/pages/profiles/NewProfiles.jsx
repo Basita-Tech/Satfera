@@ -104,7 +104,7 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
               city: user.city,
               state: user.state,
               country: user.country,
-              profession: user.occupation || user.professional?.Occupation,
+              profession: user.profession || user.occupation || user.professional?.Occupation,
               religion: user.religion,
               caste: user.subCaste,
               education: user.education?.HighestEducation,

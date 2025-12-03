@@ -175,8 +175,28 @@ export function CompareTable({
 
     switch (key) {
       case 'image':
-        return tryPaths(['image', 'closerPhoto.url', 'user.closerPhoto.url', 'user.image', 'user.profilePhoto.url'])
-          ?? (findInObjectWithPath(profile, 'image') || {}).value;
+        {
+          const result = tryPaths(['image', 'closerPhoto.url', 'user.closerPhoto.url', 'user.image', 'user.profilePhoto.url'])
+            ?? (findInObjectWithPath(profile, 'image') || {}).value;
+          
+          // Debug logging for image resolution
+          if (!result || result === '') {
+            console.warn('⚠️ Image not found for profile:', {
+              profileId: profile?.id || profile?.userId,
+              triedPaths: ['image', 'closerPhoto.url', 'user.closerPhoto.url', 'user.image', 'user.profilePhoto.url'],
+              profileStructure: {
+                hasImage: !!profile?.image,
+                hasCloserPhoto: !!profile?.closerPhoto,
+                hasUserCloserPhoto: !!profile?.user?.closerPhoto,
+                imageValue: profile?.image,
+                closerPhotoValue: profile?.closerPhoto,
+                userCloserPhotoValue: profile?.user?.closerPhoto
+              }
+            });
+          }
+          
+          return result;
+        }
       case 'name':
         return tryPaths(['name', 'user.name', 'user.fullName', 'user.profileName', 'firstName', 'lastName'])
           ?? (findInObjectWithPath(profile, 'name') || {}).value;

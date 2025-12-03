@@ -400,7 +400,7 @@ export function Dashboard({
                   state={match.user.state}
                   religion={match.user.religion}
                   caste={match.user.subCaste}
-                  profession={match.user.occupation}
+                  profession={match.user.profession}
                   image={match.user.closerPhoto?.url}
                   compatibility={match.scoreDetail?.score}
                   status={match.user.connectionStatus || null}

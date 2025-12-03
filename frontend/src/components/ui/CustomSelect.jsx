@@ -152,7 +152,7 @@ export default function CustomSelect({
 
       {open && (
         <div
-          className={`absolute z-30 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-full rounded-md border border-[#D4A052] bg-white shadow-lg`}
+          className={`absolute z-[9999] ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-full rounded-md border border-[#D4A052] bg-white shadow-lg`}
         >
           {/* Search input */}
           <div className="p-2 border-b border-gray-200">
@@ -173,7 +173,7 @@ export default function CustomSelect({
           <ul
             role="listbox"
             tabIndex={-1}
-            className="max-h-60 overflow-auto focus:outline-none"
+            className="max-h-48 overflow-auto focus:outline-none"
           >
             {/* Placeholder option */}
             {placeholder && !searchTerm && (

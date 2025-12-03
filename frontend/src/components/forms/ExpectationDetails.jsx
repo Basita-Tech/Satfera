@@ -59,7 +59,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     "No preference",
   ];
 
-  const allCountries = [...getNames()].filter((c) => c !== "India");
+  const allCountries = [...getNames()];
   const abroadOptions = ["No preference", ...allCountries];
 
   const indianStates = [
