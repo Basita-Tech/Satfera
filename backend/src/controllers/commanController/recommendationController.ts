@@ -7,7 +7,13 @@ import {
   getDetailedProfile
 } from "../../services";
 import { formatListingProfile, logger } from "../../lib";
-import { UserPersonal, User, Profile, UserHealth } from "../../models";
+import {
+  UserPersonal,
+  User,
+  Profile,
+  UserHealth,
+  UserProfession
+} from "../../models";
 import { AuthenticatedRequest } from "../../types";
 import { APP_CONFIG } from "../../utils/constants";
 import { isAffirmative } from "../../utils/utils";
@@ -104,13 +110,22 @@ export const getRecommendations = async (req: Request, res: Response) => {
       (r: any) => new mongoose.Types.ObjectId(r.user.userId)
     );
 
-    const [users, personals, profiles] = await Promise.all([
+    const [users, personals, profiles, professions] = await Promise.all([
       User.find(
         { _id: { $in: candidateIds } },
-        "firstName lastName dateOfBirth"
+        "firstName lastName dateOfBirth createdAt"
       ).lean(),
-      UserPersonal.find({ userId: { $in: candidateIds } }).lean(),
-      Profile.find({ userId: { $in: candidateIds } }).lean()
+      UserPersonal.find({ userId: { $in: candidateIds } })
+        .select(
+          "userId full_address.city full_address.state residingCountry religion subCaste"
+        )
+        .lean(),
+      Profile.find({ userId: { $in: candidateIds } })
+        .select("userId favoriteProfiles photos.closerPhoto.url")
+        .lean(),
+      UserProfession.find({ userId: { $in: candidateIds } })
+        .select("userId Occupation")
+        .lean()
     ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
@@ -120,6 +135,9 @@ export const getRecommendations = async (req: Request, res: Response) => {
     const profileMap = new Map(
       profiles.map((p: any) => [p.userId.toString(), p])
     );
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
+    );
 
     const formattedResults = await Promise.all(
       recommendations.map((rec: any) => {
@@ -127,6 +145,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
         const user = userMap.get(candidateId);
         const personal = personalMap.get(candidateId);
         const profile = profileMap.get(candidateId);
+        const profession = professionMap.get(candidateId);
 
         if (!user) return null;
 
@@ -134,6 +153,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
           user,
           personal,
           profile,
+          profession,
           rec.scoreDetail || { score: 0, reasons: [] },
           null
         );
@@ -201,13 +221,22 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
       (m: any) => new mongoose.Types.ObjectId(m.user.userId)
     );
 
-    const [users, personals, profiles] = await Promise.all([
+    const [users, personals, profiles, professions] = await Promise.all([
       User.find(
         { _id: { $in: candidateIds } },
         "firstName lastName dateOfBirth createdAt"
       ).lean(),
-      UserPersonal.find({ userId: { $in: candidateIds } }).lean(),
-      Profile.find({ userId: { $in: candidateIds } }).lean()
+      UserPersonal.find({ userId: { $in: candidateIds } })
+        .select(
+          "userId full_address.city full_address.state residingCountry religion subCaste"
+        )
+        .lean(),
+      Profile.find({ userId: { $in: candidateIds } })
+        .select("userId favoriteProfiles photos.closerPhoto.url")
+        .lean(),
+      UserProfession.find({ userId: { $in: candidateIds } })
+        .select("userId Occupation")
+        .lean()
     ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
@@ -217,6 +246,9 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     const profileMap = new Map(
       profiles.map((p: any) => [p.userId.toString(), p])
     );
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
+    );
 
     const formattedResults = await Promise.all(
       matches.map((match: any) => {
@@ -224,6 +256,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
         const user = userMap.get(candidateId);
         const personal = personalMap.get(candidateId);
         const profile = profileMap.get(candidateId);
+        const profession = professionMap.get(candidateId);
 
         if (!user) return null;
 
@@ -231,6 +264,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
           user,
           personal,
           profile,
+          profession,
           match.scoreDetail || { score: 0, reasons: [] },
           null
         );
@@ -312,6 +346,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     let users: any[] = [];
     let personals: any[] = [];
     let profiles: any[] = [];
+    let professions: any[] = [];
 
     const authObjId =
       requesterId && mongoose.Types.ObjectId.isValid(requesterId)
@@ -364,15 +399,26 @@ export const getAllProfiles = async (req: Request, res: Response) => {
               : id
           );
 
-          [users, personals, profiles] = await Promise.all([
+          [users, personals, profiles, professions] = await Promise.all([
             User.find(
               { _id: { $in: hivIds, $ne: authObjId } },
               "firstName lastName dateOfBirth createdAt"
             ).lean(),
             UserPersonal.find({
               userId: { $in: hivIds, $ne: authObjId }
-            }).lean(),
-            Profile.find({ userId: { $in: hivIds, $ne: authObjId } }).lean()
+            })
+              .select(
+                "userId full_address.city full_address.state residingCountry religion subCaste"
+              )
+              .lean(),
+            Profile.find({ userId: { $in: hivIds, $ne: authObjId } })
+              .select("userId favoriteProfiles photos.closerPhoto.url")
+              .lean(),
+            UserProfession.find({
+              userId: { $in: hivIds, $ne: authObjId }
+            })
+              .select("userId Occupation")
+              .lean()
           ]);
         } else if (seekerHasNegative) {
           // seeker explicitly negative -> only include explicit negative profiles
@@ -410,42 +456,62 @@ export const getAllProfiles = async (req: Request, res: Response) => {
               : id
           );
 
-          [users, personals, profiles] = await Promise.all([
+          [users, personals, profiles, professions] = await Promise.all([
             User.find(
               { _id: { $in: noHivIds, $ne: authObjId } },
               "firstName lastName dateOfBirth createdAt"
             ).lean(),
             UserPersonal.find({
               userId: { $in: noHivIds, $ne: authObjId }
-            }).lean(),
-            Profile.find({ userId: { $in: noHivIds, $ne: authObjId } }).lean()
+            })
+              .select(
+                "userId full_address.city full_address.state residingCountry religion subCaste"
+              )
+              .lean(),
+            Profile.find({ userId: { $in: noHivIds, $ne: authObjId } })
+              .select("userId favoriteProfiles photos.closerPhoto.url")
+              .lean(),
+            UserProfession.find({
+              userId: { $in: noHivIds, $ne: authObjId }
+            })
+              .select("userId Occupation")
+              .lean()
           ]);
         } else {
-          [users, personals, profiles] = await Promise.all([
+          [users, personals, profiles, professions] = await Promise.all([
             User.find(
               { _id: { $ne: authObjId } },
               "firstName lastName dateOfBirth createdAt"
             ).lean(),
-            UserPersonal.find({ userId: { $ne: authObjId } }).lean(),
-            Profile.find({ userId: { $ne: authObjId } }).lean()
+            UserPersonal.find({ userId: { $ne: authObjId } })
+              .select(
+                "userId full_address.city full_address.state residingCountry religion subCaste"
+              )
+              .lean(),
+            Profile.find({ userId: { $ne: authObjId } })
+              .select("userId favoriteProfiles photos.closerPhoto.url")
+              .lean(),
+            UserProfession.find({ userId: { $ne: authObjId } })
+              .select("userId Occupation")
+              .lean()
           ]);
         }
       } catch (e) {
         // fallback to default full list on error
-        [users, personals, profiles] = await Promise.all([
-          User.find(
-            { _id: { $ne: authObjId } },
-            "firstName lastName dateOfBirth createdAt"
-          ).lean(),
-          UserPersonal.find({ userId: { $ne: authObjId } }).lean(),
-          Profile.find({ userId: { $ne: authObjId } }).lean()
-        ]);
+        logger.error("Error applying health filters:", e);
       }
     } else {
-      [users, personals, profiles] = await Promise.all([
+      [users, personals, profiles, professions] = await Promise.all([
         User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
-        UserPersonal.find({}).lean(),
-        Profile.find({}).lean()
+        UserPersonal.find({})
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({})
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        UserProfession.find({}).select("userId Occupation").lean()
       ]);
     }
 
@@ -455,6 +521,9 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const profileMap = new Map(
       profiles.map((p: any) => [p.userId.toString(), p])
     );
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
+    );
 
     const formattedResults = await Promise.all(
       users.map((u: any) => {
@@ -462,6 +531,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
         const user = u;
         const personal = personalMap.get(candidateId);
         const profile = profileMap.get(candidateId);
+        const profession = professionMap.get(candidateId);
 
         if (!user) return null;
 
@@ -469,6 +539,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
           user,
           personal,
           profile,
+          profession,
           { score: 0, reasons: [] },
           null
         );

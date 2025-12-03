@@ -83,15 +83,25 @@ export async function getUserProfileViewsService(
 
   const viewerIds = results.map((r: any) => String(r._id));
 
-  const [users, personals, profiles, profileViewDoc] = await Promise.all([
-    User.find(
-      { _id: { $in: viewerIds } },
-      "firstName lastName dateOfBirth createdAt customId"
-    ).lean(),
-    UserPersonal.find({ userId: { $in: viewerIds } }).lean(),
-    Profile.find({ userId: { $in: viewerIds } }).lean(),
-    Profile.findOne({ userId }).select("ProfileViewed").lean()
-  ]);
+  const [users, personals, profiles, professions, profileViewDoc] =
+    await Promise.all([
+      User.find(
+        { _id: { $in: viewerIds } },
+        "firstName lastName dateOfBirth createdAt customId"
+      ).lean(),
+      UserPersonal.find({ userId: { $in: viewerIds } })
+        .select(
+          "userId full_address.city full_address.state residingCountry religion subCaste"
+        )
+        .lean(),
+      Profile.find({ userId: { $in: viewerIds } })
+        .select("userId favoriteProfiles photos.closerPhoto.url")
+        .lean(),
+      UserProfession.find({ userId: { $in: viewerIds } })
+        .select("userId Occupation")
+        .lean(),
+      Profile.findOne({ userId }).select("ProfileViewed").lean()
+    ]);
 
   const userMap = new Map(users.map((u: any) => [String(u._id), u]));
   const personalMap = new Map(
@@ -100,6 +110,9 @@ export async function getUserProfileViewsService(
   const profileMap = new Map(
     (profiles || []).map((p: any) => [String(p.userId), p])
   );
+  const professionMap = new Map(
+    (professions || []).map((p: any) => [String(p.userId), p])
+  );
 
   const listings = results.map((r: any) => {
     const vid = String(r._id);
@@ -107,10 +120,12 @@ export async function getUserProfileViewsService(
     if (!user) return null;
     const personal = personalMap.get(vid) || null;
     const profile = profileMap.get(vid) || null;
+    const profession = professionMap.get(vid) || null;
     return formatListingProfile(
       user,
       personal,
       profile,
+      profession,
       { score: 0, reasons: [] },
       null
     );
@@ -143,33 +158,44 @@ export async function compareProfilesService(
     UserProfession.findOne({ userId: authUserId }).lean()
   ]);
 
-  const [users, personals, families, healths, professions, educations] =
-    await Promise.all([
-      User.find(
-        { _id: { $in: profilesIds } },
-        "_id firstName lastName dateOfBirth"
-      ).lean(),
-      UserPersonal.find(
-        { userId: { $in: profilesIds } },
-        "userId height weight full_address.city religion subCaste"
-      ).lean(),
-      UserFamily.find(
-        { userId: { $in: profilesIds } },
-        "userId familyType"
-      ).lean(),
-      UserHealth.find(
-        { userId: { $in: profilesIds } },
-        "userId diet isAlcoholic isTobaccoUser"
-      ).lean(),
-      UserProfession.find(
-        { userId: { $in: profilesIds } },
-        "userId Occupation"
-      ).lean(),
-      UserEducation.find(
-        { userId: { $in: profilesIds } },
-        "userId HighestEducation FieldOfStudy"
-      ).lean()
-    ]);
+  const [
+    users,
+    personals,
+    families,
+    healths,
+    professions,
+    educations,
+    profiles
+  ] = await Promise.all([
+    User.find(
+      { _id: { $in: profilesIds } },
+      "_id firstName lastName dateOfBirth"
+    ).lean(),
+    UserPersonal.find(
+      { userId: { $in: profilesIds } },
+      "userId height weight full_address.city religion subCaste"
+    ).lean(),
+    UserFamily.find(
+      { userId: { $in: profilesIds } },
+      "userId familyType"
+    ).lean(),
+    UserHealth.find(
+      { userId: { $in: profilesIds } },
+      "userId diet isAlcoholic isTobaccoUser"
+    ).lean(),
+    UserProfession.find(
+      { userId: { $in: profilesIds } },
+      "userId Occupation"
+    ).lean(),
+    UserEducation.find(
+      { userId: { $in: profilesIds } },
+      "userId HighestEducation FieldOfStudy"
+    ).lean(),
+    Profile.find(
+      { userId: { $in: profilesIds } },
+      "userId photos.closerPhoto.url"
+    ).lean()
+  ]);
 
   const usersMap = new Map(users.map((u: any) => [String(u._id), u]));
   const personalMap = new Map(
@@ -187,6 +213,9 @@ export async function compareProfilesService(
   const educationMap = new Map(
     (educations || []).map((e: any) => [String(e.userId), e])
   );
+  const profileMap = new Map(
+    (profiles || []).map((pr: any) => [String(pr.userId), pr])
+  );
 
   const compareData = await Promise.all(
     profilesIds.map(async (id: string) => {
@@ -196,6 +225,7 @@ export async function compareProfilesService(
       const h = healthMap.get(id) || null;
       const prof = professionMap.get(id) || null;
       const edu = educationMap.get(id) || null;
+      const pr = profileMap.get(id) || null;
 
       let compatibility = null;
       try {
@@ -234,6 +264,9 @@ export async function compareProfilesService(
         smoking: h?.isTobaccoUser || null,
         drinking: h?.isAlcoholic || null,
         familyType: f?.familyType || null,
+        closerPhoto: {
+          url: pr?.photos?.closerPhoto?.url || null
+        },
         compatibility
       };
     })
@@ -563,12 +596,14 @@ export async function searchService(
 
       const personal = r.personal || null;
       const profile = r.profile || null;
+      const profession = r.profession || null;
       const scoreDetail = { score: 0, reasons: [] };
 
       const listing = await formatListingProfile(
         candidate,
         personal,
         profile,
+        profession,
         scoreDetail,
         null
       );

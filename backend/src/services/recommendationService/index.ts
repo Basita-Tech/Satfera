@@ -594,11 +594,13 @@ export async function findMatchingUsers(
       const { candidate, candidateIdStr, scoreDetail } = item;
       const personal = personalMap.get(candidateIdStr);
       const profile = profileMap.get(candidateIdStr);
+      const profession = professionMap.get(candidateIdStr);
 
       const listingProfile = await formatListingProfile(
         candidate,
         personal,
         profile,
+        profession,
         scoreDetail,
         null
       );

@@ -27,7 +27,6 @@ export interface IUserPersonal extends Document {
   visaType?: string;
   isHaveChildren?: boolean;
   numberOfChildren?: number;
-  occupation?: string;
   isChildrenLivingWithYou?: boolean;
   isYouLegallySeparated?: boolean;
   separatedSince?: string;
@@ -67,7 +66,6 @@ const userPersonalSchema = new Schema(
     visaType: { type: String },
     isHaveChildren: { type: Boolean },
     numberOfChildren: { type: Number },
-    occupation: { type: String },
     isChildrenLivingWithYou: { type: Boolean },
     isYouLegallySeparated: { type: Boolean },
     separatedSince: { type: String },

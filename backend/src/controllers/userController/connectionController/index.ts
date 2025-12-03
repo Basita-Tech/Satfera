@@ -6,7 +6,8 @@ import {
   Notification,
   User,
   UserPersonal,
-  Profile
+  Profile,
+  UserProfession
 } from "../../../models";
 import { logger } from "../../../lib/common/logger";
 import { isEitherBlocked } from "../../../lib/common/blockUtils";
@@ -74,15 +75,25 @@ export async function getSentRequests(
       (r: any) => r.receiver._id || r.receiver
     );
 
-    const [personals, profiles, users, authUser] = await Promise.all([
-      UserPersonal.find({ userId: { $in: receiverIds } }).lean(),
-      Profile.find({ userId: { $in: receiverIds } }).lean(),
-      User.find(
-        { _id: { $in: receiverIds } },
-        "firstName lastName dateOfBirth blockedUsers"
-      ).lean(),
-      User.findById(userObjectId).select("blockedUsers").lean()
-    ]);
+    const [personals, profiles, users, professions, authUser] =
+      await Promise.all([
+        UserPersonal.find({ userId: { $in: receiverIds } })
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({ userId: { $in: receiverIds } })
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        User.find(
+          { _id: { $in: receiverIds } },
+          "firstName lastName dateOfBirth blockedUsers"
+        ).lean(),
+        UserProfession.find({ userId: { $in: receiverIds } })
+          .select("userId Occupation")
+          .lean(),
+        User.findById(userObjectId).select("blockedUsers").lean()
+      ]);
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
@@ -91,6 +102,9 @@ export async function getSentRequests(
       profiles.map((p: any) => [p.userId.toString(), p])
     );
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
+    );
 
     const result = await Promise.all(
       sentRequests.map(async (connReq: any) => {
@@ -114,11 +128,13 @@ export async function getSentRequests(
         if (!receiverUser) return null;
 
         const scoreDetail = await computeMatchScore(userObjectId, receiverId);
+        const receiverProfession = professionMap.get(receiverIdStr);
 
         const formatted = await formatListingProfile(
           receiverUser,
           receiverPersonal,
           receiverProfile,
+          receiverProfession,
           scoreDetail || { score: 0, reasons: [] },
           connReq.status
         );
@@ -180,15 +196,25 @@ export async function getReceivedRequests(
       (r: any) => r.sender._id || r.sender
     );
 
-    const [personals, profiles, users, authUser] = await Promise.all([
-      UserPersonal.find({ userId: { $in: senderIds } }).lean(),
-      Profile.find({ userId: { $in: senderIds } }).lean(),
-      User.find(
-        { _id: { $in: senderIds } },
-        "firstName lastName dateOfBirth blockedUsers"
-      ).lean(),
-      User.findById(userObjectId).select("blockedUsers").lean()
-    ]);
+    const [personals, profiles, users, professions, authUser] =
+      await Promise.all([
+        UserPersonal.find({ userId: { $in: senderIds } })
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({ userId: { $in: senderIds } })
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        User.find(
+          { _id: { $in: senderIds } },
+          "firstName lastName dateOfBirth blockedUsers"
+        ).lean(),
+        UserProfession.find({ userId: { $in: senderIds } })
+          .select("userId Occupation")
+          .lean(),
+        User.findById(userObjectId).select("blockedUsers").lean()
+      ]);
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
@@ -197,6 +223,9 @@ export async function getReceivedRequests(
       profiles.map((p: any) => [p.userId.toString(), p])
     );
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
+    );
 
     const result = await Promise.all(
       receivedRequests.map(async (connReq: any) => {
@@ -220,11 +249,13 @@ export async function getReceivedRequests(
         if (!senderUser) return null;
 
         const scoreDetail = await computeMatchScore(userObjectId, senderId);
+        const senderProfession = professionMap.get(senderIdStr);
 
         const formatted = await formatListingProfile(
           senderUser,
           senderPersonal,
           senderProfile,
+          senderProfession,
           scoreDetail || { score: 0, reasons: [] },
           connReq.status
         );
@@ -558,19 +589,29 @@ export async function getApprovedConnections(
       return senderId === userId ? receiverId : senderId;
     });
 
-    const [users, personals, profiles, authUser] = await Promise.all([
-      User.find(
-        {
-          _id: {
-            $in: otherUserIds.map((id) => new mongoose.Types.ObjectId(id))
-          }
-        },
-        "firstName lastName dateOfBirth blockedUsers"
-      ).lean(),
-      UserPersonal.find({ userId: { $in: otherUserIds } }).lean(),
-      Profile.find({ userId: { $in: otherUserIds } }).lean(),
-      User.findById(userObjectId).select("blockedUsers").lean()
-    ]);
+    const [users, personals, profiles, professions, authUser] =
+      await Promise.all([
+        User.find(
+          {
+            _id: {
+              $in: otherUserIds.map((id) => new mongoose.Types.ObjectId(id))
+            }
+          },
+          "firstName lastName dateOfBirth blockedUsers"
+        ).lean(),
+        UserPersonal.find({ userId: { $in: otherUserIds } })
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({ userId: { $in: otherUserIds } })
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        UserProfession.find({ userId: { $in: otherUserIds } })
+          .select("userId Occupation")
+          .lean(),
+        User.findById(userObjectId).select("blockedUsers").lean()
+      ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
@@ -578,6 +619,9 @@ export async function getApprovedConnections(
     );
     const profileMap = new Map(
       profiles.map((p: any) => [p.userId.toString(), p])
+    );
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
     );
 
     const formattedConnections = await Promise.all(
@@ -603,6 +647,7 @@ export async function getApprovedConnections(
 
         const personal = personalMap.get(otherUserId);
         const profile = profileMap.get(otherUserId);
+        const profession = professionMap.get(otherUserId);
 
         const scoreDetail = await computeMatchScore(
           userObjectId,
@@ -613,6 +658,7 @@ export async function getApprovedConnections(
           otherUser,
           personal,
           profile,
+          profession,
           scoreDetail || { score: 0, reasons: [] },
           conn.status
         );
@@ -715,15 +761,25 @@ export const getFavorites = async (
       });
     }
 
-    const [users, personals, profiles, authUser] = await Promise.all([
-      User.find(
-        { _id: { $in: favoriteIds } },
-        "firstName lastName dateOfBirth blockedUsers"
-      ).lean(),
-      UserPersonal.find({ userId: { $in: favoriteIds } }).lean(),
-      Profile.find({ userId: { $in: favoriteIds } }).lean(),
-      User.findById(viewerObjectId).select("blockedUsers").lean()
-    ]);
+    const [users, personals, profiles, professions, authUser] =
+      await Promise.all([
+        User.find(
+          { _id: { $in: favoriteIds } },
+          "firstName lastName dateOfBirth blockedUsers"
+        ).lean(),
+        UserPersonal.find({ userId: { $in: favoriteIds } })
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({ userId: { $in: favoriteIds } })
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        UserProfession.find({ userId: { $in: favoriteIds } })
+          .select("userId Occupation")
+          .lean(),
+        User.findById(viewerObjectId).select("blockedUsers").lean()
+      ]);
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
@@ -731,6 +787,9 @@ export const getFavorites = async (
     );
     const profileMap = new Map(
       profiles.map((p: any) => [p.userId.toString(), p])
+    );
+    const professionMap = new Map(
+      professions.map((p: any) => [p.userId.toString(), p])
     );
 
     const formattedResults = await Promise.all(
@@ -752,10 +811,12 @@ export const getFavorites = async (
         } catch (e) {}
         if (!user) return null;
         const score = await computeMatchScore(viewerObjectId, fid);
+        const profession = professionMap.get(cid);
         return formatListingProfile(
           user,
           personal,
           candidateProfile,
+          profession,
           score || { score: 0, reasons: [] },
           null
         );

@@ -6,6 +6,7 @@ export async function formatListingProfile(
   candidate: any,
   personal: any,
   profile: any,
+  profession: any,
   scoreDetail?: ScoreDetail,
   status: MatchingStatus = null
 ): Promise<any> {
@@ -30,6 +31,7 @@ export async function formatListingProfile(
       country: personal?.residingCountry || null,
       religion: personal?.religion || null,
       subCaste: personal?.subCaste || null,
+      profession: profession?.Occupation || null,
       isFavorite: isFavorite,
       closerPhoto: {
         url: closerPhotoUrl
