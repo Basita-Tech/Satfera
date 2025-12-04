@@ -45,6 +45,8 @@ ProfileViewSchema.index(
 
 ProfileViewSchema.index({ weekStartDate: 1 }, { expireAfterSeconds: 604800 });
 
-export const ProfileView =
-  (mongoose.models.ProfileView as mongoose.Model<IProfileView>) ||
-  mongoose.model("ProfileView", ProfileViewSchema);
+export const ProfileView = (mongoose.models.ProfileView ??
+  mongoose.model<IProfileView>(
+    "ProfileView",
+    ProfileViewSchema
+  )) as mongoose.Model<IProfileView>;

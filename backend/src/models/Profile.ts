@@ -45,6 +45,7 @@ export interface IProfile extends Document {
     smsNotifications: boolean;
   };
   favoriteProfiles: mongoose.Types.ObjectId[];
+  compareProfiles: mongoose.Types.ObjectId[];
   accountType: "free" | "premium" | "gold";
   ProfileViewed: number;
   profileReviewStatus: "pending" | "approved" | "rejected";
@@ -145,5 +146,5 @@ const ProfileSchema = new Schema(
 );
 
 export const Profile =
-  (mongoose.models.Profile as mongoose.Model<any>) ||
-  mongoose.model("Profile", ProfileSchema);
+  (mongoose.models.Profile as mongoose.Model<IProfile>) ||
+  mongoose.model<IProfile>("Profile", ProfileSchema);

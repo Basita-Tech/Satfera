@@ -15,7 +15,8 @@ export interface IUserHealth extends Document {
     | "eggetarian"
     | "jain"
     | "swaminarayan"
-    | "veg & non-veg";
+    | "veg & non-veg"
+    | "";
 }
 
 const userHealthSchema = new Schema<IUserHealth>(
@@ -78,6 +79,8 @@ const userHealthSchema = new Schema<IUserHealth>(
   { timestamps: true }
 );
 
-export const UserHealth =
-  (mongoose.models.UserHealth as mongoose.Model<IUserHealth>) ||
-  mongoose.model<IUserHealth>("UserHealth", userHealthSchema);
+export const UserHealth = (mongoose.models.UserHealth ??
+  mongoose.model<IUserHealth>(
+    "UserHealth",
+    userHealthSchema
+  )) as mongoose.Model<IUserHealth>;
