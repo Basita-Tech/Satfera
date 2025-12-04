@@ -1,5 +1,5 @@
 
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY src ./src
 
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 COPY package*.json ./
 
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
