@@ -528,6 +528,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   components={{
                     IndicatorSeparator: () => null,
                   }}
+                  menuPlacement="auto"
+                  menuPosition="fixed"
                   styles={{
                     control: (base, state) => ({
                       ...base,
@@ -556,6 +558,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                       ...base,
                       zIndex: 9999,
                       borderRadius: "0.75rem",
+                      maxHeight: 200,
+                      overflowY: 'auto',
                     }),
                   }}
                 />
@@ -600,6 +604,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             <div className="w-full">
               <Select
+                menuPlacement="auto"
+                menuPosition="fixed"
                 isMulti
                 name="partnerEducation"
                 options={[
@@ -700,6 +706,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             <div className="w-full">
               <Select
+                menuPlacement="auto"
+                menuPosition="fixed"
                 isMulti
                 name="partnerCommunity"
                 options={[
@@ -796,6 +804,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             <div className="w-full">
               <Select
+                menuPlacement="auto"
+                menuPosition="fixed"
                 isMulti
                 name="partnerDiet"
                 options={[
@@ -905,6 +915,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             <div className="w-full">
               <Select
+                menuPlacement="auto"
+                menuPosition="fixed"
                 isMulti
                 name="profession"
                 options={professionOptions.map((profession) => ({
@@ -996,6 +1008,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
             <div className="w-full">
               <Select
+                menuPlacement="auto"
+                menuPosition="fixed"
                 isMulti
                 name="maritalStatus"
                 options={maritalStatuses.map((status) => ({
@@ -1081,11 +1095,12 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
           {/* Preferred Age */}
           <div className="flex flex-col mb-4">
+
             <label className="block text-sm font-medium mb-2">
               Preferred Age
             </label>
 
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-3">
               {/* FROM */}
               <CustomSelect
                 name="preferredAgeFrom"
@@ -1095,7 +1110,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 }
                 options={ageOptions.map((age) => String(age))}
                 placeholder="From"
-                className={inputClass + " w-full max-w-[120px]"}
+                className=""
                 usePortal={true}
               />
 
@@ -1114,7 +1129,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   )
                   .map((age) => String(age))}
                 placeholder="To"
-                className={inputClass + " w-full max-w-[120px]"}
+                className=""
                 usePortal={true}
               />
             </div>

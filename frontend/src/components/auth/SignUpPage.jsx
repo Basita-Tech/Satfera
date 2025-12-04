@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendEmailOtp, signupUser } from "../../api/auth";
 import {
@@ -9,6 +9,7 @@ import {
 } from "react-bootstrap-icons";
 import { allCountries } from "country-telephone-data";
 import toast from "react-hot-toast";
+import { AuthContextr } from "../context/AuthContext";
 
 const profileOptions = [
   { value: "myself", label: "Myself" },
@@ -26,6 +27,7 @@ console.log("API URL:", import.meta.env.VITE_API_URL);
 const SignUpPage = () => {
   const today = new Date();
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useContext(AuthContextr);
 
   const [formData, setFormData] = useState({
     profileFor: "",
@@ -82,6 +84,13 @@ const SignUpPage = () => {
         return "Name";
     }
   };
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   useEffect(() => {
     if (formData.gender) localStorage.setItem("gender", formData.gender);
@@ -512,25 +521,25 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-center px-4">
-      <div className="bg-[#FBFAF7] rounded-3xl shadow-2xl p-8 w-full max-w-xl hover:scale-[1.02] transition-transform duration-300">
+    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-center px-2.5 sm:px-4">
+      <div className="bg-[#FBFAF7] rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xl hover:scale-[1.01] sm:hover:scale-[1.02] transition-transform duration-300">
         <Link
           to="/"
-          className="text-[#D4A052] text-sm flex items-center mb-6 hover:text-[#E4C48A] transition-colors"
+          className="text-[#D4A052] text-xs sm:text-sm flex items-center mb-4 sm:mb-6 hover:text-[#E4C48A] transition-colors"
         >
-          <ArrowLeft className="mr-1" /> Back to Home
+          <ArrowLeft className="mr-1 w-4 h-4 sm:w-5 sm:h-5" /> Back to Home
         </Link>
 
-        <div className="text-center mb-8">
-          <h2 className="inline font-bold text-3xl text-gray-800">
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="inline font-bold text-xl sm:text-2xl md:text-3xl text-gray-800">
             Create Your Profile
           </h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Profile For */}
           <div className="mb-6">
-            <label className="block font-semibold mb-2 text-gray-700">
+            <label className="block font-semibold mb-2 text-sm text-gray-700">
               Matrimony Profile For <span className="text-red-500">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
@@ -539,7 +548,7 @@ const SignUpPage = () => {
                   key={opt.value}
                   type="button"
                   onClick={() => handleProfileForChange(opt.value)}
-                  className={`px-4 py-3 text-sm font-medium shadow-md border transition-all duration-200 
+                  className={`px-4 py-3 text-sm font-medium shadow-md border rounded-md transition-all duration-200 
                     ${
                       formData.profileFor === opt.value
                         ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
@@ -559,7 +568,7 @@ const SignUpPage = () => {
           {(formData.profileFor === "myself" ||
             formData.profileFor === "friend") && (
             <div className="mt-4">
-              <label className="block font-semibold mb-2 text-gray-700">
+              <label className="block font-semibold mb-2 text-sm text-gray-700">
                 Gender <span className="text-red-500">*</span>
               </label>
 
@@ -569,7 +578,7 @@ const SignUpPage = () => {
                     key={g}
                     type="button"
                     onClick={() => handleGenderSelect(g)}
-                    className={`px-4 py-3 text-sm font-medium shadow-md border transition-all duration-200
+                    className={`px-4 py-3 text-sm font-medium shadow-md border rounded-md transition-all duration-200
             ${
               formData.gender === g
                 ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
@@ -589,11 +598,11 @@ const SignUpPage = () => {
 
           {/* Names */}
           <div>
-            <label className="block font-semibold mb-2 text-gray-700">
+            <label className="block font-semibold mb-2 text-sm sm:text-base text-gray-700">
               {getNameLabel()} <span className="text-red-500">*</span>
             </label>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
               <div className="flex flex-col">
                 <input
                   type="text"
@@ -601,7 +610,7 @@ const SignUpPage = () => {
                   placeholder="First Name *"
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-md border ${
+                  className={`w-full p-3 rounded-md border text-sm ${
                     errors.firstName ? "border-red-500" : "border-[#E4C48A]"
                   } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -621,7 +630,7 @@ const SignUpPage = () => {
                   placeholder="Middle Name"
                   value={formData.middleName}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-md border ${
+                  className={`w-full p-3 rounded-md border text-sm ${
                     errors.middleName ? "border-red-500" : "border-[#E4C48A]"
                   } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -635,7 +644,7 @@ const SignUpPage = () => {
                   placeholder="Last Name *"
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-md border ${
+                  className={`w-full p-3 rounded-md border text-sm ${
                     errors.lastName ? "border-red-500" : "border-[#E4C48A]"
                   } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -649,7 +658,7 @@ const SignUpPage = () => {
 
           {/* DOB */}
           <div>
-            <label className="block font-semibold mb-2 text-gray-700">
+            <label className="block font-semibold mb-2 text-sm sm:text-base text-gray-700">
               Date of Birth <span className="text-red-500">*</span>
             </label>
 
@@ -661,7 +670,7 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobDay}
                 onChange={handleInputChange}
-                className={`w-full p-3 rounded-md border ${
+                className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobDay ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
@@ -672,7 +681,7 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobMonth}
                 onChange={handleInputChange}
-                className={`w-full p-3 rounded-md border ${
+                className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobMonth ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
@@ -683,7 +692,7 @@ const SignUpPage = () => {
                 maxLength={4}
                 value={formData.dobYear}
                 onChange={handleInputChange}
-                className={`w-full p-3 rounded-md border ${
+                className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobYear ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
@@ -696,8 +705,8 @@ const SignUpPage = () => {
           </div>
 
           {/* Email */}
-          <div className="flex flex-col w-full mb-6">
-            <label className="block font-semibold mb-2 text-gray-700">
+          <div className="flex flex-col w-full mb-4 sm:mb-6">
+            <label className="block font-semibold mb-2 text-sm sm:text-base text-gray-700">
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -709,7 +718,7 @@ const SignUpPage = () => {
                 handleInputChange(e);
                 setErrors((prev) => ({ ...prev, email: "" }));
               }}
-              className={`w-full p-3 rounded-md border ${
+              className={`w-full p-3 rounded-md border text-sm ${
                 errors.email ? "border-red-500" : "border-[#E4C48A]"
               } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
@@ -717,14 +726,14 @@ const SignUpPage = () => {
               <p className="text-red-500 text-sm mt-1">{errors.email}</p>
             )}
 
-            <div className=" mt-1">
+            <div className="mt-1">
               <input
                 type="checkbox"
                 checked={formData.useAsUsername.includes("email")}
                 onChange={() => handleUsernameToggle("email")}
                 className="mr-2 accent-[#333230] w-3 h-3"
               />
-              <span className="text-sm">
+              <span className="text-xs sm:text-sm">
                 Use as Username{" "}
                 {formData.useAsUsername.includes("email") && (
                   <CheckCircleFill className="inline text-green-500 ml-1" />
@@ -732,22 +741,22 @@ const SignUpPage = () => {
               </span>
             </div>
             {errors.useAsUsername && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.useAsUsername}
               </p>
             )}
           </div>
 
           {/* Mobile Number */}
-          <div className="flex flex-col w-full mb-6">
-            <label className="text-sm font-medium mb-2">
+          <div className="flex flex-col w-full mb-4 sm:mb-6">
+            <label className="text-xs sm:text-sm font-medium mb-2">
               Mobile <span className="text-red-500">*</span>
             </label>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               {/* Country Code */}
               <div
-                className={`relative w-40 rounded-lg border ${
+                className={`relative w-full sm:w-32 md:w-40 rounded-lg border ${
                   errors.mobile ? "border-red-500" : "border-[#E4C48A]"
                 } focus-within:ring-1 focus-within:ring-[#ecc988] overflow-hidden`}
               >
@@ -755,7 +764,7 @@ const SignUpPage = () => {
                   name="countryCode"
                   value={formData.countryCode}
                   onChange={handleInputChange}
-                  className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border ${
+                  className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border text-sm ${
                     errors.mobile ? "border-red-500" : "border-gray-300"
                   } focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 text-gray-700 placeholder-gray-400`}
                   style={{
@@ -779,9 +788,9 @@ const SignUpPage = () => {
                 </select>
 
                 {/* Dropdown Arrow */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3">
                   <svg
-                    className="w-4 h-4 text-gray-500"
+                    className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -805,19 +814,19 @@ const SignUpPage = () => {
                   handleInputChange(e);
                   setErrors((prev) => ({ ...prev, mobile: "" }));
                 }}
-                className={`w-full p-3 rounded-md border ${
+                className={`w-full p-3 rounded-md border text-sm ${
                   errors.mobile ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
             </div>
 
             {/* Checkbox */}
-            <label className="flex items-center mt-2 cursor-pointer text-sm select-none">
+            <label className="flex items-center mt-2 cursor-pointer text-xs sm:text-sm select-none">
               <input
                 type="checkbox"
                 checked={formData.useAsUsername.includes("mobile")}
                 onChange={() => handleUsernameToggle("mobile")}
-                className="mr-2 accent-[#3e3d3a]  w-3 h-3"
+                className="mr-2 accent-[#3e3d3a] w-3 h-3"
               />
               Use as Username
               {formData.useAsUsername.includes("mobile") && (
@@ -844,16 +853,16 @@ const SignUpPage = () => {
               placeholder="Password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full p-3 rounded-md border ${
+              className={`w-full p-3 rounded-md border text-sm ${
                 errors.password ? "border-red-500" : "border-[#E4C48A]"
               } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 w-5 h-5 flex items-center justify-center"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeSlashFill /> : <EyeFill />}
+              {showPassword ? <EyeSlashFill className="w-4 h-4" /> : <EyeFill className="w-4 h-4" />}
             </span>
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
@@ -868,7 +877,7 @@ const SignUpPage = () => {
                 /[0-9]/.test(formData.password) &&
                 /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
               ) && (
-                <div className="mt-2 text-sm space-y-1">
+                <div className="mt-2 text-xs sm:text-sm space-y-1">
                   <p
                     className={`${
                       formData.password.length >= 6
@@ -926,16 +935,16 @@ const SignUpPage = () => {
               placeholder="Confirm Password"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className={`w-full p-3 rounded-md border ${
+              className={`w-full p-3 rounded-md border text-sm ${
                 errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"
               } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 w-5 h-5 flex items-center justify-center"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
-              {showConfirmPassword ? <EyeSlashFill /> : <EyeFill />}
+              {showConfirmPassword ? <EyeSlashFill className="w-4 h-4" /> : <EyeFill className="w-4 h-4" />}
             </span>
             {errors.confirmPassword && (
               <p className="text-red-500 text-sm mt-1">
@@ -945,7 +954,7 @@ const SignUpPage = () => {
           </div>
 
           {/* Terms & Conditions Checkbox */}
-          <div className="flex items-start space-x-3">
+          <div className="flex items-start space-x-2 sm:space-x-3">
             <input
               type="checkbox"
               id="terms"
@@ -954,9 +963,9 @@ const SignUpPage = () => {
                 setTermsAccepted(e.target.checked);
                 setErrors((prev) => ({ ...prev, termsAccepted: "" }));
               }}
-              className="w-4 h-4 accent-[#D4AF37] mt-1"
+              className="w-4 h-4 accent-[#D4AF37] mt-1 flex-shrink-0"
             />
-            <label htmlFor="terms" className="text-sm text-gray-700">
+            <label htmlFor="terms" className="text-xs sm:text-sm text-gray-700">
               I agree to the{" "}
               <span
                 className="text-blue-600 underline hover:text-blue-700 cursor-pointer"
@@ -977,7 +986,7 @@ const SignUpPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full bg-[#D4A052] hover:bg-[#E4C48A] text-white p-3 rounded-full font-semibold shadow-lg transition-colors duration-300 
+            className={`w-full bg-[#D4A052] hover:bg-[#E4C48A] text-white p-3 rounded-full font-semibold text-sm shadow-lg transition-colors duration-300 
     ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {loading ? "Creating..." : "Create Profile"}
@@ -986,12 +995,18 @@ const SignUpPage = () => {
 
         {/* Disclaimer Modal for Terms & Conditions */}
         {showDisclaimer && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[80vh]">
-              <h3 className="text-xl font-bold mb-4">
-                Disclaimer for SATFERA Matrimony
-              </h3>
-              <div className="text-sm text-gray-700 space-y-3">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-end sm:items-center z-50 p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full h-[90vh] sm:h-auto flex flex-col sm:max-h-[85vh]">
+              {/* Header - Sticky */}
+              <div className="flex-shrink-0 border-b border-gray-200 px-5 sm:px-8 py-4 sm:py-6">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+                  Disclaimer for SATFERA Matrimony
+                </h3>
+              </div>
+              
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-4 sm:py-6">
+                <div className="text-sm sm:text-base text-gray-700 space-y-3 sm:space-y-4 leading-relaxed">
                 <p>
                   By registering on <strong>SATFERA</strong>, you give us
                   permission to use your photos, profile details, and other
@@ -1046,10 +1061,13 @@ const SignUpPage = () => {
                   By using SATFERA, you agree to abide by our Terms & Conditions
                   and Privacy Policy.
                 </p>
+                </div>
               </div>
-              <div className="flex justify-end mt-6">
+              
+              {/* Footer - Sticky */}
+              <div className="flex-shrink-0 border-t border-gray-200 px-5 sm:px-8 py-4 sm:py-6 flex justify-end">
                 <button
-                  className="px-4 py-2 rounded-lg border border-gray-400 hover:bg-gray-100"
+                  className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-[#D4A052] hover:bg-[#C8A227] text-white text-sm sm:text-base font-semibold transition"
                   onClick={() => setShowDisclaimer(false)}
                 >
                   Close

@@ -125,7 +125,7 @@ export default function CustomSelect({
     return () => window.removeEventListener('resize', onResize);
   }, [open]);
 
-  const themeBase = 'w-full rounded-md p-3 text-sm transition box-border bg-white';
+  const themeBase = 'w-full rounded-md p-2.5 sm:p-3 text-sm transition box-border bg-white';
   const borderBase = 'border border-[#D4A052] focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A]';
   const triggerClasses = `${themeBase} ${borderBase} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`;
 

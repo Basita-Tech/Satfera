@@ -1,13 +1,16 @@
 import React, { useState, useContext } from "react";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
+import { Button } from "./ui/button";
 import NotificationDropdown from "./NotificationDropdown";
 import { AuthContextr } from "./context/AuthContext";
 import toast from "react-hot-toast";
 
 export function Navigation({ activePage, onNavigate }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -73,14 +76,7 @@ export function Navigation({ activePage, onNavigate }) {
 
   const handleNavigation = async (key) => {
     if (key === "logout") {
-      try {
-        await logout();
-        toast.success("Logged out successfully");
-        navigate("/login");
-      } catch (error) {
-        console.error("Logout error:", error);
-        toast.error("Logout failed");
-      }
+      setLogoutConfirmOpen(true);
       setMobileMenuOpen(false);
       return;
     }
@@ -261,16 +257,19 @@ export function Navigation({ activePage, onNavigate }) {
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className="w-[280px] sm:w-[320px] !bg-white"
+                  className="w-[280px] sm:w-[320px] !p-0"
                 >
-                  <div className="flex flex-col gap-3 pt-14 pb-6 px-4 overflow-y-auto max-h-screen bg-white">
-                    {/* Mobile Search */}
-                    <div className="mb-3">
+                  {/* Gold bar header - acts as visual top bar */}
+                  <div className="h-14 bg-gradient-to-r from-[#C8A167] to-[#D4A052] relative z-[1]" />
+                  
+                  <div className="flex flex-col gap-3 pt-4 pb-6 px-4 overflow-y-auto bg-white" style={{ height: 'calc(100vh - 56px)' }}>
+                    {/* Mobile Search - Compact */}
+                    <div className="mb-2">
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7b3b3b]/60 pointer-events-none z-10" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none z-10" />
                         <input
                           type="text"
-                          placeholder="Search by ID or Name..."
+                          placeholder="Search..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           onKeyDown={(e) => {
@@ -283,36 +282,37 @@ export function Navigation({ activePage, onNavigate }) {
                             }
                           }}
                           style={{
-                            paddingLeft: "36px",
-                            paddingRight: "12px",
+                            paddingLeft: "32px",
+                            paddingRight: "10px",
                             backgroundColor: "#ffffff",
+                            border: '1px solid #e5e7eb',
                           }}
-                          className="w-full h-10 !bg-white border border-[#D4A052]/30 rounded-[12px] text-sm text-[#222] placeholder:text-[#7b3b3b]/60 shadow-sm caret-[#D4A052] focus:border-[#D4A052] focus:ring-2 focus:ring-[#D4A052]/20 focus:outline-none transition-all"
+                          className="w-full h-9 !bg-white rounded-lg text-xs text-[#222] placeholder:text-gray-400 focus:border-gray-400 focus:ring-1 focus:ring-gray-200 focus:outline-none transition-all"
                         />
                       </div>
                     </div>
 
-                    <div className="border-t border-[#D4A052]/30"></div>
+                    <div className="border-t border-gray-200"></div>
 
                     {menuItems.map((item) => (
                       <button
                         key={item.key}
                         onClick={() => handleNavigation(item.key)}
-                        className={`px-4  rounded-lg font-medium transition-all text-left
+                        className={`px-4 py-3 rounded-lg font-medium transition-all text-left
                         ${
                           activePage === item.key
-                            ? "bg-[#D4A052]/20 text-[#800000]"
-                            : "bg-transparent text-[#800000] hover:bg-[#D4A052]/20 hover:text-[#800000]"
+                            ? "bg-gray-100 text-[#800000]"
+                            : "bg-transparent text-[#800000] hover:bg-gray-50 hover:text-[#800000]"
                         }`}
                       >
                         {item.label}
                       </button>
                     ))}
 
-                    <div className="border-t border-[#D4A052]/30 my-3"></div>
+                    <div className="border-t border-gray-200 my-3"></div>
                     <button
                       onClick={() => handleNavigation("logout")}
-                      className="w-full text-left px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 transition-all font-medium"
+                      className="w-full text-left px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 transition-all font-medium text-[#800000]"
                     >
                       Logout
                     </button>
@@ -323,6 +323,52 @@ export function Navigation({ activePage, onNavigate }) {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <DialogContent className="sm:max-w-md rounded-[22px] p-0 gap-0 bg-white">
+          <DialogHeader className="bg-gradient-to-br from-[#C8A227] via-[#D4A052] to-[#E4C48A] px-6 py-5 text-center text-white relative overflow-hidden rounded-t-[22px]">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+            </div>
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3">
+                <LogOut className="w-8 h-8 text-white" />
+              </div>
+              <DialogTitle className="text-white text-xl">Confirm Logout</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="px-6 py-6 bg-white">
+            <DialogDescription className="text-center text-base mb-6 text-gray-700">
+              Are you sure you want to logout? You'll need to sign in again to access your account.
+            </DialogDescription>
+            <DialogFooter className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setLogoutConfirmOpen(false)}
+                className="w-full sm:w-1/2 rounded-[12px] border-gray-300 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setLogoutConfirmOpen(false);
+                  try {
+                    await logout();
+                    navigate("/login");
+                  } catch (error) {
+                    console.error("Logout error:", error);
+                  }
+                }}
+                className="w-full sm:w-1/2 bg-[#C8A227] hover:bg-[#D4A052] text-white rounded-[12px]"
+              >
+                Yes, Logout
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 }

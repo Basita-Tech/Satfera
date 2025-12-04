@@ -6,8 +6,14 @@ export interface IUserFamily extends Document {
   motherName?: string;
   fatherOccupation?: string;
   motherOccupation?: string;
-  fatherContact?: string;
-  motherContact?: string;
+  fatherContact?: {
+    code: string;
+    number: string;
+  };
+  motherContact?: {
+    code: string;
+    number: string;
+  };
   fatherNativePlace?: string;
   doYouHaveChildren?: boolean;
   grandFatherName?: string;
@@ -57,16 +63,26 @@ const userFamilySchema = new Schema(
       trim: true
     },
     fatherContact: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true
+      code: {
+        type: String,
+        trim: true,
+        default: "+91"
+      },
+      number: {
+        type: String,
+        trim: true
+      }
     },
     motherContact: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true
+      code: {
+        type: String,
+        trim: true,
+        default: "+91"
+      },
+      number: {
+        type: String,
+        trim: true
+      }
     },
     fatherNativePlace: {
       type: String,

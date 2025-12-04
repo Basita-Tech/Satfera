@@ -11,6 +11,7 @@ import { ChangePasswordModal } from '../../ChangePasswordModal';
 import { EditContactModal } from '../../EditContactModal';
 import { BlockedUsersList } from '../../BlockedUsersList';
 import { BlockUserDialog } from '../../BlockUserDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../ui/dialog';
 import { getUserProfileDetails, getBlockedUsers, getNotificationSettings, updateNotificationSettings, getUserContactInfo, getSessions, logoutSession, logoutAllSessions } from '../../../api/auth';
 import { AuthContextr } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -41,6 +42,7 @@ export function Settings() {
   const [editContactModal, setEditContactModal] = useState({ open: false, type: null });
   const [blockedUsersModalOpen, setBlockedUsersModalOpen] = useState(false);
   const [blockUserDialogOpen, setBlockUserDialogOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
   const [userProfile, setUserProfile] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -110,6 +112,10 @@ export function Settings() {
       console.error('Failed to fetch blocked count:', error);
       setBlockedCount(0);
     }
+  };
+
+  const handleBlockSuccess = () => {
+    fetchBlockedCount();
   };
 
   const fetchNotificationSettings = async () => {
@@ -639,18 +645,7 @@ export function Settings() {
               <Button
                 variant="outline"
                 className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!border-red-accent hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all"
-                onClick={async () => {
-                  if (window.confirm('Are you sure you want to logout?')) {
-                    try {
-                      await logout();
-                      toast.success('Logged out successfully');
-                      navigate('/login');
-                    } catch (error) {
-                      console.error('Logout error:', error);
-                      toast.error('Logout failed');
-                    }
-                  }
-                }}
+                onClick={() => setLogoutConfirmOpen(true)}
               >
                 <LogOut className="w-4 h-4 mr-3" />
                 Logout
@@ -693,8 +688,54 @@ export function Settings() {
       <BlockUserDialog
         open={blockUserDialogOpen}
         onOpenChange={setBlockUserDialogOpen}
-        onBlockSuccess={fetchBlockedCount}
+        onBlockSuccess={handleBlockSuccess}
       />
+
+      {/* Logout Confirmation Modal */}
+      <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <DialogContent className="sm:max-w-md rounded-[22px] p-0 gap-0 bg-white">
+          <DialogHeader className="bg-gradient-to-br from-[#C8A227] via-[#D4A052] to-[#E4C48A] px-6 py-5 text-center text-white relative overflow-hidden rounded-t-[22px]">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+            </div>
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3">
+                <LogOut className="w-8 h-8 text-white" />
+              </div>
+              <DialogTitle className="text-white text-xl">Confirm Logout</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="px-6 py-6 bg-white">
+            <DialogDescription className="text-center text-base mb-6 text-gray-700">
+              Are you sure you want to logout? You'll need to sign in again to access your account.
+            </DialogDescription>
+            <DialogFooter className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setLogoutConfirmOpen(false)}
+                className="w-full sm:w-1/2 rounded-[12px] border-gray-300 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setLogoutConfirmOpen(false);
+                  try {
+                    await logout();
+                    navigate('/login');
+                  } catch (error) {
+                    console.error('Logout error:', error);
+                  }
+                }}
+                className="w-full sm:w-1/2 bg-[#C8A227] hover:bg-[#D4A052] text-white rounded-[12px]"
+              >
+                Yes, Logout
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

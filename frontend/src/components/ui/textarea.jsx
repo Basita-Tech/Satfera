@@ -7,7 +7,7 @@ function Textarea({ className, ...props }) {
     <textarea
       data-slot="textarea"
       className={cn(
-        "resize-none border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-input-background px-3 py-2 text-base transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "resize-none w-full rounded-md border border-[#D4A052] bg-white p-2.5 sm:p-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px]",
         className
       )}
       {...props}

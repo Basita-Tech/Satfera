@@ -26,7 +26,7 @@ function SheetOverlay({ className, ...props }) {
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[999] bg-black/70",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[999] bg-black/80",
         className
       )}
       {...props}
@@ -40,17 +40,22 @@ function SheetContent({ className, children, side = "right", ...props }) {
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
-        style={{ backgroundColor: '#ffffff', padding: 0 }}
+        style={{ 
+          backgroundColor: '#ffffff', 
+          padding: 0, 
+          border: 'none',
+          borderRadius: 0
+        }}
         className={cn(
-          "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-[1000] flex flex-col shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 p-0",
+          "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-[1000] flex flex-col shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 p-0 !border-0",
           side === "right" &&
-            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
+            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 sm:max-w-sm",
           side === "left" &&
-            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 sm:max-w-sm",
           side === "top" &&
-            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
+            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto",
           side === "bottom" &&
-            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto",
           className
         )}
         {...props}
@@ -59,8 +64,8 @@ function SheetContent({ className, children, side = "right", ...props }) {
         <SheetPrimitive.Title className="sr-only">Menu</SheetPrimitive.Title>
         <SheetPrimitive.Description className="sr-only">Mobile navigation menu</SheetPrimitive.Description>
         {children}
-        <SheetPrimitive.Close className="absolute top-4 right-4 rounded-full p-1 opacity-70 hover:opacity-100 hover:bg-gray-100 transition-all z-10 focus:outline-none">
-          <XIcon className="size-5 text-gray-700" />
+        <SheetPrimitive.Close className="absolute top-3.5 left-4 rounded-full p-1.5 opacity-100 hover:opacity-80 hover:bg-white/20 transition-all z-[9999] focus:outline-none">
+          <XIcon className="size-6 text-white" strokeWidth={2.5} />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>

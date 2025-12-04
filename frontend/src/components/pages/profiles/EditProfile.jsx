@@ -51,6 +51,196 @@ const QUALIFICATION_LEVELS = [
   "Trade School",
   "Less Than High School",
 ];
+
+// Organized education options by qualification level (same as EducationDetails.jsx)
+const EDUCATION_OPTIONS_BY_LEVEL = {
+  "High School": [
+    "Higher Secondary School / High School",
+    "Science Stream",
+    "Commerce Stream",
+    "Arts Stream",
+  ],
+  "Less Than High School": [
+    "Primary School",
+    "Middle School",
+  ],
+  "Undergraduate": [
+    "Aeronautical Engineering",
+    "B.Arch. - Bachelor of Architecture",
+    "BCA - Bachelor of Computer Applications",
+    "B.E. - Bachelor of Engineering",
+    "B.Plan - Bachelor of Planning",
+    "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
+    "B.S. Eng. - Bachelor of Science in Engineering",
+    "B.Tech. - Bachelor of Technology",
+    "Other Bachelor's Degree in Engineering / Computers",
+    "Aviation Degree",
+    "B.A. - Bachelor of Arts",
+    "B.Com. - Bachelor of Commerce",
+    "B.Ed. - Bachelor of Education",
+    "BFA - Bachelor of Fine Arts",
+    "BFT - Bachelor of Fashion Technology",
+    "BLIS - Bachelor of Library and Information Science",
+    "B.M.M. - Bachelor of Mass Media",
+    "B.Sc. - Bachelor of Science",
+    "B.S.W. - Bachelor of Social Work",
+    "B.Phil. - Bachelor of Philosophy",
+    "Other Bachelor's Degree in Arts / Science / Commerce",
+    "BBA - Bachelor of Business Administration",
+    "BFM - Bachelor of Financial Management",
+    "BHM - Bachelor of Hotel Management",
+    "BHA - Bachelor of Hospital Administration",
+    "Other Bachelor's Degree in Management",
+    "BAMS - Bachelor of Ayurvedic Medicine and Surgery",
+    "BDS - Bachelor of Dental Surgery",
+    "BHMS - Bachelor of Homeopathic Medicine and Surgery",
+    "BSMS - Bachelor of Siddha Medicine and Surgery",
+    "BUMS - Bachelor of Unani Medicine and Surgery",
+    "BVSc - Bachelor of Veterinary Science",
+    "MBBS - Bachelor of Medicine, Bachelor of Surgery",
+    "BPharm - Bachelor of Pharmacy",
+    "BPT - Bachelor of Physiotherapy",
+    "B.Sc. Nursing - Bachelor of Science in Nursing",
+    "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
+    "BGL - Bachelor of General Laws",
+    "BL - Bachelor of Laws",
+    "LLB - Bachelor of Legislative Law",
+    "Other Bachelor's Degree in Legal",
+  ],
+  "Bachelors": [
+    "Aeronautical Engineering",
+    "B.Arch. - Bachelor of Architecture",
+    "BCA - Bachelor of Computer Applications",
+    "B.E. - Bachelor of Engineering",
+    "B.Plan - Bachelor of Planning",
+    "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
+    "B.S. Eng. - Bachelor of Science in Engineering",
+    "B.Tech. - Bachelor of Technology",
+    "Other Bachelor's Degree in Engineering / Computers",
+    "Aviation Degree",
+    "B.A. - Bachelor of Arts",
+    "B.Com. - Bachelor of Commerce",
+    "B.Ed. - Bachelor of Education",
+    "BFA - Bachelor of Fine Arts",
+    "BFT - Bachelor of Fashion Technology",
+    "BLIS - Bachelor of Library and Information Science",
+    "B.M.M. - Bachelor of Mass Media",
+    "B.Sc. - Bachelor of Science",
+    "B.S.W. - Bachelor of Social Work",
+    "B.Phil. - Bachelor of Philosophy",
+    "Other Bachelor's Degree in Arts / Science / Commerce",
+    "BBA - Bachelor of Business Administration",
+    "BFM - Bachelor of Financial Management",
+    "BHM - Bachelor of Hotel Management",
+    "BHA - Bachelor of Hospital Administration",
+    "Other Bachelor's Degree in Management",
+    "BAMS - Bachelor of Ayurvedic Medicine and Surgery",
+    "BDS - Bachelor of Dental Surgery",
+    "BHMS - Bachelor of Homeopathic Medicine and Surgery",
+    "BSMS - Bachelor of Siddha Medicine and Surgery",
+    "BUMS - Bachelor of Unani Medicine and Surgery",
+    "BVSc - Bachelor of Veterinary Science",
+    "MBBS - Bachelor of Medicine, Bachelor of Surgery",
+    "BPharm - Bachelor of Pharmacy",
+    "BPT - Bachelor of Physiotherapy",
+    "B.Sc. Nursing - Bachelor of Science in Nursing",
+    "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
+    "BGL - Bachelor of General Laws",
+    "BL - Bachelor of Laws",
+    "LLB - Bachelor of Legislative Law",
+    "Other Bachelor's Degree in Legal",
+  ],
+  "Honours Degree": [
+    "B.Arch. (Hons) - Bachelor of Architecture with Honours",
+    "B.E. (Hons) - Bachelor of Engineering with Honours",
+    "B.Tech. (Hons) - Bachelor of Technology with Honours",
+    "B.Sc. (Hons) - Bachelor of Science with Honours",
+    "B.A. (Hons) - Bachelor of Arts with Honours",
+    "B.Com. (Hons) - Bachelor of Commerce with Honours",
+    "Other Honours Degree",
+  ],
+  "Associates Degree": [
+    "Associates in Arts",
+    "Associates in Science",
+    "Associates in Applied Science",
+    "Associates in Business",
+    "Associates in Engineering",
+    "Other Associates Degree",
+  ],
+  "Masters": [
+    "M.Arch. - Master of Architecture",
+    "MCA - Master of Computer Applications",
+    "M.E. - Master of Engineering",
+    "M.Sc. IT/CS - Master of Science in IT/Computer Science",
+    "M.S. Eng. - Master of Science in Engineering",
+    "M.Tech. - Master of Technology",
+    "Other Master's Degree in Engineering / Computers",
+    "M.A. - Master of Arts",
+    "M.Com. - Master of Commerce",
+    "M.Ed. - Master of Education",
+    "MFA - Master of Fine Arts",
+    "MLIS - Master of Library and Information Science",
+    "M.Sc. - Master of Science",
+    "M.S.W. - Master of Social Work",
+    "M.Phil. - Master of Philosophy",
+    "Other Master's Degree in Arts / Science / Commerce",
+    "MBA - Master of Business Administration",
+    "MFM - Master of Financial Management",
+    "MHM - Master of Hotel Management",
+    "MHRM - Master of Human Resource Management",
+    "MHA - Master of Hospital Administration",
+    "Other Master's Degree in Management",
+    "MDS - Master of Dental Surgery",
+    "MS - Master of Surgery",
+    "MVSc - Master of Veterinary Science",
+    "MCh - Master of Chirurgiae",
+    "MPharm - Master of Pharmacy",
+    "MPT - Master of Physiotherapy",
+    "M.Sc. Nursing - Master of Science in Nursing",
+    "Other Master's Degree in Pharmacy / Nursing or Health Sciences",
+    "LLM - Master of Laws",
+    "ML - Master of Legal Studies",
+    "Other Master's Degree in Legal",
+    "CA - Chartered Accountant",
+    "CFA - Chartered Financial Analyst",
+    "CS - Company Secretary",
+    "ICWA - Cost And Works Accountant",
+  ],
+  "Doctorate": [
+    "Ph.D. - Doctor of Philosophy",
+    "DM - Doctor of Medicine",
+    "DNB - Diplomate of National Board",
+    "FNB - Fellow of National Board",
+    "D.Sc. - Doctor of Science",
+    "Ed.D. - Doctor of Education",
+    "DBA - Doctor of Business Administration",
+    "D.Litt. - Doctor of Literature",
+    "LL.D. - Doctor of Laws",
+    "Postdoctoral Fellow",
+  ],
+  "Diploma": [
+    "Diploma in Engineering",
+    "Diploma in Computer Applications",
+    "Diploma in Management",
+    "Diploma in Nursing",
+    "Diploma in Pharmacy",
+    "Diploma in Education",
+    "Polytechnic Diploma",
+    "PGDCA - Post Graduate Diploma in Computer Applications",
+    "PGDM - Post Graduate Diploma in Management",
+    "Advanced Diploma",
+    "Other Diplomas",
+  ],
+  "Trade School": [
+    "Electrician",
+    "Plumber",
+    "Carpenter",
+    "Mechanic",
+    "Welder",
+    "Other Trade Certification",
+  ],
+};
+
 const FIELD_OF_STUDY_OPTIONS = [
   "Aeronautical Engineering",
   "B.Arch. - Bachelor of Architecture",
@@ -422,6 +612,18 @@ export function EditProfile({ onNavigateBack }) {
   // countries list for Country of Education select
   const countries = useMemo(() => getNames(), []);
 
+  // Filtered field of study options based on selected qualification level
+  const filteredFieldOfStudyOptions = useMemo(() => {
+    if (!education.highestEducation) {
+      // If no qualification selected, show all options
+      const allOptions = Object.values(EDUCATION_OPTIONS_BY_LEVEL).flat();
+      return [...new Set(allOptions)];
+    }
+    // Get options for the selected qualification level
+    const levelOptions = EDUCATION_OPTIONS_BY_LEVEL[education.highestEducation] || [];
+    return levelOptions;
+  }, [education.highestEducation]);
+
   const tabs = [
     { key: "personal", label: "Personal Details" },
     { key: "family", label: "Family Details" },
@@ -622,7 +824,7 @@ export function EditProfile({ onNavigateBack }) {
         if (maritalStatus) {
           setShowChildrenFields(maritalStatus !== "Never Married");
           setShowDivorceFields(
-            maritalStatus === "Divorced" || maritalStatus === "Awaiting Divorce"
+            maritalStatus === "Divorced" || maritalStatus === "Awaiting Divorce" || maritalStatus === "Separated"
           );
         }
       } catch (err) {
@@ -703,14 +905,26 @@ export function EditProfile({ onNavigateBack }) {
           return;
         }
 
+        const normalizePhone = (val) => {
+          if (!val) return "";
+          if (typeof val === "string") return val;
+          if (typeof val === "object") {
+            // Handle {code, number} structure from API
+            if (val.number) return String(val.number || "");
+            // Handle {value, label} structure
+            if (val.value || val.label) return String(val.value || val.label || "");
+          }
+          return String(val || "");
+        };
+
         const familyMapped = {
           fatherName: data.fatherName || "",
           fatherProfession: data.fatherOccupation || "",
-          fatherPhone: data.fatherContact || "",
+          fatherPhone: normalizePhone(data.fatherContact),
           fatherNative: data.fatherNativePlace || "",
           motherName: data.motherName || "",
           motherProfession: data.motherOccupation || "",
-          motherPhone: data.motherContact || "",
+          motherPhone: normalizePhone(data.motherContact),
           grandFatherName: data.grandFatherName || "",
           grandMotherName: data.grandMotherName || "",
           nanaName: data.nanaName || "",
@@ -1094,6 +1308,15 @@ export function EditProfile({ onNavigateBack }) {
           try {
             const refetch = await getUserFamilyDetails();
             const server = refetch?.data?.data || {};
+            const normalizePhone = (val) => {
+              if (!val) return "";
+              if (typeof val === "string") return val;
+              if (typeof val === "object") {
+                if (val.number) return String(val.number || "");
+                if (val.value || val.label) return String(val.value || val.label || "");
+              }
+              return String(val || "");
+            };
             setFamily((prev) => ({
               ...prev,
               fatherName:
@@ -1102,13 +1325,13 @@ export function EditProfile({ onNavigateBack }) {
                 submissionData.fatherName,
               fatherProfession:
                 server.fatherOccupation || submissionData.fatherOccupation,
-              fatherPhone: server.fatherContact || submissionData.fatherContact,
+              fatherPhone: normalizePhone(server.fatherContact) || submissionData.fatherContact,
               fatherNative:
                 server.fatherNativePlace || submissionData.fatherNativePlace,
               motherName: server.motherName || submissionData.motherName,
               motherProfession:
                 server.motherOccupation || submissionData.motherOccupation,
-              motherPhone: server.motherContact || submissionData.motherContact,
+              motherPhone: normalizePhone(server.motherContact) || submissionData.motherContact,
               grandFatherName:
                 server.grandFatherName || submissionData.grandFatherName,
               grandMotherName:
@@ -1750,7 +1973,20 @@ export function EditProfile({ onNavigateBack }) {
 
   const handleFamilyPhoneChange = (field, value) => {
     if (field === "fatherPhone" || field === "motherPhone") {
-      const digitsOnly = String(value).replace(/\D/g, "");
+      let phoneValue = value;
+      // Normalize if it's an object
+      if (typeof value === "object") {
+        if (value.number) {
+          phoneValue = String(value.number || "");
+        } else if (value.value || value.label) {
+          phoneValue = String(value.value || value.label || "");
+        } else {
+          phoneValue = String(value || "");
+        }
+      } else {
+        phoneValue = String(value || "");
+      }
+      const digitsOnly = phoneValue.replace(/\D/g, "");
       setFamily((prev) => ({ ...prev, [field]: digitsOnly }));
     } else {
       setFamily((prev) => ({ ...prev, [field]: value }));
@@ -1824,7 +2060,7 @@ export function EditProfile({ onNavigateBack }) {
   };
 
   const inputClass =
-    "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
+    "w-full border border-[#D4A052] rounded-md p-2.5 sm:p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
   // Helper to treat empty/null/undefined as blank
   const isBlank = (v) =>
@@ -1904,7 +2140,7 @@ export function EditProfile({ onNavigateBack }) {
 
     setShowChildrenFields(status && status !== "Never Married");
     setShowDivorceFields(
-      status === "Divorced" || status === "Awaiting Divorce"
+      status === "Divorced" || status === "Awaiting Divorce" || status === "Separated"
     );
   }, []);
 
@@ -1921,7 +2157,7 @@ export function EditProfile({ onNavigateBack }) {
           autoComplete="off"
           className={
             disabled
-              ? "w-full border border-gray-300 bg-gray-50 rounded-md p-3 text-sm cursor-not-allowed opacity-60"
+              ? "w-full border border-gray-300 bg-gray-50 rounded-md p-2.5 sm:p-3 text-sm cursor-not-allowed opacity-60"
               : `${inputClass} ${className}`
           }
           {...rest}
@@ -2098,18 +2334,43 @@ export function EditProfile({ onNavigateBack }) {
 
       {/* Divorce Fields - Show only for "Divorced" or "Awaiting Divorce" */}
       {showDivorceFields && (
-        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
-          <Label className="block text-sm font-medium mb-1">
-            Divorce Status
-          </Label>
-          <CustomSelect
-            name="divorceStatus"
-            value={personal.divorceStatus || ""}
-            onChange={handleInputChange}
-            options={["filed", "process", "court", "divorced"]}
-            placeholder="Select Divorce Status"
-            className=""
-          />
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 space-y-4">
+          {personal.maritalStatus === "Separated" ? (
+            <>
+              <div>
+                <Label className="block text-sm font-medium mb-1">
+                  Separated Since
+                </Label>
+                <CustomSelect
+                  name="separatedSince"
+                  value={personal.separatedSince || ""}
+                  onChange={handleInputChange}
+                  options={Array.from(
+                    { length: 50 },
+                    (_, i) => String(new Date().getFullYear() - i)
+                  )}
+                  placeholder="Select Year"
+                  className=""
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <Label className="block text-sm font-medium mb-1">
+                  Divorce Status
+                </Label>
+                <CustomSelect
+                  name="divorceStatus"
+                  value={personal.divorceStatus || ""}
+                  onChange={handleInputChange}
+                  options={["filed", "process", "court", "divorced"]}
+                  placeholder="Select Divorce Status"
+                  className=""
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -2466,7 +2727,34 @@ export function EditProfile({ onNavigateBack }) {
         ":hover": { color: "#111827" },
       }),
       indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
-      menu: (base) => ({ ...base, borderRadius: "10px", overflow: "hidden" }),
+      menu: (base) => ({ 
+        ...base, 
+        borderRadius: "10px", 
+        overflow: "hidden",
+        zIndex: 9999,
+        maxHeight: "300px",
+      }),
+      menuList: (base) => ({
+        ...base,
+        maxHeight: "300px",
+        overflowY: "auto",
+        overflowX: "hidden",
+        scrollBehavior: "smooth",
+        "&::-webkit-scrollbar": {
+          width: "8px",
+        },
+        "&::-webkit-scrollbar-track": {
+          background: "#f1f1f1",
+          borderRadius: "10px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          background: "#c8a227",
+          borderRadius: "10px",
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+          background: "#b39120",
+        },
+      }),
       option: (base, state) => ({
         ...base,
         fontSize: "0.75rem",
@@ -2476,6 +2764,7 @@ export function EditProfile({ onNavigateBack }) {
           ? "#f3f4f6"
           : "#ffffff",
         color: "#111827",
+        padding: "10px 12px",
         ":active": { backgroundColor: "#e5e7eb" },
       }),
     };
@@ -2534,6 +2823,8 @@ export function EditProfile({ onNavigateBack }) {
                 ])}
                 classNamePrefix="react-select"
                 styles={multiStyles}
+                menuPlacement="auto"
+                menuPortalTarget={document.body}
                 placeholder={
                   expectations.partnerLocation === "India"
                     ? "Select one or multiple states"
@@ -2573,6 +2864,8 @@ export function EditProfile({ onNavigateBack }) {
               options={toOptions(EXPECT_EDUCATION_OPTIONS)}
               classNamePrefix="react-select"
               styles={multiStyles}
+              menuPlacement="auto"
+              menuPortalTarget={document.body}
               placeholder="Select education"
             />
           </div>
@@ -2592,6 +2885,8 @@ export function EditProfile({ onNavigateBack }) {
               options={toOptions(EXPECT_DIET_OPTIONS)}
               classNamePrefix="react-select"
               styles={multiStyles}
+              menuPlacement="auto"
+              menuPortalTarget={document.body}
               placeholder="Select diet"
             />
           </div>
@@ -2611,6 +2906,8 @@ export function EditProfile({ onNavigateBack }) {
               options={toOptions(EXPECT_CAST_OPTIONS)}
               classNamePrefix="react-select"
               styles={multiStyles}
+              menuPlacement="auto"
+              menuPortalTarget={document.body}
               placeholder="Select community"
             />
           </div>
@@ -2630,6 +2927,8 @@ export function EditProfile({ onNavigateBack }) {
               options={toOptions(EXPECT_PROFESSION_OPTIONS)}
               classNamePrefix="react-select"
               styles={multiStyles}
+              menuPlacement="auto"
+              menuPortalTarget={document.body}
               placeholder="Select profession"
             />
           </div>
@@ -2649,6 +2948,8 @@ export function EditProfile({ onNavigateBack }) {
               options={toOptions(EXPECT_MARITAL_STATUSES)}
               classNamePrefix="react-select"
               styles={multiStyles}
+              menuPlacement="auto"
+              menuPortalTarget={document.body}
               placeholder="Select marital status"
             />
           </div>
@@ -2695,7 +2996,7 @@ export function EditProfile({ onNavigateBack }) {
   const renderFamilyDetails = () => (
     <div className="space-y-6">
       {/* Parents */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Father's Name</Label>
           <EditableInput
@@ -2718,12 +3019,21 @@ export function EditProfile({ onNavigateBack }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Father's Phone</Label>
           <EditableInput
             placeholder="Enter father's phone"
-            value={family.fatherPhone || ""}
+            value={(() => {
+              const val = family.fatherPhone;
+              if (!val) return "";
+              if (typeof val === "string") return val;
+              if (typeof val === "object") {
+                if (val.number) return String(val.number || "");
+                if (val.value || val.label) return String(val.value || val.label || "");
+              }
+              return String(val || "");
+            })()}
             onChange={(e) =>
               handleFamilyPhoneChange("fatherPhone", e.target.value)
             }
@@ -2743,7 +3053,7 @@ export function EditProfile({ onNavigateBack }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Mother's Name</Label>
           <EditableInput
@@ -2766,12 +3076,21 @@ export function EditProfile({ onNavigateBack }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Mother's Phone</Label>
           <EditableInput
             placeholder="Enter mother's phone"
-            value={family.motherPhone || ""}
+            value={(() => {
+              const val = family.motherPhone;
+              if (!val) return "";
+              if (typeof val === "string") return val;
+              if (typeof val === "object") {
+                if (val.number) return String(val.number || "");
+                if (val.value || val.label) return String(val.value || val.label || "");
+              }
+              return String(val || "");
+            })()}
             onChange={(e) =>
               handleFamilyPhoneChange("motherPhone", e.target.value)
             }
@@ -2821,17 +3140,17 @@ export function EditProfile({ onNavigateBack }) {
               placeholder={placeholder || label}
               value={family[key] || ""}
               onChange={(e) => handleFamilyChange(key)(e)}
-              className="w-full rounded-md p-3 text-sm transition-all border border-[#c8a227] focus:border-[#c8a227] focus:ring-2 focus:ring-[#E4C48A]/30 focus:outline-none"
+              className="w-full rounded-md p-2.5 sm:p-3 text-sm transition-all border border-[#D4A052] focus:border-[#D4A052] focus:ring-2 focus:ring-[#E4C48A]/30 focus:outline-none"
             />
           </div>
         ))}
       </div>
 
       {/* Family Type (radio) */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Family Type *</Label>
-          <div className="flex items-center gap-6 mt-2">
+          <div className="flex items-center gap-6 mt-2 flex-wrap">
             {["Joint", "Nuclear"].map((type) => (
               <label
                 key={type}
@@ -2865,7 +3184,7 @@ export function EditProfile({ onNavigateBack }) {
         <label className="text-sm font-medium mb-2 block">
           Do you have any siblings?
         </label>
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-4 items-center flex-wrap">
           {["Yes", "No"].map((option) => (
             <label
               key={option}
@@ -2927,7 +3246,7 @@ export function EditProfile({ onNavigateBack }) {
                     onChange={(e) =>
                       handleSiblingChange(index, "name", e.target.value)
                     }
-                    className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                    className="w-full border border-[#D4A052] rounded-md p-2.5 sm:p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                   />
                 </div>
 
@@ -3028,7 +3347,7 @@ export function EditProfile({ onNavigateBack }) {
             const next = val ? val.value : "";
             setEducation((prev) => ({ ...prev, fieldOfStudy: next }));
           }}
-          options={FIELD_OF_STUDY_OPTIONS.map((opt) => ({
+          options={filteredFieldOfStudyOptions.map((opt) => ({
             label: opt,
             value: opt,
           }))}
@@ -3436,17 +3755,17 @@ export function EditProfile({ onNavigateBack }) {
   // MAIN UI
   // ---------------------------------------
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto">
-      <div className="bg-white rounded-[24px] shadow-md border border-[#e5e5e5] p-6 md:p-8">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-10 max-w-5xl mx-auto">
+      <div className="bg-white rounded-[16px] sm:rounded-[20px] md:rounded-[24px] shadow-md border border-[#e5e5e5] p-4 sm:p-5 md:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-5 md:mb-6">
           <button
             onClick={onNavigateBack}
-            className="p-2 rounded-full hover:bg-gray-100"
+            className="flex-shrink-0 w-14 h-14 flex items-center justify-center rounded-full hover:bg-[#E4C48A] transition-colors bg-[#D4A052] shadow-lg"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-8 h-8 text-white" strokeWidth={3} />
           </button>
-          <h2 className="text-2xl font-bold">Edit Profile</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Edit Profile</h2>
         </div>
 
         {/* Photos preview moved into Photos tab to avoid showing above header */}
@@ -3470,19 +3789,19 @@ export function EditProfile({ onNavigateBack }) {
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-10 flex justify-end gap-3">
+        <div className="mt-6 sm:mt-8 md:mt-10 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
           <Button
             variant="outline"
             onClick={onNavigateBack}
-            className="rounded-[12px] px-6 py-3 text-base border-[#C8A227] text-[#C8A227] hover:bg-[#C8A227] hover:text-white transition-colors"
+            className="rounded-[12px] px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 text-sm sm:text-base border-[#C8A227] text-[#C8A227] hover:bg-[#C8A227] hover:text-white transition-colors w-full sm:w-auto order-2 sm:order-1"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
-            className="rounded-[12px] px-6 py-3 text-base flex items-center gap-2 bg-[#C8A227] hover:bg-[#B49520] text-white"
+            className="rounded-[12px] px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 text-sm sm:text-base flex items-center justify-center gap-2 bg-[#C8A227] hover:bg-[#B49520] text-white w-full sm:w-auto order-1 sm:order-2"
           >
-            <Save size={18} />
+            <Save size={16} className="sm:w-[18px] sm:h-[18px]" />
             Save Changes
           </Button>
         </div>

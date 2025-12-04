@@ -347,7 +347,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         borderColor,
         boxShadow: "none",
         "&:hover": { borderColor },
-        transition: "all 0.2s ease",
+        transition: "all 0.2s",
       };
     },
     valueContainer: (base) => ({
@@ -360,6 +360,19 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     input: (base) => ({ ...base, margin: 0, padding: 0 }),
     indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
     placeholder: (base) => ({ ...base, margin: 0 }),
+    menu: (base) => ({
+      ...base,
+      maxHeight: "280px",
+      overflowY: "auto",
+      zIndex: 9999,
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: "280px",
+      overflowY: "auto",
+      paddingTop: 0,
+      paddingBottom: 0,
+    }),
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
   });
 
@@ -374,6 +387,9 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       "street1",
       "street2",
       "middleName",
+      "city",
+      "state",
+      "residingCountry",
     ];
 
     let newValue = value;
@@ -427,6 +443,11 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       setManualSeparationEntry(false);
     }
   }, []);
+
+  // Standardized input class helpers
+  const inputClass = "w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition";
+  const getInputClass = (field) =>
+    `${inputClass} ${errors[field] ? "border-red-500 focus:ring-red-300 focus:border-red-500" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`;
 
   const validate = () => {
     const newErrors = {};
@@ -659,11 +680,11 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
-      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 border-t-4 border-[#F9F7F5] transition-transform duration-300 hover:scale-[1.02]">
+      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300 hover:scale-[1.02]">
         {/* Heading */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-black">Personal Details</h2>
-        </div>
+        <h2 className="text-2xl font-bold text-[#1f1e1d] text-center mb-8">
+          Personal Details
+        </h2>
 
         <form onSubmit={handleSaveNext} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -725,45 +746,45 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
               {/* Hour Input */}
               <input
+                type="text"
                 name="birthHour"
                 value={formData.birthHour}
                 onChange={handleHourInput}
                 placeholder="HH"
                 maxLength={2}
-                className={`w-full p-3 rounded-md border ${
-                  errors.birthHour ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={getInputClass("birthHour")}
               />
-              {errors.birthHour && (
-                <p className="text-xs text-red-500 mt-1">{errors.birthHour}</p>
-              )}
 
               {/* Minute Input */}
               <input
+                type="text"
                 name="birthMinute"
                 value={formData.birthMinute}
                 onChange={handleMinuteInput}
                 placeholder="MM"
                 maxLength={2}
                 ref={minuteRef}
-                className={`w-full p-3 rounded-md border ${
-                  errors.birthMinute ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={getInputClass("birthMinute")}
               />
+            </div>
+            
+            {/* Error Messages Below Grid */}
+            <div className="space-y-1 mt-2">
+              {errors.birthHour && (
+                <p className="text-red-500 text-sm">{errors.birthHour}</p>
+              )}
               {errors.birthMinute && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.birthMinute}
-                </p>
+                <p className="text-red-500 text-sm">{errors.birthMinute}</p>
               )}
             </div>
           </div>
           {/* Birth Place */}
           <div>
-            <p className="text-sm font-medium">Birth Place</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
+            <label className="block text-sm font-medium mb-1">Birth Place</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* City Dropdown */}
               <div>
-                <label className="text-xs text-gray-600">City</label>
+                <label className="block text-sm font-medium mb-1">City</label>
                 <CustomSelect
                   name="birthCity"
                   value={formData.birthCity}
@@ -771,17 +792,19 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   options={INDIAN_CITIES}
                   placeholder="Select or type city"
                   allowCustom
-                  className={errors.birthCity ? "border-red-500" : ""}
+                  className={getInputClass("birthCity")}
                 />
                 {errors.birthCity && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-red-500 text-sm mt-1">
                     {errors.birthCity}
                   </p>
                 )}
               </div>
 
-              <div className="mb-4">
-                <label className="text-xs text-gray-600">Birth State</label>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Birth State
+                </label>
                 <CustomSelect
                   name="birthState"
                   value={formData.birthState}
@@ -789,10 +812,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   options={INDIAN_STATES}
                   placeholder="Select or type state"
                   allowCustom
-                  className={errors.birthState ? "border-red-500" : ""}
+                  className={getInputClass("birthState")}
                 />
                 {errors.birthState && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-sm mt-1">
                     {errors.birthState}
                   </p>
                 )}
@@ -800,10 +823,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Height */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Height</label>
+              <label className="block text-sm font-medium mb-1">Height</label>
               <CreatableSelect
                 isClearable
                 options={HEIGHT_SELECT_OPTIONS}
@@ -820,23 +843,23 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   }
                 }}
                 placeholder="Select or type height"
-                className="w-full text-sm"
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
                 }}
                 styles={customSelectStyles(errors.height, formData.height)}
-                menuPlacement="top"
-                menuPosition="absolute"
+                menuPlacement="auto"
+                menuPosition="fixed"
+                menuPortalTarget={document.body}
               />
               {errors.height && (
-                <p className="text-xs text-red-500 mt-1">{errors.height}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.height}</p>
               )}
             </div>
 
             {/* Weight */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Weight</label>
+              <label className="block text-sm font-medium mb-1">Weight</label>
               <CreatableSelect
                 isClearable
                 options={WEIGHT_SELECT_OPTIONS}
@@ -853,23 +876,23 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   }
                 }}
                 placeholder="Select or type weight"
-                className="w-full text-sm"
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
                 }}
                 styles={customSelectStyles(errors.weight, formData.weight)}
-                menuPlacement="top"
-                menuPosition="absolute"
+                menuPlacement="auto"
+                menuPosition="fixed"
+                menuPortalTarget={document.body}
               />
               {errors.weight && (
-                <p className="text-xs text-red-500 mt-1">{errors.weight}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.weight}</p>
               )}
             </div>
           </div>
 
           {/* Rashi, Religion, Caste, Dosh Section */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Rashi */}
             <div>
               <label className="block text-sm font-medium mb-1">
@@ -881,10 +904,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 onChange={handleChange}
                 options={ZODIAC_SIGNS}
                 placeholder="Select Rashi"
-                className={errors.rashi ? "border-red-500" : ""}
+                className={getInputClass("rashi")}
               />
               {errors.rashi && (
-                <p className="text-xs text-red-500 mt-1">{errors.rashi}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.rashi}</p>
               )}
             </div>
 
@@ -904,10 +927,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 }}
                 options={doshOptions}
                 placeholder="Select Type of Dosh"
-                className={errors.dosh ? "border-red-500" : ""}
+                className={getInputClass("dosh")}
               />
               {errors.dosh && (
-                <p className="text-xs text-red-500 mt-1">{errors.dosh}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.dosh}</p>
               )}
             </div>
 
@@ -920,10 +943,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 onChange={handleChange}
                 options={RELIGIONS}
                 placeholder="Select Religion"
-                className={errors.religion ? "border-red-500" : ""}
+                className={getInputClass("religion")}
               />
               {errors.religion && (
-                <p className="text-xs text-red-500 mt-1">{errors.religion}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.religion}</p>
               )}
             </div>
 
@@ -936,17 +959,17 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 onChange={handleChange}
                 options={castOptions.length > 0 ? castOptions : []}
                 placeholder="Select Caste"
-                className={errors.caste ? "border-red-500" : ""}
+                className={getInputClass("caste")}
                 disabled={castOptions.length === 0}
               />
               {errors.caste && (
-                <p className="text-xs text-red-500 mt-1">{errors.caste}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.caste}</p>
               )}
             </div>
 
             {/* Willing to marry from other community */}
-            <div className="mt-6">
-              <label className="block text-sm font-medium mb-2 text-gray-800">
+            <div>
+              <label className="block text-sm font-medium mb-2">
                 Willing to marry from other community?
               </label>
               <div className="flex items-center gap-6">
@@ -1006,49 +1029,41 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 </label>
               </div>
               {errors.interCommunity && (
-                <p className="text-xs text-red-500 mt-2">
+                <p className="text-red-500 text-sm mt-2">
                   {errors.interCommunity}
                 </p>
               )}
             </div>
 
             {/* Full Address Section */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">
                 Full Address
-              </h3>
+              </label>
 
               <div className="space-y-4">
                 {/* Street Address 1 */}
                 <div>
-                  <label className="text-sm font-medium">
+                  <label className="block text-sm font-medium mb-1">
                     Street Address 1
                   </label>
                   <input
                     name="street1"
                     value={formData.street1}
                     placeholder="Enter address line 1"
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        street1: e.target.value,
-                      }));
-
-                      setErrors((prev) => {
-                        const updated = { ...prev };
-                        delete updated.street1;
-                        return updated;
-                      });
-                    }}
-                    className={`capitalize w-full p-3 rounded-md border ${
-                      errors.street1 ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    onChange={handleChange}
+                    className={getInputClass("street1")}
                   />
+                  {errors.street1 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.street1}
+                    </p>
+                  )}
                 </div>
 
                 {/* Street Address 2 */}
                 <div>
-                  <label className="text-sm font-medium">
+                  <label className="block text-sm font-medium mb-1">
                     Street Address 2
                   </label>
                   <input
@@ -1056,13 +1071,11 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     value={formData.street2}
                     onChange={handleChange}
                     placeholder="Enter address line 2"
-                    className={`capitalize w-full p-3 rounded-md border ${
-                      errors.street2 ? "border-red-500" : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    className={getInputClass("street2")}
                   />
-                  {errors.street1 && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.street1}
+                  {errors.street2 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.street2}
                     </p>
                   )}
                 </div>
@@ -1071,7 +1084,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* City */}
                   <div>
-                    <label className="text-sm font-medium">City</label>
+                    <label className="block text-sm font-medium mb-1">City</label>
                     <CustomSelect
                       name="city"
                       value={formData.city}
@@ -1079,16 +1092,16 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                       options={INDIAN_CITIES}
                       placeholder="Select or type city"
                       allowCustom
-                      className={errors.city ? "border-red-500" : ""}
+                      className={getInputClass("city")}
                     />
                     {errors.city && (
-                      <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
                     )}
                   </div>
 
                   {/* State */}
                   <div>
-                    <label className="text-sm font-medium">State</label>
+                    <label className="block text-sm font-medium mb-1">State</label>
                     <CustomSelect
                       name="state"
                       value={formData.state}
@@ -1096,10 +1109,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                       options={INDIAN_STATES}
                       placeholder="Select or type state"
                       allowCustom
-                      className={errors.state ? "border-red-500" : ""}
+                      className={getInputClass("state")}
                     />
                     {errors.state && (
-                      <p className="text-xs text-red-500 mt-1">
+                      <p className="text-red-500 text-sm mt-1">
                         {errors.state}
                       </p>
                     )}
@@ -1110,7 +1123,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             {/* Pincode */}
             <div>
-              <label className="text-sm font-medium">Pincode</label>
+              <label className="block text-sm font-medium mb-1">Pincode</label>
               <input
                 type="text"
                 name="pincode"
@@ -1118,21 +1131,19 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 onChange={handleChange}
                 placeholder="Enter pincode"
                 maxLength={6}
-                className={`capitalize w-full p-3 rounded-md border ${
-                  errors.pincode ? "border-red-500" : "border-[#E4C48A]"
-                } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={getInputClass("pincode")}
               />
 
               {(errors.pincode || errorMsg) && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-red-500 text-sm mt-1">
                   {errors.pincode || errorMsg}
                 </p>
               )}
             </div>
 
             {/* Is this your own house? */}
-            <div className="mt-6">
-              <label className="block text-sm font-medium mb-2 text-gray-800">
+            <div>
+              <label className="block text-sm font-medium mb-2">
                 Is this your own house?
               </label>
               <div className="flex items-center gap-6">
@@ -1190,10 +1201,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 onChange={handleLegalStatus}
                 options={LEGAL_STATUSES}
                 placeholder="Select Status"
-                className={errors.legalStatus ? "border-red-500" : ""}
+                className={getInputClass("legalStatus")}
               />
               {errors.legalStatus && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-red-500 text-sm mt-1">
                   {errors.legalStatus}
                 </p>
               )}
@@ -1341,17 +1352,16 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               onChange={handleChange}
               options={nationalities}
               placeholder="Select Nationality"
-              className={errors.nationality ? "border-red-500" : ""}
+              className={getInputClass("nationality")}
             />
             {errors.nationality && (
-              <p className="text-xs text-red-500 mt-1">{errors.nationality}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.nationality}</p>
             )}
           </div>
 
-          {/* Currently Residing In (Toggle) */}
-          {/* Currently Residing In (Light Gold Styled Radios) */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium mb-2 text-gray-800">
+          {/* Currently Residing In */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
               Currently Residing in India?
             </label>
 
@@ -1490,7 +1500,12 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     }}
                     options={visaCategories}
                     placeholder="Select Visa Category"
-                    className={errors.visaCategories ? "border-red-500" : ""}
+                    className={`capitalize w-full p-3 rounded-md border ${
+                      errors.visaCategory
+                        ? "border-red-500"
+                        : "border-[#E4C48A]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                    usePortal={true}
                   />
                   {errors.visaCategory && (
                     <p className="text-red-500 text-sm mt-1">
@@ -1502,21 +1517,19 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-          {/* ✅ Unified Button Section (Recommended) */}
+          {/* ✅ Buttons */}
           <div className="pt-6 flex justify-between items-center gap-4">
-            {/* Previous Button */}
             <button
               type="button"
               onClick={handlePrevious}
-              className="w-1/2 py-3 rounded-xl font-medium bg-[#EEEAE6] text-gray-800 hover:bg-[#E4C48A] hover:text-white transition-all duration-300 shadow-sm"
+              className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
             >
               Previous
             </button>
 
-            {/* Save & Next Button */}
             <button
               type="submit"
-              className="w-1/2 py-3 rounded-xl font-medium bg-[#D4A052] text-white hover:bg-[#C18E47] transition-all duration-300 shadow-sm"
+              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
             >
               Save & Next
             </button>
