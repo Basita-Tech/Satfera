@@ -15,6 +15,7 @@ import apiV1 from "./routes/v1";
 import * as middleware from "./middleware/securityMiddleware";
 import { ipBlockingMiddleware } from "./middleware/ipBlocking";
 import { csrfProtection } from "./middleware/csrfProtection";
+import serverless from "serverless-http";
 
 const app = express();
 const swaggerDocument = YAML.load("./docs/swagger.yaml");
@@ -121,52 +122,76 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+const isVercel = !!process.env.VERCEL;
+
+const handler = serverless(app);
+
 let server: any;
 
-server = app.listen(PORT, () => {
-  logger.info(`Server is running on http://localhost:${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
-  logger.info(
-    `Server started (HTTP listening). Initializing background services...`
-  );
-});
+if (!isVercel) {
+  server = app.listen(PORT, () => {
+    logger.info(`Server is running on http://localhost:${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
+    logger.info(
+      `Server started (HTTP listening). Initializing background services...`
+    );
+  });
 
-(async function backgroundInit() {
-  const startTime = process.hrtime();
+  (async function backgroundInit() {
+    const startTime = process.hrtime();
 
-  connectRedis()
-    .then(() => {
-      isRedisReady = true;
-      logger.info("Redis connected (background).");
-    })
-    .catch((err) => {
-      logger.error("Redis failed to connect in background:", err);
-    });
+    connectRedis()
+      .then(() => {
+        isRedisReady = true;
+        logger.info("Redis connected (background).");
+      })
+      .catch((err) => {
+        logger.error("Redis failed to connect in background:", err);
+      });
 
-  initializeDatabase()
-    .then(async () => {
-      isDbReady = true;
-      logger.info("MongoDB connection established (background).");
+    initializeDatabase()
+      .then(async () => {
+        isDbReady = true;
+        logger.info("MongoDB connection established (background).");
 
-      try {
-        await startAllWorkers();
-        areWorkersReady = true;
-        logger.info("Workers started (background).");
-      } catch (workerErr) {
-        logger.error("Workers failed to start in background:", workerErr);
-      }
-    })
-    .catch((err) => {
-      logger.error("Background DB initialization failed:", err);
-    })
-    .finally(() => {
-      const diff = process.hrtime(startTime);
-      const ms = diff[0] * 1000 + diff[1] / 1e6;
-      logger.info(
-        `Background init triggered (time spent on scheduling only: ~${ms.toFixed(2)}ms)`
-      );
-    });
-})();
+        try {
+          await startAllWorkers();
+          areWorkersReady = true;
+          logger.info("Workers started (background).");
+        } catch (workerErr) {
+          logger.error("Workers failed to start in background:", workerErr);
+        }
+      })
+      .catch((err) => {
+        logger.error("Background DB initialization failed:", err);
+      })
+      .finally(() => {
+        const diff = process.hrtime(startTime);
+        const ms = diff[0] * 1000 + diff[1] / 1e6;
+        logger.info(
+          `Background init triggered (time spent on scheduling only: ~${ms.toFixed(2)}ms)`
+        );
+      });
+  })();
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+  process.on("uncaughtException", (error) => {
+    logger.error("Uncaught Exception:", error);
+    gracefulShutdown("uncaughtException");
+  });
+  process.on("unhandledRejection", (reason, promise) => {
+    logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+    gracefulShutdown("unhandledRejection");
+  });
+} else {
+  // In Vercel (serverless) export the handler; do not start listeners
+  // or background services since they are incompatible with serverless
+  // long-running processes.
+}
+
+export default handler;
 
 async function initializeDatabase() {
   try {
