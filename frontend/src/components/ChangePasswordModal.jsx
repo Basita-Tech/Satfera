@@ -152,12 +152,13 @@ export function ChangePasswordModal({ open, onOpenChange }) {
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('oldPassword')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gold hover:text-gold/90 bg-gold/15 hover:bg-gold/25 rounded-full w-8 h-8 flex items-center justify-center"
+                className="absolute w-11 right-0 top-0 bottom-0 flex justify-center items-center text-gold hover:text-gold/90 transition-colors bg-transparent border-0 p-0"
+                tabIndex={-1}
               >
                 {showPasswords.oldPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>
@@ -185,12 +186,13 @@ export function ChangePasswordModal({ open, onOpenChange }) {
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('newPassword')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gold hover:text-gold/90 bg-gold/15 hover:bg-gold/25 rounded-full w-8 h-8 flex items-center justify-center"
+                className="absolute w-11 right-0 top-0 bottom-0 flex justify-center items-center text-gold hover:text-gold/90 transition-colors bg-transparent border-0 p-0"
+                tabIndex={-1}
               >
                 {showPasswords.newPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>
@@ -218,12 +220,13 @@ export function ChangePasswordModal({ open, onOpenChange }) {
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('confirmPassword')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gold hover:text-gold/90 bg-gold/15 hover:bg-gold/25 rounded-full w-8 h-8 flex items-center justify-center"
+                className="absolute w-11 right-0 top-0 bottom-0 flex justify-center items-center text-gold hover:text-gold/90 transition-colors bg-transparent border-0 p-0"
+                tabIndex={-1}
               >
                 {showPasswords.confirmPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>

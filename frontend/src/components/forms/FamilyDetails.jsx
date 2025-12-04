@@ -60,11 +60,13 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
           setFormData({
             fatherName: data.fatherName || "",
             fatherProfession: data.fatherOccupation || "",
-            fatherPhone: data.fatherContact || "",
+            fatherPhone: data.fatherContact?.number || "",
+            fatherPhoneCode: data.fatherContact?.code || "+91",
             fatherNative: data.fatherNativePlace || "",
             motherName: data.motherName || "",
             motherProfession: data.motherOccupation || "",
-            motherPhone: data.motherContact || "",
+            motherPhone: data.motherContact?.number || "",
+            motherPhoneCode: data.motherContact?.code || "+91",
             motherNative: "",
             grandFatherName: data.grandFatherName || "",
             grandMotherName: data.grandMotherName || "",
@@ -76,8 +78,6 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             siblingCount: data.howManySiblings || 0,
             siblings: data.siblingDetails || [],
             doYouHaveChildren: data.doYouHaveChildren ?? false,
-            fatherPhoneCode: "+91",
-            motherPhoneCode: "+91",
           });
         }
       } catch (error) {
@@ -146,8 +146,14 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
       motherName: formData.motherName,
       fatherOccupation: formData.fatherProfession,
       motherOccupation: formData.motherProfession,
-      fatherContact: formData.fatherPhone,
-      motherContact: formData.motherPhone,
+      fatherContact: formData.fatherPhone ? {
+        code: formData.fatherPhoneCode,
+        number: formData.fatherPhone
+      } : undefined,
+      motherContact: formData.motherPhone ? {
+        code: formData.motherPhoneCode,
+        number: formData.motherPhone
+      } : undefined,
       fatherNativePlace: formData.fatherNative,
       doYouHaveChildren: formData.doYouHaveChildren,
       grandFatherName: formData.grandFatherName,
@@ -251,7 +257,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             ))}
 
             {/* Father's Phone */}
-            <div className="flex flex-col w-full mb-4">
+            <div className="flex flex-col">
               <label className="text-sm font-medium mb-1">Father's Phone</label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <select
@@ -259,7 +265,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                   onChange={(e) =>
                     handlePhoneChange("fatherPhoneCode", e.target.value)
                   }
-                  className="w-24 border border-[#D4A052] rounded-lg p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                  className="w-full sm:w-32 border border-[#D4A052] rounded-md p-3 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                 >
                   {countryCodes.map((c) => (
                     <option key={`${c.code}-${c.country}`} value={c.code}>
@@ -275,7 +281,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                   onChange={(e) =>
                     handlePhoneChange("fatherPhone", e.target.value)
                   }
-                  className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                  className="flex-1 border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                 />
               </div>
             </div>
@@ -302,7 +308,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             ))}
 
             {/* Mother's Phone */}
-            <div className="flex flex-col w-full mb-4">
+            <div className="flex flex-col">
               <label className="text-sm font-medium mb-1">Mother's Phone</label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <select
@@ -310,7 +316,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                   onChange={(e) =>
                     handlePhoneChange("motherPhoneCode", e.target.value)
                   }
-                  className="w-24 border border-[#D4A052] rounded-lg p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                  className="w-full sm:w-32 border border-[#D4A052] rounded-md p-3 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                 >
                   {countryCodes.map((c) => (
                     <option key={`${c.code}-${c.country}`} value={c.code}>
@@ -326,7 +332,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                   onChange={(e) =>
                     handlePhoneChange("motherPhone", e.target.value)
                   }
-                  className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                  className="flex-1 border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                 />
               </div>
             </div>
@@ -335,21 +341,41 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
           {/* Grandparents */}
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-gray-800 mb-2">
-              Grand Parents
+              Grandparents
             </h4>
             {[
-              { label: "Grandfather's Name", key: "grandFatherName" },
-              { label: "Grandmother's Name", key: "grandMotherName" },
-              { label: "Nana's Name", key: "nanaName" },
-              { label: "Nani's Name", key: "naniName" },
-              { label: "Nana's Native Place", key: "nanaNativePlace" },
-            ].map(({ label, key }) => (
+              {
+                label: "Paternal Grandfather Name",
+                key: "grandFatherName",
+                placeholder: "e.g., Ramesh Kumar",
+              },
+              {
+                label: "Paternal Grandmother Name",
+                key: "grandMotherName",
+                placeholder: "e.g., Sushma Devi",
+              },
+              {
+                label: "Maternal Grandfather Name",
+                key: "nanaName",
+                placeholder: "e.g., Ramesh Kumar",
+              },
+              {
+                label: "Maternal Grandmother Name",
+                key: "naniName",
+                placeholder: "e.g., Sushma Devi",
+              },
+              {
+                label: "Maternal Grandparents' Native Place",
+                key: "nanaNativePlace",
+                placeholder: "e.g., Jaipur, Rajasthan",
+              },
+            ].map(({ label, key, placeholder }) => (
               <div className="flex flex-col" key={key}>
                 <label className="text-sm font-medium mb-1">{label}</label>
                 <input
                   type="text"
                   name={key}
-                  placeholder={label}
+                  placeholder={placeholder}
                   value={formData[key]}
                   onChange={handleChange}
                   className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"

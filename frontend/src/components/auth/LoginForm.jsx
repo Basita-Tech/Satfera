@@ -182,7 +182,7 @@ const LoginForm = () => {
   };
 
   const inputClass =
-    "w-full px-3 py-2 border border-[#D4A052] rounded-lg focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] outline-none transition";
+    "w-full p-3 text-sm border border-[#D4A052] rounded-md focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] outline-none transition";
 
   return (
     <div className="min-h-screen flex justify-center items-center px-4 bg-gradient-to-br from-background via-cream to-secondary">
@@ -282,7 +282,7 @@ const LoginForm = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#D4A052] hover:bg-[#b38b40] text-white font-semibold py-2 rounded-full shadow-md transition-colors disabled:opacity-50"
+            className="w-full bg-[#D4A052] hover:bg-[#b38b40] text-white font-semibold py-3 text-sm rounded-full shadow-md transition-colors disabled:opacity-50"
           >
             {loading ? "Signing In..." : "Sign In"}
           </button>

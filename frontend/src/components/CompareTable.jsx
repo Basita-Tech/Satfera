@@ -135,7 +135,7 @@ export function CompareTable({
                       e.stopPropagation();
                       onToggleShortlist(getProfileId(profile));
                     }}
-                    className={`absolute top-2 left-2 w-6 h-6 cursor-pointer z-[999] transition-all ${
+                    className={`absolute top-2 left-2 w-6 h-6 cursor-pointer z-10 transition-all ${
                       Array.isArray(shortlistedIds) &&
                       shortlistedIds.some(
                         (sid) => String(sid) === String(getProfileId(profile))
@@ -168,7 +168,7 @@ export function CompareTable({
                       }
                       onRemove(pid);
                     }}
-                    className="absolute top-2 right-2 text-red-500 w-6 h-6 cursor-pointer z-[999] transition-all"
+                    className="absolute top-2 right-2 text-red-500 w-6 h-6 cursor-pointer z-10 transition-all"
                   />
 
                   {/* Profile Preview */}

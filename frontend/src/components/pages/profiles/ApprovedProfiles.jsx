@@ -54,22 +54,6 @@ export function ApprovedProfiles({
         </p>
       </div>
 
-      {/* Chat Feature Notice */}
-      <div className="bg-gradient-to-r from-[#fff8e6] to-[#fffaf0] rounded-[20px] p-6 border border-yellow-200">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-full bg-[#c8a227] flex items-center justify-center flex-shrink-0">
-            <MessageCircle className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <h4 className="m-0 mb-1 text-gray-900">Start a conversation</h4>
-            <p className="text-sm text-gray-600 m-0">
-              You can now chat with approved matches. Upgrade to Premium to
-              unlock unlimited messaging and video calls.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Approved Profiles Grid */}
       {approvedProfiles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

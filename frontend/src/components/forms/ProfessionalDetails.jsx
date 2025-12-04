@@ -608,23 +608,18 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Employment Status
             </label>
-            <select
+            <CustomSelect
               name="employmentStatus"
               value={formData.employmentStatus}
               onChange={handleChange}
+              options={employmentOptions}
+              placeholder="Select Employment Status"
               className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${
                 errors.employmentStatus
                   ? "border-red-500 focus:ring-red-400 focus:border-red-400"
                   : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"
               }`}
-            >
-              <option value="">Select Employment Status</option>
-              {employmentOptions.map((opt, idx) => (
-                <option key={idx} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+            />
 
             {/* ✅ Show red error message when validation fails */}
             {errors.employmentStatus && (
@@ -639,51 +634,59 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Occupation / Job Title
             </label>
-            <CreatableSelect
-              isDisabled={isDisabled}
-              isClearable
-              options={jobOptions}
-              value={formData.occupation}
-              onChange={(selected) =>
-                handleSelectChange("occupation", selected)
-              }
-              placeholder="Select or type job title"
-              classNamePrefix="react-select"
-              components={{
-                IndicatorSeparator: () => null,
-              }}
-              styles={{
-                control: (base, state) => {
-                  let borderColor = "#d1d5db";
-                  if (errors.occupation) borderColor = "red";
-                  else if (state.isFocused) borderColor = "#E4C48A";
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
+              </span>
+              <CreatableSelect
+                isDisabled={isDisabled}
+                isClearable
+                options={jobOptions}
+                value={formData.occupation}
+                onChange={(selected) =>
+                  handleSelectChange("occupation", selected)
+                }
+                placeholder="Search or type job title..."
+                classNamePrefix="react-select"
+                formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+                components={{
+                  IndicatorSeparator: () => null,
+                }}
+                styles={{
+                  control: (base, state) => {
+                    let borderColor = "#d1d5db";
+                    if (errors.occupation) borderColor = "red";
+                    else if (state.isFocused) borderColor = "#E4C48A";
 
-                  return {
+                    return {
+                      ...base,
+                      minHeight: "3rem",
+                      borderRadius: "0.5rem",
+                      borderColor,
+                      boxShadow: state.isFocused
+                        ? `0 0 0 1px ${borderColor}`
+                        : "none",
+                      "&:hover": { borderColor },
+                      paddingLeft: "2.5rem", // space for icon
+                    };
+                  },
+                  valueContainer: (base) => ({
                     ...base,
-                    minHeight: "3rem",
-                    borderRadius: "0.5rem",
-                    borderColor,
-                    boxShadow: state.isFocused
-                      ? `0 0 0 1px ${borderColor}`
-                      : "none",
-                    "&:hover": { borderColor },
-                  };
-                },
-                valueContainer: (base) => ({
-                  ...base,
-                  padding: "0 0.75rem",
-                  height: "3rem",
-                  display: "flex",
-                  alignItems: "center",
-                }),
-                input: (base) => ({ ...base, margin: 0, padding: 0 }),
-                indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
-                placeholder: (base) => ({ ...base, margin: 0 }),
-                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-              }}
-              menuPlacement="top"
-              menuPosition="absolute"
-            />
+                    padding: "0 0.75rem",
+                    height: "3rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }),
+                  input: (base) => ({ ...base, margin: 0, padding: 0 }),
+                  indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
+                  placeholder: (base) => ({ ...base, margin: 0 }),
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                }}
+                menuPortalTarget={document.body}
+                menuPlacement="top"
+                menuPosition="absolute"
+              />
+            </div>
             {errors.occupation && (
               <p className="text-red-500 text-sm mt-1">{errors.occupation}</p>
             )}

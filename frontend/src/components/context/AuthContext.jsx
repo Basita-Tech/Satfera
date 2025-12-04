@@ -78,6 +78,7 @@ export const AuthProvider = ({ children }) => {
       clearClientAuthData();
       setUser(null);
       sessionStorage.clear();
+      toast.success("Logged out successfully");
     }
   };
 
