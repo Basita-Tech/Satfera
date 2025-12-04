@@ -1,0 +1,2518 @@
+openapi: 3.0.3
+info:
+  title: Satfera API
+  version: 1.0.0
+  description: API Documentation for Satfera Backend (Matrimony Platform)
+servers:
+  - url: http://localhost:8000
+    description: Local server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  schemas:
+    StandardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        password:
+          type: string
+      required: [password]
+    SignupRequest:
+      type: object
+      properties:
+        for_Profile:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        password:
+          type: string
+        gender:
+          type: string
+    OTPRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        type:
+          type: string
+          description: "signup|forgot-password"
+        otp:
+          type: string
+          description: "Required for verify endpoints"
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+    ChangePasswordRequest:
+      type: object
+      properties:
+        newPassword:
+          type: string
+        confirmPassword:
+          type: string
+      required: [newPassword, confirmPassword]
+    ListingProfile:
+      type: object
+      description: Search listing profile schema
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        age:
+          type: integer
+        height:
+          type: integer
+        religion:
+          type: string
+        caste:
+          type: string
+        city:
+          type: string
+        profession:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+    SearchResponse:
+      type: object
+      properties:
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingProfile"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+    BlockedUser:
+      type: object
+      properties:
+        name:
+          type: string
+        customId:
+          type: string
+    BlockedListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlockedUser"
+    ProfileViewsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        profileViewCount:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingProfile"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+    AccountStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            isActive:
+              type: boolean
+            isDeleted:
+              type: boolean
+            deactivatedAt:
+              type: string
+              format: date-time
+              nullable: true
+            deactivationReason:
+              type: string
+              nullable: true
+            canChangeStatus:
+              type: boolean
+            cooldownHoursRemaining:
+              type: integer
+              nullable: true
+    NotificationSettings:
+      type: object
+      properties:
+        emailNotifications:
+          type: boolean
+        pushNotifications:
+          type: boolean
+        smsNotifications:
+          type: boolean
+    NotificationSettingsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/NotificationSettings"
+    DeleteAccountRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+      required: [reason]
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+
+  /:
+    get:
+      summary: Root
+      description: API root with basic info
+      responses:
+        "200":
+          description: Root response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  version:
+                    type: string
+
+  /api/v1/admin/queue-stats:
+    get:
+      summary: Get queue statistics (admin)
+      responses:
+        "200":
+          description: Queue stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+
+  /api/v1/auth/login:
+    post:
+      summary: Login with email or phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/signup:
+    post:
+      summary: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/google/start:
+    get:
+      summary: Start Google OAuth flow
+      responses:
+        "302":
+          description: Redirect to Google
+
+  /api/v1/auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      responses:
+        "200":
+          description: Redirect to frontend with token or error
+
+  /api/v1/auth/forgot-password:
+    post:
+      summary: Request forgot password OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        "200":
+          description: OTP sent
+
+  /api/v1/auth/reset-password/{token}:
+    post:
+      summary: Reset password using token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPassword:
+                  type: string
+      responses:
+        "200":
+          description: Password reset
+
+  /api/v1/auth/send-email-otp:
+    post:
+      summary: Send OTP to email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OTPRequest"
+      responses:
+        "201":
+          description: OTP sent
+
+  /api/v1/auth/verify-email-otp:
+    post:
+      summary: Verify email OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OTPRequest"
+      responses:
+        "200":
+          description: Verified
+
+  /api/v1/auth/send-sms-otp:
+    post:
+      summary: Send SMS OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+      responses:
+        "201":
+          description: OTP sent
+
+  /api/v1/auth/verify-sms-otp:
+    post:
+      summary: Verify SMS OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+                otp:
+                  type: string
+      responses:
+        "200":
+          description: Verified
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout and invalidate session
+      description: |
+        Logs out the user by:
+        1. Invalidating the session in the database (sets isActive=false)
+        2. Clearing HTTP-only authentication cookies (token, csrf_token)
+        
+        This ensures the session cannot be reused even if someone obtains the cookie.
+        The endpoint handles both valid and expired tokens gracefully.
+      tags:
+        - Authentication
+      responses:
+        "200":
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Logged out successfully"
+        "500":
+          description: Server error during logout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                error:
+                  value:
+                    success: false
+                    message: "Logout failed"
+
+  /api/v1/user/profile:
+    get:
+      summary: Get authenticated user's dashboard/profile
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: User dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/notifications:
+    get:
+      summary: Get all notifications for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+
+  /api/v1/user/notifications/count:
+    get:
+      summary: Get unread notifications count
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Unread count
+
+  /api/v1/user/notifications/{id}/read:
+    patch:
+      summary: Mark a notification as read
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Marked as read
+
+  /api/v1/user/notifications/mark-all-read:
+    patch:
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: All marked
+
+  /api/v1/requests/all:
+    get:
+      summary: Get sent connection requests (authenticated)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Sent requests
+
+  /api/v1/requests/all/received:
+    get:
+      summary: Get received connection requests (authenticated)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Received requests
+
+  /api/v1/requests/send:
+    post:
+      summary: Send a connection request
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                receiverId:
+                  type: string
+      responses:
+        "201":
+          description: Request created
+
+  /api/v1/requests/accept:
+    post:
+      summary: Accept a connection request
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+      responses:
+        "200":
+          description: Accepted
+
+  /api/v1/requests/reject:
+    post:
+      summary: Reject a connection request
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+      responses:
+        "200":
+          description: Rejected
+
+  /api/v1/requests/approve:
+    get:
+      summary: Get approved/accepted connections
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved connections
+
+  /api/v1/requests/withdraw:
+    post:
+      summary: Withdraw (delete) a connection
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+      responses:
+        "200":
+          description: Withdrawn
+
+  /api/v1/requests/accepted/reject:
+    post:
+      summary: Change accepted connection status to rejected (receiver only)
+      description: |
+        Allows the receiver of an accepted connection request to change the status back to rejected.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The connection request ID
+              required: [requestId]
+      responses:
+        "200":
+          description: Connection status successfully changed to rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Connection successfully changed to rejected."
+                  data:
+                    type: object
+        "400":
+          description: Bad request (missing requestId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (users are blocked or action not allowed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Connection request not found or user is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/requests/rejected/accept:
+    post:
+      summary: Change rejected connection status to accepted (receiver only)
+      description: |
+        Allows the receiver of a rejected connection request to change the status back to accepted.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The connection request ID
+              required: [requestId]
+      responses:
+        "200":
+          description: Connection status successfully changed to accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Connection successfully changed to accepted."
+                  data:
+                    type: object
+        "400":
+          description: Bad request (missing requestId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized (authentication required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden (users are blocked or action not allowed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Connection request not found or user is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/requests/favorites/add:
+    post:
+      summary: Add a profile to favorites
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profileId:
+                  type: string
+      responses:
+        "200":
+          description: Added to favorites
+
+  /api/v1/requests/favorites/remove:
+    post:
+      summary: Remove a profile from favorites
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profileId:
+                  type: string
+      responses:
+        "200":
+          description: Removed from favorites
+
+  /api/v1/test:
+    post:
+      summary: Test compute match score between two users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId1:
+                  type: string
+                userId2:
+                  type: string
+      responses:
+        "200":
+          description: Match score
+
+  /api/v1/matchings:
+    post:
+      summary: Find matchings for a given user id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+      responses:
+        "200":
+          description: Matchings list
+
+  /api/v1/recommendations:
+    get:
+      summary: Get recommendations for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recommendations
+
+  /api/v1/matches:
+    get:
+      summary: Get matches for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Matches
+
+  /api/v1/profile/{candidateId}:
+    get:
+      summary: Get detailed profile of a candidate (authenticated)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Profile details
+        "404":
+          description: Not found
+
+  /api/v1/user-personal:
+    post:
+      summary: Create personal details for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    get:
+      summary: Get personal details for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Personal details
+    put:
+      summary: Update personal details for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/family:
+    post:
+      summary: Add family details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    get:
+      summary: Get family details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Family details
+    put:
+      summary: Update family details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/education:
+    get:
+      summary: Get education details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Education details
+    post:
+      summary: Create education details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update education details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/health:
+    get:
+      summary: Get health details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Health details
+    post:
+      summary: Add health details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update health details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/profession:
+    get:
+      summary: Get profession details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Profession details
+    post:
+      summary: Add profession details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update profession details
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/expectations:
+    get:
+      summary: Get user expectations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Expectations
+    post:
+      summary: Create expectations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "201":
+          description: Created
+    put:
+      summary: Update expectations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/onboarding-status:
+    get:
+      summary: Get onboarding status
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Onboarding status
+    put:
+      summary: Update onboarding status
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isOnboardingCompleted:
+                  type: boolean
+                completedSteps:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/upload/photos:
+    post:
+      summary: Upload a photo (profile)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photoType:
+                  type: string
+                url:
+                  type: string
+                title:
+                  type: string
+                visibility:
+                  type: string
+      responses:
+        "201":
+          description: Photo uploaded
+    get:
+      summary: Get photos for authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Photos
+
+  /api/v1/user-personal/upload/photos/{photoId}:
+    put:
+      summary: Update a photo by id
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                title:
+                  type: string
+                visibility:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+    delete:
+      summary: Delete a photo by id
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+
+  /api/v1/user-personal/upload/government-id:
+    post:
+      summary: Upload government id image
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+      responses:
+        "201":
+          description: Uploaded
+    get:
+      summary: Get government id info
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Government id
+    put:
+      summary: Update government id image
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+
+  /api/v1/user-personal/review/status:
+    get:
+      summary: Get profile review status
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Review status
+
+  /api/v1/user-personal/review/submit:
+    post:
+      summary: Submit profile for admin review
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Submitted
+  /api/v1/user/change-password:
+    post:
+      summary: Change password for authenticated user
+      description: |
+        Change the password for the currently authenticated user. Requires new password and confirmation. Password strength rules are enforced.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPassword:
+                  type: string
+                confirmPassword:
+                  type: string
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/search:
+    get:
+      summary: Search user profiles with filters
+      description: |
+        Search user listings by name, new profile timeframe, age range, height range, religion, caste, city and profession.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Search by name (first or last)
+        - in: query
+          name: newProfile
+          schema:
+            type: string
+            enum: [all, last_1_week, last_3_weeks, last_1_month]
+          description: Filter by recently created profiles
+        - in: query
+          name: ageFrom
+          schema:
+            type: integer
+        - in: query
+          name: ageTo
+          schema:
+            type: integer
+        - in: query
+          name: heightFrom
+          schema:
+            type: integer
+        - in: query
+          name: heightTo
+          schema:
+            type: integer
+        - in: query
+          name: religion
+          schema:
+            type: string
+        - in: query
+          name: caste
+          schema:
+            type: string
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: profession
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [newest, age_asc, age_desc, score]
+          description: Sorting preference
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      listings:
+                        - userId: "605c4f2b8b1e4b3b2c8f1a2d"
+                          displayName: "A. Sharma"
+                          firstName: "Anita"
+                          lastName: "Sharma"
+                          age: 28
+                          height: 160
+                          religion: "Hindu"
+                          caste: "Brahmin"
+                          city: "Mumbai"
+                          profession: "Software Engineer"
+                          photos: ["https://.../photo1.jpg"]
+                          score: 78.5
+                      pagination:
+                        page: 1
+                        limit: 20
+                        total: 124
+                        hasMore: true
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/block:
+    post:
+      summary: Block another user by customId
+      description: Block a user's profile so they are not visible to the blocker. Action is protected by a 24-hour cooldown per blocker.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customId:
+                  type: string
+              required: [customId]
+      responses:
+        "200":
+          description: User blocked successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Action rate limited (once per 24 hours)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/unblock:
+    post:
+      summary: Unblock a previously blocked user by customId
+      description: Remove a user from the authenticated user's blocked list. This action is rate-limited to once per 24 hours.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customId:
+                  type: string
+              required: [customId]
+      responses:
+        "200":
+          description: User unblocked successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Action rate limited (once per 24 hours)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/blocked:
+    get:
+      summary: List blocked users for authenticated user
+      description: Returns an array of blocked users with display name and customId.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Blocked users list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedListResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/profile-views:
+    get:
+      summary: List profiles that viewed the authenticated user's profile
+      description: Returns deduplicated profile viewers ordered by latest view time. Supports pagination via `page` and `limit`.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number (1-based)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Number of items per page
+      responses:
+        "200":
+          description: Profile views list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileViewsResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/compare:
+    post:
+      summary: Add profiles to compare list
+      description: Add up to 5 profiles to your compare list. Cannot add own profile.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profilesIds:
+                  type: array
+                  items:
+                    type: string
+              required: [profilesIds]
+      responses:
+        "200":
+          description: Profiles added to compare list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "400":
+          description: Validation error (limit exceeded, already exists, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+    get:
+      summary: Get profiles from compare list
+      description: Retrieve all profiles currently in user's compare list with full details.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Compare list profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ListingProfile"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Remove profiles from compare list
+      description: Remove one or more profiles from the compare list.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profilesIds:
+                  type: array
+                  items:
+                    type: string
+              required: [profilesIds]
+      responses:
+        "200":
+          description: Profiles removed from compare list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/account/deactivate:
+    post:
+      summary: Deactivate user account
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional reason for deactivation
+      responses:
+        "200":
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account deactivated successfully. You can reactivate after 24 hours."
+        "400":
+          description: Bad request (already deactivated, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyDeactivated:
+                  value:
+                    success: false
+                    message: "Account is already deactivated"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot deactivate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Cooldown period active (must wait 24 hours)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "You can change account status once every 24 hours"
+
+  /api/v1/user/account/activate:
+    post:
+      summary: Activate deactivated account
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Account activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account activated successfully"
+        "400":
+          description: Bad request (already active, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyActive:
+                  value:
+                    success: false
+                    message: "Account is already active"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot activate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Cooldown period active
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "You can activate your account in 18 hours. Please wait 24 hours after deactivation."
+
+  /api/v1/user/account/status:
+    get:
+      summary: Get account status and cooldown information
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Account status information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountStatusResponse"
+              examples:
+                activeAccount:
+                  value:
+                    success: true
+                    data:
+                      isActive: true
+                      isDeleted: false
+                      deactivatedAt: null
+                      deactivationReason: null
+                      canChangeStatus: true
+                deactivatedWithCooldown:
+                  value:
+                    success: true
+                    data:
+                      isActive: false
+                      isDeleted: false
+                      deactivatedAt: "2025-11-24T10:30:00Z"
+                      deactivationReason: "Taking a break"
+                      canChangeStatus: false
+                      cooldownHoursRemaining: 12
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/account:
+    delete:
+      summary: Delete user account (soft delete)
+      description: Important - Reason must be between 10-500 characters.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+            examples:
+              validRequest:
+                value:
+                  reason: "Found my life partner through this platform. Thank you!"
+      responses:
+        "200":
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account deleted successfully."
+        "400":
+          description: Validation error or already deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingReason:
+                  value:
+                    success: false
+                    message: "Deletion reason is required"
+                reasonTooShort:
+                  value:
+                    success: false
+                    message: "Deletion reason must be at least 10 characters"
+                reasonTooLong:
+                  value:
+                    success: false
+                    message: "Deletion reason must not exceed 500 characters"
+                alreadyDeleted:
+                  value:
+                    success: false
+                    message: "Account is already deleted"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/notification-settings:
+    get:
+      summary: Get notification preferences
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettingsResponse"
+              examples:
+                allEnabled:
+                  value:
+                    success: true
+                    data:
+                      emailNotifications: true
+                      pushNotifications: true
+                      smsNotifications: false
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      summary: Update notification preferences
+      description: At least one setting must be provided in the request.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emailNotifications:
+                  type: boolean
+                  description: Enable/disable email notifications
+                pushNotifications:
+                  type: boolean
+                  description: Enable/disable push notifications
+                smsNotifications:
+                  type: boolean
+                  description: Enable/disable SMS notifications
+            examples:
+              disableEmail:
+                value:
+                  emailNotifications: false
+              updateAll:
+                value:
+                  emailNotifications: true
+                  pushNotifications: true
+                  smsNotifications: false
+      responses:
+        "200":
+          description: Notification settings updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  settings:
+                    $ref: "#/components/schemas/NotificationSettings"
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Notification settings updated successfully"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidType:
+                  value:
+                    success: false
+                    message: "emailNotifications must be a boolean"
+                noSettings:
+                  value:
+                    success: false
+                    message: "At least one notification setting must be provided"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/email/request-change:
+    post:
+      summary: Request email change
+      description: Sends an OTP to the new email address to verify ownership before changing
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newEmail:
+                  type: string
+                  format: email
+                  description: New email address
+              required:
+                - newEmail
+            examples:
+              validRequest:
+                value:
+                  newEmail: "newemail@example.com"
+      responses:
+        "200":
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "OTP sent to new email address. Valid for 5 minutes."
+        "400":
+          description: Validation or business logic error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                sameEmail:
+                  value:
+                    success: false
+                    message: "New email must be different from current email"
+                emailInUse:
+                  value:
+                    success: false
+                    message: "Email already in use by another account"
+                resendLimit:
+                  value:
+                    success: false
+                    message: "Resend OTP limit reached for today. Try again tomorrow."
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/email/verify-change:
+    post:
+      summary: Verify and change email
+      description: Verifies the OTP and updates the email address if valid
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newEmail:
+                  type: string
+                  format: email
+                  description: New email address
+                otp:
+                  type: string
+                  pattern: '^\d{6}$'
+                  description: 6-digit OTP sent to new email
+              required:
+                - newEmail
+                - otp
+            examples:
+              validRequest:
+                value:
+                  newEmail: "newemail@example.com"
+                  otp: "123456"
+      responses:
+        "200":
+          description: Email changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Email changed successfully"
+        "400":
+          description: Validation or verification error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalidOtp:
+                  value:
+                    success: false
+                    message: "Invalid OTP. You have 2 attempt(s) remaining."
+                expiredOtp:
+                  value:
+                    success: false
+                    message: "OTP has expired. OTPs are valid for 5 minutes. Please request a new one."
+                attemptLimit:
+                  value:
+                    success: false
+                    message: "Maximum OTP verification attempts (3) reached. Please request a new OTP."
+                emailTaken:
+                  value:
+                    success: false
+                    message: "Email already in use by another account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/phone/request-change:
+    post:
+      summary: Request phone number change
+      description: Initiates phone number change. User must verify new phone via SMS OTP (using existing Twilio endpoints)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPhoneNumber:
+                  type: string
+                  description: New phone number in E.164 format (e.g., +919876543210)
+              required:
+                - newPhoneNumber
+            examples:
+              validRequest:
+                value:
+                  newPhoneNumber: "+919876543210"
+      responses:
+        "200":
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Please verify your new phone number using the SMS verification endpoint"
+        "400":
+          description: Validation or business logic error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                samePhone:
+                  value:
+                    success: false
+                    message: "New phone number must be different from current phone number"
+                phoneInUse:
+                  value:
+                    success: false
+                    message: "Phone number already in use by another account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/phone/verify-change:
+    post:
+      summary: Verify and change phone number
+      description: Completes phone number change after SMS OTP verification via Twilio
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPhoneNumber:
+                  type: string
+                  description: New phone number that was verified via SMS OTP
+              required:
+                - newPhoneNumber
+            examples:
+              validRequest:
+                value:
+                  newPhoneNumber: "+919876543210"
+      responses:
+        "200":
+          description: Phone number changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Phone number changed successfully"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                phoneTaken:
+                  value:
+                    success: false
+                    message: "Phone number already in use by another account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/user/contact-info:
+    get:
+      summary: Get logged-in user's contact information
+      description: Returns the email and phone number of the authenticated user
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Contact information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                        description: User's email address
+                      phoneNumber:
+                        type: string
+                        description: User's phone number
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      email: "user@example.com"
+                      phoneNumber: "+919876543210"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                unauthorized:
+                  value:
+                    success: false
+                    message: "Authentication required"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    success: false
+                    message: "User not found"
+
+  /api/v1/sessions:
+    get:
+      summary: Get all active sessions/devices
+      description: |
+        Retrieve all active sessions (logged-in devices) for the authenticated user.
+        Shows device information, location, login time, and last activity.
+        Useful for security monitoring and multi-device management.
+        **Note**: Sensitive fields like tokens are never exposed.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Session Management
+      responses:
+        "200":
+          description: List of active sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sessions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            sessionId:
+                              type: string
+                              description: Unique session identifier
+                            device:
+                              type: string
+                              description: Formatted device string
+                              example: "Chrome on Windows"
+                            browser:
+                              type: string
+                              example: "Chrome"
+                            os:
+                              type: string
+                              example: "Windows"
+                            deviceType:
+                              type: string
+                              enum: [Desktop, Mobile, Tablet]
+                            ipAddress:
+                              type: string
+                              example: "103.45.67.89"
+                            location:
+                              type: object
+                              nullable: true
+                              properties:
+                                city:
+                                  type: string
+                                  example: "Mumbai"
+                                country:
+                                  type: string
+                                  example: "India"
+                                display:
+                                  type: string
+                                  example: "Mumbai, India"
+                            loginAt:
+                              type: string
+                              format: date-time
+                            lastActivityAt:
+                              type: string
+                              format: date-time
+                            isCurrent:
+                              type: boolean
+                              description: Whether this is the current session
+                      total:
+                        type: integer
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      sessions:
+                        - sessionId: "674567890abcdef123456789"
+                          device: "Chrome on Windows"
+                          browser: "Chrome"
+                          os: "Windows"
+                          deviceType: "Desktop"
+                          ipAddress: "103.45.67.89"
+                          location:
+                            city: "Mumbai"
+                            country: "India"
+                            display: "Mumbai, India"
+                          loginAt: "2025-11-27T10:30:00.000Z"
+                          lastActivityAt: "2025-11-27T14:45:00.000Z"
+                          isCurrent: true
+                        - sessionId: "674567890abcdef987654321"
+                          device: "Safari on iOS"
+                          browser: "Safari"
+                          os: "iOS"
+                          deviceType: "Mobile"
+                          ipAddress: "182.76.123.45"
+                          location: null
+                          loginAt: "2025-11-26T08:15:00.000Z"
+                          lastActivityAt: "2025-11-26T22:30:00.000Z"
+                          isCurrent: false
+                      total: 2
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/sessions/{sessionId}:
+    delete:
+      summary: Logout from a specific session/device
+      description: |
+        Logout from a specific device/session by session ID.
+        This allows users to remotely logout from devices they no longer use or trust.
+        The session will be marked as inactive and cannot be used again.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Session Management
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique session identifier to logout from
+          example: "674567890abcdef987654321"
+      responses:
+        "200":
+          description: Successfully logged out from device
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Successfully logged out from device"
+        "400":
+          description: Missing session ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingId:
+                  value:
+                    success: false
+                    message: "Session ID is required"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Session not found or already logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notFound:
+                  value:
+                    success: false
+                    message: "Session not found or already logged out"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/sessions/logout-all:
+    post:
+      summary: Logout from all sessions/devices
+      description: |
+        Logout from all active sessions across all devices.
+        This is useful when:
+        - User suspects unauthorized access
+        - Changing password (automatically triggered)
+        - Security precaution before traveling
+        **Note**: This will logout from ALL devices including the current one.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Session Management
+      responses:
+        "200":
+          description: Successfully logged out from all devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      loggedOutCount:
+                        type: integer
+                        description: Number of sessions that were logged out
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Successfully logged out from 3 device(s)"
+                    data:
+                      loggedOutCount: 3
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

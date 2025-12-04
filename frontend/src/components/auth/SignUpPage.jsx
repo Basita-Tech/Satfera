@@ -2,12 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { sendEmailOtp, signupUser } from "../../api/auth";
 import {
-  HeartFill,
   ArrowLeft,
   EyeFill,
   EyeSlashFill,
-  EnvelopeFill,
-  PhoneFill,
   CheckCircleFill,
 } from "react-bootstrap-icons";
 import { allCountries } from "country-telephone-data";
@@ -22,7 +19,6 @@ const profileOptions = [
   { value: "friend", label: "Friend" },
 ];
 
-// Demo existing emails/mobiles (frontend)
 const existingEmails = ["test@example.com", "hello@domain.com"];
 const existingMobiles = ["+911234567890", "+919876543210"];
 console.log("API URL:", import.meta.env.VITE_API_URL);
@@ -47,7 +43,6 @@ const SignUpPage = () => {
     confirmPassword: "",
     useAsUsername: [],
   });
-  const [errorMessage, setErrorMessage] = useState("");
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -60,18 +55,18 @@ const SignUpPage = () => {
     number: false,
     special: false,
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const countryCodes = [
-    { code: "+91", country: "India" }, // 👈 India always first
+    { code: "+91", country: "India" },
     ...allCountries
-      .filter((c) => c.iso2 !== "in") // avoids duplicate India
+      .filter((c) => c.iso2 !== "in")
       .map((c) => ({
         code: `+${c.dialCode}`,
         country: c.name,
       })),
   ];
-
-
 
   const getNameLabel = () => {
     switch (formData.profileFor) {
@@ -88,14 +83,15 @@ const SignUpPage = () => {
     }
   };
 
-
   useEffect(() => {
     if (formData.gender) localStorage.setItem("gender", formData.gender);
   }, [formData.gender]);
 
   const capitalizeWords = (str) =>
-    str.replace(/\b\w+\b/g, (word) => word[0].toUpperCase() + word.slice(1).toLowerCase());
-
+    str.replace(
+      /\b\w+\b/g,
+      (word) => word[0].toUpperCase() + word.slice(1).toLowerCase()
+    );
 
   const validateDOB = (day, month, year, gender) => {
     if (!day || !month || !year) return "Complete Date of Birth required";
@@ -114,7 +110,6 @@ const SignUpPage = () => {
     if ((gender === "male" && age > 40) || (gender === "female" && age > 40))
       return `Age must be at most ${gender === "male" ? 40 : 40}`;
 
-
     return "";
   };
 
@@ -130,7 +125,7 @@ const SignUpPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let formattedValue = value;
-    // ✅ 1. Force lowercase for email FIRST
+
     if (name === "email") {
       formattedValue = value.toLowerCase();
     }
@@ -145,12 +140,12 @@ const SignUpPage = () => {
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
-    // Real-time name validation
+
     if (name === "firstName" || name === "lastName") {
       if (!formattedValue.trim()) {
         setErrors((prev) => ({
           ...prev,
-          [name]: `${name === "firstName" ? "First" : "Last"} Name required`
+          [name]: `${name === "firstName" ? "First" : "Last"} Name required`,
         }));
       } else {
         setErrors((prev) => {
@@ -161,10 +156,6 @@ const SignUpPage = () => {
       }
     }
 
-
-
-
-    // Password real-time check
     if (name === "password") {
       setPasswordCriteria({
         length: formattedValue.length >= 6,
@@ -175,7 +166,6 @@ const SignUpPage = () => {
       });
     }
 
-    // DOB validation
     if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
       let dobError = "";
       if (name === "dobDay" && formattedValue.length === 2) {
@@ -209,7 +199,6 @@ const SignUpPage = () => {
       setErrors((prev) => ({ ...prev, dobDay: dobError }));
     }
 
-    // ✅ Email validation (works with lowercase now)
     if (name === "email") {
       const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
       if (!formattedValue)
@@ -226,8 +215,6 @@ const SignUpPage = () => {
       else setErrors((prev) => ({ ...prev, email: "" }));
     }
 
-
-    // Mobile validation
     if (name === "mobile") {
       if (!formattedValue)
         setErrors((prev) => ({ ...prev, mobile: "Mobile required" }));
@@ -263,7 +250,7 @@ const SignUpPage = () => {
 
     setErrors((prev) => {
       const updated = { ...prev };
-      delete updated.profileFor; // ✅ remove red message immediately
+      delete updated.profileFor;
       if (autoGender) {
         delete updated.gender;
       } else if (value === "myself" || value === "friend") {
@@ -284,7 +271,6 @@ const SignUpPage = () => {
       setErrors((prev) => ({ ...prev, dobDay: dobError }));
     }
   };
-
 
   const handleGenderSelect = (gender) => {
     setFormData((prev) => ({ ...prev, gender }));
@@ -319,14 +305,11 @@ const SignUpPage = () => {
     setFormData((prev) => {
       let updatedSelection = [];
       if (prev.useAsUsername.includes(type)) {
-        // Remove if unchecked
         updatedSelection = prev.useAsUsername.filter((t) => t !== type);
       } else {
-        // Select the new one (only one at a time)
         updatedSelection = [type];
       }
 
-      // Immediately remove the error if any checkbox is selected
       setErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
         if (updatedSelection.length > 0) {
@@ -370,7 +353,9 @@ const SignUpPage = () => {
     if (!useAsUsername.length)
       newErrors.useAsUsername = "Select Email or Mobile as Username";
 
-    // Email & Mobile checks
+    if (!termsAccepted)
+      newErrors.termsAccepted = "You must agree to the Terms & Conditions";
+
     const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
     if (useAsUsername.includes("email")) {
       if (!email) newErrors.email = "Email required";
@@ -392,8 +377,7 @@ const SignUpPage = () => {
         newErrors.mobile = "Mobile already exists";
     }
 
-    const passRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$/;
+    const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$/;
     if (!passRegex.test(password || ""))
       newErrors.password =
         "Password must include uppercase, lowercase, number & special char";
@@ -406,130 +390,126 @@ const SignUpPage = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  setLoading(true);
-  setErrors({}); // clear previous errors
+    setLoading(true);
+    setErrors({});
 
-  try {
-    // 🧹 Normalize mobile number
-    let mobile = formData.mobile.replace(/\D/g, "");
-    if (mobile.startsWith("0")) mobile = mobile.slice(1);
-    const phoneNumber = `${formData.countryCode}${mobile}`;
+    try {
+      let mobile = formData.mobile.replace(/\D/g, "");
+      if (mobile.startsWith("0")) mobile = mobile.slice(1);
+      const phoneNumber = `${formData.countryCode}${mobile}`;
 
-    // 🧩 Build payload
-    const payload = {
-      firstName: formData.firstName.trim(),
-      middleName: formData.middleName?.trim() || "",
-      lastName: formData.lastName.trim(),
-      gender: formData.gender,
-      email: formData.email.toLowerCase().trim(),
-      phoneNumber,
-      password: formData.password,
-      dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(
-        formData.dobMonth
-      ).padStart(2, "0")}-${formData.dobYear}`,
-      for_Profile: formData.profileFor,
-    };
+      const payload = {
+        firstName: formData.firstName.trim(),
+        middleName: formData.middleName?.trim() || "",
+        lastName: formData.lastName.trim(),
+        gender: formData.gender,
+        email: formData.email.toLowerCase().trim(),
+        phoneNumber,
+        password: formData.password,
+        termsAndConditionsAccepted: termsAccepted,
+        dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(
+          formData.dobMonth
+        ).padStart(2, "0")}-${formData.dobYear}`,
+        for_Profile: formData.profileFor,
+      };
 
-    console.log("Signup payload:", payload);
+      console.log("Signup payload:", payload);
 
-    // 🚀 Call signup API
-    const res = await signupUser(payload);
-    console.log("Signup response:", res);
+      const res = await signupUser(payload);
+      console.log("Signup response:", res);
 
-    if (res?.success) {
-      try {
-        // ✅ Send Email OTP only
-        const emailOtpRes = await sendEmailOtp({
-          email: payload.email,
-          type: "signup",
-        });
-
-        if (emailOtpRes?.success) {
-          toast.success("Email OTP sent successfully!");
-          navigate("/verify-otp", {
-            state: {
-              email: payload.email,
-              countryCode: formData.countryCode,
-              mobile,
-              name: `${payload.firstName} ${payload.lastName}`,
-            },
+      if (res?.success) {
+        try {
+          const emailOtpRes = await sendEmailOtp({
+            email: payload.email,
+            type: "signup",
           });
-          return;
-        } else {
-          toast.error(emailOtpRes?.message || "Failed to send Email OTP");
+
+          if (emailOtpRes?.success) {
+            toast.success("Email OTP sent successfully!");
+            navigate("/verify-otp", {
+              state: {
+                email: payload.email,
+                countryCode: formData.countryCode,
+                mobile,
+                name: `${payload.firstName} ${payload.lastName}`,
+              },
+            });
+            return;
+          } else {
+            toast.error(emailOtpRes?.message || "Failed to send Email OTP");
+            return;
+          }
+        } catch (otpError) {
+          console.error("Email OTP error:", otpError);
+          toast.error("Error sending OTP. Please try again.");
           return;
         }
-      } catch (otpError) {
-        console.error("Email OTP error:", otpError);
-        toast.error("Error sending OTP. Please try again.");
+      }
+
+      if (!res?.success) {
+        toast.error(res?.message || "Signup failed");
+        setErrors((prev) => ({
+          ...prev,
+          ...(res.message?.toLowerCase().includes("email")
+            ? { email: res.message }
+            : { mobile: res.message }),
+        }));
         return;
       }
-    }
 
-    // ❌ Handle backend failure message
-    if (!res?.success) {
-      toast.error(res?.message || "Signup failed");
-      setErrors((prev) => ({
-        ...prev,
-        ...(res.message?.toLowerCase().includes("email")
-          ? { email: res.message }
-          : { mobile: res.message }),
-      }));
-      return;
-    }
+      if (res?.errors) {
+        const newErrors = {};
 
-    // ⚙️ Handle backend validation errors
-    if (res?.errors) {
-      const newErrors = {};
+        if (Array.isArray(res.errors)) {
+          res.errors.forEach((err) => {
+            const field =
+              err.param || err.field || err.key || err.path || "form";
+            const message = err.msg || err.message || String(err);
 
-      if (Array.isArray(res.errors)) {
-        res.errors.forEach((err) => {
-          const field =
-            err.param || err.field || err.key || err.path || "form";
-          const message = err.msg || err.message || String(err);
+            const mappedField = (() => {
+              if (["phoneNumber", "phone", "mobile"].includes(field))
+                return "mobile";
+              if (["for_Profile", "forProfile", "for_profile"].includes(field))
+                return "profileFor";
+              if (["dateOfBirth", "dob", "date_of_birth"].includes(field))
+                return "dobDay";
+              if (["firstName", "firstname"].includes(field))
+                return "firstName";
+              if (["lastName", "lastname"].includes(field)) return "lastName";
+              if (field === "email") return "email";
+              if (field === "password") return "password";
+              return field;
+            })();
 
-          const mappedField = (() => {
-            if (["phoneNumber", "phone", "mobile"].includes(field)) return "mobile";
-            if (["for_Profile", "forProfile", "for_profile"].includes(field))
-              return "profileFor";
-            if (["dateOfBirth", "dob", "date_of_birth"].includes(field))
-              return "dobDay";
-            if (["firstName", "firstname"].includes(field)) return "firstName";
-            if (["lastName", "lastname"].includes(field)) return "lastName";
-            if (field === "email") return "email";
-            if (field === "password") return "password";
-            return field;
-          })();
+            newErrors[mappedField] = message;
+          });
+        } else if (typeof res.errors === "object") {
+          Object.keys(res.errors).forEach((k) => {
+            newErrors[k] = Array.isArray(res.errors[k])
+              ? res.errors[k].join(" ")
+              : String(res.errors[k]);
+          });
+        }
 
-          newErrors[mappedField] = message;
-        });
-      } else if (typeof res.errors === "object") {
-        Object.keys(res.errors).forEach((k) => {
-          newErrors[k] = Array.isArray(res.errors[k])
-            ? res.errors[k].join(" ")
-            : String(res.errors[k]);
-        });
+        setErrors((prev) => ({ ...prev, ...newErrors }));
+        return;
       }
 
-      setErrors((prev) => ({ ...prev, ...newErrors }));
-      return;
+      setErrors((prev) => ({
+        ...prev,
+        form: res?.message || "Signup failed. Try again.",
+      }));
+    } catch (error) {
+      console.error("Signup error:", error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Something went wrong!");
+    } finally {
+      setLoading(false);
     }
-
-    // 🛑 Fallback error
-    setErrors((prev) => ({
-      ...prev,
-      form: res?.message || "Signup failed. Try again.",
-    }));
-  } catch (error) {
-    console.error("Signup error:", error.response?.data || error.message);
-    toast.error(error.response?.data?.message || "Something went wrong!");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-center px-4">
@@ -541,10 +521,10 @@ const SignUpPage = () => {
           <ArrowLeft className="mr-1" /> Back to Home
         </Link>
 
-
         <div className="text-center mb-8">
-
-          <h2 className="inline font-bold text-3xl text-gray-800">Create Your Profile</h2>
+          <h2 className="inline font-bold text-3xl text-gray-800">
+            Create Your Profile
+          </h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -560,9 +540,10 @@ const SignUpPage = () => {
                   type="button"
                   onClick={() => handleProfileForChange(opt.value)}
                   className={`px-4 py-3 text-sm font-medium shadow-md border transition-all duration-200 
-                    ${formData.profileFor === opt.value
-                      ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
-                      : "bg-white text-gray-700 border-[#E4C48A] hover:bg-[#FFF9F2]"
+                    ${
+                      formData.profileFor === opt.value
+                        ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
+                        : "bg-white text-gray-700 border-[#E4C48A] hover:bg-[#FFF9F2]"
                     }`}
                 >
                   {opt.label}
@@ -575,7 +556,8 @@ const SignUpPage = () => {
           </div>
 
           {/* Gender */}
-          {(formData.profileFor === "myself" || formData.profileFor === "friend") && (
+          {(formData.profileFor === "myself" ||
+            formData.profileFor === "friend") && (
             <div className="mt-4">
               <label className="block font-semibold mb-2 text-gray-700">
                 Gender <span className="text-red-500">*</span>
@@ -588,10 +570,11 @@ const SignUpPage = () => {
                     type="button"
                     onClick={() => handleGenderSelect(g)}
                     className={`px-4 py-3 text-sm font-medium shadow-md border transition-all duration-200
-            ${formData.gender === g
-                        ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]" // Pre-selected style
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                      }`}
+            ${
+              formData.gender === g
+                ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+            }`}
                   >
                     {g === "male" ? "Male" : "Female"}
                   </button>
@@ -603,7 +586,6 @@ const SignUpPage = () => {
               )}
             </div>
           )}
-
 
           {/* Names */}
           <div>
@@ -619,12 +601,16 @@ const SignUpPage = () => {
                   placeholder="First Name *"
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-md border ${errors.firstName ? "border-red-500" : "border-[#E4C48A]"} 
+                  className={`w-full p-3 rounded-md border ${
+                    errors.firstName ? "border-red-500" : "border-[#E4C48A]"
+                  } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                 />
 
                 {errors.firstName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.firstName}
+                  </p>
                 )}
               </div>
 
@@ -635,7 +621,9 @@ const SignUpPage = () => {
                   placeholder="Middle Name"
                   value={formData.middleName}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-md border ${errors.middleName ? "border-red-500" : "border-[#E4C48A]"} 
+                  className={`w-full p-3 rounded-md border ${
+                    errors.middleName ? "border-red-500" : "border-[#E4C48A]"
+                  } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                 />
               </div>
@@ -647,7 +635,9 @@ const SignUpPage = () => {
                   placeholder="Last Name *"
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-md border ${errors.lastName ? "border-red-500" : "border-[#E4C48A]"} 
+                  className={`w-full p-3 rounded-md border ${
+                    errors.lastName ? "border-red-500" : "border-[#E4C48A]"
+                  } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
                 />
                 {errors.lastName && (
@@ -671,8 +661,9 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobDay}
                 onChange={handleInputChange}
-                className={`w-full p-3 rounded-md border ${errors.dobDay ? "border-red-500" : "border-[#E4C48A]"
-                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`w-full p-3 rounded-md border ${
+                  errors.dobDay ? "border-red-500" : "border-[#E4C48A]"
+                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
               <input
                 type="text"
@@ -681,8 +672,9 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobMonth}
                 onChange={handleInputChange}
-                className={`w-full p-3 rounded-md border ${errors.dobMonth ? "border-red-500" : "border-[#E4C48A]"
-                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`w-full p-3 rounded-md border ${
+                  errors.dobMonth ? "border-red-500" : "border-[#E4C48A]"
+                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
               <input
                 type="text"
@@ -691,8 +683,9 @@ const SignUpPage = () => {
                 maxLength={4}
                 value={formData.dobYear}
                 onChange={handleInputChange}
-                className={`w-full p-3 rounded-md border ${errors.dobYear ? "border-red-500" : "border-[#E4C48A]"
-                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`w-full p-3 rounded-md border ${
+                  errors.dobYear ? "border-red-500" : "border-[#E4C48A]"
+                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
             </div>
 
@@ -716,11 +709,13 @@ const SignUpPage = () => {
                 handleInputChange(e);
                 setErrors((prev) => ({ ...prev, email: "" }));
               }}
-              className={`w-full p-3 rounded-md border ${errors.email ? "border-red-500" : "border-[#E4C48A]"
-                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              className={`w-full p-3 rounded-md border ${
+                errors.email ? "border-red-500" : "border-[#E4C48A]"
+              } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
 
             <div className=" mt-1">
               <input
@@ -737,26 +732,32 @@ const SignUpPage = () => {
               </span>
             </div>
             {errors.useAsUsername && (
-              <p className="text-red-500 text-sm mt-1">{errors.useAsUsername}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.useAsUsername}
+              </p>
             )}
           </div>
 
           {/* Mobile Number */}
           <div className="flex flex-col w-full mb-6">
-            <label className="text-sm font-medium mb-2">Mobile <span className="text-red-500">*</span></label>
+            <label className="text-sm font-medium mb-2">
+              Mobile <span className="text-red-500">*</span>
+            </label>
 
             <div className="flex gap-3">
               {/* Country Code */}
               <div
-                className={`relative w-40 rounded-lg border ${errors.mobile ? "border-red-500" : "border-[#E4C48A]"
-                  } focus-within:ring-1 focus-within:ring-[#ecc988] overflow-hidden`}
+                className={`relative w-40 rounded-lg border ${
+                  errors.mobile ? "border-red-500" : "border-[#E4C48A]"
+                } focus-within:ring-1 focus-within:ring-[#ecc988] overflow-hidden`}
               >
                 <select
                   name="countryCode"
                   value={formData.countryCode}
                   onChange={handleInputChange}
-                  className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border ${errors.mobile ? "border-red-500" : "border-gray-300"
-                    } focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 text-gray-700 placeholder-gray-400`}
+                  className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border ${
+                    errors.mobile ? "border-red-500" : "border-gray-300"
+                  } focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 text-gray-700 placeholder-gray-400`}
                   style={{
                     WebkitAppearance: "none",
                     MozAppearance: "none",
@@ -775,13 +776,22 @@ const SignUpPage = () => {
                         {c.code} {c.country}
                       </option>
                     ))}
-
                 </select>
 
                 {/* Dropdown Arrow */}
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="w-4 h-4 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
@@ -793,13 +803,12 @@ const SignUpPage = () => {
                 value={formData.mobile}
                 onChange={(e) => {
                   handleInputChange(e);
-                  setErrors((prev) => ({ ...prev, mobile: "" })); // 🧹 Clear error when typing again
+                  setErrors((prev) => ({ ...prev, mobile: "" }));
                 }}
-                className={`w-full p-3 rounded-md border ${errors.mobile ? "border-red-500" : "border-[#E4C48A]"
-                  } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                className={`w-full p-3 rounded-md border ${
+                  errors.mobile ? "border-red-500" : "border-[#E4C48A]"
+                } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
               />
-
-            
             </div>
 
             {/* Checkbox */}
@@ -817,8 +826,14 @@ const SignUpPage = () => {
             </label>
 
             {/* Error Messages */}
-            {errors.mobile && <p className="text-red-500 text-sm mt-1">{errors.mobile}</p>}
-            {errors.useAsUsername && <p className="text-red-500 text-sm mt-1">{errors.useAsUsername}</p>}
+            {errors.mobile && (
+              <p className="text-red-500 text-sm mt-1">{errors.mobile}</p>
+            )}
+            {errors.useAsUsername && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.useAsUsername}
+              </p>
+            )}
           </div>
 
           {/* Password */}
@@ -829,7 +844,9 @@ const SignUpPage = () => {
               placeholder="Password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full p-3 rounded-md border ${errors.password ? "border-red-500" : "border-[#E4C48A]"} 
+              className={`w-full p-3 rounded-md border ${
+                errors.password ? "border-red-500" : "border-[#E4C48A]"
+              } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
@@ -843,33 +860,63 @@ const SignUpPage = () => {
             )}
 
             {/* Password Criteria: show only if password is invalid */}
-            {formData.password && !(
-              formData.password.length >= 6 &&
-              /[A-Z]/.test(formData.password) &&
-              /[a-z]/.test(formData.password) &&
-              /[0-9]/.test(formData.password) &&
-              /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
-            ) && (
+            {formData.password &&
+              !(
+                formData.password.length >= 6 &&
+                /[A-Z]/.test(formData.password) &&
+                /[a-z]/.test(formData.password) &&
+                /[0-9]/.test(formData.password) &&
+                /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+              ) && (
                 <div className="mt-2 text-sm space-y-1">
-                  <p className={`${formData.password.length >= 6 ? "text-green-500" : "text-gray-500"}`}>
+                  <p
+                    className={`${
+                      formData.password.length >= 6
+                        ? "text-green-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     • Minimum 6 characters
                   </p>
-                  <p className={`${/[A-Z]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                  <p
+                    className={`${
+                      /[A-Z]/.test(formData.password)
+                        ? "text-green-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     • At least one uppercase letter
                   </p>
-                  <p className={`${/[a-z]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                  <p
+                    className={`${
+                      /[a-z]/.test(formData.password)
+                        ? "text-green-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     • At least one lowercase letter
                   </p>
-                  <p className={`${/[0-9]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                  <p
+                    className={`${
+                      /[0-9]/.test(formData.password)
+                        ? "text-green-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     • At least one number
                   </p>
-                  <p className={`${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                  <p
+                    className={`${
+                      /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+                        ? "text-green-500"
+                        : "text-gray-500"
+                    }`}
+                  >
                     • At least one special character
                   </p>
                 </div>
               )}
           </div>
-
 
           {/* Confirm Password */}
           <div className="relative">
@@ -879,7 +926,9 @@ const SignUpPage = () => {
               placeholder="Confirm Password"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className={`w-full p-3 rounded-md border ${errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"} 
+              className={`w-full p-3 rounded-md border ${
+                errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"
+              } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
@@ -889,9 +938,40 @@ const SignUpPage = () => {
               {showConfirmPassword ? <EyeSlashFill /> : <EyeFill />}
             </span>
             {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.confirmPassword}
+              </p>
             )}
           </div>
+
+          {/* Terms & Conditions Checkbox */}
+          <div className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={termsAccepted}
+              onChange={(e) => {
+                setTermsAccepted(e.target.checked);
+                setErrors((prev) => ({ ...prev, termsAccepted: "" }));
+              }}
+              className="w-4 h-4 accent-[#D4AF37] mt-1"
+            />
+            <label htmlFor="terms" className="text-sm text-gray-700">
+              I agree to the{" "}
+              <span
+                className="text-blue-600 underline hover:text-blue-700 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowDisclaimer(true);
+                }}
+              >
+                Terms & Conditions
+              </span>
+            </label>
+          </div>
+          {errors.termsAccepted && (
+            <p className="text-red-500 text-sm mt-1">{errors.termsAccepted}</p>
+          )}
 
           {/* Submit Button */}
           <button
@@ -902,9 +982,82 @@ const SignUpPage = () => {
           >
             {loading ? "Creating..." : "Create Profile"}
           </button>
-
-
         </form>
+
+        {/* Disclaimer Modal for Terms & Conditions */}
+        {showDisclaimer && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[80vh]">
+              <h3 className="text-xl font-bold mb-4">
+                Disclaimer for SATFERA Matrimony
+              </h3>
+              <div className="text-sm text-gray-700 space-y-3">
+                <p>
+                  By registering on <strong>SATFERA</strong>, you give us
+                  permission to use your photos, profile details, and other
+                  shared information on our website, mobile application, and for
+                  sharing with suitable profiles for matchmaking purposes.
+                </p>
+                <p>
+                  You confirm that all personal details provided by you,
+                  including name, age, contact number, education, financial
+                  details, and any other information, are true, correct, and
+                  updated.
+                </p>
+                <p>
+                  <strong>SATFERA</strong> is only a matchmaking platform. We do
+                  not guarantee marriage, engagement, or confirmation of any
+                  relationship.
+                </p>
+                <p>
+                  If you are interested in any profile, it is your sole
+                  responsibility to verify their past, present, financial
+                  capacity, family background, and other necessary details
+                  before making any decision. SATFERA is not responsible for the
+                  authenticity of users’ claims.
+                </p>
+                <p>
+                  SATFERA will not be held responsible for any issues, disputes,
+                  frauds, or misunderstandings arising after marriage,
+                  engagement, or any personal interactions. We cannot interfere
+                  in the personal life of any member.
+                </p>
+                <p>
+                  SATFERA strongly advises all members to exercise caution,
+                  conduct independent verification, and use their own judgment
+                  before sharing personal, financial, or sensitive information
+                  with other members.
+                </p>
+                <p>
+                  SATFERA does not conduct criminal background checks or
+                  financial verifications of its members. Users are responsible
+                  for due diligence.
+                </p>
+                <p>
+                  SATFERA will not be liable for any loss, damage, fraud, or
+                  emotional/financial harm arising out of interactions with
+                  other members.
+                </p>
+                <p>
+                  Membership fees or charges paid to SATFERA are non-refundable
+                  under any circumstances.
+                </p>
+                <p>
+                  By using SATFERA, you agree to abide by our Terms & Conditions
+                  and Privacy Policy.
+                </p>
+              </div>
+              <div className="flex justify-end mt-6">
+                <button
+                  className="px-4 py-2 rounded-lg border border-gray-400 hover:bg-gray-100"
+                  onClick={() => setShowDisclaimer(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

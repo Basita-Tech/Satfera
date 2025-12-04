@@ -14,16 +14,16 @@ const userEducationSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
+      index: true
     },
     SchoolName: { type: String, trim: true },
     HighestEducation: { type: String, trim: true },
     FieldOfStudy: { type: String, trim: true },
     University: { type: String, trim: true },
-    CountryOfEducation: { type: String, trim: true },
+    CountryOfEducation: { type: String, trim: true }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 

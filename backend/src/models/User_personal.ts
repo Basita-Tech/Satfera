@@ -27,7 +27,6 @@ export interface IUserPersonal extends Document {
   visaType?: string;
   isHaveChildren?: boolean;
   numberOfChildren?: number;
-  occupation?: string;
   isChildrenLivingWithYou?: boolean;
   isYouLegallySeparated?: boolean;
   separatedSince?: string;
@@ -40,7 +39,7 @@ const userPersonalSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
+      index: true
     },
     timeOfBirth: { type: String },
     height: { type: Schema.Types.Mixed },
@@ -59,7 +58,7 @@ const userPersonalSchema = new Schema(
       city: { type: String },
       state: { type: String },
       zipCode: { type: String },
-      isYourHome: { type: Boolean },
+      isYourHome: { type: Boolean }
     },
     nationality: { type: String },
     isResidentOfIndia: { type: Boolean },
@@ -67,13 +66,12 @@ const userPersonalSchema = new Schema(
     visaType: { type: String },
     isHaveChildren: { type: Boolean },
     numberOfChildren: { type: Number },
-    occupation: { type: String },
     isChildrenLivingWithYou: { type: Boolean },
     isYouLegallySeparated: { type: Boolean },
     separatedSince: { type: String },
     divorceStatus: {
-      type: String,
-    },
+      type: String
+    }
   },
   { timestamps: true }
 );

@@ -23,11 +23,11 @@ const userExpectationsSchema = new Schema(
       ref: "User",
       required: true,
       unique: true,
-      index: true,
+      index: true
     },
     age: {
       from: { type: Number, required: true, min: 18, max: 100 },
-      to: { type: Number, required: true, min: 18, max: 100 },
+      to: { type: Number, required: true, min: 18, max: 100 }
     },
     maritalStatus: {
       type: Object,
@@ -40,42 +40,42 @@ const userExpectationsSchema = new Schema(
         "Widowed",
         "Separated",
         "Awaiting Divorce",
-        "No Preference",
-      ],
+        "No Preference"
+      ]
     },
     isConsumeAlcoholic: {
       type: String,
       required: true,
-      enum: ["yes", "no", "occasionally"],
+      enum: ["yes", "no", "occasionally"]
     },
     educationLevel: {
       type: Schema.Types.Mixed,
-      trim: true,
+      trim: true
     },
     community: {
       type: Schema.Types.Mixed,
       required: true,
-      trim: true,
+      trim: true
     },
     livingInCountry: {
       type: Schema.Types.Mixed,
       required: true,
-      trim: true,
+      trim: true
     },
     livingInState: {
       type: Schema.Types.Mixed,
-      trim: true,
+      trim: true
     },
     profession: {
       type: Schema.Types.Mixed,
-      trim: true,
+      trim: true
     },
     diet: {
-      type: Schema.Types.Mixed,
-    },
+      type: Schema.Types.Mixed
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 

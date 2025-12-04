@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { allCountries } from "country-telephone-data";
 import { useNavigate } from "react-router-dom";
-import { saveUserFamilyDetails, getUserFamilyDetails, updateUserFamilyDetails } from "../../api/auth";
+import CustomSelect from "../ui/CustomSelect";
+import {
+  saveUserFamilyDetails,
+  getUserFamilyDetails,
+  updateUserFamilyDetails,
+} from "../../api/auth";
 import toast from "react-hot-toast";
 
-// Map allCountries for dropdown
 const countryCodes = allCountries.map((c) => ({
   code: `+${c.dialCode}`,
   country: c.name,
 }));
 
-
-// ✅ Validate phone number (10 digits)
 const isValidPhone = (phone) => {
-  const phoneRegex = /^[0-9]{10}$/; // only digits, exactly 10
+  const phoneRegex = /^[0-9]{10}$/;
   return phoneRegex.test(phone);
 };
 
@@ -45,13 +47,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     siblings: [],
   });
 
-  // ✅ Fetch existing data once
   useEffect(() => {
     const fetchFamilyDetails = async () => {
       try {
         setLoading(true);
         const res = await getUserFamilyDetails();
-        console.log("📥 API family details:", res?.data);
 
         const data = res?.data?.data;
         if (data) {
@@ -90,168 +90,140 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     fetchFamilyDetails();
   }, []);
 
+    const formatFullName = useCallback((name) => {
+      return name.replace(/\b\w/g, (c) => c.toUpperCase());
+    }, []);
 
-  // Capitalize first letter of each word while preserving spaces
-  const formatFullName = (name) => {
-    return name.replace(/\b\w/g, (c) => c.toUpperCase());
-  };
-
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     const formattedValue =
       name.toLowerCase().includes("name") ||
-        name.toLowerCase().includes("native") ||
-        name.toLowerCase().includes("profession")
+      name.toLowerCase().includes("native") ||
+      name.toLowerCase().includes("profession")
         ? formatFullName(value)
         : value;
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
-  };
+  }, [formatFullName]);
 
-  const handlePhoneChange = (field, value) => {
-  if (field === "motherPhone" || field === "fatherPhone") {
-    // remove non-digit characters (no + inside the input)
-    const digitsOnly = value.replace(/\D/g, "");
-    setFormData((prev) => ({ ...prev, [field]: digitsOnly }));
-  } else {
-    // handle country code normally
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  }
-};
-
-
-  const handleSiblingChange = (index, field, value) => {
-    const updatedSiblings = [...formData.siblings];
-    updatedSiblings[index][field] =
-      field === "name" ? formatFullName(value) : value;
-    setFormData((prev) => ({ ...prev, siblings: updatedSiblings }));
-  };
-
-
-  // ✅ Handle sibling count change (missing earlier)
-  const handleSiblingCount = (count) => {
-    const siblingsArray = Array.from({ length: count }, () => ({
-      name: "",
-      relation: "",
-      maritalStatus: "",
-    }));
-    setFormData((prev) => ({
-      ...prev,
-      siblingCount: count,
-      siblings: siblingsArray,
-    }));
-  };
-
-  
-
-
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  console.log("🧾 Raw formData before submission:", formData);
-// ✅ Validate phone numbers before continuing
-  if (formData.fatherPhone && !isValidPhone(formData.fatherPhone)) {
-    toast.error("Please enter a valid 10-digit father's phone number.");
-    return;
-  }
-
-  if (formData.motherPhone && !isValidPhone(formData.motherPhone)) {
-    toast.error("Please enter a valid 10-digit mother's phone number.");
-    return;
-  }
-  // ✅ Prepare clean submission data
-  let submissionData = {
-    fatherName: formData.fatherName,
-    motherName: formData.motherName,
-    fatherOccupation: formData.fatherProfession,
-    motherOccupation: formData.motherProfession,
-    fatherContact: formData.fatherPhone,
-    motherContact: formData.motherPhone,
-    fatherNativePlace: formData.fatherNative,
-    doYouHaveChildren: formData.doYouHaveChildren,
-    grandFatherName: formData.grandFatherName,
-    grandMotherName: formData.grandMotherName,
-    nanaName: formData.nanaName,
-    naniName: formData.naniName,
-    nanaNativePlace: formData.nanaNativePlace,
-    familyType: formData.familyType,
-  };
-
-  // ✅ Handle siblings correctly
-  if (formData.hasSiblings === true) {
-    submissionData.haveSibling = true;
-    submissionData.howManySiblings = formData.siblingCount || 0;
-    submissionData.siblingDetails = (formData.siblings || []).filter(
-      (s) => s.name?.trim() && s.relation?.trim()
-    );
-  } else if (formData.hasSiblings === false) {
-    submissionData.haveSibling = false;
-  }
-
-  // ✅ Clean empty fields
-  Object.keys(submissionData).forEach((key) => {
-    if (
-      submissionData[key] === "" ||
-      submissionData[key] === null ||
-      (Array.isArray(submissionData[key]) &&
-        submissionData[key].length === 0)
-    ) {
-      delete submissionData[key];
-    }
-  });
-
-  console.log("🚀 Final clean data being sent:", submissionData);
-
-  try {
-    setLoading(true);
-    const existing = await getUserFamilyDetails();
-
-    let res;
-    if (existing?.data?.data) {
-      console.log("🔁 Updating existing family details...");
-      res = await updateUserFamilyDetails(submissionData);
-      toast.success("✅ Family details updated successfully!");
+  const handlePhoneChange = useCallback((field, value) => {
+    if (field === "motherPhone" || field === "fatherPhone") {
+      const digitsOnly = value.replace(/\D/g, "");
+      setFormData((prev) => ({ ...prev, [field]: digitsOnly }));
     } else {
-      console.log("🆕 Creating new family details...");
-      res = await saveUserFamilyDetails(submissionData);
-      toast.success("✅ Family details saved successfully!");
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+  }, []);
+
+  const handleSiblingChange = useCallback((index, field, value) => {
+    setFormData((prev) => {
+      const updatedSiblings = [...(prev.siblings || [])];
+      updatedSiblings[index] = { ...(updatedSiblings[index] || {}) };
+      updatedSiblings[index][field] = field === "name" ? formatFullName(value) : value;
+      return { ...prev, siblings: updatedSiblings };
+    });
+  }, [formatFullName]);
+
+  const handleSiblingCount = useCallback((count) => {
+    const siblingsArray = Array.from({ length: count }, () => ({ name: "", relation: "", maritalStatus: "" }));
+    setFormData((prev) => ({ ...prev, siblingCount: count, siblings: siblingsArray }));
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (formData.fatherPhone && !isValidPhone(formData.fatherPhone)) {
+      toast.error("Please enter a valid 10-digit father's phone number.");
+      return;
     }
 
-    if (onNext) onNext("education");
-  } catch (error) {
-    console.error("❌ Save/Update Family Details Error:", error);
+    if (formData.motherPhone && !isValidPhone(formData.motherPhone)) {
+      toast.error("Please enter a valid 10-digit mother's phone number.");
+      return;
+    }
 
-    // Handle backend "already exists" gracefully
-    if (error?.response?.data?.message?.includes("already exist")) {
-      toast("ℹ️ Family details already exist, updating instead...");
-      try {
-        const res = await updateUserFamilyDetails(submissionData);
-        toast.success("✅ Family details updated successfully!");
-        if (onNext) onNext("education");
-      } catch (updateErr) {
-        console.error("❌ Update failed:", updateErr);
-        toast.error("Failed to update family details.");
+    let submissionData = {
+      fatherName: formData.fatherName,
+      motherName: formData.motherName,
+      fatherOccupation: formData.fatherProfession,
+      motherOccupation: formData.motherProfession,
+      fatherContact: formData.fatherPhone,
+      motherContact: formData.motherPhone,
+      fatherNativePlace: formData.fatherNative,
+      doYouHaveChildren: formData.doYouHaveChildren,
+      grandFatherName: formData.grandFatherName,
+      grandMotherName: formData.grandMotherName,
+      nanaName: formData.nanaName,
+      naniName: formData.naniName,
+      nanaNativePlace: formData.nanaNativePlace,
+      familyType: formData.familyType,
+    };
+
+    if (formData.hasSiblings === true) {
+      submissionData.haveSibling = true;
+      submissionData.howManySiblings = formData.siblingCount || 0;
+      submissionData.siblingDetails = (formData.siblings || []).filter(
+        (s) => s.name?.trim() && s.relation?.trim()
+      );
+    } else if (formData.hasSiblings === false) {
+      submissionData.haveSibling = false;
+    }
+
+    Object.keys(submissionData).forEach((key) => {
+      if (
+        submissionData[key] === "" ||
+        submissionData[key] === null ||
+        (Array.isArray(submissionData[key]) && submissionData[key].length === 0)
+      ) {
+        delete submissionData[key];
       }
-    } else {
-      toast.error("Error saving family details.");
+    });
+
+    try {
+      setLoading(true);
+      const existing = await getUserFamilyDetails();
+
+      let res;
+      if (existing?.data?.data) {
+        res = await updateUserFamilyDetails(submissionData);
+        toast.success("✅ Family details updated successfully!");
+      } else {
+        res = await saveUserFamilyDetails(submissionData);
+        toast.success("✅ Family details saved successfully!");
+      }
+
+      if (onNext) onNext("education");
+    } catch (error) {
+      console.error("❌ Save/Update Family Details Error:", error);
+
+      if (error?.response?.data?.message?.includes("already exist")) {
+        toast("ℹ️ Family details already exist, updating instead...");
+        try {
+          const res = await updateUserFamilyDetails(submissionData);
+          toast.success("✅ Family details updated successfully!");
+          if (onNext) onNext("education");
+        } catch (updateErr) {
+          console.error("❌ Update failed:", updateErr);
+          toast.error("Failed to update family details.");
+        }
+      } else {
+        toast.error("Error saving family details.");
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-
-  // ✅ Add this function here — above `return`
   const handlePrevious = () => {
     if (onPrevious) {
-      onPrevious(); // go to previous step
+      onPrevious();
     } else {
       console.warn("onPrevious prop not provided");
     }
   };
 
-
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
-  <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
+      <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-black">Family Details</h2>
         </div>
@@ -411,10 +383,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                       }))
                     }
                     className={`appearance-none w-4 h-4 rounded-full border border-[#E4C48A] transition duration-200
-            ${formData.hasSiblings === (option === "Yes")
-                        ? "bg-[#D4A052] border-[#D4A052]"
-                        : "border-[#E4C48A]"
-                      }
+            ${
+              formData.hasSiblings === (option === "Yes")
+                ? "bg-[#D4A052] border-[#D4A052]"
+                : "border-[#E4C48A]"
+            }
             focus:outline-none`}
                   />
                   <span className="text-gray-700">{option}</span>
@@ -427,18 +400,14 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                 <label className="text-sm font-medium mb-2">
                   How many siblings?
                 </label>
-                <select
+                <CustomSelect
+                  name="siblingCount"
                   value={formData.siblingCount}
                   onChange={(e) => handleSiblingCount(Number(e.target.value))}
+                  options={["1", "2", "3", "4", "5", "6"]}
+                  placeholder="Select"
                   className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                >
-                  <option value="">Select</option>
-                  {[1, 2, 3, 4, 5, 6].map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
-                  ))}
-                </select>
+                />
 
                 {formData.siblings.map((sibling, index) => (
                   <div
@@ -462,19 +431,16 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
 
                     <div className="flex flex-col">
                       <label className="text-sm font-medium">Relation</label>
-                      <select
+                      <CustomSelect
+                        name={`sibling-${index}-relation`}
                         value={sibling.relation}
                         onChange={(e) =>
                           handleSiblingChange(index, "relation", e.target.value)
                         }
+                        options={["Elder Brother", "Younger Brother", "Elder Sister", "Younger Sister"]}
+                        placeholder="Select"
                         className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                      >
-                        <option value="">Select</option>
-                        <option value="Elder Brother">Elder Brother</option>
-                        <option value="Younger Brother">Younger Brother</option>
-                        <option value="Elder Sister">Elder Sister</option>
-                        <option value="Younger Sister">Younger Sister</option>
-                      </select>
+                      />
                     </div>
 
                     {[
@@ -483,27 +449,26 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                       "Elder Sister",
                       "Younger Sister",
                     ].includes(sibling.relation) && (
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium">
-                            Marital Status
-                          </label>
-                          <select
-                            value={sibling.maritalStatus}
-                            onChange={(e) =>
-                              handleSiblingChange(
-                                index,
-                                "maritalStatus",
-                                e.target.value
-                              )
-                            }
-                            className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                          >
-                            <option value="">Select</option>
-                            <option value="Married">Married</option>
-                            <option value="Unmarried">Unmarried</option>
-                          </select>
-                        </div>
-                      )}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium">
+                          Marital Status
+                        </label>
+                        <CustomSelect
+                          name={`sibling-${index}-maritalStatus`}
+                          value={sibling.maritalStatus}
+                          onChange={(e) =>
+                            handleSiblingChange(
+                              index,
+                              "maritalStatus",
+                              e.target.value
+                            )
+                          }
+                          options={["Married", "Unmarried"]}
+                          placeholder="Select"
+                          className="w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -526,10 +491,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                     checked={formData.familyType === type}
                     onChange={handleChange}
                     className={`appearance-none w-4 h-4 rounded-full border border-[#E4C48A] transition duration-200
-            ${formData.familyType === type
-                        ? "bg-[#D4A052] border-[#D4A052]"
-                        : "border-[#E4C48A]"
-                      }
+            ${
+              formData.familyType === type
+                ? "bg-[#D4A052] border-[#D4A052]"
+                : "border-[#E4C48A]"
+            }
           focus:outline-none`}
                   />
                   <span className="text-gray-700">{type}</span>
@@ -537,8 +503,6 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
               ))}
             </div>
           </div>
-
-
 
           <div className="pt-6 flex justify-between items-center gap-4">
             {/* Previous Button */}
@@ -558,7 +522,6 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
               Save & Next
             </button>
           </div>
-
         </form>
       </div>
     </div>

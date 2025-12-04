@@ -1,5 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { getUserHealth, saveUserHealth, updateUserHealth } from "../../api/auth";
+import React, { useState, useEffect, useCallback } from "react";
+import CustomSelect from "../ui/CustomSelect";
+import {
+  getUserHealth,
+  saveUserHealth,
+  updateUserHealth,
+} from "../../api/auth";
 import toast from "react-hot-toast";
 
 const HealthLifestyle = ({ onNext, onPrevious }) => {
@@ -14,15 +19,13 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     medicalHistoryDetails: "",
   });
   const [errors, setErrors] = useState({});
-  // const [isEditing, setIsEditing] = useState(false);
 
-  const handleChange = (field, value) => {
+  const handleChange = useCallback((field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
     setErrors((prev) => ({ ...prev, [field]: undefined }));
-  };
+  }, []);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors = {};
     const requiredFields = [
       "alcohol",
@@ -31,7 +34,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
       "hiv",
       "tb",
       "medicalHistory",
-      "diet"
+      "diet",
     ];
 
     requiredFields.forEach((field) => {
@@ -49,7 +52,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
   useEffect(() => {
     document.body.classList.add("bg-gray-100");
@@ -58,7 +61,10 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
 
     const payload = {
       isAlcoholic: String(formData.alcohol || ""),
@@ -76,23 +82,18 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
 
       if (existing?.data?.data) {
         const res = await updateUserHealth(payload);
-        console.log("✅ Health data updated:", res);
         toast.success(" Health details updated successfully!");
       } else {
         const res = await saveUserHealth(payload);
-        console.log("✅ Health data saved:", res);
         toast.success(" Health details saved successfully!");
       }
 
-
-
       if (onNext) onNext("expectation");
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
-  // 🩺 Load existing health data on mount
   useEffect(() => {
     let mounted = true;
     getUserHealth()
@@ -101,7 +102,6 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
         const data = res?.data?.data || null;
         if (!data) return;
 
-        // directly map the string values from backend
         setFormData((prev) => ({
           ...prev,
           alcohol: data.isAlcoholic || "",
@@ -115,7 +115,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
         }));
       })
       .catch((err) => {
-        if (err?.response?.status === 404) return; // no record yet
+        if (err?.response?.status === 404) return;
         console.error("Failed to load health data", err);
       });
 
@@ -139,17 +139,16 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Do you consume alcohol?
             </label>
-            <select
+            <CustomSelect
+              name="alcohol"
               value={formData.alcohol}
               onChange={(e) => handleChange("alcohol", e.target.value)}
-              className={`${inputClass} ${errors.alcohol ? "border-red-500" : ""
-                }`}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-              <option value="occasional">Occasional</option>
-            </select>
+              options={["yes", "no", "occasional"]}
+              placeholder="Select"
+              className={`${inputClass} ${
+                errors.alcohol ? "border-red-500" : ""
+              }`}
+            />
             {errors.alcohol && (
               <p className="text-red-500 text-sm mt-1">{errors.alcohol}</p>
             )}
@@ -160,17 +159,16 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Do you use tobacco or related products?
             </label>
-            <select
+            <CustomSelect
+              name="tobacco"
               value={formData.tobacco}
               onChange={(e) => handleChange("tobacco", e.target.value)}
-              className={`${inputClass} ${errors.tobacco ? "border-red-500" : ""
-                }`}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-              <option value="occasional">Occasional</option>
-            </select>
+              options={["yes", "no", "occasional"]}
+              placeholder="Select"
+              className={`${inputClass} ${
+                errors.tobacco ? "border-red-500" : ""
+              }`}
+            />
             {errors.tobacco && (
               <p className="text-red-500 text-sm mt-1">{errors.tobacco}</p>
             )}
@@ -181,16 +179,16 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Do you have any visible tattoos?
             </label>
-            <select
+            <CustomSelect
+              name="tattoos"
               value={formData.tattoos}
               onChange={(e) => handleChange("tattoos", e.target.value)}
-              className={`${inputClass} ${errors.tattoos ? "border-red-500" : ""
-                }`}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
+              options={["yes", "no"]}
+              placeholder="Select"
+              className={`${inputClass} ${
+                errors.tattoos ? "border-red-500" : ""
+              }`}
+            />
             {errors.tattoos && (
               <p className="text-red-500 text-sm mt-1">{errors.tattoos}</p>
             )}
@@ -201,15 +199,14 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Have you ever tested HIV positive?
             </label>
-            <select
+            <CustomSelect
+              name="hiv"
               value={formData.hiv}
               onChange={(e) => handleChange("hiv", e.target.value)}
+              options={["yes", "no"]}
+              placeholder="Select"
               className={`${inputClass} ${errors.hiv ? "border-red-500" : ""}`}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
+            />
             {errors.hiv && (
               <p className="text-red-500 text-sm mt-1">{errors.hiv}</p>
             )}
@@ -220,15 +217,14 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               Have you ever tested Tuberculosis (TB) positive?
             </label>
-            <select
+            <CustomSelect
+              name="tb"
               value={formData.tb}
               onChange={(e) => handleChange("tb", e.target.value)}
+              options={["yes", "no"]}
+              placeholder="Select"
               className={`${inputClass} ${errors.tb ? "border-red-500" : ""}`}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
+            />
             {errors.tb && (
               <p className="text-red-500 text-sm mt-1">{errors.tb}</p>
             )}
@@ -240,16 +236,16 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               Do you have any past or ongoing medical history we should be aware
               of?
             </label>
-            <select
+            <CustomSelect
+              name="medicalHistory"
               value={formData.medicalHistory}
               onChange={(e) => handleChange("medicalHistory", e.target.value)}
-              className={`${inputClass} ${errors.medicalHistory ? "border-red-500" : ""
-                }`}
-            >
-              <option value="">Select</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
+              options={["yes", "no"]}
+              placeholder="Select"
+              className={`${inputClass} ${
+                errors.medicalHistory ? "border-red-500" : ""
+              }`}
+            />
             {errors.medicalHistory && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.medicalHistory}
@@ -274,25 +270,18 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             <label className="text-sm font-medium mb-1">
               What is your diet?
             </label>
-            <select
+            <CustomSelect
+              name="diet"
               value={formData.diet}
               onChange={(e) => handleChange("diet", e.target.value)}
+              options={["vegetarian", "non-vegetarian", "eggetarian", "jain", "swaminarayan", "veg & non-veg"]}
+              placeholder="Select"
               className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`}
-            >
-              <option value="">Select</option>
-              <option value="vegetarian">Vegetarian</option>
-              <option value="non-vegetarian">Non-Vegetarian</option>
-              <option value="eggetarian">Eggetarian</option>
-              <option value="jain">Jain</option>
-              <option value="swaminarayan">Swaminarayan</option>
-              <option value="veg & non-veg">Veg & Non-veg</option>
-            </select>
+            />
             {errors.diet && (
               <p className="text-red-500 text-sm mt-1">{errors.diet}</p>
             )}
           </div>
-
-
 
           {/* ✅ Buttons */}
           <div className="pt-6 flex  justify-between items-center gap-4">
@@ -311,12 +300,10 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               Save & Next
             </button>
           </div>
-
         </form>
       </div>
     </div>
   );
-
-}
+};
 
 export default HealthLifestyle;
