@@ -103,12 +103,12 @@ export class AuthController {
           headers: { Authorization: `Bearer ${tokens.access_token}` }
         }
       );
-      const googleUser = await userInfoResponse.json();
+      const googleUser: any = await userInfoResponse.json();
 
-      const email = (googleUser.email || "").toLowerCase();
-      const emailVerified = googleUser.email_verified;
-      const givenName = googleUser.given_name;
-      const picture = googleUser.picture;
+      const email = (googleUser?.email || "").toLowerCase();
+      const emailVerified = googleUser?.email_verified;
+      const givenName = googleUser?.given_name;
+      const picture = googleUser?.picture;
 
       const user = await User.findOne({
         email,
