@@ -24,25 +24,24 @@ jobs:
           npm install
           npm run build
 
-      - name: Deploy to Production via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          script: |
-            echo "🚀 Pulling latest changes on VPS..."
-            cd basita/Satfera/backend
+      - name: Install rsync
+        run: sudo apt-get install -y rsync
 
-            git pull origin main
+      - name: Deploy to VPS using rsync + SSH
+        run: |
+          echo "🚀 Syncing backend files to VPS..."
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.PORT }}" \
+            ./backend/ \
+            ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/${{ secrets.USERNAME }}/basita/Satfera/backend/
 
-            npm install
-
-            npm run build
-
-            # Restart PM2
-            pm2 reload all || pm2 start npm --name "Satfera" -- start
+          echo "⚙️ Running install/build & restarting PM2 on server..."
+          ssh -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} "
+            cd basita/Satfera/backend &&
+            npm install &&
+            npm run build &&
+            pm2 reload Satfera || pm2 start npm --name Satfera -- start
+          "
 
       - name: Notify Deployment Success
         if: success()
