@@ -1389,6 +1389,14 @@ paths:
           schema:
             type: integer
         - in: query
+          name: weightFrom
+          schema:
+            type: integer
+        - in: query
+          name: weightTo
+          schema:
+            type: integer
+        - in: query
           name: religion
           schema:
             type: string
@@ -1401,7 +1409,19 @@ paths:
           schema:
             type: string
         - in: query
+          name: state
+          schema:
+            type: string
+        - in: query
+          name: country
+          schema:
+            type: string
+        - in: query
           name: profession
+          schema:
+            type: string
+        - in: query
+          name: education
           schema:
             type: string
         - in: query

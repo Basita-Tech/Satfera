@@ -334,9 +334,14 @@ export async function searchService(
     ageTo?: number;
     heightFrom?: number;
     heightTo?: number;
+    weightFrom?: number;
+    weightTo?: number;
     religion?: string;
     caste?: string;
     city?: string;
+    state?: string;
+    country?: string;
+    education?: string;
     profession?: string;
     gender?: string;
     sortBy?: string;
@@ -405,9 +410,8 @@ export async function searchService(
   if (authUserId && mongoose.Types.ObjectId.isValid(authUserId)) {
     const authObjId = new mongoose.Types.ObjectId(authUserId);
     try {
-      const [authUser, authHealth] = await Promise.all([
-        User.findById(authObjId).select("blockedUsers").lean(),
-        UserHealth.findOne({ userId: authObjId }).select("isHaveHIV").lean()
+      const [authUser] = await Promise.all([
+        User.findById(authObjId).select("blockedUsers").lean()
       ]);
       const blockedIds: any[] = (authUser as any)?.blockedUsers || [];
       if (blockedIds.length > 0) {
@@ -416,15 +420,6 @@ export async function searchService(
       }
 
       match.blockedUsers = { $ne: authObjId };
-      const seekerHasAffirm =
-        authHealth && isAffirmative((authHealth as any).isHaveHIV);
-      const seekerHasNegative =
-        authHealth && !isAffirmative((authHealth as any).isHaveHIV);
-      if (seekerHasAffirm) {
-        match._seekerHIV = "positive";
-      } else if (seekerHasNegative) {
-        match._seekerHIV = "negative";
-      }
     } catch (e) {}
   }
 
@@ -458,13 +453,13 @@ export async function searchService(
     { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
-        from: UserHealth.collection.name,
+        from: UserEducation.collection.name,
         localField: "_id",
         foreignField: "userId",
-        as: "health"
+        as: "education"
       }
     },
-    { $unwind: { path: "$health", preserveNullAndEmptyArrays: true } }
+    { $unwind: { path: "$education", preserveNullAndEmptyArrays: true } }
   );
 
   const postMatch: any = {};
@@ -506,6 +501,18 @@ export async function searchService(
     };
   }
 
+  if (filters.state) {
+    postMatch["personal.full_address.state"] = {
+      $regex: new RegExp(filters.state, "i")
+    };
+  }
+
+  if (filters.country) {
+    postMatch["personal.residingCountry"] = {
+      $regex: new RegExp(filters.country, "i")
+    };
+  }
+
   if (filters.profession) {
     postMatch.$or = postMatch.$or || [];
     postMatch.$or.push({
@@ -518,29 +525,35 @@ export async function searchService(
     });
   }
 
-  if (Object.keys(postMatch).length > 0) pipeline.push({ $match: postMatch });
+  if (filters.education) {
+    postMatch.$or = postMatch.$or || [];
+    postMatch.$or.push({
+      "education.FieldOfStudy": { $regex: new RegExp(filters.education, "i") }
+    });
+  }
 
-  const seekerHIVFilter = (match as any)._seekerHIV;
-  if (seekerHIVFilter === "positive") {
-    pipeline.push({
-      $match: {
-        $or: [
-          { "health.isHaveHIV": true },
-          { "health.isHaveHIV": "true" },
-          { "health.isHaveHIV": "yes" },
-          { "health.isHaveHIV": "1" },
-          { "health.isHaveHIV": 1 }
+  if (
+    typeof filters.weightFrom === "number" ||
+    typeof filters.weightTo === "number"
+  ) {
+    const wFrom =
+      typeof filters.weightFrom === "number" ? filters.weightFrom : -Infinity;
+    const wTo =
+      typeof filters.weightTo === "number" ? filters.weightTo : Infinity;
+    postMatch.$and = postMatch.$and || [];
+    postMatch.$and.push({
+      $expr: {
+        $and: [
+          {
+            $gte: [{ $toDouble: { $ifNull: ["$personal.weight", 0] } }, wFrom]
+          },
+          { $lte: [{ $toDouble: { $ifNull: ["$personal.weight", 0] } }, wTo] }
         ]
       }
     });
-  } else if (seekerHIVFilter === "negative") {
-    // seeker explicitly negative -> include ONLY explicit negative health values
-    pipeline.push({
-      $match: {
-        "health.isHaveHIV": { $in: [false, "false", "no", "0", 0] }
-      }
-    });
   }
+
+  if (Object.keys(postMatch).length > 0) pipeline.push({ $match: postMatch });
 
   pipeline.push({
     $project: {

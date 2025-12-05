@@ -1,0 +1,53 @@
+name: Satfera Backend Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22.20.0"
+
+      - name: Install & Build Backend
+        run: |
+          cd backend
+          npm install
+          npm run build
+
+      - name: Deploy to Production via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: |
+            echo "🚀 Pulling latest changes on VPS..."
+            cd basita/Satfera/backend
+
+            git pull origin main
+
+            npm install
+
+            npm run build
+
+            # Restart PM2
+            pm2 reload all || pm2 start npm --name "Satfera" -- start
+
+      - name: Notify Deployment Success
+        if: success()
+        run: echo "🚀 Deployment to production was successful!"
+
+      - name: Notify Deployment Failure
+        if: failure()
+        run: echo "❌ Deployment to production failed."
