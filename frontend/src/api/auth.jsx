@@ -848,6 +848,7 @@ export const searchProfiles = async (filters = {}) => {
     
     // String filters
     if (filters.name) params.name = filters.name;
+    if (filters.customId) params.customId = filters.customId;
     if (filters.religion) params.religion = filters.religion;
     if (filters.caste) params.caste = filters.caste;
     if (filters.city) params.city = filters.city;

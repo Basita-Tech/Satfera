@@ -20,7 +20,7 @@ export function Navigation({ activePage, onNavigate }) {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-
+    
     setIsSearching(true);
     try {
       if (searchQuery.match(/^[a-f0-9]{24}$/i)) {
@@ -31,22 +31,53 @@ export function Navigation({ activePage, onNavigate }) {
       }
 
       const { searchProfiles } = await import("../api/auth");
-      const response = await searchProfiles(searchQuery);
+      const searchTerm = searchQuery.trim();
+      
+      // Determine if input is customId (format like M001002) or name
+      const isCustomId = /^[A-Z]\d{6}$/i.test(searchTerm);
+      
+      const response = await searchProfiles({ 
+        name: !isCustomId ? searchTerm : "",
+        customId: isCustomId ? searchTerm : "",
+        page: 1, 
+        limit: 10 
+      });
 
-      if (response?.success && Array.isArray(response.data)) {
-        const mappedResults = response.data.map((item, index) => {
-          return {
-            userId: item.user?.userId || item.userId,
-            firstName: item.user?.firstName || item.firstName,
-            lastName: item.user?.lastName || item.lastName,
-            age: item.user?.age || item.age,
-            city: item.user?.city || item.city,
-            image: item.user?.closerPhoto?.url || item.image,
-          };
-        });
+      if (response?.success) {
+        // Handle both response formats:
+        // Format 1: { data: { listings: [...], pagination: {...} } }
+        // Format 2: { data: [...], pagination: {...} }
+        const listings = Array.isArray(response.data?.listings) 
+          ? response.data.listings 
+          : Array.isArray(response.data) 
+          ? response.data 
+          : [];
+        
+        if (listings.length > 0) {
+          const mappedResults = listings.map((item, index) => {
+            return {
+              userId: item.user?.userId || item.userId,
+              firstName: item.user?.firstName || item.firstName,
+              lastName: item.user?.lastName || item.lastName,
+              age: item.user?.age || item.age,
+              city: item.user?.city || item.city,
+              image: item.user?.closerPhoto?.url || item.image,
+              name:
+                (item.user?.firstName || item.firstName || "") +
+                " " +
+              
+                (item.user?.lastName || item.lastName || ""),
+              customId: item.user?.customId || item.customId,
+            };
+          });
 
-        setSearchResults(mappedResults);
-        setShowResults(true);
+          setSearchResults(mappedResults);
+          setShowResults(true);
+        } else {
+          console.warn("🔍 Navigation - No results found");
+          setSearchResults([]);
+          setShowResults(true);
+        }
       } else {
         console.warn("🔍 Navigation - No results or invalid response");
         setSearchResults([]);

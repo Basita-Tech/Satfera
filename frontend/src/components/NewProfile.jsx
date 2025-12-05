@@ -45,10 +45,13 @@ const NewProfile = () => {
     ageTo: "",
     heightFrom: "",
     heightTo: "",
+    weightFrom: "",
+    weightTo: "",
     religion: "",
     caste: "",
     city: "",
     profession: "",
+    education: "",
   });
 
   console.log('Filter Options Loaded:', { cities: INDIAN_CITIES?.length, professions: JOB_TITLES?.length });
@@ -71,10 +74,13 @@ const NewProfile = () => {
       if (filters.ageTo) apiFilters.ageTo = parseInt(filters.ageTo);
       if (filters.heightFrom) apiFilters.heightFrom = parseInt(filters.heightFrom);
       if (filters.heightTo) apiFilters.heightTo = parseInt(filters.heightTo);
+      if (filters.weightFrom) apiFilters.weightFrom = parseInt(filters.weightFrom);
+      if (filters.weightTo) apiFilters.weightTo = parseInt(filters.weightTo);
       if (filters.religion) apiFilters.religion = filters.religion;
       if (filters.caste) apiFilters.caste = filters.caste;
       if (filters.city) apiFilters.city = filters.city;
       if (filters.profession) apiFilters.profession = filters.profession;
+      if (filters.education) apiFilters.education = filters.education;
 
       console.log('[NewProfile] Fetching with filters:', apiFilters);
 
@@ -154,10 +160,13 @@ const NewProfile = () => {
     filters.ageTo,
     filters.heightFrom,
     filters.heightTo,
+    filters.weightFrom,
+    filters.weightTo,
     filters.religion,
     filters.caste,
     filters.city,
     filters.profession,
+    filters.education,
   ]);
 
   // Handle page change
@@ -192,10 +201,13 @@ const NewProfile = () => {
       ageTo: "",
       heightFrom: "",
       heightTo: "",
+      weightFrom: "",
+      weightTo: "",
       religion: "",
       caste: "",
       city: "",
       profession: "",
+      education: "",
     });
   };
 
@@ -326,6 +338,28 @@ const NewProfile = () => {
                   className="w-20 border rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
                 />
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Weight (kg):</span>
+                <input
+                  type="number"
+                  value={filters.weightFrom}
+                  onChange={(e) => handleFilterChange('weightFrom', e.target.value)}
+                  placeholder="From"
+                  min="30"
+                  max="200"
+                  className="w-20 border rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
+                />
+                <span className="text-sm text-gray-400">to</span>
+                <input
+                  type="number"
+                  value={filters.weightTo}
+                  onChange={(e) => handleFilterChange('weightTo', e.target.value)}
+                  placeholder="To"
+                  min="30"
+                  max="200"
+                  className="w-20 border rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
+                />
+              </div>
             </div>
 
             {/* Third Row: Religion, Caste, City, Profession */}
@@ -385,6 +419,16 @@ const NewProfile = () => {
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Education:</span>
+                <input
+                  type="text"
+                  value={filters.education}
+                  onChange={(e) => handleFilterChange('education', e.target.value)}
+                  placeholder="e.g., HighSchool, Engineering"
+                  className="min-w-[180px] border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
+                />
               </div>
             </div>
 
@@ -637,6 +681,22 @@ const ProfileCard = ({ profile, profession, isFavorite, onToggleFavorite, onView
             <span className="bg-[#fef9f0] text-[#c8a227] text-xs font-medium px-3 py-1 rounded-full border border-[#c8a227]/20">
               {profession}
             </span>
+          </div>
+        )}
+
+        {/* Height and Weight */}
+        {(user.height || user.weight) && (
+          <div className="flex flex-wrap gap-2 mb-3 text-xs text-gray-600">
+            {user.height && (
+              <span className="flex items-center gap-1">
+                <span className="font-medium">Height:</span> {user.height}
+              </span>
+            )}
+            {user.weight && (
+              <span className="flex items-center gap-1">
+                <span className="font-medium">Weight:</span> {user.weight}
+              </span>
+            )}
           </div>
         )}
 

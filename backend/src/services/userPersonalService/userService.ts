@@ -472,15 +472,37 @@ export async function searchService(
       typeof filters.heightFrom === "number" ? filters.heightFrom : -Infinity;
     const hTo =
       typeof filters.heightTo === "number" ? filters.heightTo : Infinity;
+
+    const heightValue = {
+      $let: {
+        vars: {
+          nums: {
+            $regexFindAll: {
+              input: { $ifNull: ["$personal.height", ""] },
+              regex: /[0-9]+(\.[0-9]+)?/
+            }
+          }
+        },
+        in: {
+          $convert: {
+            input: {
+              $ifNull: [
+                { $arrayElemAt: ["$$nums.match", { $subtract: [{ $size: "$$nums" }, 1] }] },
+                0
+              ]
+            },
+            to: "double",
+            onError: 0,
+            onNull: 0
+          }
+        }
+      }
+    };
+
     postMatch.$and = postMatch.$and || [];
     postMatch.$and.push({
       $expr: {
-        $and: [
-          {
-            $gte: [{ $toDouble: { $ifNull: ["$personal.height", 0] } }, hFrom]
-          },
-          { $lte: [{ $toDouble: { $ifNull: ["$personal.height", 0] } }, hTo] }
-        ]
+        $and: [{ $gte: [heightValue, hFrom] }, { $lte: [heightValue, hTo] }]
       }
     });
   }
@@ -514,21 +536,29 @@ export async function searchService(
   }
 
   if (filters.profession) {
-    postMatch.$or = postMatch.$or || [];
-    postMatch.$or.push({
-      "profession.Occupation": { $regex: new RegExp(filters.profession, "i") }
-    });
-    postMatch.$or.push({
-      "profession.OrganizationName": {
-        $regex: new RegExp(filters.profession, "i")
-      }
+    postMatch.$and = postMatch.$and || [];
+    postMatch.$and.push({
+      $or: [
+        {
+          "profession.Occupation": { $regex: new RegExp(filters.profession, "i") }
+        },
+        {
+          "profession.OrganizationName": {
+            $regex: new RegExp(filters.profession, "i")
+          }
+        }
+      ]
     });
   }
 
   if (filters.education) {
-    postMatch.$or = postMatch.$or || [];
-    postMatch.$or.push({
-      "education.FieldOfStudy": { $regex: new RegExp(filters.education, "i") }
+    const eduRegex = new RegExp(filters.education, "i");
+    postMatch.$and = postMatch.$and || [];
+    postMatch.$and.push({
+      $or: [
+        { "education.HighestEducation": { $regex: eduRegex } },
+        { "education.FieldOfStudy": { $regex: eduRegex } }
+      ]
     });
   }
 
@@ -540,15 +570,37 @@ export async function searchService(
       typeof filters.weightFrom === "number" ? filters.weightFrom : -Infinity;
     const wTo =
       typeof filters.weightTo === "number" ? filters.weightTo : Infinity;
+
+    const weightValue = {
+      $let: {
+        vars: {
+          nums: {
+            $regexFindAll: {
+              input: { $ifNull: ["$personal.weight", ""] },
+              regex: /[0-9]+(\.[0-9]+)?/
+            }
+          }
+        },
+        in: {
+          $convert: {
+            input: {
+              $ifNull: [
+                { $arrayElemAt: ["$$nums.match", 0] },
+                0
+              ]
+            },
+            to: "double",
+            onError: 0,
+            onNull: 0
+          }
+        }
+      }
+    };
+
     postMatch.$and = postMatch.$and || [];
     postMatch.$and.push({
       $expr: {
-        $and: [
-          {
-            $gte: [{ $toDouble: { $ifNull: ["$personal.weight", 0] } }, wFrom]
-          },
-          { $lte: [{ $toDouble: { $ifNull: ["$personal.weight", 0] } }, wTo] }
-        ]
+        $and: [{ $gte: [weightValue, wFrom] }, { $lte: [weightValue, wTo] }]
       }
     });
   }

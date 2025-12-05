@@ -243,10 +243,13 @@ export async function searchController(req: Request, res: Response) {
       ageTo,
       heightFrom,
       heightTo,
+      weightFrom,
+      weightTo,
       religion,
       caste,
       city,
       profession,
+      education,
       sortBy,
       page = "1",
       limit = "20"
@@ -260,20 +263,17 @@ export async function searchController(req: Request, res: Response) {
     if (ageTo) filters.ageTo = parseInt(String(ageTo), 40);
     if (heightFrom) filters.heightFrom = Number(heightFrom);
     if (heightTo) filters.heightTo = Number(heightTo);
+    if (weightFrom) filters.weightFrom = Number(weightFrom);
+    if (weightTo) filters.weightTo = Number(weightTo);
     if (religion) filters.religion = String(religion);
     if (caste) filters.caste = String(caste);
     if (city) filters.city = String(city);
     if (profession) filters.profession = String(profession);
+    if (education) filters.education = String(education);
 
     const authUserId = req.user?.id;
 
-    const authUser = await User.findById(authUserId).select("gender").lean();
-
-    if (authUser && (authUser as any).gender) {
-      const g = String((authUser as any).gender).toLowerCase();
-      if (g === "male") filters.gender = "female";
-      else if (g === "female") filters.gender = "male";
-    }
+    // Do not force gender; respect explicit filters
     if (sortBy) filters.sortBy = String(sortBy);
 
     const pageNum = Math.max(1, parseInt(String(page), 10) || 1);

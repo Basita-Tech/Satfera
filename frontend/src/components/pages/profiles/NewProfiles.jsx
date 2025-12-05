@@ -34,6 +34,43 @@ const QUALIFICATION_LEVELS = [
   "Less Than High School",
 ];
 
+const HEIGHT_SLIDER_MIN = 122; // Matches lowest option (4'0" / 122 cm)
+const HEIGHT_SLIDER_MAX = 193; // Matches highest option (6'4" / 193 cm)
+const DEFAULT_HEIGHT_RANGE = [HEIGHT_SLIDER_MIN, HEIGHT_SLIDER_MAX];
+const DEFAULT_WEIGHT_RANGE = [40, 120];
+
+const parseHeightToCm = (value) => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return value;
+  const str = String(value).toLowerCase();
+
+  // Prefer explicit cm if present
+  const cmMatch = str.match(/([0-9]+(?:\.[0-9]+)?)\s*cm/);
+  if (cmMatch) return Number(cmMatch[1]);
+
+  // Handle common "5'8\"" or "5 ft 8 in" formats
+  const ftInMatch = str.match(/([0-9]+)\s*(?:ft|')\s*([0-9]{1,2})?\s*(?:in|"|”)?/);
+  if (ftInMatch) {
+    const feet = Number(ftInMatch[1]) || 0;
+    const inches = Number(ftInMatch[2]) || 0;
+    return Math.round(feet * 30.48 + inches * 2.54);
+  }
+
+  // Fallback: first number in string
+  const anyNumber = str.match(/([0-9]+(?:\.[0-9]+)?)/);
+  return anyNumber ? Number(anyNumber[1]) : null;
+};
+
+const parseWeightToKg = (value) => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return value;
+  const str = String(value).toLowerCase();
+  const kgMatch = str.match(/([0-9]+(?:\.[0-9]+)?)\s*kg/);
+  if (kgMatch) return Number(kgMatch[1]);
+  const anyNumber = str.match(/([0-9]+(?:\.[0-9]+)?)/);
+  return anyNumber ? Number(anyNumber[1]) : null;
+};
+
 export default function NewProfiles({ profiles = [], onSendRequest, shortlistedIds = [], onToggleShortlist, onAddToCompare, onRemoveCompare, compareProfiles = [], sentProfileIds = [] }) {
   // Local state for fetched profiles
   const [allProfiles, setAllProfiles] = useState([]);
@@ -56,8 +93,8 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
   const [selectedEducation, setSelectedEducation] = useState("all");
   const [newProfileDuration, setNewProfileDuration] = useState("all");
   const [ageRange, setAgeRange] = useState([18, 40]);
-  const [heightRange, setHeightRange] = useState([150, 204]);
-  const [weightRange, setWeightRange] = useState([40, 120]);
+  const [heightRange, setHeightRange] = useState(DEFAULT_HEIGHT_RANGE);
+  const [weightRange, setWeightRange] = useState(DEFAULT_WEIGHT_RANGE);
 
   // Reset caste when religion changes (to maintain valid selection)
   useEffect(() => {
@@ -80,10 +117,52 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
         setLoadingProfiles(true);
         let response;
         
-        // If there's a search query, use search API, otherwise use getAllProfiles
-        if (searchName && searchName.length > 0) {
+        // Check if any filter is active (excluding "all" defaults)
+        const hasActiveFilters = 
+          (searchName && searchName.length > 0) ||
+          selectedReligion !== "all" ||
+          selectedCaste !== "all" ||
+          selectedCity !== "" ||
+          selectedProfession !== "" ||
+          selectedCountry !== "all" ||
+          selectedEducation !== "all" ||
+          newProfileDuration !== "all" ||
+          ageRange[0] !== 18 || ageRange[1] !== 40 ||
+          heightRange[0] !== DEFAULT_HEIGHT_RANGE[0] || heightRange[1] !== DEFAULT_HEIGHT_RANGE[1] ||
+          weightRange[0] !== DEFAULT_WEIGHT_RANGE[0] || weightRange[1] !== DEFAULT_WEIGHT_RANGE[1];
+        
+        // Use search API when filters are active, otherwise use getAllProfiles
+        if (hasActiveFilters) {
           const { searchProfiles } = await import('../../../api/auth');
-          response = await searchProfiles(searchName);
+          
+          // Build filter object with all active filters
+          const filters = {
+            page: 1,
+            limit: 1000, // Get all matching results for frontend pagination
+          };
+          
+          if (searchName) filters.name = searchName;
+          if (selectedReligion !== "all") filters.religion = selectedReligion;
+          if (selectedCaste !== "all") filters.caste = selectedCaste;
+          if (selectedCity) filters.city = selectedCity;
+          if (selectedProfession) filters.profession = selectedProfession;
+          if (newProfileDuration !== "all") filters.newProfile = newProfileDuration === "today" ? "all" : 
+                                                                  newProfileDuration === "week" ? "last1week" :
+                                                                  newProfileDuration === "2weeks" ? "last3week" :
+                                                                  newProfileDuration === "month" ? "last1month" : "all";
+          
+          // Age range filters
+          if (ageRange[0] !== 18) filters.ageFrom = ageRange[0];
+          if (ageRange[1] !== 40) filters.ageTo = ageRange[1];
+          
+          // Height range filters (backend expects cm)
+          if (heightRange[0] !== DEFAULT_HEIGHT_RANGE[0]) filters.heightFrom = heightRange[0];
+          if (heightRange[1] !== DEFAULT_HEIGHT_RANGE[1]) filters.heightTo = heightRange[1];
+          
+          // Note: weight filtering will be done on frontend as backend doesn't support it yet
+          
+          console.log("🆕 [NewProfiles] Searching with filters:", filters);
+          response = await searchProfiles(filters);
           console.log("🆕 [NewProfiles] Search API Response:", response);
         } else {
           // Fetch large batch to enable frontend sorting across all profiles
@@ -91,8 +170,10 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
           console.log("🆕 [NewProfiles] GetAll API Response:", response);
         }
         
-        if (response?.success && Array.isArray(response?.data)) {
-          const mapped = response.data
+        // Handle both response formats: with/without listings wrapper
+        const dataArray = response?.data?.listings || response?.data || [];
+        if (response?.success && Array.isArray(dataArray)) {
+          const mapped = dataArray
             .map((p) => {
               const user = p.user || p;
               const scoreDetail = p.scoreDetail;
@@ -117,7 +198,9 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
                 caste: user.subCaste,
                 education: user.education?.HighestEducation,
                 height: user.personal?.height || user.height,
+                heightCm: parseHeightToCm(user.personal?.height || user.height),
                 weight: user.personal?.weight || user.weight,
+                weightKg: parseWeightToKg(user.personal?.weight || user.weight),
                 diet: user.healthAndLifestyle?.diet,
                 image: user.closerPhoto?.url || '',
                 compatibility: compatibilityScore,
@@ -158,7 +241,7 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
     }
     
     fetchAllProfiles();
-  }, [searchName]); // Re-fetch when search query changes
+  }, [searchName, selectedReligion, selectedCaste, selectedCity, selectedProfession, selectedCountry, selectedEducation, newProfileDuration, ageRange[0], ageRange[1], heightRange[0], heightRange[1], weightRange[0], weightRange[1]]); // Re-fetch when any filter changes
 
   // Shortlist state is managed by parent `UserDashboard`; use provided props
   // `shortlistedIds` is expected to be an array of ids and `onToggleShortlist` toggles them
@@ -174,11 +257,17 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
 
   const filteredProfiles = useMemo(() => {
     const normalize = (v) => (v ? v.toString().toLowerCase().trim() : "");
+    const selectedEduNorm = normalize(selectedEducation);
+    const selectedCountryNorm = normalize(selectedCountry);
+    const isHeightFilterActive =
+      heightRange[0] !== DEFAULT_HEIGHT_RANGE[0] || heightRange[1] !== DEFAULT_HEIGHT_RANGE[1];
+    const isWeightFilterActive =
+      weightRange[0] !== DEFAULT_WEIGHT_RANGE[0] || weightRange[1] !== DEFAULT_WEIGHT_RANGE[1];
+    const isEduFilterActive = selectedEducation !== "all" && selectedEduNorm.length > 0;
+    const isCountryFilterActive = selectedCountry !== "all" && selectedCountryNorm.length > 0;
 
-    const query = normalize(searchName);
-    const tokens = query === "" ? [] : query.split(/\s+/).filter(Boolean);
-
-    // Filter out shortlisted profiles and apply other filters
+    // Apply only frontend-specific filters (weight, country, education, "today" duration)
+    // Backend already filtered: name, religion, caste, city, profession, age, height, and other newProfile durations
     const filtered = sourceProfiles.filter((p) => {
       // Filter out profiles that have been sent connection requests
       if (sentProfileIds.includes(String(p.id))) {
@@ -191,144 +280,51 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
         return false;
       }
 
-      // Filter by newProfileDuration
-      if (newProfileDuration !== "all") {
+      // Filter by "today" duration (backend doesn't have a "today" option, only receives all profiles)
+      if (newProfileDuration === "today") {
         if (!p.createdAt) {
           return false;
         }
         const created = new Date(p.createdAt);
         const now = new Date();
         let diffDays = (now - created) / (1000 * 60 * 60 * 24);
-        
-        if (newProfileDuration === "today" && diffDays > 1) return false;
-        if (newProfileDuration === "week" && diffDays > 7) return false;
-        if (newProfileDuration === "2weeks" && diffDays > 14) return false;
-        if (newProfileDuration === "month" && diffDays > 31) return false;
+        if (diffDays > 1) return false;
       }
 
-      // Continue with other filters
-      // 🔍 Combined text search (matches name, profession, city, religion, caste, education, country)
-      const searchable = [
-        p.name,
-        p.profession,
-        p.city,
-        p.religion,
-        p.caste,
-        p.education,
-        p.country,
-        p.location,
-        p.description,
-      ]
-        .filter(Boolean)
-        .map(normalize)
-        .join(" ");
+      // Country filter (backend doesn't support this yet)
+      const countryNorm = normalize(p.country || p.location || "");
+      const matchCountry = !isCountryFilterActive
+        ? true
+        : countryNorm.length > 0 && (countryNorm.includes(selectedCountryNorm) || selectedCountryNorm.includes(countryNorm));
+      if (!matchCountry) return false;
 
-      const matchSearch =
-        tokens.length === 0 ||
-        tokens.every((tkn) => {
-          // numeric tokens can match age/height/weight/id
-          if (/^\d+$/.test(tkn)) {
-            const n = Number(tkn);
-            if (p.age && Number(p.age) === n) return true;
-            if (p.height && Number(p.height) === n) return true;
-            if (p.weight && Number(p.weight) === n) return true;
-            if (p.id && Number(p.id) === n) return true;
-          }
-          return searchable.includes(tkn);
-        });
+      // Education filter (backend doesn't support this yet)
+      const eduNorm = normalize(p.education || "");
+      const matchEducation = !isEduFilterActive
+        ? true
+        : eduNorm.length > 0 && (eduNorm.includes(selectedEduNorm) || selectedEduNorm.includes(eduNorm));
+      if (!matchEducation) return false;
 
-      const matchReligion =
-        selectedReligion === "all" || normalize(p.religion) === normalize(selectedReligion);
-
-      const matchCaste =
-        selectedCaste === "all" || normalize(p.caste) === normalize(selectedCaste);
-
-      const matchCity = selectedCity === "" || normalize(p.city).includes(normalize(selectedCity));
-
-      const matchProfession = selectedProfession === "" || normalize(p.profession).includes(normalize(selectedProfession));
-
-      const matchCountry =
-        selectedCountry === "all" || normalize(p.country || p.location || "") === normalize(selectedCountry);
-
-      const matchEducation =
-        selectedEducation === "all" || normalize(p.education || "") === normalize(selectedEducation);
-
-      // Age: handle numeric or numeric string
-      let matchAge;
-      if (!p.age && p.age !== 0) {
-        matchAge = true;
-      } else {
-        const ageNum = typeof p.age === 'number' ? p.age : parseInt(String(p.age).match(/\d+/)?.[0] || '0', 10);
-        matchAge = ageNum >= ageRange[0] && ageNum <= ageRange[1];
-        if (!matchAge && process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Age filter: ${p.name} age=${p.age} (${ageNum}) not in [${ageRange[0]}, ${ageRange[1]}]`);
-        }
+      // Height filter (frontend fallback; backend filter is not always reliable)
+      const heightCm = p.heightCm ?? parseHeightToCm(p.height);
+      if (isHeightFilterActive && (heightCm === null || heightCm === undefined)) {
+        return false; // Exclude when filter active but height missing
+      }
+      if (heightCm && (heightCm < heightRange[0] || heightCm > heightRange[1])) {
+        return false;
       }
 
-      // Height may be stored as a string like 5'6"; if not numeric, treat as auto-match
-      let matchHeight;
-      if (!p.height) {
-        matchHeight = true;
-      } else if (typeof p.height === 'number') {
-        matchHeight = p.height >= heightRange[0] && p.height <= heightRange[1];
-      } else {
-        const hStr = String(p.height).toLowerCase().trim();
-        // Parse formats like 5'6" or 5' 6 or 5ft 6in
-        const ftInMatch = hStr.match(/(\d+)\s*'\s*(\d{1,2})?/);
-        if (ftInMatch) {
-          const feet = parseInt(ftInMatch[1], 10);
-          const inches = ftInMatch[2] ? parseInt(ftInMatch[2], 10) : 0;
-          const cm = Math.round((feet * 12 + inches) * 2.54);
-          matchHeight = cm >= heightRange[0] && cm <= heightRange[1];
-          if (!matchHeight && process.env.NODE_ENV === 'development') {
-            console.log(`🔍 Height filter: ${p.name} height=${p.height} (${cm} cm) not in [${heightRange[0]}, ${heightRange[1]}]`);
-          }
-        } else if (hStr.includes('cm')) {
-          const cmNum = parseFloat(hStr.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '0');
-          matchHeight = cmNum > 0 && cmNum >= heightRange[0] && cmNum <= heightRange[1];
-          if (!matchHeight && cmNum > 0 && process.env.NODE_ENV === 'development') {
-            console.log(`🔍 Height filter: ${p.name} height=${p.height} (${cmNum} cm) not in [${heightRange[0]}, ${heightRange[1]}]`);
-          }
-        } else {
-          // Fallback: try plain number in string as cm
-          const cmNum = parseFloat(hStr.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '0');
-          matchHeight = cmNum > 0 ? (cmNum >= heightRange[0] && cmNum <= heightRange[1]) : true;
-          if (!matchHeight && cmNum > 0 && process.env.NODE_ENV === 'development') {
-            console.log(`🔍 Height filter: ${p.name} height=${p.height} (${cmNum} cm) not in [${heightRange[0]}, ${heightRange[1]}]`);
-          }
-        }
+      // Weight: handle numeric or strings like "70 kg" (backend doesn't support weight filter)
+      const weightKg = p.weightKg ?? parseWeightToKg(p.weight);
+      if (isWeightFilterActive && (weightKg === null || weightKg === undefined)) {
+        return false; // Exclude when filter active but weight missing
+      }
+      const matchWeight = weightKg === null || weightKg === undefined || (weightKg >= weightRange[0] && weightKg <= weightRange[1]);
+      if (!matchWeight && weightKg > 0 && process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Weight filter: ${p.name} weight=${p.weight} (${weightKg} kg) not in [${weightRange[0]}, ${weightRange[1]}]`);
       }
 
-      // Weight: handle numeric or strings like "70 kg"
-      let matchWeight;
-      if (!p.weight && p.weight !== 0) {
-        matchWeight = true;
-      } else if (typeof p.weight === 'number') {
-        matchWeight = p.weight >= weightRange[0] && p.weight <= weightRange[1];
-        if (!matchWeight && process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Weight filter: ${p.name} weight=${p.weight} kg not in [${weightRange[0]}, ${weightRange[1]}]`);
-        }
-      } else {
-        const wStr = String(p.weight).toLowerCase().trim();
-        const wNum = parseFloat(wStr.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '0');
-        matchWeight = wNum > 0 ? (wNum >= weightRange[0] && wNum <= weightRange[1]) : true;
-        if (!matchWeight && wNum > 0 && process.env.NODE_ENV === 'development') {
-          console.log(`🔍 Weight filter: ${p.name} weight=${p.weight} (${wNum} kg) not in [${weightRange[0]}, ${weightRange[1]}]`);
-        }
-      }
-
-      return (
-        matchSearch &&
-        matchReligion &&
-        matchCaste &&
-        matchCity &&
-        matchProfession &&
-        matchCountry &&
-        matchEducation &&
-        matchAge &&
-        matchHeight &&
-        matchWeight
-      );
+      return matchWeight;
     });
     
     const sorted = filtered.sort((a, b) => {
@@ -400,6 +396,8 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
     setSelectedCountry("all");
     setSelectedEducation("all");
     setAgeRange([18, 40]);
+    setHeightRange(DEFAULT_HEIGHT_RANGE);
+    setWeightRange(DEFAULT_WEIGHT_RANGE);
   };
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -560,8 +558,8 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
               </span>
             </div>
             <Slider
-              min={150}
-              max={204}
+              min={HEIGHT_SLIDER_MIN}
+              max={HEIGHT_SLIDER_MAX}
               step={1}
               value={heightRange}
               onValueChange={setHeightRange}
