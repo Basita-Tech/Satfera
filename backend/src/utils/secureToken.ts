@@ -1,12 +1,6 @@
 import { Response } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/common/logger";
-import { env } from "../config/env";
-
-/**
- * Secure Token Management Utilities
- * Provides HTTP-only cookie management and CSRF protection
- */
 
 const COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
 
@@ -15,8 +9,16 @@ export interface SecureCookieOptions {
   sameSite?: "strict" | "lax" | "none";
 }
 
+function getCookieDomain() {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction) return ".satfera.in";
+
+  return undefined;
+}
+
 /**
- * Set JWT token in HTTP-only cookie (not accessible via JavaScript)
+ * Set JWT token in HTTP-only cookie
  */
 export function setSecureTokenCookie(
   res: Response,
@@ -25,62 +27,30 @@ export function setSecureTokenCookie(
 ): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
-  if (!cookieDomain && env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
-    try {
-      const url = new URL(env.FRONTEND_URLS[0]);
-      const hostname = url.hostname;
-      const parts = hostname.split(".");
-
-      if (hostname === "localhost" || hostname === "127.0.0.1") {
-        cookieDomain = undefined;
-      } else if (parts.length > 2) {
-        cookieDomain = "." + parts.slice(-2).join(".");
-      } else {
-        cookieDomain = hostname;
-      }
-    } catch {
-      cookieDomain = undefined;
-    }
-  }
-
   const tokenCookieOptions = {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? ("none" as const) : ("lax" as const),
     maxAge: options.maxAge || COOKIE_MAX_AGE,
     path: "/",
-    ...(cookieDomain && { domain: cookieDomain })
+    ...(getCookieDomain() && { domain: getCookieDomain() })
   };
 
   res.cookie("token", token, tokenCookieOptions);
 }
 
+/**
+ * CSRF Token Generation
+ */
 export function generateCSRFToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+/**
+ * Set CSRF cookie (non-httpOnly)
+ */
 export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
   const isProduction = process.env.NODE_ENV === "production";
-
-  let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
-  if (!cookieDomain && env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
-    try {
-      const url = new URL(env.FRONTEND_URLS[0]);
-      const hostname = url.hostname;
-      const parts = hostname.split(".");
-
-      if (hostname === "localhost" || hostname === "127.0.0.1") {
-        cookieDomain = undefined;
-      } else if (parts.length > 2) {
-        cookieDomain = "." + parts.slice(-2).join(".");
-      } else {
-        cookieDomain = hostname;
-      }
-    } catch {
-      cookieDomain = undefined;
-    }
-  }
 
   const csrfCookieOptions = {
     httpOnly: false,
@@ -88,47 +58,27 @@ export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
     sameSite: isProduction ? ("none" as const) : ("lax" as const),
     maxAge: COOKIE_MAX_AGE,
     path: "/",
-    ...(cookieDomain && { domain: cookieDomain })
+    ...(getCookieDomain() && { domain: getCookieDomain() })
   };
 
   res.cookie("csrf_token", csrfToken, csrfCookieOptions);
 
   if (!isProduction) {
-    try {
-      logger.info("Set csrf cookie", csrfCookieOptions);
-    } catch (e) {
-      console.log("Set csrf cookie", csrfCookieOptions);
-    }
+    logger.info("CSRF cookie set (dev):", csrfCookieOptions);
   }
 }
 
+/**
+ * Clear cookies safely across domains
+ */
 export function clearAuthCookies(res: Response): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
-  if (!cookieDomain && env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
-    try {
-      const url = new URL(env.FRONTEND_URLS[0]);
-      const hostname = url.hostname;
-      const parts = hostname.split(".");
-
-      if (hostname === "localhost" || hostname === "127.0.0.1") {
-        cookieDomain = undefined;
-      } else if (parts.length > 2) {
-        cookieDomain = "." + parts.slice(-2).join(".");
-      } else {
-        cookieDomain = hostname;
-      }
-    } catch {
-      cookieDomain = undefined;
-    }
-  }
-
   const clearOptions = {
-    path: "/",
-    sameSite: isProduction ? ("none" as const) : ("lax" as const),
     secure: isProduction,
-    ...(cookieDomain && { domain: cookieDomain })
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    path: "/",
+    ...(getCookieDomain() && { domain: getCookieDomain() })
   };
 
   res.clearCookie("token", clearOptions);
@@ -136,28 +86,20 @@ export function clearAuthCookies(res: Response): void {
 }
 
 /**
- * Generate device fingerprint hash for additional security
- * This binds the token to a specific device
+ * Device Fingerprint
  */
 export function generateDeviceFingerprint(
   userAgent: string,
   ip: string
 ): string {
-  const fingerprint = `${userAgent}:${ip}`;
-  return crypto.createHash("sha256").update(fingerprint).digest("hex");
+  return crypto.createHash("sha256").update(`${userAgent}:${ip}`).digest("hex");
 }
 
-/**
- * Verify device fingerprint matches
- */
 export function verifyDeviceFingerprint(
   storedFingerprint: string,
   currentUserAgent: string,
   currentIp: string
 ): boolean {
-  const currentFingerprint = generateDeviceFingerprint(
-    currentUserAgent,
-    currentIp
-  );
-  return storedFingerprint === currentFingerprint;
+  const current = generateDeviceFingerprint(currentUserAgent, currentIp);
+  return storedFingerprint === current;
 }
