@@ -40,16 +40,16 @@ import toast from "react-hot-toast";
 
 // Registration reference option arrays (duplicated for Edit view; original forms untouched)
 const QUALIFICATION_LEVELS = [
-  "High School",
-  "Undergraduate",
   "Associates Degree",
   "Bachelors",
-  "Honours Degree",
-  "Masters",
-  "Doctorate",
   "Diploma",
-  "Trade School",
+  "Doctorate",
+  "High School",
+  "Honours Degree",
   "Less Than High School",
+  "Masters",
+  "Trade School",
+  "Undergraduate",
 ];
 
 // Organized education options by qualification level (same as EducationDetails.jsx)
@@ -339,11 +339,11 @@ const FIELD_OF_STUDY_OPTIONS = [
   "Higher Secondary School / High School",
 ];
 const EMPLOYMENT_OPTIONS = [
-  "Private Sector",
-  "Government",
   "Business",
-  "Self-Employed",
+  "Government",
   "Not Working",
+  "Private Sector",
+  "Self-Employed",
   "Student",
 ];
 const INCOME_OPTIONS = [
@@ -430,59 +430,59 @@ const JOB_TITLES = [
 const LIFESTYLE_HABIT_OPTIONS = ["Yes", "No", "Occasional"];
 const LIFESTYLE_YES_NO = ["Yes", "No"];
 const LIFESTYLE_DIET_OPTIONS = [
-  "Vegetarian",
-  "Non-Vegetarian",
   "Eggetarian",
   "Jain",
+  "Non-Vegetarian",
   "Swaminarayan",
   "Veg & Non-veg",
+  "Vegetarian",
 ];
 const LEGAL_STATUSES = [
-  "Never Married",
-  "Divorced",
-  "Widowed",
-  "Separated",
   "Awaiting Divorce",
+  "Divorced",
+  "Never Married",
+  "Separated",
+  "Widowed",
 ];
 const EXPECT_MARITAL_STATUSES = [
   "Any",
-  "Never Married",
-  "Divorced",
-  "Widowed",
-  "Separated",
   "Awaiting Divorce",
+  "Divorced",
+  "Never Married",
+  "Separated",
+  "Widowed",
 ];
 const EXPECT_PROFESSION_OPTIONS = [
   "Any",
-  "Private Sector",
-  "Government",
   "Business",
-  "Self-Employed",
+  "Government",
   "Not Working",
+  "Private Sector",
+  "Self-Employed",
   "Student",
 ];
 const EXPECT_CAST_OPTIONS = [
-  "Patel-Desai",
-  "Patel-Kadva",
-  "Patel-Leva",
-  "Patel",
-  "Brahmin-Audichya",
   "Brahmin",
+  "Brahmin-Audichya",
   "Jain-Digambar",
   "Jain-Swetamber",
   "Jain-Vanta",
-  "Vaishnav-Vania",
   "No preference",
+  "Patel",
+  "Patel-Desai",
+  "Patel-Kadva",
+  "Patel-Leva",
+  "Vaishnav-Vania",
 ];
 const EXPECT_EDUCATION_OPTIONS = ["Any", ...QUALIFICATION_LEVELS];
 const EXPECT_DIET_OPTIONS = [
   "Any",
-  "Vegetarian",
-  "Non-Vegetarian",
   "Eggetarian",
   "Jain",
+  "Non-Vegetarian",
   "Swaminarayan",
   "Veg & Non-Veg",
+  "Vegetarian",
 ];
 const AGE_OPTIONS = Array.from({ length: 23 }, (_, i) => 18 + i); // 18..40
 const INDIAN_STATES = [
@@ -816,6 +816,24 @@ export function EditProfile({ onNavigateBack }) {
             ? String(data.separatedSince)
             : "",
         };
+        
+        // Debug log to verify address is being loaded
+        console.log("[EditProfile] Full address data from API:", {
+          full_address: data.full_address,
+          street1: data.full_address?.street1,
+          street2: data.full_address?.street2,
+          city: data.full_address?.city,
+          state: data.full_address?.state,
+          zipCode: data.full_address?.zipCode,
+          mappedAddress: {
+            street1: personalMapped.street1,
+            street2: personalMapped.street2,
+            city: personalMapped.city,
+            state: personalMapped.state,
+            pincode: personalMapped.pincode,
+          }
+        });
+        
         setPersonal((p) => ({ ...p, ...personalMapped }));
         setInitialPersonal(personalMapped);
 
@@ -2013,6 +2031,34 @@ export function EditProfile({ onNavigateBack }) {
       };
 
       await updateUserPersonal(payload);
+      
+      // Refetch to ensure data is persisted correctly and display address properly
+      try {
+        const refetch = await getUserPersonal();
+        const refetchedData = refetch?.data?.data || {};
+        
+        const refetchedPersonal = {
+          firstName: refetchedData.firstName || "",
+          middleName: refetchedData.middleName || "",
+          lastName: refetchedData.lastName || "",
+          street1: refetchedData.full_address?.street1 || "",
+          street2: refetchedData.full_address?.street2 || "",
+          pincode: refetchedData.full_address?.zipCode || "",
+          city: refetchedData.full_address?.city || "",
+          state: refetchedData.full_address?.state || "",
+          ownHouse:
+            typeof refetchedData.full_address?.isYourHome === "boolean"
+              ? refetchedData.full_address.isYourHome ? "Yes" : "No"
+              : "",
+          nationality: refetchedData.nationality || "",
+        };
+        
+        console.log("[EditProfile] Refetched address data:", refetchedPersonal);
+        setPersonal((prev) => ({ ...prev, ...refetchedPersonal }));
+      } catch (refetchErr) {
+        console.error("Failed to refetch personal after save", refetchErr);
+      }
+      
       toast.success("✅ Personal details saved");
     } catch (err) {
       console.error("Failed to save details", err);
@@ -2420,7 +2466,7 @@ export function EditProfile({ onNavigateBack }) {
                   name="divorceStatus"
                   value={personal.divorceStatus || ""}
                   onChange={handleInputChange}
-                  options={["filed", "process", "court", "divorced"]}
+                  options={["court", "divorced", "filed", "process"]}
                   placeholder="Select Divorce Status"
                   className=""
                 />
@@ -2467,18 +2513,18 @@ export function EditProfile({ onNavigateBack }) {
             value={personal.rashi || ""}
             onChange={handleInputChange}
             options={[
-              "Aries (Mesh)",
-              "Taurus (Vrishabh)",
-              "Gemini (Mithun)",
-              "Cancer (Kark)",
-              "Leo (Singh)",
-              "Virgo (Kanya)",
-              "Libra (Tula)",
-              "Scorpio (Vrischik)",
-              "Sagittarius (Dhanu)",
-              "Capricorn (Makar)",
               "Aquarius (Kumbh)",
+              "Aries (Mesh)",
+              "Cancer (Kark)",
+              "Capricorn (Makar)",
+              "Gemini (Mithun)",
+              "Leo (Singh)",
+              "Libra (Tula)",
               "Pisces (Meen)",
+              "Sagittarius (Dhanu)",
+              "Scorpio (Vrischik)",
+              "Taurus (Vrishabh)",
+              "Virgo (Kanya)",
             ]}
             placeholder="Select Rashi"
             className=""
@@ -2522,12 +2568,12 @@ export function EditProfile({ onNavigateBack }) {
             options={
               personal.religion === "Hindu"
                 ? [
+                    "Brahmin",
+                    "Brahmin-Audichya",
+                    "Patel",
                     "Patel-Desai",
                     "Patel-Kadva",
                     "Patel-Leva",
-                    "Patel",
-                    "Brahmin-Audichya",
-                    "Brahmin",
                     "Vaishnav-Vania",
                   ]
                 : personal.religion === "Jain"
@@ -2562,79 +2608,97 @@ export function EditProfile({ onNavigateBack }) {
       </div>
 
       {/* Address */}
-      <div className="space-y-2 mt-4">
-        <h4 className="font-medium mb-2">Full Address</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <EditableInput
-            placeholder="Street 1"
-            value={personal.street1 || ""}
-            className="rounded-md"
-            name="street1"
-          />
-          <EditableInput
-            placeholder="Street 2"
-            value={personal.street2 || ""}
-            className="rounded-md"
-            name="street2"
-          />
-          <EditableInput
-            placeholder="Pincode"
-            value={personal.pincode || ""}
-            className="rounded-md"
-            name="pincode"
-          />
-          <EditableInput
-            placeholder="City"
-            value={personal.city || ""}
-            className="rounded-md"
-            name="city"
-          />
-          <EditableInput
-            placeholder="State"
-            value={personal.state || ""}
-            className="rounded-md"
-            name="state"
-          />
-          <div className="mt-2">
-            <Label className="mb-2">Is this your own house?</Label>
-            <div className="flex items-center gap-6 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="ownHouse"
-                  value="Yes"
-                  checked={personal.ownHouse === "Yes"}
-                  onChange={() =>
-                    setPersonal((p) => ({ ...p, ownHouse: "Yes" }))
-                  }
-                  disabled={isBlank(personal.ownHouse)}
-                  className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${
-                    personal.ownHouse === "Yes"
-                      ? "bg-[#E4C48A] border-[#E4C48A]"
-                      : "border-gray-300"
-                  } focus:ring-1 focus:ring-[#E4C48A]`}
-                />
-                <span className="text-gray-700 text-sm">Yes</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="ownHouse"
-                  value="No"
-                  checked={personal.ownHouse === "No"}
-                  onChange={() =>
-                    setPersonal((p) => ({ ...p, ownHouse: "No" }))
-                  }
-                  disabled={isBlank(personal.ownHouse)}
-                  className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${
-                    personal.ownHouse === "No"
-                      ? "bg-[#E4C48A] border-[#E4C48A]"
-                      : "border-gray-300"
-                  } focus:ring-1 focus:ring-[#E4C48A]`}
-                />
-                <span className="text-gray-700 text-sm">No</span>
-              </label>
-            </div>
+      <div className="space-y-4 mt-4 border-t pt-4">
+        <h4 className="text-lg font-semibold text-gray-800">Full Address</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Street Address Line 1</Label>
+            <EditableInput
+              placeholder="Enter street address"
+              value={personal.street1 || ""}
+              onChange={handleInputChange}
+              className="rounded-md"
+              name="street1"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Street Address Line 2</Label>
+            <EditableInput
+              placeholder="Apartment, suite, etc. (optional)"
+              value={personal.street2 || ""}
+              onChange={handleInputChange}
+              className="rounded-md"
+              name="street2"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">City *</Label>
+            <EditableInput
+              placeholder="Enter city"
+              value={personal.city || ""}
+              onChange={handleInputChange}
+              className="rounded-md"
+              name="city"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">State *</Label>
+            <EditableInput
+              placeholder="Enter state"
+              value={personal.state || ""}
+              onChange={handleInputChange}
+              className="rounded-md"
+              name="state"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Pincode / Postal Code *</Label>
+            <EditableInput
+              placeholder="Enter pincode"
+              value={personal.pincode || ""}
+              onChange={handleInputChange}
+              className="rounded-md"
+              name="pincode"
+            />
+          </div>
+        </div>
+        <div className="space-y-2 mt-4">
+          <Label className="text-sm font-medium">Is this your own house?</Label>
+          <div className="flex items-center gap-6 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="ownHouse"
+                value="Yes"
+                checked={personal.ownHouse === "Yes"}
+                onChange={() =>
+                  setPersonal((p) => ({ ...p, ownHouse: "Yes" }))
+                }
+                className={`appearance-none w-4 h-4 rounded-full border transition duration-200 cursor-pointer ${
+                  personal.ownHouse === "Yes"
+                    ? "bg-[#D4A052] border-[#D4A052]"
+                    : "border-gray-300"
+                } focus:ring-1 focus:ring-[#E4C48A]`}
+              />
+              <span className="text-gray-700 text-sm">Yes</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="ownHouse"
+                value="No"
+                checked={personal.ownHouse === "No"}
+                onChange={() =>
+                  setPersonal((p) => ({ ...p, ownHouse: "No" }))
+                }
+                className={`appearance-none w-4 h-4 rounded-full border transition duration-200 cursor-pointer ${
+                  personal.ownHouse === "No"
+                    ? "bg-[#D4A052] border-[#D4A052]"
+                    : "border-gray-300"
+                } focus:ring-1 focus:ring-[#E4C48A]`}
+              />
+              <span className="text-gray-700 text-sm">No</span>
+            </label>
           </div>
         </div>
       </div>
@@ -2899,7 +2963,7 @@ export function EditProfile({ onNavigateBack }) {
               onChange={(e) =>
                 handleExpectationsTextChange("openToPartnerHabits")(e)
               }
-              options={["Yes", "No", "Occasional", "Any"]}
+              options={["Any", "No", "Occasional", "Yes"]}
               placeholder="Select"
               className=""
             />
@@ -3313,8 +3377,8 @@ export function EditProfile({ onNavigateBack }) {
                     }
                     options={[
                       "Elder Brother",
-                      "Younger Brother",
                       "Elder Sister",
+                      "Younger Brother",
                       "Younger Sister",
                     ]}
                     placeholder="Select"
@@ -3324,8 +3388,8 @@ export function EditProfile({ onNavigateBack }) {
 
                 {[
                   "Elder Brother",
-                  "Younger Brother",
                   "Elder Sister",
+                  "Younger Brother",
                   "Younger Sister",
                 ].includes(sibling.relation) && (
                   <div className="flex flex-col">
