@@ -1,6 +1,7 @@
 import { Response } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/common/logger";
+import { env } from "../config/env";
 
 /**
  * Secure Token Management Utilities
@@ -24,26 +25,33 @@ export function setSecureTokenCookie(
 ): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  const frontendUrl = process.env.FRONTEND_URL || "";
   let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
-  if (!cookieDomain && frontendUrl) {
+  if (!cookieDomain && env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
     try {
-      cookieDomain = new URL(frontendUrl).hostname;
+      const url = new URL(env.FRONTEND_URLS[0]);
+      const hostname = url.hostname;
+      const parts = hostname.split(".");
+
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        cookieDomain = undefined;
+      } else if (parts.length > 2) {
+        cookieDomain = "." + parts.slice(-2).join(".");
+      } else {
+        cookieDomain = hostname;
+      }
     } catch {
       cookieDomain = undefined;
     }
   }
 
-  const defaultSameSite: SecureCookieOptions["sameSite"] = "none";
-
   const tokenCookieOptions = {
-    // httpOnly: isProduction,
-    // secure: isProduction,
-    // sameSite: options.sameSite || defaultSameSite,
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
     maxAge: options.maxAge || COOKIE_MAX_AGE,
-    path: "/"
-    // domain: cookieDomain
-  } as any;
+    path: "/",
+    ...(cookieDomain && { domain: cookieDomain })
+  };
 
   res.cookie("token", token, tokenCookieOptions);
 }
@@ -54,29 +62,34 @@ export function generateCSRFToken(): string {
 
 export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
   const isProduction = process.env.NODE_ENV === "production";
-  const enforceStrict =
-    isProduction || process.env.ENFORCE_STRICT_COOKIES === "true";
 
-  const frontendUrl = process.env.FRONTEND_URL || "";
   let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
-  if (!cookieDomain && frontendUrl) {
+  if (!cookieDomain && env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
     try {
-      cookieDomain = new URL(frontendUrl).hostname;
+      const url = new URL(env.FRONTEND_URLS[0]);
+      const hostname = url.hostname;
+      const parts = hostname.split(".");
+
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        cookieDomain = undefined;
+      } else if (parts.length > 2) {
+        cookieDomain = "." + parts.slice(-2).join(".");
+      } else {
+        cookieDomain = hostname;
+      }
     } catch {
       cookieDomain = undefined;
     }
   }
 
-  const defaultSameSite: SecureCookieOptions["sameSite"] = "none";
-
   const csrfCookieOptions = {
-    // httpOnly: false,
-    // secure: enforceStrict,
-    // sameSite: defaultSameSite,
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
     maxAge: COOKIE_MAX_AGE,
-    path: "/"
-    // domain: cookieDomain
-  } as any;
+    path: "/",
+    ...(cookieDomain && { domain: cookieDomain })
+  };
 
   res.cookie("csrf_token", csrfToken, csrfCookieOptions);
 
@@ -84,43 +97,42 @@ export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
     try {
       logger.info("Set csrf cookie", csrfCookieOptions);
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.log("Set csrf cookie", csrfCookieOptions);
     }
   }
 }
 
 export function clearAuthCookies(res: Response): void {
-  // Use same domain/sameSite as when setting cookies so they clear reliably
   const isProduction = process.env.NODE_ENV === "production";
-  const enforceStrict =
-    isProduction || process.env.ENFORCE_STRICT_COOKIES === "true";
 
-  const frontendUrl = process.env.FRONTEND_URL || "";
   let cookieDomain: string | undefined = process.env.COOKIE_DOMAIN;
-  if (!cookieDomain && frontendUrl) {
+  if (!cookieDomain && env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
     try {
-      cookieDomain = new URL(frontendUrl).hostname;
+      const url = new URL(env.FRONTEND_URLS[0]);
+      const hostname = url.hostname;
+      const parts = hostname.split(".");
+
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        cookieDomain = undefined;
+      } else if (parts.length > 2) {
+        cookieDomain = "." + parts.slice(-2).join(".");
+      } else {
+        cookieDomain = hostname;
+      }
     } catch {
       cookieDomain = undefined;
     }
   }
 
-  const sameSite: SecureCookieOptions["sameSite"] = "none";
-
-  res.clearCookie("token", {
+  const clearOptions = {
     path: "/",
-    domain: cookieDomain,
-    sameSite,
-    secure: enforceStrict
-  });
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    secure: isProduction,
+    ...(cookieDomain && { domain: cookieDomain })
+  };
 
-  res.clearCookie("csrf_token", {
-    path: "/",
-    domain: cookieDomain,
-    sameSite,
-    secure: enforceStrict
-  });
+  res.clearCookie("token", clearOptions);
+  res.clearCookie("csrf_token", clearOptions);
 }
 
 /**
