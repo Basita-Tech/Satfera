@@ -18,7 +18,7 @@ const publicRoutes = [
   "/",
 ];
 
-const isPublicRoute = publicRoutes.includes(location.pathname);
+const isPublicRoute = (pathname) => publicRoutes.includes(pathname);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -30,8 +30,10 @@ export const AuthProvider = ({ children }) => {
     clearClientAuthData();
     toast.error("Your session has expired. Please log in again.");
 
-    // Redirect to login if not already there
-    if (window.location.pathname !== "/login" && !isPublicRoute) {
+    if (
+      window.location.pathname !== "/login" &&
+      !isPublicRoute(window.location.pathname)
+    ) {
       window.location.href = "/login";
     }
   }, []);

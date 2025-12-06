@@ -11,38 +11,54 @@ export const useGoToAccount = () => {
     setLoading(true);
     try {
       const API = import.meta.env.VITE_API_URL;
-      // Verify session (cookie-based); 401 will be handled by axios interceptor too
-      await axios.get(`${API}/auth/me`, { withCredentials: true });
 
-      // Onboarding status
-      const os = await getOnboardingStatus();
-      const onboardingData = os?.data?.data || os?.data || {};
-      const isOnboardingCompleted =
-        typeof onboardingData.isOnboardingCompleted !== "undefined"
-          ? onboardingData.isOnboardingCompleted
-          : Array.isArray(onboardingData.completedSteps)
-          ? onboardingData.completedSteps.length >= 6
-          : true;
-
-      if (!isOnboardingCompleted) {
-        navigate("/onboarding/user");
+      try {
+        await axios.get(`${API}/auth/me`, { withCredentials: true });
+      } catch (authError) {
+        if (authError?.response?.status === 401) {
+          navigate("/login");
+          setLoading(false);
+          return;
+        }
+        navigate("/login");
+        setLoading(false);
         return;
       }
 
-      // Profile review status
-      const pr = await getProfileReviewStatus();
-      if (pr && pr.success && pr.data) {
-        const status = pr.data.profileReviewStatus;
-        if (status && status !== "approved") {
-          navigate("/onboarding/review");
+      try {
+        const os = await getOnboardingStatus();
+        const onboardingData = os?.data?.data || os?.data || {};
+        const isOnboardingCompleted =
+          typeof onboardingData.isOnboardingCompleted !== "undefined"
+            ? onboardingData.isOnboardingCompleted
+            : Array.isArray(onboardingData.completedSteps)
+            ? onboardingData.completedSteps.length >= 6
+            : true;
+
+        if (!isOnboardingCompleted) {
+          navigate("/onboarding/user");
           return;
         }
+      } catch (err) {
+        console.warn("Error checking onboarding status:", err);
       }
 
-      // Default: dashboard
+      try {
+        const pr = await getProfileReviewStatus();
+        if (pr && pr.success && pr.data) {
+          const status = pr.data.profileReviewStatus;
+          if (status && status !== "approved") {
+            navigate("/onboarding/review");
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Error checking profile review status:", err);
+      }
+
       navigate("/dashboard");
     } catch (err) {
-      // If session invalid/expired, send to login
+      console.error("Error in goToAccount:", err);
       navigate("/login");
     } finally {
       setLoading(false);
