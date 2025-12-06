@@ -44,7 +44,7 @@ export function validateEnv(): EnvConfig {
     "TWILIO_VERIFY_SERVICE_SID",
     "TWILIO_PHONE_NUMBER",
     "REDIS_URL",
-    "FRONTEND_URL",
+    "FRONTEND_URLS",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "GOOGLE_REDIRECT_URI",
