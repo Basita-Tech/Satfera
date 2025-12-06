@@ -537,9 +537,24 @@ export class AuthController {
       }
 
       if (type === "signup") {
-        const response = await authService.verifySignupOtp(email, otp);
+        const response = await authService.verifySignupOtp(email, otp, req);
 
-        return res.status(200).json({ success: true, data: response });
+        setSecureTokenCookie(res, response.token, { maxAge: COOKIE_MAX_AGE });
+
+        const csrfToken = generateCSRFToken();
+        setCSRFTokenCookie(res, csrfToken);
+
+        logger.info("Email verified and user logged in", {
+          userId: response.user._id,
+          email,
+          ip: req.ip,
+          isNewSession: response.isNewSession
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: response.message
+        });
       } else {
         const response = await authService.verifyForgotPasswordOtp(email, otp);
         return res.status(200).json({ success: true, data: response });

@@ -429,8 +429,14 @@ export class AuthService {
 
   async verifySignupOtp(
     email: string,
-    otp: string
-  ): Promise<{ token: string; user: IUser; message: string }> {
+    otp: string,
+    req: Request
+  ): Promise<{
+    token: string;
+    user: IUser;
+    message: string;
+    isNewSession: boolean;
+  }> {
     const timingSafe = new TimingSafeAuth(200);
 
     if (!email) {
@@ -488,15 +494,43 @@ export class AuthService {
     }
 
     user.isEmailVerified = true;
+    user.lastLoginAt = new Date();
     await user.save();
+
+    const userId = String(user._id);
+    const ipAddress = getClientIp(req);
 
     const jti = generateJTI();
     const token = jwt.sign(
-      { id: String(user._id), jti, iat: Math.floor(Date.now() / 1000) },
+      {
+        id: userId,
+        email: user.email,
+        jti,
+        iat: Math.floor(Date.now() / 1000)
+      },
       this.jwtSecret(),
       {
         expiresIn: "1d"
       }
+    );
+
+    const fingerprint = generateDeviceFingerprint(
+      req.get("user-agent") || "",
+      ipAddress
+    );
+
+    await SessionService.createSession(
+      userId,
+      token,
+      jti,
+      req,
+      ipAddress,
+      86400,
+      fingerprint
+    );
+
+    logger.info(
+      `New session created for verified user ${userId} on ${ipAddress}`
     );
 
     await sendWelcomeEmailOnce(user);
@@ -506,7 +540,8 @@ export class AuthService {
       user,
       message: user.isPhoneVerified
         ? "Email verified successfully. You can now login."
-        : "Email verified successfully. You can now login."
+        : "Email verified successfully. You can now login.",
+      isNewSession: true
     });
   }
 
