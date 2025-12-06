@@ -26,6 +26,7 @@ app.use(ipBlockingMiddleware);
 app.use(
   helmet({
     contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     hsts: {
       maxAge: 31536000,
       includeSubDomains: true,
