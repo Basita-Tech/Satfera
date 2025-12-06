@@ -80,16 +80,16 @@ const LoginForm = () => {
           return;
         }
 
-        const pr = await getProfileReviewStatus();
-        if (pr && pr.success && pr.data) {
-          const status = pr.data.profileReviewStatus;
-          if (status && status !== "approved") {
-            navigate("/onboarding/review", { replace: true });
-            return;
-          }
+        // Even if review is pending, route to user dashboard by default
+        try {
+          const pr = await getProfileReviewStatus();
+          console.log("Profile review status (login):", pr?.data?.profileReviewStatus);
+        } catch (e) {
+          console.warn("Review status check failed; continuing to dashboard.", e?.message || e);
         }
 
-        navigate("/", { replace: true });
+        // Default destination (admin dashboard not implemented)
+        navigate("/dashboard", { replace: true });
       } catch (err) {
         console.error("Error checking logged-in redirect:", err);
       }

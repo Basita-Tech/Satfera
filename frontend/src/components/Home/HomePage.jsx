@@ -7,6 +7,7 @@ import couple1 from "../../assets/couple1.png";
 import couple2 from "../../assets/couple2.png";
 import couple3 from "../../assets/couple3.png";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+import { getOnboardingStatus, getProfileReviewStatus } from "../../api/auth";
 
 const colors = {
   maroon: "#800000",
@@ -62,6 +63,43 @@ export default function HomePage() {
   const { isAuthenticated } = useContext(AuthContextr);
   const [logoHighlighted, setLogoHighlighted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountNavLoading, setAccountNavLoading] = useState(false);
+
+  const handleMyAccount = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (accountNavLoading) return;
+
+    setAccountNavLoading(true);
+    try {
+      const onboarding = await getOnboardingStatus();
+      const data = onboarding?.data?.data || onboarding?.data || {};
+      const completedSteps = Array.isArray(data.completedSteps) ? data.completedSteps : [];
+      const isOnboardingCompleted =
+        typeof data.isOnboardingCompleted !== "undefined"
+          ? data.isOnboardingCompleted
+          : completedSteps.length >= 6;
+
+      // Define the order of steps
+      const steps = ["personal", "family", "education", "profession", "health", "expectation", "photos"];
+
+      if (!isOnboardingCompleted) {
+        // Find the first uncompleted step
+        const firstUncompletedStep = steps.find(step => !completedSteps.includes(step)) || "personal";
+        navigate(`/onboarding/user?step=${firstUncompletedStep}`, { replace: true });
+        return;
+      }
+
+      // User's onboarding is complete; go to dashboard
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      console.error("Failed to route My Account click:", err);
+      // If there's an error (e.g., cookies expired), redirect to login
+      navigate("/login", { replace: true });
+    } finally {
+      setAccountNavLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-beige">
@@ -113,14 +151,11 @@ export default function HomePage() {
             {/* Auth Buttons (Always visible on both desktop and mobile) */}
             {isAuthenticated ? (
               <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate("/dashboard");
-                }}
+                onClick={handleMyAccount}
                 className="px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-md font-semibold text-[#FFFFFF] bg-[#D4A052] hover:opacity-90 transition text-xs sm:text-sm lg:text-base whitespace-nowrap"
+                disabled={accountNavLoading}
               >
-                My Account
+                {accountNavLoading ? "Loading..." : "My Account"}
               </button>
             ) : (
               <>

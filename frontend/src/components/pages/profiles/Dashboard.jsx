@@ -254,21 +254,12 @@ export function Dashboard({
             )}
           </div>
 
-          <div className="flex flex-col text-center md:text-left">
+            <div className="flex flex-col text-center md:text-left">
             <div className="flex flex-col md:flex-col items-center md:items-start">
               <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
                 <h2 className="text-xl md:text-2xl font-semibold">
                   {user?.firstName || "User"} {user?.lastName || ""}
                 </h2>
-                {(() => {
-                  const customId = user?.customId || user?.userId || user?.id;
-                  if (!customId) return null;
-                  return (
-                    <span className="inline-flex items-center rounded-full px-3 py-[4px] text-[12px] font-medium border bg-[#f9f5ed] text-[#c8a227] border-[#e9d8a6]">
-                      ID: {String(customId)}
-                    </span>
-                  );
-                })()}
                 {user?.isVerified && (
                   <Badge className="bg-[#C8A2271A] text-[#C8A227] border border-[#C8A22733] rounded-full px-2 py-0.5 flex items-center">
                     <img
@@ -278,6 +269,17 @@ export function Dashboard({
                     />
                   </Badge>
                 )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start mt-1">
+                {(() => {
+                  const customId = user?.customId || user?.userId || user?.id;
+                  if (!customId) return null;
+                  return (
+                    <span className="inline-flex items-center rounded-full px-3 py-[4px] text-[12px] font-medium border bg-[#f9f5ed] text-[#c8a227] border-[#e9d8a6]">
+                      ID: {String(customId)}
+                    </span>
+                  );
+                })()}
               </div>
               <p className="text-muted-foreground mt-1 text-sm md:text-base">
                 {user?.age || "N/A"} years • {user?.city || "N/A"} •{" "}

@@ -136,7 +136,7 @@ const MultiStepForm = () => {
         toast.success(
           "Your profile has been approved! Redirecting to your dashboard."
         );
-        navigate("/userdashboard", { replace: true });
+        navigate("/dashboard", { replace: true });
       }
     }
     checkUserReview();

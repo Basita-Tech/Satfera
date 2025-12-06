@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useState,
   useRef,
   useEffect,
@@ -157,7 +157,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     if (value !== "" && (+value < 0 || +value > 23)) {
       setErrors((prev) => ({
         ...prev,
-        birthHour: "Hour must be between 00–23",
+        birthHour: "Hour must be between 00â€“23",
       }));
     } else {
       setErrors((prev) => ({ ...prev, birthHour: "" }));
@@ -172,7 +172,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     if (value !== "" && (+value < 0 || +value > 59)) {
       setErrors((prev) => ({
         ...prev,
-        birthMinute: "Minute must be between 00–59",
+        birthMinute: "Minute must be between 00â€“59",
       }));
     } else {
       setErrors((prev) => ({ ...prev, birthMinute: "" }));
@@ -184,7 +184,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     let num = Number(formData.birthHour);
     if (Number.isNaN(num)) {
       setFormData((prev) => ({ ...prev, birthHour: "" }));
-      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00–23" }));
+      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00â€“23" }));
       return;
     }
     num = Math.min(Math.max(num, 0), 23);
@@ -197,7 +197,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     let num = Number(formData.birthMinute);
     if (Number.isNaN(num)) {
       setFormData((prev) => ({ ...prev, birthMinute: "" }));
-      setErrors((prev) => ({ ...prev, birthMinute: "Minute must be between 00–59" }));
+      setErrors((prev) => ({ ...prev, birthMinute: "Minute must be between 00â€“59" }));
       return;
     }
     num = Math.min(Math.max(num, 0), 59);
@@ -377,7 +377,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       let borderColor = "#d1d5db";
       if (error) borderColor = "red";
       else if (value && value.value) borderColor = "#D4A052";
-      else if (state.isFocused) borderColor = "#E4C48A";
+      else if (state.isFocused) borderColor = "#D4A052";
 
       return {
         ...base,
@@ -486,7 +486,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
   // Standardized input class helpers
   const inputClass = "w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition";
   const getInputClass = (field) =>
-    `${inputClass} ${errors[field] ? "border-red-500 focus:ring-red-300 focus:border-red-500" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`;
+    `${inputClass} ${errors[field] ? "border-red-500 focus:ring-red-300 focus:border-red-500" : "border-[#D4A052] focus:ring-[#D4A052] focus:border-[#D4A052]"}`;
 
   const validate = () => {
     const newErrors = {};
@@ -567,12 +567,12 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       if (!hour || hour.length !== 2) {
         newErrors.birthHour = newErrors.birthHour || "Hour (HH) is required";
       } else if (+hour < 0 || +hour > 23) {
-        newErrors.birthHour = "Hour must be between 00–23";
+        newErrors.birthHour = "Hour must be between 00â€“23";
       }
       if (!minute || minute.length !== 2) {
         newErrors.birthMinute = newErrors.birthMinute || "Minute (MM) is required";
       } else if (+minute < 0 || +minute > 59) {
-        newErrors.birthMinute = "Minute must be between 00–59";
+        newErrors.birthMinute = "Minute must be between 00â€“59";
       }
     }
 
@@ -664,13 +664,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           res?.message ||
           res?.data?.message ||
           "Failed to save personal details.";
-        console.error("❌ Save returned unsuccessful response:", res);
+        console.error("âŒ Save returned unsuccessful response:", res);
 
         const fieldErrors = res?.data?.errors || res?.errors || null;
         if (fieldErrors && typeof fieldErrors === "object") {
           setErrors((prev) => ({ ...prev, ...fieldErrors }));
         }
-        toast.error(`❌ ${serverMessage}`);
+        toast.error(`âŒ ${serverMessage}`);
         return false;
       }
 
@@ -688,7 +688,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
       return true;
     } catch (err) {
-      console.error("❌ Error saving/updating personal details:", err);
+      console.error("âŒ Error saving/updating personal details:", err);
 
       const serverData = err?.response?.data || {};
       if (serverData?.errors && typeof serverData.errors === "object") {
@@ -699,7 +699,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         serverData?.message ||
         err?.message ||
         "Failed to save personal details.";
-      toast.error(`❌ ${msg}`);
+      toast.error(`Error: ${msg}`);
       return false;
     } finally {
       setLoading(false);
@@ -734,7 +734,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.firstName}
-                className="capitalize w-full p-3 rounded-md border border-[#E4C48A] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
             <div>
@@ -742,7 +742,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.middleName}
-                className="capitalize w-full p-3 rounded-md border border-[#E4C48A] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
             <div>
@@ -750,7 +750,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.lastName}
-                className="capitalize w-full p-3 rounded-md border border-[#E4C48A] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
           </div>
@@ -764,17 +764,17 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.dobDay}
-                className="capitalize w-full p-3 rounded-md border border-[#E4C48A] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
               <input
                 readOnly
                 value={formData.dobMonth}
-                className="capitalize w-full p-3 rounded-md border border-[#E4C48A] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
               <input
                 readOnly
                 value={formData.dobYear}
-                className="capitalize w-full p-3 rounded-md border border-[#E4C48A] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
           </div>
@@ -1036,10 +1036,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
           ${
             formData.interCommunity === "Yes"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
+              ? "bg-[#D4A052] border-[#D4A052]"
               : "border-gray-300"
           }
-          focus:ring-1 focus:ring-[#E4C48A]`}
+          focus:ring-1 focus:ring-[#D4A052]`}
                   />
                   <span className="text-gray-700 text-sm">Yes</span>
                 </label>
@@ -1063,10 +1063,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
           ${
             formData.interCommunity === "No"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
+              ? "bg-[#D4A052] border-[#D4A052]"
               : "border-gray-300"
           }
-          focus:ring-1 focus:ring-[#E4C48A]`}
+          focus:ring-1 focus:ring-[#D4A052]`}
                   />
                   <span className="text-gray-700 text-sm">No</span>
                 </label>
@@ -1202,10 +1202,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
           ${
             formData.ownHouse === "Yes"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
+              ? "bg-[#D4A052] border-[#D4A052]"
               : "border-gray-300"
           }
-          focus:ring-1 focus:ring-[#E4C48A]`}
+          focus:ring-1 focus:ring-[#D4A052]`}
                   />
                   <span className="text-gray-700 text-sm">Yes</span>
                 </label>
@@ -1221,10 +1221,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     className={`appearance-none w-4 h-4 rounded-full border transition duration-200
           ${
             formData.ownHouse === "No"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
+              ? "bg-[#D4A052] border-[#D4A052]"
               : "border-gray-300"
           }
-          focus:ring-1 focus:ring-[#E4C48A]`}
+          focus:ring-1 focus:ring-[#D4A052]`}
                   />
                   <span className="text-gray-700 text-sm">No</span>
                 </label>
@@ -1255,7 +1255,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             {/* Conditional Divorce Fields */}
             {showDivorceFields && (
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+              <div className="bg-[#FFF8EC] border border-[#D4A052]/30 rounded-lg p-4">
                 <label className="block text-sm font-medium mb-1">
                   Divorce Status
                 </label>
@@ -1272,7 +1272,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             {/* Children Fields */}
             {showChildrenFields && (
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+              <div className="bg-[#FFF8EC] border border-[#D4A052]/30 rounded-lg p-4">
                 <label className="block text-sm font-medium mb-2">
                   Do you have children?
                 </label>
@@ -1287,7 +1287,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         onChange={handleChange}
                         className="peer hidden"
                       />
-                      <span className="w-4 h-4 rounded-full border border-[#E4C48A] peer-checked:bg-[#E4C48A] peer-checked:border-[#E4C48A] transition-all"></span>
+                      <span className="w-4 h-4 rounded-full border border-[#D4A052] peer-checked:bg-[#D4A052] peer-checked:border-[#D4A052] transition-all"></span>
                       <span className="text-sm">{option}</span>
                     </label>
                   ))}
@@ -1337,7 +1337,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         }}
                         className="peer hidden"
                       />
-                      <span className="w-4 h-4 rounded-full border border-[#E4C48A] peer-checked:bg-[#E4C48A] peer-checked:border-[#E4C48A] transition-all"></span>
+                      <span className="w-4 h-4 rounded-full border border-[#D4A052] peer-checked:bg-[#D4A052] peer-checked:border-[#D4A052] transition-all"></span>
                       <span className="text-sm">{option}</span>
                     </label>
                   ))}
@@ -1367,7 +1367,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                               }
                               className="peer hidden"
                             />
-                            <span className="w-4 h-4 rounded-full border border-[#E4C48A] peer-checked:bg-[#E4C48A] peer-checked:border-[#E4C48A] transition-all"></span>
+                            <span className="w-4 h-4 rounded-full border border-[#D4A052] peer-checked:bg-[#D4A052] peer-checked:border-[#D4A052] transition-all"></span>
                             <span className="text-sm">{year}</span>
                           </label>
                         );
@@ -1433,10 +1433,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   className={`appearance-none w-4 h-4 rounded-full border transition duration-200
           ${
             formData.residingInIndia === "yes"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
+              ? "bg-[#D4A052] border-[#D4A052]"
               : "border-gray-300"
           }
-          focus:ring-1 focus:ring-[#E4C48A]`}
+          focus:ring-1 focus:ring-[#D4A052]`}
                 />
                 <span className="text-gray-700 text-sm">Yes</span>
               </label>
@@ -1465,10 +1465,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   className={`appearance-none w-4 h-4 rounded-full border transition duration-200
           ${
             formData.residingInIndia === "no"
-              ? "bg-[#E4C48A] border-[#E4C48A]"
+              ? "bg-[#D4A052] border-[#D4A052]"
               : "border-gray-300"
           }
-          focus:outline-none focus:ring-2 focus:ring-[#E4C48A] focus:ring-offset-1`}
+          focus:outline-none focus:ring-2 focus:ring-[#D4A052] focus:ring-offset-1`}
                 />
                 <span className="text-gray-700 text-sm">No</span>
               </label>
@@ -1511,8 +1511,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     className={`capitalize w-full p-3 rounded-md border ${
                       errors.residingCountry
                         ? "border-red-500"
-                        : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                        : "border-[#D4A052]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition`}
                     usePortal={true}
                   />
                   {errors.residingCountry && (
@@ -1546,8 +1546,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     className={`capitalize w-full p-3 rounded-md border ${
                       errors.visaCategory
                         ? "border-red-500"
-                        : "border-[#E4C48A]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+                        : "border-[#D4A052]"
+                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition`}
                     usePortal={true}
                   />
                   {errors.visaCategory && (
@@ -1560,7 +1560,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-          {/* ✅ Buttons */}
+          {/* âœ… Buttons */}
           <div className="pt-6 flex justify-between items-center gap-4">
             <button
               type="button"
@@ -1572,7 +1572,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             <button
               type="submit"
-              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#E4C48A] transition"
+              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#D4A052] transition"
             >
               Save & Next
             </button>

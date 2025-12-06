@@ -34,7 +34,7 @@ const ReviewPage = () => {
   };
 
   const handleDashboardClick = () => {
-    navigate("/userdashboard");
+    navigate("/dashboard");
   };
 
   const handleRetryClick = () => {

@@ -28,12 +28,12 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
     fatherName: "",
     fatherProfession: "",
-    fatherPhoneCode: "+91",
+    fatherPhoneCode: "",
     fatherPhone: "",
     fatherNative: "",
     motherName: "",
     motherProfession: "",
-    motherPhoneCode: "+91",
+    motherPhoneCode: "",
     motherPhone: "",
     motherNative: "",
     grandFatherName: "",
@@ -61,12 +61,12 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             fatherName: data.fatherName || "",
             fatherProfession: data.fatherOccupation || "",
             fatherPhone: data.fatherContact?.number || "",
-            fatherPhoneCode: data.fatherContact?.code || "+91",
+            fatherPhoneCode: data.fatherContact?.code || "",
             fatherNative: data.fatherNativePlace || "",
             motherName: data.motherName || "",
             motherProfession: data.motherOccupation || "",
             motherPhone: data.motherContact?.number || "",
-            motherPhoneCode: data.motherContact?.code || "+91",
+            motherPhoneCode: data.motherContact?.code || "",
             motherNative: "",
             grandFatherName: data.grandFatherName || "",
             grandMotherName: data.grandMotherName || "",
@@ -136,8 +136,18 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
       return;
     }
 
+    if (formData.fatherPhone && !formData.fatherPhoneCode) {
+      toast.error("Please select father's country code.");
+      return;
+    }
+
     if (formData.motherPhone && !isValidPhone(formData.motherPhone)) {
       toast.error("Please enter a valid 10-digit mother's phone number.");
+      return;
+    }
+
+    if (formData.motherPhone && !formData.motherPhoneCode) {
+      toast.error("Please select mother's country code.");
       return;
     }
 
@@ -146,11 +156,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
       motherName: formData.motherName,
       fatherOccupation: formData.fatherProfession,
       motherOccupation: formData.motherProfession,
-      fatherContact: formData.fatherPhone ? {
+      fatherContact: formData.fatherPhone && formData.fatherPhoneCode ? {
         code: formData.fatherPhoneCode,
         number: formData.fatherPhone
       } : undefined,
-      motherContact: formData.motherPhone ? {
+      motherContact: formData.motherPhone && formData.motherPhoneCode ? {
         code: formData.motherPhoneCode,
         number: formData.motherPhone
       } : undefined,
@@ -267,6 +277,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                   }
                   className="w-full sm:w-32 border border-[#D4A052] rounded-md p-3 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                 >
+                  <option value="">Country code</option>
                   {countryCodes.map((c) => (
                     <option key={`${c.code}-${c.country}`} value={c.code}>
                       {c.code} {c.country}
@@ -318,6 +329,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                   }
                   className="w-full sm:w-32 border border-[#D4A052] rounded-md p-3 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
                 >
+                  <option value="">Country code</option>
                   {countryCodes.map((c) => (
                     <option key={`${c.code}-${c.country}`} value={c.code}>
                       {c.code} {c.country}

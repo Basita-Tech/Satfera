@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import toast from 'react-hot-toast';
 import { Routes, Route, useNavigate, Outlet, useLocation } from "react-router-dom";
 import { Navigation } from "../Navigation";
-import { Dashboard } from "./profiles/Dashboard";
-import { Requests } from "./profiles/Requests";
-import { ApprovedProfiles } from "./profiles/ApprovedProfiles";
-import { ProfileDetails } from "./profiles/ProfileDetails";
-import { Browse } from "./profiles/Browse";
-import NewProfiles from "./profiles/NewProfiles";
-import { Shortlisted } from "./profiles/Shortlisted";
-import { ComparePage } from "./profiles/ComparePage";
-import { EditProfile } from "./profiles/EditProfile";
-import { Settings } from "./profiles/Settings";
-import Notifications from "./Notifications";
+const Dashboard = lazy(() => import("./profiles/Dashboard").then((m) => ({ default: m.Dashboard })));
+const Requests = lazy(() => import("./profiles/Requests").then((m) => ({ default: m.Requests })));
+const ApprovedProfiles = lazy(() => import("./profiles/ApprovedProfiles").then((m) => ({ default: m.ApprovedProfiles })));
+const ProfileDetails = lazy(() => import("./profiles/ProfileDetails").then((m) => ({ default: m.ProfileDetails })));
+const Browse = lazy(() => import("./profiles/Browse").then((m) => ({ default: m.Browse })));
+const NewProfiles = lazy(() => import("./profiles/NewProfiles").then((m) => ({ default: m.default || m.NewProfiles })));
+const Shortlisted = lazy(() => import("./profiles/Shortlisted").then((m) => ({ default: m.Shortlisted })));
+const ComparePage = lazy(() => import("./profiles/ComparePage").then((m) => ({ default: m.ComparePage })));
+const EditProfile = lazy(() => import("./profiles/EditProfile").then((m) => ({ default: m.EditProfile })));
+const Settings = lazy(() => import("./profiles/Settings").then((m) => ({ default: m.Settings })));
+const Notifications = lazy(() => import("./Notifications").then((m) => ({ default: m.default || m.Notifications })));
 import { 
   getFavorites, 
   addToFavorites, 
@@ -29,7 +29,13 @@ import {
   getProfileViews
 } from "../../api/auth";
 import { addToCompare, removeFromCompare, getCompare } from "../../api/auth";
-import { ProfileViews } from "./profiles/ProfileViews";
+const ProfileViews = lazy(() => import("./profiles/ProfileViews").then((m) => ({ default: m.ProfileViews })));
+
+const LazyFallback = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="text-center text-sm text-gray-600">Loading…</div>
+  </div>
+);
 
 export function UserDashboard() {
   const navigate = useNavigate();
@@ -1346,77 +1352,78 @@ export function UserDashboard() {
 
       {/* MAIN CONTENT BASED ON activePage */}
       <div className="flex-1">
-        <Routes>
-          <Route index element={
-            <Dashboard
-              profiles={[...profiles.sent, ...profiles.received]}
-              onNavigate={handleNavigate}
-              onSendRequest={handleSendRequest}
-              onAddToCompare={handleAddToCompare}
-              onRemoveCompare={handleRemoveCompare}
-              compareProfiles={compareProfiles}
-              shortlistedIds={shortlistedIds}
-              onToggleShortlist={handleToggleShortlist}
-              sentProfileIds={sentProfileIds}
-            />
-          } />
-          <Route path="compare" element={
-            <ComparePage
-              profiles={[
-                ...(Array.isArray(profiles.sent) ? profiles.sent : []),
-                ...(Array.isArray(profiles.received) ? profiles.received : []),
-                ...(Array.isArray(shortlistedProfiles) ? shortlistedProfiles : [])
-              ]}
-              selectedProfiles={
-                selectedCompareProfiles && selectedCompareProfiles.length > 0
-                  ? selectedCompareProfiles
-                  : compareProfiles
-                      .map((cid) => {
-                        const allProfiles = [
-                          ...(Array.isArray(profiles.sent) ? profiles.sent : []),
-                          ...(Array.isArray(profiles.received) ? profiles.received : []),
-                          ...(Array.isArray(shortlistedProfiles) ? shortlistedProfiles : [])
-                        ];
-                        return allProfiles.find((p) => String(p?.id || p?.userId || p?._id || p?.user?.userId || p?.user?.id) === String(cid));
-                      })
-                      .filter(Boolean)
-              }
-              onRemoveFromCompare={handleRemoveCompare}
-              onSendRequest={handleSendRequest}
-              onNavigateBack={() => navigate('/dashboard/browse')}
-              onAddToCompare={handleAddToCompare}
-              shortlistedIds={shortlistedIds}
-              onToggleShortlist={handleToggleShortlist}
-              onViewProfile={handleViewProfile}
-              sentProfileIds={sentProfileIds}
-            />
-          } />
-          <Route path="edit-profile" element={
-            <EditProfile
-              onNavigateBack={() => navigate('/dashboard')}
-            />
-          } />
-          <Route path="settings" element={
-            <Settings />
-          } />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="profile/:id" element={
-            <ProfileDetails
-              profiles={[...profiles.sent, ...profiles.received]}
-              sentProfileIds={sentProfileIds}
-              onNavigate={setActivePage}
-              shortlistedIds={shortlistedIds}
-              onToggleShortlist={handleToggleShortlist}
-              compareProfiles={compareProfiles}
-              onAddToCompare={handleAddToCompare}
-              onRemoveCompare={handleRemoveCompare}
-              onSendRequest={handleSendRequest}
-              onWithdraw={handleWithdraw}
-              onAccept={handleAccept}
-              onReject={handleReject}
-            />
-          } />
-        </Routes>
+        <Suspense fallback={<LazyFallback />}>
+          <Routes>
+            <Route index element={
+              <Dashboard
+                profiles={[...profiles.sent, ...profiles.received]}
+                onNavigate={handleNavigate}
+                onSendRequest={handleSendRequest}
+                onAddToCompare={handleAddToCompare}
+                onRemoveCompare={handleRemoveCompare}
+                compareProfiles={compareProfiles}
+                shortlistedIds={shortlistedIds}
+                onToggleShortlist={handleToggleShortlist}
+                sentProfileIds={sentProfileIds}
+              />
+            } />
+            <Route path="compare" element={
+              <ComparePage
+                profiles={[
+                  ...(Array.isArray(profiles.sent) ? profiles.sent : []),
+                  ...(Array.isArray(profiles.received) ? profiles.received : []),
+                  ...(Array.isArray(shortlistedProfiles) ? shortlistedProfiles : [])
+                ]}
+                selectedProfiles={
+                  selectedCompareProfiles && selectedCompareProfiles.length > 0
+                    ? selectedCompareProfiles
+                    : compareProfiles
+                        .map((cid) => {
+                          const allProfiles = [
+                            ...(Array.isArray(profiles.sent) ? profiles.sent : []),
+                            ...(Array.isArray(profiles.received) ? profiles.received : []),
+                            ...(Array.isArray(shortlistedProfiles) ? shortlistedProfiles : [])
+                          ];
+                          return allProfiles.find((p) => String(p?.id || p?.userId || p?._id || p?.user?.userId || p?.user?.id) === String(cid));
+                        })
+                        .filter(Boolean)
+                }
+                onRemoveFromCompare={handleRemoveCompare}
+                onSendRequest={handleSendRequest}
+                onNavigateBack={() => navigate('/dashboard/browse')}
+                onAddToCompare={handleAddToCompare}
+                shortlistedIds={shortlistedIds}
+                onToggleShortlist={handleToggleShortlist}
+                onViewProfile={handleViewProfile}
+                sentProfileIds={sentProfileIds}
+              />
+            } />
+            <Route path="edit-profile" element={
+              <EditProfile
+                onNavigateBack={() => navigate('/dashboard')}
+              />
+            } />
+            <Route path="settings" element={
+              <Settings />
+            } />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="profile/:id" element={
+              <ProfileDetails
+                profiles={[...profiles.sent, ...profiles.received]}
+                sentProfileIds={sentProfileIds}
+                onNavigate={setActivePage}
+                shortlistedIds={shortlistedIds}
+                onToggleShortlist={handleToggleShortlist}
+                compareProfiles={compareProfiles}
+                onAddToCompare={handleAddToCompare}
+                onRemoveCompare={handleRemoveCompare}
+                onSendRequest={handleSendRequest}
+                onWithdraw={handleWithdraw}
+                onAccept={handleAccept}
+                onReject={handleReject}
+              />
+            } />
+          </Routes>
 
           {!location.pathname.includes('/profile/') && !location.pathname.includes('/compare') && !location.pathname.includes('/edit-profile') && activePage === "requests" && (
           <Requests
@@ -1516,6 +1523,7 @@ export function UserDashboard() {
             )}
           </div>
         )}
+        </Suspense>
       </div>
 
       <Outlet />
