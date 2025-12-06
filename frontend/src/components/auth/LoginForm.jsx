@@ -8,6 +8,7 @@ import {
 } from "../../api/auth";
 import toast from "react-hot-toast";
 import { AuthContextr } from "../context/AuthContext";
+import axios from "../../api/http";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -44,9 +45,27 @@ const LoginForm = () => {
     const checkLoggedInAndRedirect = async () => {
       if (handleUrlToken()) return;
 
-      // ✅ Check authentication via API call (cookie sent automatically)
-      // No localStorage check needed - more secure!
       try {
+        // First, verify if user is already authenticated; if not, exit quietly
+        const API = import.meta.env.VITE_API_URL;
+        try {
+          const me = await axios.get(`${API}/auth/me`, {
+            withCredentials: true,
+          });
+
+          if (!me?.data?.success) {
+            return; // not logged in, stay on login page without noise
+          }
+        } catch (err) {
+          // Ignore expected 401s on the login page; only log unexpected issues
+          if (err?.response?.status !== 401) {
+            console.warn("Pre-login auth check failed:", err);
+          }
+          return;
+        }
+
+        // ✅ Check authentication via API call (cookie sent automatically)
+        // No localStorage check needed - more secure!
         const os = await getOnboardingStatus();
         const onboardingData = os?.data?.data || os?.data || {};
         const isOnboardingCompleted =

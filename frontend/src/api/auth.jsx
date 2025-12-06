@@ -50,10 +50,6 @@ axios.interceptors.response.use(
         );
 
         clearClientAuthData();
-
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
       }
     } catch (e) {
       console.error("Error in response interceptor:", e);

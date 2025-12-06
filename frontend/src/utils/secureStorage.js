@@ -35,11 +35,13 @@ export const updateActivity = () => {
     // Update activity metadata in sessionStorage only
     sessionStorage.setItem(LAST_ACTIVITY_KEY, now.toString());
     sessionStorage.setItem(TOKEN_EXPIRY_KEY, newExpiry.toString());
-    
+
     // Debug: Log every 100th activity update to avoid console spam
     if (Math.random() < 0.01) {
       const hoursRemaining = ((newExpiry - now) / (1000 * 60 * 60)).toFixed(1);
-      console.log(`[Session] Activity updated. Session expires in ${hoursRemaining} hours`);
+      console.log(
+        `[Session] Activity updated. Session expires in ${hoursRemaining} hours`
+      );
     }
   } catch (error) {
     console.error("Failed to update activity:", error);
@@ -112,10 +114,10 @@ export const initSessionTracking = (onSessionExpired) => {
     document.addEventListener(event, handleActivity, { passive: true });
   });
 
-  // Check session expiry every 5 minutes (reduced frequency since timeout is now 24 hours)
   const interval = setInterval(() => {
-    if (!isSessionActive() && onSessionExpired) {
-      console.log('[Session] Session expired, logging out user');
+    const hadSession = sessionStorage.getItem(TOKEN_EXPIRY_KEY) !== null;
+    if (hadSession && !isSessionActive() && onSessionExpired) {
+      console.log("[Session] Session expired, logging out user");
       clearInterval(interval);
       onSessionExpired();
     }

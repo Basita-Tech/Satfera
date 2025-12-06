@@ -34,8 +34,8 @@ const AuthMonitor = () => {
       } catch (err) {
         // Only act on actual 401 (unauthorized). Ignore transient network errors.
         if (err?.response?.status === 401) {
-          logout();
-          navigate("/login", { replace: true });
+          // Redirect explicitly to login after session invalidation
+          logout("/login");
         } else {
           console.warn("Auth monitor network error:", err?.message || err);
         }

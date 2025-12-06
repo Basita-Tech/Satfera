@@ -30,17 +30,15 @@ export const AuthProvider = ({ children }) => {
     clearClientAuthData();
     toast.error("Your session has expired. Please log in again.");
 
-    if (
-      window.location.pathname !== "/login" &&
-      !isPublicRoute(window.location.pathname)
-    ) {
+    const currentPath = window.location.pathname;
+    if (currentPath !== "/login" && !isPublicRoute(currentPath)) {
       window.location.href = "/login";
     }
   }, []);
 
   useEffect(() => {
-    // On mount, verify session with backend via /auth/me
     let mounted = true;
+
     const check = async () => {
       try {
         const API = import.meta.env.VITE_API_URL;
@@ -52,20 +50,30 @@ export const AuthProvider = ({ children }) => {
         // not authenticated
         setUser(null);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     check();
 
-    // Initialize session activity tracking (metadata only)
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Separate effect to handle session tracking only when user is authenticated
+  useEffect(() => {
+    if (!user || isLoading) return; // Only track if user is authenticated and done loading
+
+    // Initialize session activity tracking
     const cleanup = initSessionTracking(handleSessionExpired);
 
     return () => {
-      mounted = false;
       cleanup();
     };
-  }, [handleSessionExpired]);
+  }, [user, isLoading, handleSessionExpired]);
 
   const login = (userData) => {
     // Backend sets httpOnly cookie; frontend should store only minimal user info
@@ -78,7 +86,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (redirectPath = "/") => {
     try {
       // Call backend logout endpoint to clear cookies
       await logoutUser();
@@ -90,6 +98,10 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       sessionStorage.clear();
       toast.success("Logged out successfully");
+      // Send users to a public page after logout (defaults to the landing page)
+      if (redirectPath) {
+        window.location.href = redirectPath;
+      }
     }
   };
 

@@ -44,21 +44,8 @@ axios.interceptors.response.use(
   (error) => {
     try {
       if (error?.response?.status === 401) {
-        // Only redirect on actual authentication endpoints or critical routes
-        const url = error?.config?.url || '';
-        const isAuthEndpoint = url.includes('/auth/me') || url.includes('/auth/login') || url.includes('/auth/logout');
-        
-        if (isAuthEndpoint) {
-          clearClientAuthData();
-          if (
-            typeof window !== "undefined" &&
-            window.location.pathname !== "/login" &&
-            window.location.pathname !== "/signup"
-          ) {
-            console.warn('Authentication failed, redirecting to login');
-            window.location.href = "/login";
-          }
-        }
+        // Clear local auth hints but avoid redirecting; protected pages already handle redirects
+        clearClientAuthData();
       }
     } catch (_) {}
     return Promise.reject(error);
