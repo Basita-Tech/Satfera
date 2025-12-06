@@ -527,12 +527,12 @@ export function EditProfile({ onNavigateBack }) {
   const [family, setFamily] = useState({
     fatherName: "",
     fatherProfession: "",
-    fatherPhoneCode: "+91",
+    fatherPhoneCode: "",
     fatherPhone: "",
     fatherNative: "",
     motherName: "",
     motherProfession: "",
-    motherPhoneCode: "+91",
+    motherPhoneCode: "",
     motherPhone: "",
     motherNative: "",
     grandFatherName: "",
@@ -908,14 +908,25 @@ export function EditProfile({ onNavigateBack }) {
         const normalizePhone = (val) => {
           if (!val) return "";
           if (typeof val === "string") return val;
-          if (typeof val === "object") {
-            // Handle {code, number} structure from API
-            if (val.number) return String(val.number || "");
+          if (typeof val === "object" && val !== null) {
+            // Handle {code, number} structure from API (from MongoDB)
+            if (val.number !== undefined && val.number !== null) {
+              return String(val.number).trim();
+            }
             // Handle {value, label} structure
-            if (val.value || val.label) return String(val.value || val.label || "");
+            if (val.value !== undefined && val.value !== null) {
+              return String(val.value).trim();
+            }
+            if (val.label !== undefined && val.label !== null) {
+              return String(val.label).trim();
+            }
           }
-          return String(val || "");
+          return "";
         };
+
+        console.log("[Family Debug] Raw API response:", data);
+        console.log("[Family Debug] fatherContact:", data.fatherContact, "-> normalized:", normalizePhone(data.fatherContact));
+        console.log("[Family Debug] motherContact:", data.motherContact, "-> normalized:", normalizePhone(data.motherContact));
 
         const familyMapped = {
           fatherName: data.fatherName || "",
@@ -1271,14 +1282,21 @@ export function EditProfile({ onNavigateBack }) {
     try {
       if (activeTab === "family") {
         const normalize = (v) => (v === undefined || v === null ? "" : v);
+        // Helper to build phone object from number string
+        const buildPhoneObject = (phoneNumber) => {
+          const num = normalize(phoneNumber).trim();
+          if (!num) return { code: "+91", number: "" };
+          return { code: "+91", number: num };
+        };
+        
         const submissionData = {
           fatherName: normalize(family.fatherName),
           fatherOccupation: normalize(family.fatherProfession),
-          fatherContact: normalize(family.fatherPhone),
+          fatherContact: buildPhoneObject(family.fatherPhone),
           fatherNativePlace: normalize(family.fatherNative),
           motherName: normalize(family.motherName),
           motherOccupation: normalize(family.motherProfession),
-          motherContact: normalize(family.motherPhone),
+          motherContact: buildPhoneObject(family.motherPhone),
           grandFatherName: normalize(family.grandFatherName),
           grandMotherName: normalize(family.grandMotherName),
           nanaName: normalize(family.nanaName),
@@ -1311,11 +1329,18 @@ export function EditProfile({ onNavigateBack }) {
             const normalizePhone = (val) => {
               if (!val) return "";
               if (typeof val === "string") return val;
-              if (typeof val === "object") {
-                if (val.number) return String(val.number || "");
-                if (val.value || val.label) return String(val.value || val.label || "");
+              if (typeof val === "object" && val !== null) {
+                if (val.number !== undefined && val.number !== null) {
+                  return String(val.number).trim();
+                }
+                if (val.value !== undefined && val.value !== null) {
+                  return String(val.value).trim();
+                }
+                if (val.label !== undefined && val.label !== null) {
+                  return String(val.label).trim();
+                }
               }
-              return String(val || "");
+              return "";
             };
             setFamily((prev) => ({
               ...prev,
@@ -1325,13 +1350,13 @@ export function EditProfile({ onNavigateBack }) {
                 submissionData.fatherName,
               fatherProfession:
                 server.fatherOccupation || submissionData.fatherOccupation,
-              fatherPhone: normalizePhone(server.fatherContact) || submissionData.fatherContact,
+              fatherPhone: normalizePhone(server.fatherContact) || normalizePhone(submissionData.fatherContact),
               fatherNative:
                 server.fatherNativePlace || submissionData.fatherNativePlace,
               motherName: server.motherName || submissionData.motherName,
               motherProfession:
                 server.motherOccupation || submissionData.motherOccupation,
-              motherPhone: normalizePhone(server.motherContact) || submissionData.motherContact,
+              motherPhone: normalizePhone(server.motherContact) || normalizePhone(submissionData.motherContact),
               grandFatherName:
                 server.grandFatherName || submissionData.grandFatherName,
               grandMotherName:
@@ -1361,9 +1386,41 @@ export function EditProfile({ onNavigateBack }) {
           try {
             const refetch = await getUserFamilyDetails();
             const server = refetch?.data?.data || {};
+            const normalizePhone = (val) => {
+              if (!val) return "";
+              if (typeof val === "string") return val;
+              if (typeof val === "object" && val !== null) {
+                if (val.number !== undefined && val.number !== null) {
+                  return String(val.number).trim();
+                }
+                if (val.value !== undefined && val.value !== null) {
+                  return String(val.value).trim();
+                }
+                if (val.label !== undefined && val.label !== null) {
+                  return String(val.label).trim();
+                }
+              }
+              return "";
+            };
             setFamily((prev) => ({
               ...prev,
               fatherName: server.fatherName || submissionData.fatherName,
+              fatherProfession: server.fatherOccupation || submissionData.fatherOccupation,
+              fatherPhone: normalizePhone(server.fatherContact) || normalizePhone(submissionData.fatherContact),
+              fatherNative: server.fatherNativePlace || submissionData.fatherNativePlace,
+              motherName: server.motherName || submissionData.motherName,
+              motherProfession: server.motherOccupation || submissionData.motherOccupation,
+              motherPhone: normalizePhone(server.motherContact) || normalizePhone(submissionData.motherContact),
+              grandFatherName: server.grandFatherName || submissionData.grandFatherName,
+              grandMotherName: server.grandMotherName || submissionData.grandMotherName,
+              nanaName: server.nanaName || submissionData.nanaName,
+              naniName: server.naniName || submissionData.naniName,
+              nanaNativePlace: server.nanaNativePlace || submissionData.nanaNativePlace,
+              familyType: server.familyType || submissionData.familyType,
+              hasSiblings: typeof server.haveSibling === "boolean" ? server.haveSibling : submissionData.haveSibling,
+              siblingCount: server.howManySiblings || submissionData.howManySiblings,
+              siblings: server.siblingDetails || submissionData.siblingDetails,
+              doYouHaveChildren: server.doYouHaveChildren ?? submissionData.doYouHaveChildren,
             }));
           } catch (refErr) {
             console.error("Failed to refetch family after save", refErr);
@@ -1972,25 +2029,24 @@ export function EditProfile({ onNavigateBack }) {
   };
 
   const handleFamilyPhoneChange = (field, value) => {
-    if (field === "fatherPhone" || field === "motherPhone") {
-      let phoneValue = value;
-      // Normalize if it's an object
-      if (typeof value === "object") {
-        if (value.number) {
-          phoneValue = String(value.number || "");
-        } else if (value.value || value.label) {
-          phoneValue = String(value.value || value.label || "");
-        } else {
-          phoneValue = String(value || "");
-        }
+    let phoneValue = value;
+    // Normalize if it's an object (from API response)
+    if (typeof value === "object" && value !== null) {
+      if (value.number !== undefined) {
+        phoneValue = String(value.number || "");
+      } else if (value.value !== undefined) {
+        phoneValue = String(value.value || "");
+      } else if (value.label !== undefined) {
+        phoneValue = String(value.label || "");
       } else {
         phoneValue = String(value || "");
       }
-      const digitsOnly = phoneValue.replace(/\D/g, "");
-      setFamily((prev) => ({ ...prev, [field]: digitsOnly }));
     } else {
-      setFamily((prev) => ({ ...prev, [field]: value }));
+      phoneValue = String(value || "");
     }
+    // Extract only digits
+    const digitsOnly = phoneValue.replace(/\D/g, "");
+    setFamily((prev) => ({ ...prev, [field]: digitsOnly }));
   };
 
   const handleSiblingChange = (index, field, value) => {
@@ -3164,8 +3220,7 @@ export function EditProfile({ onNavigateBack }) {
                   onChange={() =>
                     setFamily((prev) => ({ ...prev, familyType: type }))
                   }
-                  disabled={isBlank(family.familyType)}
-                  className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${
+                  className={`appearance-none w-4 h-4 rounded-full border transition duration-200 cursor-pointer ${
                     family.familyType === type
                       ? "bg-[#D4A052] border-[#D4A052]"
                       : "border-gray-300"
@@ -3203,14 +3258,13 @@ export function EditProfile({ onNavigateBack }) {
                     siblings: [],
                   }))
                 }
-                disabled={isBlank(family.hasSiblings)}
-                className={`appearance-none w-4 h-4 rounded-full border border-[#E4C48A] transition duration-200
+                className={`appearance-none w-4 h-4 rounded-full border transition duration-200 cursor-pointer
             ${
               family.hasSiblings === (option === "Yes")
                 ? "bg-[#D4A052] border-[#D4A052]"
                 : "border-[#E4C48A]"
             }
-            focus:outline-none`}
+            focus:outline-none focus:ring-1 focus:ring-[#E4C48A]`}
               />
               <span className="text-gray-700">{option}</span>
             </label>
