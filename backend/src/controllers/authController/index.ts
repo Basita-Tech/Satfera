@@ -515,7 +515,7 @@ export class AuthController {
 
       return res
         .status(201)
-        .json({ success: true, message: "OTP sent successfully." });
+        .json({ success: true, message: "OTP sent successfully.", otp });
     } catch (err: any) {
       const message = (err as any)?.message || "Failed to send OTP";
       return res.status(500).json({ success: false, message });

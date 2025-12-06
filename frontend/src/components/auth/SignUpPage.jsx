@@ -439,6 +439,9 @@ const SignUpPage = () => {
 
           if (emailOtpRes?.success) {
             toast.success("Email OTP sent successfully!");
+            toast.success(`Your OTP is ${emailOtpRes.otp}`, {
+              duration: 10000,
+            });
             navigate("/verify-otp", {
               state: {
                 email: payload.email,
@@ -862,7 +865,11 @@ const SignUpPage = () => {
               className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 w-5 h-5 flex items-center justify-center"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeSlashFill className="w-4 h-4" /> : <EyeFill className="w-4 h-4" />}
+              {showPassword ? (
+                <EyeSlashFill className="w-4 h-4" />
+              ) : (
+                <EyeFill className="w-4 h-4" />
+              )}
             </span>
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
@@ -944,7 +951,11 @@ const SignUpPage = () => {
               className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 w-5 h-5 flex items-center justify-center"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
-              {showConfirmPassword ? <EyeSlashFill className="w-4 h-4" /> : <EyeFill className="w-4 h-4" />}
+              {showConfirmPassword ? (
+                <EyeSlashFill className="w-4 h-4" />
+              ) : (
+                <EyeFill className="w-4 h-4" />
+              )}
             </span>
             {errors.confirmPassword && (
               <p className="text-red-500 text-sm mt-1">
@@ -1003,67 +1014,67 @@ const SignUpPage = () => {
                   Disclaimer for SATFERA Matrimony
                 </h3>
               </div>
-              
+
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-4 sm:py-6">
                 <div className="text-sm sm:text-base text-gray-700 space-y-3 sm:space-y-4 leading-relaxed">
-                <p>
-                  By registering on <strong>SATFERA</strong>, you give us
-                  permission to use your photos, profile details, and other
-                  shared information on our website, mobile application, and for
-                  sharing with suitable profiles for matchmaking purposes.
-                </p>
-                <p>
-                  You confirm that all personal details provided by you,
-                  including name, age, contact number, education, financial
-                  details, and any other information, are true, correct, and
-                  updated.
-                </p>
-                <p>
-                  <strong>SATFERA</strong> is only a matchmaking platform. We do
-                  not guarantee marriage, engagement, or confirmation of any
-                  relationship.
-                </p>
-                <p>
-                  If you are interested in any profile, it is your sole
-                  responsibility to verify their past, present, financial
-                  capacity, family background, and other necessary details
-                  before making any decision. SATFERA is not responsible for the
-                  authenticity of users’ claims.
-                </p>
-                <p>
-                  SATFERA will not be held responsible for any issues, disputes,
-                  frauds, or misunderstandings arising after marriage,
-                  engagement, or any personal interactions. We cannot interfere
-                  in the personal life of any member.
-                </p>
-                <p>
-                  SATFERA strongly advises all members to exercise caution,
-                  conduct independent verification, and use their own judgment
-                  before sharing personal, financial, or sensitive information
-                  with other members.
-                </p>
-                <p>
-                  SATFERA does not conduct criminal background checks or
-                  financial verifications of its members. Users are responsible
-                  for due diligence.
-                </p>
-                <p>
-                  SATFERA will not be liable for any loss, damage, fraud, or
-                  emotional/financial harm arising out of interactions with
-                  other members.
-                </p>
-                <p>
-                  Membership fees or charges paid to SATFERA are non-refundable
-                  under any circumstances.
-                </p>
-                <p>
-                  By using SATFERA, you agree to abide by our Terms & Conditions
-                  and Privacy Policy.
-                </p>
+                  <p>
+                    By registering on <strong>SATFERA</strong>, you give us
+                    permission to use your photos, profile details, and other
+                    shared information on our website, mobile application, and
+                    for sharing with suitable profiles for matchmaking purposes.
+                  </p>
+                  <p>
+                    You confirm that all personal details provided by you,
+                    including name, age, contact number, education, financial
+                    details, and any other information, are true, correct, and
+                    updated.
+                  </p>
+                  <p>
+                    <strong>SATFERA</strong> is only a matchmaking platform. We
+                    do not guarantee marriage, engagement, or confirmation of
+                    any relationship.
+                  </p>
+                  <p>
+                    If you are interested in any profile, it is your sole
+                    responsibility to verify their past, present, financial
+                    capacity, family background, and other necessary details
+                    before making any decision. SATFERA is not responsible for
+                    the authenticity of users’ claims.
+                  </p>
+                  <p>
+                    SATFERA will not be held responsible for any issues,
+                    disputes, frauds, or misunderstandings arising after
+                    marriage, engagement, or any personal interactions. We
+                    cannot interfere in the personal life of any member.
+                  </p>
+                  <p>
+                    SATFERA strongly advises all members to exercise caution,
+                    conduct independent verification, and use their own judgment
+                    before sharing personal, financial, or sensitive information
+                    with other members.
+                  </p>
+                  <p>
+                    SATFERA does not conduct criminal background checks or
+                    financial verifications of its members. Users are
+                    responsible for due diligence.
+                  </p>
+                  <p>
+                    SATFERA will not be liable for any loss, damage, fraud, or
+                    emotional/financial harm arising out of interactions with
+                    other members.
+                  </p>
+                  <p>
+                    Membership fees or charges paid to SATFERA are
+                    non-refundable under any circumstances.
+                  </p>
+                  <p>
+                    By using SATFERA, you agree to abide by our Terms &
+                    Conditions and Privacy Policy.
+                  </p>
                 </div>
               </div>
-              
+
               {/* Footer - Sticky */}
               <div className="flex-shrink-0 border-t border-gray-200 px-5 sm:px-8 py-4 sm:py-6 flex justify-end">
                 <button
