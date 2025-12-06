@@ -44,7 +44,6 @@ export function validateEnv(): EnvConfig {
     "TWILIO_VERIFY_SERVICE_SID",
     "TWILIO_PHONE_NUMBER",
     "REDIS_URL",
-    "FRONTEND_URLS",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "GOOGLE_REDIRECT_URI",
@@ -95,8 +94,16 @@ export function validateEnv(): EnvConfig {
         `FRONTEND_URLS must be a valid JSON array of URLs: ${(error as Error).message}`
       );
     }
-  } else {
-    frontendUrls = [];
+  }
+
+  if (frontendUrls.length === 0) {
+    if (process.env.NODE_ENV === "development") {
+      frontendUrls = ["http://localhost:5173", "http://localhost:3000"];
+    } else {
+      throw new Error(
+        "FRONTEND_URLS must be provided in production environment"
+      );
+    }
   }
 
   const mongoUri = process.env.MONGO_URI!;

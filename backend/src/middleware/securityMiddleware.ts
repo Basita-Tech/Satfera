@@ -3,6 +3,7 @@ import hpp from "hpp";
 import { xss } from "express-xss-sanitizer";
 import { logger } from "../lib/common/logger";
 import { getClientIp } from "../utils/ipUtils";
+import { env } from "../config/env";
 
 /**
  * Comprehensive Security Middleware
@@ -132,11 +133,7 @@ export const requestTimeoutProtection = (timeoutMs: number = 30000) => {
 
 export const corsOptions = {
   origin: (origin: string | undefined, callback: Function) => {
-    const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      "http://localhost:3000",
-      "http://localhost:5173"
-    ].filter(Boolean);
+    const allowedOrigins = [...env.FRONTEND_URLS].filter(Boolean);
 
     if (!origin) return callback(null, true);
 
