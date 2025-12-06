@@ -1,13 +1,12 @@
 import React, { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuthContextr } from "../context/AuthContext";
-import { getOnboardingStatus, getProfileReviewStatus } from "../../api/auth";
-import { Heart, Mail, Phone } from "lucide-react";
+import { Heart, Mail, Phone, Menu, X } from "lucide-react";
 import weddingCoupleImage from "../../assets/wedding.png";
 import couple1 from "../../assets/couple1.png";
 import couple2 from "../../assets/couple2.png";
 import couple3 from "../../assets/couple3.png";
-import useGoToAccount from "../hooks/useGoToAccount";
+import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
 
 const colors = {
   maroon: "#800000",
@@ -61,79 +60,136 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   const { isAuthenticated } = useContext(AuthContextr);
-  const { goToAccount, loading: accountLoading } = useGoToAccount();
   const [logoHighlighted, setLogoHighlighted] = useState(false);
-
-  const handleAccountClick = async () => {
-    await goToAccount();
-  };
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-beige">
       {/* HEADER */}
       <header className="sticky top-0 z-50 shadow bg-[#ebe9e6]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-wrap justify-between items-center">
-          <div className="flex items-center mb-2 md:mb-0 bg-[#ebe9e6]">
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 flex justify-between items-center py-3 min-h-20">
+          {/* Logo */}
+          <div className="flex-shrink-0">
             <img
               src="/logo.png"
               alt="Satfera Logo"
-              width={220}
-              height={220}
+              width={150}
+              height={150}
               onClick={() => setLogoHighlighted((v) => !v)}
-              className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_12px_#FFD700]" : ""} mr-3 object-contain rounded-lg transition duration-200 cursor-pointer`}
+              className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_12px_#FFD700]" : ""} object-contain rounded-lg transition duration-200 cursor-pointer h-12 sm:h-14 md:h-16 w-auto`}
             />
           </div>
-
-          {/* Navigation */}
-          <nav className="flex flex-wrap items-center gap-4 mb-3">
+          <div className="flex">
+          {/* Desktop Navigation (hidden on mobile) */}
+          <nav className="hidden md:flex items-center gap-6 mx-6">
             <a
               href="#hero"
-              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline"
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline text-sm lg:text-base"
             >
               Home
             </a>
             <a
               href="#membership"
-              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline"
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline text-sm lg:text-base"
             >
               Membership
             </a>
             <a
               href="#success-stories"
-              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline"
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline text-sm lg:text-base"
             >
               Success Stories
             </a>
             <a
               href="#contact"
-              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline"
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline text-sm lg:text-base"
             >
               Contact
             </a>
+          </nav>
+
+          {/* Right Side: Auth Buttons + Hamburger */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Auth Buttons (Always visible on both desktop and mobile) */}
             {isAuthenticated ? (
               <button
-                onClick={handleAccountClick}
-                disabled={accountLoading}
-                className="px-4 py-2 rounded-md font-semibold text-[#FFFFFF] bg-[#D4A052] hover:opacity-90 transition disabled:opacity-60"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate("/dashboard");
+                }}
+                className="px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-md font-semibold text-[#FFFFFF] bg-[#D4A052] hover:opacity-90 transition text-xs sm:text-sm lg:text-base whitespace-nowrap"
               >
-                {accountLoading ? "Opening…" : "My Account"}
+                My Account
               </button>
             ) : (
               <>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="px-4 py-2 rounded-md font-semibold text-[#D4A052] border border-[#D4A052] bg-transparent hover:bg-[#D4A052] hover:text-[#800000] transition"
+                <Link
+                  to="/login"
+                  className="px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-md font-semibold text-[#D4A052] border border-[#D4A052] bg-transparent hover:bg-[#D4A052] hover:text-[#800000] transition no-underline inline-block text-xs sm:text-sm lg:text-base whitespace-nowrap"
                 >
                   Login
-                </button>
-                <button
-                  onClick={() => navigate("/signup")}
-                  className="px-4 py-2 rounded-md font-semibold bg-[#D4A052] text-[#800000] hover:opacity-90 transition"
+                </Link>
+                <Link
+                  to="/signup"
+                  className="px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 rounded-md font-semibold bg-[#D4A052] text-[#800000] hover:opacity-90 transition no-underline inline-block text-xs sm:text-sm lg:text-base whitespace-nowrap"
                 >
                   Register
-                </button>
+                </Link>
               </>
             )}
+
+            {/* Mobile Menu Hamburger Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-1.5 sm:p-2 rounded-md text-[#800000] bg-transparent hover:bg-[#E4C48A] transition flex-shrink-0 ml-1 sm:ml-2"
+              aria-label="Toggle mobile menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              ) : (
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+              )}
+            </button>
+          </div>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Dropdown (Menu items only) */}
+        <div
+          className={`md:hidden bg-[#ebe9e6] border-t border-[#D4A052] transition-all duration-300 ease-in-out overflow-hidden ${
+            mobileMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <nav className="flex flex-col gap-0 px-4 py-2 w-full">
+            <a
+              href="#hero"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline py-2.5 px-2 border-b border-[#E4C48A] text-sm"
+            >
+              Home
+            </a>
+            <a
+              href="#membership"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline py-2.5 px-2 border-b border-[#E4C48A] text-sm"
+            >
+              Membership
+            </a>
+            <a
+              href="#success-stories"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline py-2.5 px-2 border-b border-[#E4C48A] text-sm"
+            >
+              Success Stories
+            </a>
+            <a
+              href="#contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[#800000] hover:text-[#D4A052] font-semibold transition no-underline py-2.5 px-2 text-sm"
+            >
+              Contact
+            </a>
           </nav>
         </div>
       </header>
@@ -320,12 +376,12 @@ export default function HomePage() {
         <h2 className="text-3xl font-bold text-[#800000] mb-6">
           Your Perfect Match Awaits
         </h2>
-        <button
-          onClick={() => navigate("/signup")}
-          className="bg-[#D4A052] px-8 py-3 rounded-lg font-semibold text-white hover:opacity-90 transition"
+        <Link
+          to="/signup"
+          className="bg-[#D4A052] px-8 py-3 rounded-lg font-semibold text-white hover:opacity-90 transition no-underline inline-block"
         >
           Register Free Now
-        </button>
+        </Link>
       </section>
 
       {/* FOOTER */}

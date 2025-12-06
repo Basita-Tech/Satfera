@@ -39,7 +39,7 @@ const SignUpPage = () => {
     dobMonth: "",
     dobYear: "",
     email: "",
-    countryCode: "+91",
+    countryCode: "",
     mobile: "",
     password: "",
     confirmPassword: "",
@@ -85,12 +85,8 @@ const SignUpPage = () => {
     }
   };
 
-  // Redirect authenticated users to dashboard
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, isLoading, navigate]);
+  // Allow authenticated users to access signup page
+  // (removed auto-redirect to dashboard)
 
   useEffect(() => {
     if (formData.gender) localStorage.setItem("gender", formData.gender);
@@ -240,8 +236,13 @@ const SignUpPage = () => {
           ...prev,
           mobile: "Enter valid mobile number",
         }));
-      else if (existingMobiles.includes(formData.countryCode + formattedValue))
+      else if (
+        formData.countryCode &&
+        existingMobiles.includes(formData.countryCode + formattedValue)
+      )
         setErrors((prev) => ({ ...prev, mobile: "Mobile already exists" }));
+      else if (!formData.countryCode)
+        setErrors((prev) => ({ ...prev, mobile: "Select country code" }));
       else setErrors((prev) => ({ ...prev, mobile: "" }));
     }
   };
@@ -377,13 +378,17 @@ const SignUpPage = () => {
     }
 
     if (useAsUsername.includes("mobile")) {
-      if (!mobile) newErrors.mobile = "Mobile required";
-      else if (countryCode === "+91" && !/^\d{10}$/.test(mobile))
+      if (!countryCode) {
+        newErrors.mobile = "Select country code";
+      } else if (!mobile) {
+        newErrors.mobile = "Mobile required";
+      } else if (countryCode === "+91" && !/^\d{10}$/.test(mobile)) {
         newErrors.mobile = "Enter valid 10-digit number";
-      else if (!/^\d{6,15}$/.test(mobile))
+      } else if (!/^\d{6,15}$/.test(mobile)) {
         newErrors.mobile = "Enter valid mobile number";
-      else if (existingMobiles.includes(countryCode + mobile))
+      } else if (existingMobiles.includes(countryCode + mobile)) {
         newErrors.mobile = "Mobile already exists";
+      }
     }
 
     const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$/;
@@ -539,7 +544,11 @@ const SignUpPage = () => {
           </h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 sm:space-y-6"
+          autoComplete="off"
+        >
           {/* Profile For */}
           <div className="mb-6">
             <label className="block font-semibold mb-2 text-sm text-gray-700">
@@ -554,7 +563,7 @@ const SignUpPage = () => {
                   className={`px-4 py-3 text-sm font-medium shadow-md border rounded-md transition-all duration-200 
                     ${
                       formData.profileFor === opt.value
-                        ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
+                        ? "bg-[#D4A052] text-[#800000] border-[#E4C48A] font-semibold"
                         : "bg-white text-gray-700 border-[#E4C48A] hover:bg-[#FFF9F2]"
                     }`}
                 >
@@ -584,7 +593,7 @@ const SignUpPage = () => {
                     className={`px-4 py-3 text-sm font-medium shadow-md border rounded-md transition-all duration-200
             ${
               formData.gender === g
-                ? "bg-[#EEEAE6] text-gray-800 border-[#D4A052]"
+                ? "bg-[#D4A052] text-[#800000] border-[#E4C48A] font-semibold"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
             }`}
                   >
@@ -613,6 +622,7 @@ const SignUpPage = () => {
                   placeholder="First Name *"
                   value={formData.firstName}
                   onChange={handleInputChange}
+                  autoComplete="off"
                   className={`w-full p-3 rounded-md border text-sm ${
                     errors.firstName ? "border-red-500" : "border-[#E4C48A]"
                   } 
@@ -633,6 +643,7 @@ const SignUpPage = () => {
                   placeholder="Middle Name"
                   value={formData.middleName}
                   onChange={handleInputChange}
+                  autoComplete="off"
                   className={`w-full p-3 rounded-md border text-sm ${
                     errors.middleName ? "border-red-500" : "border-[#E4C48A]"
                   } 
@@ -647,6 +658,7 @@ const SignUpPage = () => {
                   placeholder="Last Name *"
                   value={formData.lastName}
                   onChange={handleInputChange}
+                  autoComplete="off"
                   className={`w-full p-3 rounded-md border text-sm ${
                     errors.lastName ? "border-red-500" : "border-[#E4C48A]"
                   } 
@@ -673,6 +685,7 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobDay}
                 onChange={handleInputChange}
+                autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobDay ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -684,6 +697,7 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobMonth}
                 onChange={handleInputChange}
+                autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobMonth ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -695,6 +709,7 @@ const SignUpPage = () => {
                 maxLength={4}
                 value={formData.dobYear}
                 onChange={handleInputChange}
+                autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobYear ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -721,6 +736,7 @@ const SignUpPage = () => {
                 handleInputChange(e);
                 setErrors((prev) => ({ ...prev, email: "" }));
               }}
+              autoComplete="off"
               className={`w-full p-3 rounded-md border text-sm ${
                 errors.email ? "border-red-500" : "border-[#E4C48A]"
               } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -767,6 +783,7 @@ const SignUpPage = () => {
                   name="countryCode"
                   value={formData.countryCode}
                   onChange={handleInputChange}
+                  autoComplete="off"
                   className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border text-sm ${
                     errors.mobile ? "border-red-500" : "border-gray-300"
                   } focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 text-gray-700 placeholder-gray-400`}
@@ -779,7 +796,9 @@ const SignUpPage = () => {
                     WebkitTapHighlightColor: "transparent",
                   }}
                 >
-                  India first
+                  <option value="" disabled>
+                    Select code
+                  </option>
                   <option value="+91">+91 India</option>
                   {countryCodes
                     .filter((c) => c.code !== "+91")
@@ -817,6 +836,7 @@ const SignUpPage = () => {
                   handleInputChange(e);
                   setErrors((prev) => ({ ...prev, mobile: "" }));
                 }}
+                autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.mobile ? "border-red-500" : "border-[#E4C48A]"
                 } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
@@ -856,6 +876,7 @@ const SignUpPage = () => {
               placeholder="Password"
               value={formData.password}
               onChange={handleInputChange}
+              autoComplete="new-password"
               className={`w-full p-3 rounded-md border text-sm ${
                 errors.password ? "border-red-500" : "border-[#E4C48A]"
               } 
@@ -942,6 +963,7 @@ const SignUpPage = () => {
               placeholder="Confirm Password"
               value={formData.confirmPassword}
               onChange={handleInputChange}
+              autoComplete="new-password"
               className={`w-full p-3 rounded-md border text-sm ${
                 errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"
               } 
@@ -976,12 +998,13 @@ const SignUpPage = () => {
               }}
               className="w-4 h-4 accent-[#D4AF37] mt-1 flex-shrink-0"
             />
-            <label htmlFor="terms" className="text-xs sm:text-sm text-gray-700">
+            <label className="text-xs sm:text-sm text-gray-700">
               I agree to the{" "}
               <span
                 className="text-blue-600 underline hover:text-blue-700 cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   setShowDisclaimer(true);
                 }}
               >
@@ -1007,8 +1030,8 @@ const SignUpPage = () => {
         {/* Disclaimer Modal for Terms & Conditions */}
         {showDisclaimer && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-end sm:items-center z-50 p-0 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full h-[90vh] sm:h-auto flex flex-col sm:max-h-[85vh]">
-              {/* Header - Sticky */}
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+              {/* Header - Fixed */}
               <div className="flex-shrink-0 border-b border-gray-200 px-5 sm:px-8 py-4 sm:py-6">
                 <h3 className="text-lg sm:text-xl font-bold text-gray-800">
                   Disclaimer for SATFERA Matrimony
@@ -1016,7 +1039,7 @@ const SignUpPage = () => {
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-4 sm:py-6">
+              <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-4 sm:py-6" style={{ maxHeight: "calc(90vh - 180px)" }}>
                 <div className="text-sm sm:text-base text-gray-700 space-y-3 sm:space-y-4 leading-relaxed">
                   <p>
                     By registering on <strong>SATFERA</strong>, you give us
@@ -1075,10 +1098,10 @@ const SignUpPage = () => {
                 </div>
               </div>
 
-              {/* Footer - Sticky */}
-              <div className="flex-shrink-0 border-t border-gray-200 px-5 sm:px-8 py-4 sm:py-6 flex justify-end">
+              {/* Footer - Fixed at Bottom */}
+              <div className="flex-shrink-0 border-t border-gray-200 px-5 sm:px-8 py-4 sm:py-6 flex justify-end bg-white">
                 <button
-                  className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-[#D4A052] hover:bg-[#C8A227] text-white text-sm sm:text-base font-semibold transition"
+                  className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-[#D4A052] hover:bg-[#C8A227] text-white text-sm sm:text-base font-semibold transition shadow-md"
                   onClick={() => setShowDisclaimer(false)}
                 >
                   Close

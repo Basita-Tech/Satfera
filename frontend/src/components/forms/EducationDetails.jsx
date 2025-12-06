@@ -10,7 +10,10 @@ import {
 import toast from "react-hot-toast";
 
 const EducationDetails = ({ onNext, onPrevious }) => {
-  const countries = useMemo(() => getNames(), []);
+  const sortAlpha = (list) =>
+    [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+  const countries = useMemo(() => sortAlpha(getNames()), []);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({

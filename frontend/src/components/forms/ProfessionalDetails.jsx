@@ -365,10 +365,11 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
     []
   );
 
-  const jobOptions = useMemo(
-    () => jobTitles.map((job) => ({ label: job, value: job })),
-    [jobTitles]
-  );
+  const jobOptions = useMemo(() => {
+    const unique = Array.from(new Set(jobTitles));
+    unique.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    return unique.map((job) => ({ label: job, value: job }));
+  }, [jobTitles]);
 
   const employmentOptions = [
     "Private Sector",
@@ -569,10 +570,14 @@ const ProfessionDetails = ({ onNext, onPrevious }) => {
           return val;
         };
 
+        const rawEmployment = data.EmploymentStatus;
+        const normalizedEmployment = rawEmployment
+          ? mapFromBackendEmployment(String(rawEmployment).toLowerCase())
+          : "";
+
         setFormData((prev) => ({
           ...prev,
-          employmentStatus:
-            mapFromBackendEmployment(data.EmploymentStatus.toLowerCase()) || "",
+          employmentStatus: normalizedEmployment,
           occupation: data.Occupation
             ? { label: data.Occupation, value: data.Occupation }
             : null,

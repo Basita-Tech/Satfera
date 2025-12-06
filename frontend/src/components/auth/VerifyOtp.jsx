@@ -16,6 +16,7 @@ const VerifyOTP = () => {
   const [emailOtp, setEmailOtp] = useState(Array(6).fill(""));
   const [emailCountdown, setEmailCountdown] = useState(OTP_VALID_TIME);
   const [resendAttemptsEmail, setResendAttemptsEmail] = useState(0);
+  const [resendCooldown, setResendCooldown] = useState(RESEND_AFTER);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +46,16 @@ const VerifyOTP = () => {
     }
   }, [emailCountdown, isEmailVerified, isLocked]);
 
+  useEffect(() => {
+    if (resendCooldown > 0 && !isEmailVerified && !isLocked) {
+      const t = setInterval(
+        () => setResendCooldown((prev) => Math.max(0, prev - 1)),
+        1000
+      );
+      return () => clearInterval(t);
+    }
+  }, [resendCooldown, isEmailVerified, isLocked]);
+
   const handleOtpChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
     if (isVerifying) return;
@@ -65,6 +76,8 @@ const VerifyOTP = () => {
         setError("Email OTP locked for 24 hours");
         return;
       }
+
+      if (resendCooldown > 0) return;
 
       if (isVerifying) {
         return;
@@ -90,6 +103,7 @@ const VerifyOTP = () => {
 
       if (isSuccess) {
         setEmailCountdown(OTP_VALID_TIME);
+        setResendCooldown(RESEND_AFTER);
         setResendAttemptsEmail((prev) => prev + 1);
         setEmailOtp(Array(6).fill(""));
         setSuccessMessage(
@@ -292,30 +306,46 @@ const VerifyOTP = () => {
                       Email OTP expired
                     </span>
                     {resendAttemptsEmail < MAX_RESEND && (
-                      <button
-                        type="button"
-                        className="text-sm text-[#D4A052] underline"
-                        onClick={handleResend}
-                        disabled={isVerifying}
-                      >
-                        Resend Email OTP
-                      </button>
+                      resendCooldown > 0 ? (
+                        <span className="text-xs text-[#8A6F2A]">
+                          You can resend in {formatTime(resendCooldown)}
+                        </span>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center px-4 py-2 rounded-full border text-sm font-semibold transition bg-[#D4A052] text-white border-[#D4A052] hover:bg-[#E4C48A]"
+                            onClick={handleResend}
+                            disabled={isVerifying}
+                          >
+                            Resend Email OTP
+                          </button>
+                        </div>
+                      )
                     )}
                   </>
                 ) : (
                   <>
-                    {(emailCountdown <= OTP_VALID_TIME - RESEND_AFTER ||
-                      emailCountdown <= 0) &&
-                      resendAttemptsEmail < MAX_RESEND && (
-                        <button
-                          type="button"
-                          className="text-sm text-[#D4A052] underline"
-                          onClick={handleResend}
-                          disabled={isVerifying}
-                        >
-                          Resend Email OTP
-                        </button>
-                      )}
+                    {resendAttemptsEmail < MAX_RESEND && (
+                      resendCooldown > 0 ? (
+                        <span className="text-xs text-[#8A6F2A]">
+                          You can resend in {formatTime(resendCooldown)}
+                        </span>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center px-4 py-2 rounded-full border text-sm font-semibold transition bg-[#D4A052] text-white border-[#D4A052] hover:bg-[#E4C48A]"
+                            onClick={handleResend}
+                            disabled={
+                              isVerifying || resendCooldown > 0 || isLocked
+                            }
+                          >
+                            Resend Email OTP
+                          </button>
+                        </div>
+                      )
+                    )}
                     <span className="ml-2 text-gray-500">
                       Valid for {formatTime(emailCountdown)}
                     </span>

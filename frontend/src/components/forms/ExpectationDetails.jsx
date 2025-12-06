@@ -9,6 +9,27 @@ import Select from "react-select";
 import CustomSelect from "../ui/CustomSelect";
 import toast from "react-hot-toast";
 
+const sortAlpha = (list) =>
+  [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+const sortAlphaWithPinned = (list, pinned = []) => {
+  const pinnedSet = new Set(pinned);
+  const pinnedItems = list.filter((item) => pinnedSet.has(item));
+  const rest = list.filter((item) => !pinnedSet.has(item));
+  return [...pinnedItems, ...sortAlpha(rest)];
+};
+
+const sortOptionsByLabel = (options, pinnedValues = []) => {
+  const pinnedSet = new Set(pinnedValues);
+  const pinned = options.filter((opt) => pinnedSet.has(opt.value));
+  const rest = options
+    .filter((opt) => !pinnedSet.has(opt.value))
+    .sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+    );
+  return [...pinned, ...rest];
+};
+
 const ExpectationDetails = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
     partnerLocation: "",
@@ -26,41 +47,53 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   const [errors, setErrors] = useState({});
   const [hasExistingData, setHasExistingData] = useState(false);
 
-  const maritalStatuses = [
-    "Any",
-    "Never Married",
-    "Divorced",
-    "Widowed",
-    "Separated",
-    "Awaiting Divorce",
-  ];
+  const maritalStatuses = sortAlphaWithPinned(
+    [
+      "Any",
+      "Never Married",
+      "Divorced",
+      "Widowed",
+      "Separated",
+      "Awaiting Divorce",
+    ],
+    ["Any"]
+  );
 
-  const professionOptions = [
-    "Any",
-    "Private Sector",
-    "Government",
-    "Business",
-    "Self-Employed",
-    "Not Working",
-    "Student",
-  ];
+  const professionOptions = sortAlphaWithPinned(
+    [
+      "Any",
+      "Private Sector",
+      "Government",
+      "Business",
+      "Self-Employed",
+      "Not Working",
+      "Student",
+    ],
+    ["Any"]
+  );
 
-  const castOptions = [
-    "Patel-Desai",
-    "Patel-Kadva",
-    "Patel-Leva",
-    "Patel",
-    "Brahmin-Audichya",
-    "Brahmin",
-    "Jain-Digambar",
-    "Jain-Swetamber",
-    "Jain-Vanta",
-    "Vaishnav-Vania",
-    "No preference",
-  ];
+  const castOptions = sortAlphaWithPinned(
+    [
+      "Patel-Desai",
+      "Patel-Kadva",
+      "Patel-Leva",
+      "Patel",
+      "Brahmin-Audichya",
+      "Brahmin",
+      "Jain-Digambar",
+      "Jain-Swetamber",
+      "Jain-Vanta",
+      "Vaishnav-Vania",
+      "No preference",
+    ],
+    ["No preference"]
+  );
 
-  const allCountries = [...getNames()];
-  const abroadOptions = ["No preference", ...allCountries];
+  const allCountries = sortAlpha([...getNames()]);
+  const abroadOptions = sortAlphaWithPinned(
+    ["No preference", ...allCountries],
+    ["No preference"]
+  );
 
   const indianStates = [
     { code: "AP", name: "Andhra Pradesh" },
@@ -92,7 +125,9 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     { code: "UP", name: "Uttar Pradesh" },
     { code: "UT", name: "Uttarakhand" },
     { code: "WB", name: "West Bengal" },
-  ];
+  ].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+  );
 
   const inputClass =
     "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
@@ -103,32 +138,40 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   );
 
   const partnerEducationOptions = useMemo(
-    () => [
-      { value: "Any", label: "Any" },
-      { value: "High School", label: "High School" },
-      { value: "Undergraduate", label: "Undergraduate" },
-      { value: "Associates Degree", label: "Associates Degree" },
-      { value: "Bachelors", label: "Bachelors" },
-      { value: "Honours Degree", label: "Honours Degree" },
-      { value: "Masters", label: "Masters" },
-      { value: "Doctorate", label: "Doctorate" },
-      { value: "Diploma", label: "Diploma" },
-      { value: "Trade School", label: "Trade School" },
-      { value: "Less Than High School", label: "Less Than High School" },
-    ],
+    () =>
+      sortOptionsByLabel(
+        [
+          { value: "Any", label: "Any" },
+          { value: "High School", label: "High School" },
+          { value: "Undergraduate", label: "Undergraduate" },
+          { value: "Associates Degree", label: "Associates Degree" },
+          { value: "Bachelors", label: "Bachelors" },
+          { value: "Honours Degree", label: "Honours Degree" },
+          { value: "Masters", label: "Masters" },
+          { value: "Doctorate", label: "Doctorate" },
+          { value: "Diploma", label: "Diploma" },
+          { value: "Trade School", label: "Trade School" },
+          { value: "Less Than High School", label: "Less Than High School" },
+        ],
+        ["Any"]
+      ),
     []
   );
 
   const dietOptions = useMemo(
-    () => [
-      { value: "Any", label: "Any" },
-      { value: "Vegetarian", label: "Vegetarian" },
-      { value: "Non-Vegetarian", label: "Non-Vegetarian" },
-      { value: "Eggetarian", label: "Eggetarian" },
-      { value: "Jain", label: "Jain" },
-      { value: "Swaminarayan", label: "Swaminarayan" },
-      { value: "Veg & Non-Veg", label: "Veg & Non-veg" },
-    ],
+    () =>
+      sortOptionsByLabel(
+        [
+          { value: "Any", label: "Any" },
+          { value: "Vegetarian", label: "Vegetarian" },
+          { value: "Non-Vegetarian", label: "Non-Vegetarian" },
+          { value: "Eggetarian", label: "Eggetarian" },
+          { value: "Jain", label: "Jain" },
+          { value: "Swaminarayan", label: "Swaminarayan" },
+          { value: "Veg & Non-Veg", label: "Veg & Non-veg" },
+        ],
+        ["Any"]
+      ),
     []
   );
 

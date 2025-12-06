@@ -37,15 +37,19 @@ console.log('userData', userData)
       >
         {/* Logo */}
         <div className="flex items-center justify-center mb-6">
-          <span className="text-2xl md:text-3xl font-bold text-gray-800">
-            Satfera
-          </span>
+          <img
+            src="/logo.png"
+            alt="Satfera"
+            className="h-12 md:h-14 w-auto drop-shadow-sm"
+            style={{ filter: "brightness(1) saturate(1)" }}
+            loading="lazy"
+          />
         </div>
 
         {/* Success Icon */}
         <div className="mb-6">
-          <div className="bg-green-100 inline-flex p-4 rounded-full">
-            <i className="bi bi-check-circle-fill text-green-500 text-4xl"></i>
+          <div className="inline-flex p-4 rounded-full" style={{ backgroundColor: "#FFF3D6" }}>
+            <i className="bi bi-check-circle-fill text-4xl" style={{ color: "#D4A052" }}></i>
           </div>
         </div>
 

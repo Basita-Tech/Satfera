@@ -27,14 +27,17 @@ import {
   INDIAN_CITIES,
 } from "@/lib/constant";
 
-const COUNTRIES = getNames();
+const sortAlpha = (list) =>
+  [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+const COUNTRIES = sortAlpha(getNames());
 
 const COUNTRIES_WITH_CODES = COUNTRIES.map((name) => ({
   name,
   code: getCode(name),
 }));
 
-const ZODIAC_SIGNS = [
+const ZODIAC_SIGNS = sortAlpha([
   "Aries (Mesh)",
   "Taurus (Vrishabh)",
   "Gemini (Mithun)",
@@ -47,17 +50,27 @@ const ZODIAC_SIGNS = [
   "Capricorn (Makar)",
   "Aquarius (Kumbh)",
   "Pisces (Meen)",
-];
+]);
 
-const RELIGIONS = ["Hindu", "Jain"];
+const RELIGIONS = sortAlpha(["Hindu", "Jain"]);
 
-const LEGAL_STATUSES = [
+const LEGAL_STATUSES = sortAlpha([
   "Never Married",
   "Divorced",
   "Widowed",
   "Separated",
   "Awaiting Divorce",
+]);
+
+const SORTED_CASTES = sortAlpha(allCastes);
+const SORTED_NATIONALITIES = sortAlpha(nationalities);
+const SORTED_VISA_CATEGORIES = sortAlpha(visaCategories);
+const SORTED_DOSH_OPTIONS = [
+  "No Dosh",
+  ...sortAlpha(doshOptions.filter((d) => d !== "No Dosh")),
 ];
+const SORTED_INDIAN_STATES = sortAlpha(INDIAN_STATES);
+const SORTED_INDIAN_CITIES = sortAlpha(INDIAN_CITIES);
 
 const HOURS = Array.from({ length: 24 }, (_, i) =>
   i.toString().padStart(2, "0")
@@ -166,14 +179,40 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     }
   }, []);
 
+  const handleHourBlur = useCallback(() => {
+    if (formData.birthHour === "") return;
+    let num = Number(formData.birthHour);
+    if (Number.isNaN(num)) {
+      setFormData((prev) => ({ ...prev, birthHour: "" }));
+      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00–23" }));
+      return;
+    }
+    num = Math.min(Math.max(num, 0), 23);
+    const padded = num.toString().padStart(2, "0");
+    setFormData((prev) => ({ ...prev, birthHour: padded }));
+  }, [formData.birthHour]);
+
+  const handleMinuteBlur = useCallback(() => {
+    if (formData.birthMinute === "") return;
+    let num = Number(formData.birthMinute);
+    if (Number.isNaN(num)) {
+      setFormData((prev) => ({ ...prev, birthMinute: "" }));
+      setErrors((prev) => ({ ...prev, birthMinute: "Minute must be between 00–59" }));
+      return;
+    }
+    num = Math.min(Math.max(num, 0), 59);
+    const padded = num.toString().padStart(2, "0");
+    setFormData((prev) => ({ ...prev, birthMinute: padded }));
+  }, [formData.birthMinute]);
+
   const castOptions = useMemo(() => {
     if (formData.religion === "Hindu") {
-      return allCastes.filter((c) => !c.toLowerCase().includes("jain"));
+      return SORTED_CASTES.filter((c) => !c.toLowerCase().includes("jain"));
     }
     if (formData.religion?.toLowerCase().includes("jain")) {
       return ["Jain - Digambar", "Jain - Shwetambar"];
     }
-    return allCastes;
+    return SORTED_CASTES;
   }, [formData.religion]);
 
   useEffect(() => {
@@ -556,8 +595,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
     const timeOfBirth =
       formData.birthHour && formData.birthMinute
-        ? `${formData.birthHour}:${formData.birthMinute}`
-        : null;
+        ? `${formData.birthHour.toString().padStart(2, "0")}:${formData.birthMinute
+            .toString()
+            .padStart(2, "0")}`
+        : "";
 
     const payload = {
       timeOfBirth: timeOfBirth,
@@ -739,9 +780,9 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           </div>
 
           <div>
-            <label className="text-sm font-medium">
-              Time of Birth (HH : MM)
-            </label>
+              <label className="text-sm font-medium">
+                Time of Birth (24-hour, HH : MM)
+              </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
               {/* Hour Input */}
@@ -750,7 +791,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 name="birthHour"
                 value={formData.birthHour}
                 onChange={handleHourInput}
-                placeholder="HH"
+                onBlur={handleHourBlur}
+                placeholder="HH (00-23)"
                 maxLength={2}
                 className={getInputClass("birthHour")}
               />
@@ -761,7 +803,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 name="birthMinute"
                 value={formData.birthMinute}
                 onChange={handleMinuteInput}
-                placeholder="MM"
+                onBlur={handleMinuteBlur}
+                placeholder="MM (00-59)"
                 maxLength={2}
                 ref={minuteRef}
                 className={getInputClass("birthMinute")}
@@ -789,7 +832,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   name="birthCity"
                   value={formData.birthCity}
                   onChange={handleChange}
-                  options={INDIAN_CITIES}
+                  options={SORTED_INDIAN_CITIES}
                   placeholder="Select or type city"
                   allowCustom
                   className={getInputClass("birthCity")}
@@ -809,7 +852,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   name="birthState"
                   value={formData.birthState}
                   onChange={handleChange}
-                  options={INDIAN_STATES}
+                  options={SORTED_INDIAN_STATES}
                   placeholder="Select or type state"
                   allowCustom
                   className={getInputClass("birthState")}
@@ -925,7 +968,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     return updated;
                   });
                 }}
-                options={doshOptions}
+                options={SORTED_DOSH_OPTIONS}
                 placeholder="Select Type of Dosh"
                 className={getInputClass("dosh")}
               />
@@ -1089,7 +1132,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      options={INDIAN_CITIES}
+                      options={SORTED_INDIAN_CITIES}
                       placeholder="Select or type city"
                       allowCustom
                       className={getInputClass("city")}
@@ -1106,7 +1149,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                       name="state"
                       value={formData.state}
                       onChange={handleChange}
-                      options={INDIAN_STATES}
+                      options={SORTED_INDIAN_STATES}
                       placeholder="Select or type state"
                       allowCustom
                       className={getInputClass("state")}
@@ -1350,7 +1393,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               name="nationality"
               value={formData.nationality}
               onChange={handleChange}
-              options={nationalities}
+              options={SORTED_NATIONALITIES}
               placeholder="Select Nationality"
               className={getInputClass("nationality")}
             />
@@ -1409,7 +1452,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     setFormData((prev) => ({
                       ...prev,
                       residingInIndia: "no",
-                      residingCountry: "no",
+                      residingCountry: "",
                       visaCategory: "",
                     }));
 
@@ -1498,7 +1541,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                         setErrors({ ...errors, visaCategory: "" });
                       }
                     }}
-                    options={visaCategories}
+                    options={SORTED_VISA_CATEGORIES}
                     placeholder="Select Visa Category"
                     className={`capitalize w-full p-3 rounded-md border ${
                       errors.visaCategory
