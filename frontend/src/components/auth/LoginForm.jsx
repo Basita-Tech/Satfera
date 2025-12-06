@@ -116,6 +116,11 @@ const LoginForm = () => {
     try {
       const resp = apiResponse || {};
 
+      // Update auth context with user data
+      if (resp.user) {
+        ctxLogin(resp);
+      }
+
       if (resp.redirectTo) {
         navigate(resp.redirectTo);
         return;
