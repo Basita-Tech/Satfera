@@ -5,10 +5,20 @@ import {
 } from "../../utils/secureStorage";
 import axios from "../../api/http";
 import { logoutUser } from "../../api/auth";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export const AuthContextr = createContext();
+
+const publicRoutes = [
+  "/login",
+  "/signup",
+  "/verify-otp",
+  "/forgot-password",
+  "/forgot-username",
+  "/",
+];
+
+const isPublicRoute = publicRoutes.includes(location.pathname);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -16,13 +26,12 @@ export const AuthProvider = ({ children }) => {
 
   // Session expiration handler
   const handleSessionExpired = useCallback(() => {
-    console.log('[Auth] Frontend session expired after inactivity');
     setUser(null);
     clearClientAuthData();
     toast.error("Your session has expired. Please log in again.");
 
     // Redirect to login if not already there
-    if (window.location.pathname !== "/login") {
+    if (window.location.pathname !== "/login" && !isPublicRoute) {
       window.location.href = "/login";
     }
   }, []);

@@ -20,7 +20,6 @@ const AuthMonitor = () => {
     "/forgot-password",
     "/forgot-username",
     "/",
-    "/success",
   ];
 
   const isPublicRoute = publicRoutes.includes(location.pathname);

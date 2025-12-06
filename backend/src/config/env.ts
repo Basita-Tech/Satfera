@@ -18,7 +18,7 @@ interface EnvConfig {
   TWILIO_VERIFY_SERVICE_SID: string;
   TWILIO_PHONE_NUMBER: string;
   REDIS_URL: string;
-  FRONTEND_URL: string;
+  FRONTEND_URLS: string[];
   SUPPORT_CONTACT: string | undefined;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
@@ -76,11 +76,27 @@ export function validateEnv(): EnvConfig {
     );
   }
 
-  const frontendUrl = process.env.FRONTEND_URL!;
-  try {
-    new URL(frontendUrl);
-  } catch (error) {
-    throw new Error(`FRONTEND_URL is not a valid URL: ${frontendUrl}`);
+  let frontendUrls: string[] = [];
+  if (process.env.FRONTEND_URLS) {
+    try {
+      frontendUrls = JSON.parse(process.env.FRONTEND_URLS);
+      if (!Array.isArray(frontendUrls)) {
+        throw new Error("FRONTEND_URLS must be a JSON array");
+      }
+      for (const url of frontendUrls) {
+        try {
+          new URL(url);
+        } catch (error) {
+          throw new Error(`Invalid URL in FRONTEND_URLS: ${url}`);
+        }
+      }
+    } catch (error) {
+      throw new Error(
+        `FRONTEND_URLS must be a valid JSON array of URLs: ${(error as Error).message}`
+      );
+    }
+  } else {
+    frontendUrls = [];
   }
 
   const mongoUri = process.env.MONGO_URI!;
@@ -112,7 +128,7 @@ export function validateEnv(): EnvConfig {
     TWILIO_VERIFY_SERVICE_SID: process.env.TWILIO_VERIFY_SERVICE_SID!,
     TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER!,
     REDIS_URL: redisUrl,
-    FRONTEND_URL: frontendUrl,
+    FRONTEND_URLS: frontendUrls,
     SUPPORT_CONTACT: process.env.SUPPORT_CONTACT,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
