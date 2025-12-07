@@ -8,6 +8,8 @@ import {
   doshOptions,
   weightOptions,
   heightOptions,
+  INDIAN_CITIES,
+  INDIAN_STATES,
 } from "@/lib/constant";
 import { TabsComponent } from "../../TabsComponent";
 import { Label } from "../../ui/label";
@@ -485,37 +487,6 @@ const EXPECT_DIET_OPTIONS = [
   "Vegetarian",
 ];
 const AGE_OPTIONS = Array.from({ length: 23 }, (_, i) => 18 + i); // 18..40
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jammu & Kashmir",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-];
 const ALL_COUNTRIES = getNames();
 const ABROAD_OPTIONS = ["No preference", ...ALL_COUNTRIES];
 
@@ -2483,8 +2454,10 @@ export function EditProfile({ onNavigateBack }) {
           <CustomSelect
             name="height"
             value={personal.height || ""}
-            onChange={handleInputChange}
-            options={heightOptions}
+            onChange={(e) =>
+              setPersonal((p) => ({ ...p, height: e.target.value }))
+            }
+            options={[...heightOptions].sort()}
             placeholder="Select Height"
             className=""
             disabled={false}
@@ -2495,8 +2468,10 @@ export function EditProfile({ onNavigateBack }) {
           <CustomSelect
             name="weight"
             value={personal.weight || ""}
-            onChange={handleInputChange}
-            options={weightOptions}
+            onChange={(e) =>
+              setPersonal((p) => ({ ...p, weight: e.target.value }))
+            }
+            options={[...weightOptions].sort((a, b) => parseFloat(a) - parseFloat(b))}
             placeholder="Select Weight"
             className=""
             disabled={false}
@@ -2525,7 +2500,7 @@ export function EditProfile({ onNavigateBack }) {
               "Scorpio (Vrischik)",
               "Taurus (Vrishabh)",
               "Virgo (Kanya)",
-            ]}
+            ].sort()}
             placeholder="Select Rashi"
             className=""
             disabled={false}
@@ -2537,7 +2512,7 @@ export function EditProfile({ onNavigateBack }) {
             name="dosh"
             value={personal.dosh || ""}
             onChange={handleInputChange}
-            options={doshOptions}
+            options={[...doshOptions].sort()}
             placeholder="Select Dosh"
             className=""
             disabled={false}
@@ -2633,22 +2608,30 @@ export function EditProfile({ onNavigateBack }) {
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">City *</Label>
-            <EditableInput
-              placeholder="Enter city"
+            <CustomSelect
+              options={INDIAN_CITIES.sort().map(city => city.charAt(0).toUpperCase() + city.slice(1))}
               value={personal.city || ""}
-              onChange={handleInputChange}
-              className="rounded-md"
+              onChange={(e) =>
+                setPersonal((p) => ({ ...p, city: e.target.value }))
+              }
+              placeholder="Select city"
               name="city"
+              allowCustom={true}
+              preserveCase={true}
             />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">State *</Label>
-            <EditableInput
-              placeholder="Enter state"
+            <CustomSelect
+              options={INDIAN_STATES.sort().map(state => state.charAt(0).toUpperCase() + state.slice(1))}
               value={personal.state || ""}
-              onChange={handleInputChange}
-              className="rounded-md"
+              onChange={(e) =>
+                setPersonal((p) => ({ ...p, state: e.target.value }))
+              }
+              placeholder="Select state"
               name="state"
+              allowCustom={true}
+              preserveCase={true}
             />
           </div>
           <div className="space-y-2">
@@ -2711,7 +2694,7 @@ export function EditProfile({ onNavigateBack }) {
             name="nationality"
             value={personal.nationality || ""}
             onChange={handleInputChange}
-            options={nationalities}
+            options={[...nationalities].sort()}
             placeholder="Select Nationality"
             className=""
             disabled={false}
@@ -2776,7 +2759,7 @@ export function EditProfile({ onNavigateBack }) {
               name="residingCountry"
               value={personal.residingCountry || ""}
               onChange={handleInputChange}
-              options={nationalities}
+              options={[...nationalities].sort()}
               placeholder="Select Country"
               className=""
               disabled={false}
@@ -2788,7 +2771,7 @@ export function EditProfile({ onNavigateBack }) {
               name="visaCategory"
               value={personal.visaCategory || ""}
               onChange={handleInputChange}
-              options={visaCategories}
+              options={[...visaCategories].sort()}
               placeholder="Select Visa Category"
               className=""
               disabled={false}
@@ -3512,7 +3495,7 @@ export function EditProfile({ onNavigateBack }) {
           name="countryOfEducation"
           value={education.countryOfEducation || ""}
           onChange={(e) => handleEducationChange("countryOfEducation")(e)}
-          options={[...countries, "Other"]}
+          options={[...countries].sort().concat("Other")}
           placeholder="Select your country"
           className=""
         />
@@ -3543,7 +3526,7 @@ export function EditProfile({ onNavigateBack }) {
             name="employmentStatus"
             value={profession.employmentStatus || ""}
             onChange={(e) => handleProfessionChange("employmentStatus")(e)}
-            options={EMPLOYMENT_OPTIONS}
+            options={[...EMPLOYMENT_OPTIONS].sort()}
             placeholder="Select Employment Status"
             className=""
           />
@@ -3568,7 +3551,7 @@ export function EditProfile({ onNavigateBack }) {
                   occupation: val ? val.value : "",
                 }))
               }
-              options={JOB_TITLES.map((t) => ({ label: t, value: t }))}
+              options={[...JOB_TITLES].sort().map((t) => ({ label: t, value: t }))}
               classNamePrefix="react-select"
               maxMenuHeight={192}
               styles={{

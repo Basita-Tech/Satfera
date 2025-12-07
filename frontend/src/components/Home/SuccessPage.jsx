@@ -40,7 +40,7 @@ console.log('userData', userData)
           <img
             src="/logo.png"
             alt="Satfera"
-            className="h-12 md:h-14 w-auto drop-shadow-sm"
+            className="h-20 md:h-24 w-auto drop-shadow-sm"
             style={{ filter: "brightness(1) saturate(1)" }}
             loading="lazy"
           />

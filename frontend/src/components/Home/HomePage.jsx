@@ -107,14 +107,14 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 shadow bg-[#ebe9e6]">
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 flex justify-between items-center py-3 min-h-20">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex items-center">
             <img
               src="/logo.png"
               alt="Satfera Logo"
               width={150}
               height={150}
               onClick={() => setLogoHighlighted((v) => !v)}
-              className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_12px_#FFD700]" : ""} object-contain rounded-lg transition duration-200 cursor-pointer h-12 sm:h-14 md:h-16 w-auto`}
+              className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_12px_#FFD700]" : ""} object-contain rounded-lg transition duration-200 cursor-pointer h-12 sm:h-14 md:h-16 w-auto sm:scale-100 md:scale-125 origin-left`}
             />
           </div>
           <div className="flex">
@@ -241,7 +241,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/50 to-black/60"></div>
 
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4">
             Find Your Perfect Life Partner
           </h1>
 

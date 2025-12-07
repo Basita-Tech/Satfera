@@ -9,6 +9,7 @@ export default function CustomSelect({
   disabled = false,
   name,
   allowCustom = false,
+  preserveCase = false,
 }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
@@ -86,7 +87,10 @@ export default function CustomSelect({
         e.preventDefault();
         const customIndex = filteredOptions.length;
         if (customAvailable && (highlightIndex === customIndex || filteredOptions.length === 0 || highlightIndex < 0)) {
-          const sel = searchTerm.trim();
+          let sel = searchTerm.trim();
+          if (preserveCase) {
+            sel = sel.charAt(0).toUpperCase() + sel.slice(1);
+          }
           onChange && onChange({ target: { name, value: sel } });
           setOpen(false);
           setSearchTerm('');
@@ -167,6 +171,7 @@ export default function CustomSelect({
               placeholder="Type to search..."
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A]"
               onClick={(e) => e.stopPropagation()}
+              autoCapitalize={preserveCase ? "none" : "sentences"}
             />
           </div>
 
@@ -225,7 +230,10 @@ export default function CustomSelect({
                 onMouseEnter={() => setHighlightIndex(filteredOptions.length)}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  const sel = searchTerm.trim();
+                  let sel = searchTerm.trim();
+                  if (preserveCase) {
+                    sel = sel.charAt(0).toUpperCase() + sel.slice(1);
+                  }
                   onChange && onChange({ target: { name, value: sel } });
                   setOpen(false);
                   setSearchTerm('');
