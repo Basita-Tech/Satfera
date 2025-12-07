@@ -129,7 +129,7 @@ export function Navigation({ activePage, onNavigate }) {
 
   return (
     <nav className="sticky top-0 z-[100] bg-white border-b border-[#D4A052]/30 shadow-sm">
-      <div className="w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 md:py-4">
+      <div className="w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-2 md:py-4">
         <div className="flex items-center justify-between w-full">
           {/* Logo */}
           <div className="flex-shrink-0">
@@ -138,7 +138,7 @@ export function Navigation({ activePage, onNavigate }) {
                 src="/logo.png"
                 alt="Logo"
                 onClick={() => setLogoHighlighted((v) => !v)}
-                className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_10px_#FFD700]" : ""} h-[45px] sm:h-[58px] w-auto object-contain md:h-[65px] lg:h-[75px] rounded-lg transition`}
+                className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_10px_#FFD700]" : ""} h-[65px] sm:h-[58px] w-auto object-contain md:h-[65px] lg:h-[75px] rounded-lg transition`}
               />
             </a>
           </div>

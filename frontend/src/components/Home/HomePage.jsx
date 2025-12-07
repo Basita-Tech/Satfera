@@ -111,8 +111,8 @@ export default function HomePage() {
             <img
               src="/logo.png"
               alt="Satfera Logo"
-              width={150}
-              height={150}
+              width={220}
+              height={220}
               onClick={() => setLogoHighlighted((v) => !v)}
               className={`${logoHighlighted ? "border-2 border-[#FFD700] shadow-[0_0_12px_#FFD700]" : ""} object-contain rounded-lg transition duration-200 cursor-pointer h-12 sm:h-14 md:h-16 w-auto sm:scale-100 md:scale-125 origin-left`}
             />
@@ -231,7 +231,7 @@ export default function HomePage() {
       {/* HERO SECTION */}
       <section
         id="hero"
-        className="relative flex items-center justify-center h-[500px] md:h-[600px] w-full overflow-hidden"
+        className="relative flex items-center justify-center h-[450px] md:h-[600px] w-full overflow-hidden"
       >
         <img
           src={weddingCoupleImage}
@@ -241,37 +241,37 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/50 to-black/60"></div>
 
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-3 sm:mb-4">
             Find Your Perfect Life Partner
           </h1>
 
-          <p className="text-lg md:text-xl text-white/90 mb-8">
+          <p className="text-sm sm:text-lg md:text-xl text-white/90 mb-4 sm:mb-6">
             Join millions of people on India's most trusted matrimony platform
           </p>
 
           {/* Search Form */}
-          <div className="bg-[#FFFFFF] rounded-2xl shadow-2xl p-6 max-w-3xl mx-auto border border-[#E4C48A]">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <select className="border-2 border-[#E4C48A] rounded-md p-2 focus:outline-none focus:border-[#D4A052]">
+          <div className="bg-[#FFFFFF] rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-6 max-w-3xl mx-auto border border-[#E4C48A]">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 sm:gap-4">
+              <select className="border-2 border-[#E4C48A] rounded-md p-2.5 sm:p-3 text-sm sm:text-base focus:outline-none focus:border-[#D4A052] bg-white">
                 <option>Gender</option>
                 <option>Male</option>
                 <option>Female</option>
               </select>
-              <select className="border-2 border-[#E4C48A] rounded-md p-2 focus:outline-none focus:border-[#D4A052]">
+              <select className="border-2 border-[#E4C48A] rounded-md p-2.5 sm:p-3 text-sm sm:text-base focus:outline-none focus:border-[#D4A052] bg-white">
                 <option>Age</option>
                 <option>18-25</option>
                 <option>26-30</option>
                 <option>31-35</option>
                 <option>36+</option>
               </select>
-              <select className="border-2 border-[#E4C48A] rounded-md p-2 focus:outline-none focus:border-[#D4A052]">
+              <select className="border-2 border-[#E4C48A] rounded-md p-2.5 sm:p-3 text-sm sm:text-base focus:outline-none focus:border-[#D4A052] bg-white">
                 <option>Religion</option>
                 <option>Hindu</option>
                 <option>Muslim</option>
                 <option>Christian</option>
                 <option>Sikh</option>
               </select>
-              <button className="bg-[#D4A052] text-[#800000] rounded-md font-semibold hover:opacity-90 transition py-2">
+              <button className="bg-[#D4A052] text-[#800000] rounded-md font-semibold hover:opacity-90 transition py-2.5 sm:py-3 text-sm sm:text-base">
                 Search
               </button>
             </div>

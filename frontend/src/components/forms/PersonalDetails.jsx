@@ -734,7 +734,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.firstName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
             <div>
@@ -742,7 +742,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.middleName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
             <div>
@@ -750,7 +750,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.lastName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
           </div>
@@ -764,17 +764,17 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.dobDay}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
               <input
                 readOnly
                 value={formData.dobMonth}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
               <input
                 readOnly
                 value={formData.dobYear}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-[#EEEAE6] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
               />
             </div>
           </div>
@@ -1255,8 +1255,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             {/* Conditional Divorce Fields */}
             {showDivorceFields && (
-              <div className="bg-[#FFF8EC] border border-[#D4A052]/30 rounded-lg p-4">
-                <label className="block text-sm font-medium mb-1">
+              <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1 text-black">
                   Divorce Status
                 </label>
                 <CustomSelect
@@ -1272,8 +1272,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             {/* Children Fields */}
             {showChildrenFields && (
-              <div className="bg-[#FFF8EC] border border-[#D4A052]/30 rounded-lg p-4">
-                <label className="block text-sm font-medium mb-2">
+              <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4">
+                <label className="block text-sm font-medium mb-2 text-black">
                   Do you have children?
                 </label>
                 <div className="flex gap-4">
@@ -1319,8 +1319,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
             {/* Separated Status Fields */}
             {formData.legalStatus === "Separated" && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
-                <label className="block text-sm font-medium">
+              <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4 space-y-3">
+                <label className="block text-sm font-medium text-black">
                   Are you legally separated?
                 </label>
                 <div className="flex gap-4">
@@ -1346,7 +1346,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 {/* Separation Year */}
                 {isLegallySeparated === "Yes" && (
                   <div className="mt-2">
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium mb-2 text-black">
                       Since when are you separated?
                     </label>
                     <div className="flex gap-4 overflow-x-auto py-2">
