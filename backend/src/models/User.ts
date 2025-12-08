@@ -118,7 +118,7 @@ const userSchema: Schema = new Schema(
       maxlength: [500, "Deactivation reason cannot exceed 500 characters"],
       set: sanitizeString
     },
-    isDeleted: { type: Boolean, default: false, index: true },
+    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
     deletionReason: {
       type: String,
