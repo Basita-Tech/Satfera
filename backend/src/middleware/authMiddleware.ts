@@ -32,6 +32,14 @@ export const authenticate = async (
         : authHeader || req.cookies?.token;
 
     if (!token) {
+      logger.warn("Authentication failed - no token", {
+        hasCookies: !!req.cookies,
+        cookieKeys: req.cookies ? Object.keys(req.cookies) : [],
+        hasAuthHeader: !!authHeader,
+        origin: req.headers.origin,
+        referer: req.headers.referer
+      });
+
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });

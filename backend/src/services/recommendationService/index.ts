@@ -419,8 +419,8 @@ export async function findMatchingUsers(
     const baseQuery: any = {
       _id: { $ne: seekerUserId },
       gender: oppositeGender,
-      isActive: true,
-      isDeleted: false,
+      // isActive: true,
+      // isDeleted: false,
       blockedUsers: { $ne: seekerUserId }
     };
     if (excludedIds.length > 0) {

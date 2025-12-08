@@ -49,6 +49,13 @@ jobs:
 
             pm2 reload all || pm2 start npm --name "Satfera" -- start
 
+            cd ..
+            cd frontend
+            npm install
+            npm run build
+            sudo cp -r dist/* /var/www/satfera-frontend/
+            sudo systemctl reload nginx
+
       - name: Notify Deployment Success
         if: success()
         run: echo "🚀 Deployment to production was successful!"

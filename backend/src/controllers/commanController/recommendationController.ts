@@ -217,62 +217,7 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    const candidateIds = matches.map(
-      (m: any) => new mongoose.Types.ObjectId(m.user.userId)
-    );
-
-    const [users, personals, profiles, professions] = await Promise.all([
-      User.find(
-        { _id: { $in: candidateIds } },
-        "firstName lastName dateOfBirth createdAt"
-      ).lean(),
-      UserPersonal.find({ userId: { $in: candidateIds } })
-        .select(
-          "userId full_address.city full_address.state residingCountry religion subCaste"
-        )
-        .lean(),
-      Profile.find({ userId: { $in: candidateIds } })
-        .select("userId favoriteProfiles photos.closerPhoto.url")
-        .lean(),
-      UserProfession.find({ userId: { $in: candidateIds } })
-        .select("userId Occupation")
-        .lean()
-    ]);
-
-    const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
-    const personalMap = new Map(
-      personals.map((p: any) => [p.userId.toString(), p])
-    );
-    const profileMap = new Map(
-      profiles.map((p: any) => [p.userId.toString(), p])
-    );
-    const professionMap = new Map(
-      professions.map((p: any) => [p.userId.toString(), p])
-    );
-
-    const formattedResults = await Promise.all(
-      matches.map((match: any) => {
-        const candidateId = match.user.userId;
-        const user = userMap.get(candidateId);
-        const personal = personalMap.get(candidateId);
-        const profile = profileMap.get(candidateId);
-        const profession = professionMap.get(candidateId);
-
-        if (!user) return null;
-
-        return formatListingProfile(
-          user,
-          personal,
-          profile,
-          profession,
-          match.scoreDetail || { score: 0, reasons: [] },
-          null
-        );
-      })
-    );
-
-    const validResults = formattedResults.filter((r) => r !== null);
-    const paginatedResults = validResults.slice(skip, skip + limitNum);
+    const paginatedResults = matches.slice(skip, skip + limitNum);
 
     res.json({
       success: true,
@@ -280,8 +225,8 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: validResults.length,
-        hasMore: skip + limitNum < validResults.length
+        total: matches.length,
+        hasMore: skip + limitNum < matches.length
       }
     });
   } catch (error) {
@@ -351,10 +296,17 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const authObjId =
       requesterId && mongoose.Types.ObjectId.isValid(requesterId)
         ? new mongoose.Types.ObjectId(requesterId)
-        : requesterId;
+        : null;
 
-    if (requesterId) {
-      try {
+    const baseQuery: any = {};
+    if (authObjId) {
+      baseQuery._id = { $ne: authObjId };
+    }
+
+    try {
+      let targetIds: mongoose.Types.ObjectId[] | null = null;
+
+      if (authObjId) {
         const seekerHealth = await UserHealth.findOne({ userId: authObjId })
           .select("isHaveHIV")
           .lean();
@@ -379,49 +331,16 @@ export const getAllProfiles = async (req: Request, res: Response) => {
             .lean()
             .then((rows: any[]) => rows.map((r) => r.userId));
 
-          if (hivUserIds.length === 0) {
-            return res.json({
-              success: true,
-              data: [],
-              pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total: 0,
-                hasMore: false
-              }
-            });
+          if (hivUserIds.length > 0) {
+            targetIds = hivUserIds.map((id: any) =>
+              mongoose.Types.ObjectId.isValid(String(id))
+                ? new mongoose.Types.ObjectId(id)
+                : id
+            );
+          } else {
+            targetIds = [];
           }
-
-          // Ensure ids are ObjectId instances where appropriate
-          const hivIds = hivUserIds.map((id: any) =>
-            mongoose.Types.ObjectId.isValid(String(id))
-              ? new mongoose.Types.ObjectId(id)
-              : id
-          );
-
-          [users, personals, profiles, professions] = await Promise.all([
-            User.find(
-              { _id: { $in: hivIds, $ne: authObjId } },
-              "firstName lastName dateOfBirth createdAt"
-            ).lean(),
-            UserPersonal.find({
-              userId: { $in: hivIds, $ne: authObjId }
-            })
-              .select(
-                "userId full_address.city full_address.state residingCountry religion subCaste"
-              )
-              .lean(),
-            Profile.find({ userId: { $in: hivIds, $ne: authObjId } })
-              .select("userId favoriteProfiles photos.closerPhoto.url")
-              .lean(),
-            UserProfession.find({
-              userId: { $in: hivIds, $ne: authObjId }
-            })
-              .select("userId Occupation")
-              .lean()
-          ]);
         } else if (seekerHasNegative) {
-          // seeker explicitly negative -> only include explicit negative profiles
           const noHivUserIds = await UserHealth.find(
             {
               $or: [
@@ -437,81 +356,80 @@ export const getAllProfiles = async (req: Request, res: Response) => {
             .lean()
             .then((rows: any[]) => rows.map((r) => r.userId));
 
-          if (noHivUserIds.length === 0) {
-            return res.json({
-              success: true,
-              data: [],
-              pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total: 0,
-                hasMore: false
-              }
-            });
+          if (noHivUserIds.length > 0) {
+            targetIds = noHivUserIds.map((id: any) =>
+              mongoose.Types.ObjectId.isValid(String(id))
+                ? new mongoose.Types.ObjectId(id)
+                : id
+            );
+          } else {
+            targetIds = [];
           }
-
-          const noHivIds = noHivUserIds.map((id: any) =>
-            mongoose.Types.ObjectId.isValid(String(id))
-              ? new mongoose.Types.ObjectId(id)
-              : id
-          );
-
-          [users, personals, profiles, professions] = await Promise.all([
-            User.find(
-              { _id: { $in: noHivIds, $ne: authObjId } },
-              "firstName lastName dateOfBirth createdAt"
-            ).lean(),
-            UserPersonal.find({
-              userId: { $in: noHivIds, $ne: authObjId }
-            })
-              .select(
-                "userId full_address.city full_address.state residingCountry religion subCaste"
-              )
-              .lean(),
-            Profile.find({ userId: { $in: noHivIds, $ne: authObjId } })
-              .select("userId favoriteProfiles photos.closerPhoto.url")
-              .lean(),
-            UserProfession.find({
-              userId: { $in: noHivIds, $ne: authObjId }
-            })
-              .select("userId Occupation")
-              .lean()
-          ]);
-        } else {
-          [users, personals, profiles, professions] = await Promise.all([
-            User.find(
-              { _id: { $ne: authObjId } },
-              "firstName lastName dateOfBirth createdAt"
-            ).lean(),
-            UserPersonal.find({ userId: { $ne: authObjId } })
-              .select(
-                "userId full_address.city full_address.state residingCountry religion subCaste"
-              )
-              .lean(),
-            Profile.find({ userId: { $ne: authObjId } })
-              .select("userId favoriteProfiles photos.closerPhoto.url")
-              .lean(),
-            UserProfession.find({ userId: { $ne: authObjId } })
-              .select("userId Occupation")
-              .lean()
-          ]);
         }
-      } catch (e) {
-        // fallback to default full list on error
-        logger.error("Error applying health filters:", e);
       }
-    } else {
+
+      if (targetIds !== null) {
+        if (targetIds.length === 0) {
+          return res.json({
+            success: true,
+            data: [],
+            pagination: {
+              page: pageNum,
+              limit: limitNum,
+              total: 0,
+              hasMore: false
+            }
+          });
+        }
+
+        baseQuery._id = { ...baseQuery._id, $in: targetIds };
+      }
+
       [users, personals, profiles, professions] = await Promise.all([
-        User.find({}, "firstName lastName dateOfBirth createdAt").lean(),
-        UserPersonal.find({})
+        User.find(baseQuery, "firstName lastName dateOfBirth createdAt").lean(),
+        UserPersonal.find({
+          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
+        })
           .select(
             "userId full_address.city full_address.state residingCountry religion subCaste"
           )
           .lean(),
-        Profile.find({})
+        Profile.find({
+          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
+        })
           .select("userId favoriteProfiles photos.closerPhoto.url")
           .lean(),
-        UserProfession.find({}).select("userId Occupation").lean()
+        UserProfession.find({
+          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
+        })
+          .select("userId Occupation")
+          .lean()
+      ]);
+
+      if (!targetIds && authObjId) {
+        const authIdStr = authObjId.toString();
+        personals = personals.filter((p) => p.userId.toString() !== authIdStr);
+        profiles = profiles.filter((p) => p.userId.toString() !== authIdStr);
+        professions = professions.filter(
+          (p) => p.userId.toString() !== authIdStr
+        );
+      }
+    } catch (e) {
+      logger.error("Error in getAllProfiles logic:", e);
+
+      [users, personals, profiles, professions] = await Promise.all([
+        User.find(baseQuery, "firstName lastName dateOfBirth createdAt").lean(),
+        UserPersonal.find({ userId: { $ne: authObjId } })
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({ userId: { $ne: authObjId } })
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        UserProfession.find({ userId: { $ne: authObjId } })
+          .select("userId Occupation")
+          .lean()
       ]);
     }
 

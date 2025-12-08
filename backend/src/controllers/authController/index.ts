@@ -27,6 +27,7 @@ import {
   verifyDeviceFingerprint
 } from "../../utils/secureToken";
 import { SessionService } from "../../services/sessionService";
+import { getClientIp, normalizeIp } from "../../utils/ipUtils";
 
 const authService = new AuthService();
 
@@ -346,18 +347,24 @@ export class AuthController {
           .json({ success: false, message: "Not authenticated" });
       }
 
-      const reqIp = req.ip || "";
+      const reqIp = getClientIp(req);
       const reqUA = req.get("user-agent") || "";
 
-      const strictSessionChecks = true;
+      const isProduction = process.env.NODE_ENV === "production";
+      const strictSessionChecks = !isProduction;
 
       let isSuspicious = false;
 
-      if (session.ipAddress && reqIp && session.ipAddress !== reqIp) {
+      if (
+        session.ipAddress &&
+        reqIp &&
+        normalizeIp(session.ipAddress) !== normalizeIp(reqIp)
+      ) {
         logger.warn("IP mismatch", {
           userId,
           sessionIp: session.ipAddress,
-          reqIp
+          reqIp,
+          strictMode: strictSessionChecks
         });
         if (strictSessionChecks) {
           try {
