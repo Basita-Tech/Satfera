@@ -9,12 +9,14 @@ import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
 import CreatableSelect from "react-select/creatable";
 import CustomSelect from "../ui/CustomSelect";
+import LocationSelect from "../ui/LocationSelect";
 import {
   getOnboardingStatus,
   getUserPersonal,
   saveUserPersonal,
   updateUserPersonal,
 } from "../../api/auth";
+import { getCountryCode, getStateCode, getAllCountries } from "../../lib/locationUtils";
 import toast from "react-hot-toast";
 import {
   nationalities,
@@ -23,19 +25,12 @@ import {
   doshOptions,
   weightOptions,
   heightOptions,
-  INDIAN_STATES,
-  INDIAN_CITIES,
 } from "@/lib/constant";
 
 const sortAlpha = (list) =>
   [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 
-const COUNTRIES = sortAlpha(getNames());
-
-const COUNTRIES_WITH_CODES = COUNTRIES.map((name) => ({
-  name,
-  code: getCode(name),
-}));
+const COUNTRIES = getAllCountries();
 
 const ZODIAC_SIGNS = sortAlpha([
   "Aries (Mesh)",
@@ -69,8 +64,6 @@ const SORTED_DOSH_OPTIONS = [
   "No Dosh",
   ...sortAlpha(doshOptions.filter((d) => d !== "No Dosh")),
 ];
-const SORTED_INDIAN_STATES = sortAlpha(INDIAN_STATES);
-const SORTED_INDIAN_CITIES = sortAlpha(INDIAN_CITIES);
 
 const HOURS = Array.from({ length: 24 }, (_, i) =>
   i.toString().padStart(2, "0")
@@ -146,6 +139,9 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
   const [showDivorceFields, setShowDivorceFields] = useState(false);
   const [showChildrenFields, setShowChildrenFields] = useState(false);
+  const [birthCountryCode, setBirthCountryCode] = useState(null);
+  const [birthStateCode, setBirthStateCode] = useState(null);
+  const [residingCountryCode, setResidingCountryCode] = useState(null);
 
   const handleHourInput = useCallback((e) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -181,15 +177,18 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
   const handleHourBlur = useCallback(() => {
     if (formData.birthHour === "") return;
-    let num = Number(formData.birthHour);
-    if (Number.isNaN(num)) {
-      setFormData((prev) => ({ ...prev, birthHour: "" }));
-      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00â€“23" }));
+    // Only process if input is exactly two digits
+    if (formData.birthHour.length !== 2) {
+      setErrors((prev) => ({ ...prev, birthHour: "Hour must be two digits (00–23)" }));
       return;
     }
-    num = Math.min(Math.max(num, 0), 23);
-    const padded = num.toString().padStart(2, "0");
-    setFormData((prev) => ({ ...prev, birthHour: padded }));
+    let num = Number(formData.birthHour);
+    if (Number.isNaN(num) || num < 0 || num > 23) {
+      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00–23" }));
+      return;
+    }
+    setFormData((prev) => ({ ...prev, birthHour: formData.birthHour }));
+    setErrors((prev) => ({ ...prev, birthHour: "" }));
   }, [formData.birthHour]);
 
   const handleMinuteBlur = useCallback(() => {
@@ -595,9 +594,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
 
     const timeOfBirth =
       formData.birthHour && formData.birthMinute
-        ? `${formData.birthHour.toString().padStart(2, "0")}:${formData.birthMinute
-            .toString()
-            .padStart(2, "0")}`
+        ? `${formData.birthHour}:${formData.birthMinute}`
         : "";
 
     const payload = {
@@ -626,14 +623,22 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       isResidentOfIndia: formData.residingInIndia === "yes",
       residingCountry: formData.residingCountry || "India",
       visaType: formData.visaCategory || "N/A",
-      divorceStatus: formData.divorceStatus,
-      isHaveChildren: formData.hasChildren === "Yes",
-      numberOfChildren: parseInt(formData.numChildren) || 0,
-      isChildrenLivingWithYou: formData.livingWith === "With Me",
-      isLegallySeparated: formData.legalStatus === "Separated",
-      isYouLegallySeparated: isLegallySeparated === "Yes",
-      separatedSince: separatedSince,
     };
+
+    // Only include children and divorce-related fields for applicable marital statuses
+    if (formData.legalStatus !== "Never Married") {
+      payload.divorceStatus = formData.divorceStatus || null;
+      payload.isHaveChildren = formData.hasChildren === "Yes";
+      payload.numberOfChildren = parseInt(formData.numChildren) || 0;
+      payload.isChildrenLivingWithYou = formData.livingWith === "With Me";
+    }
+
+    // Include separation fields only for "Separated" status
+    if (formData.legalStatus === "Separated") {
+      payload.isLegallySeparated = formData.legalStatus === "Separated";
+      payload.isYouLegallySeparated = isLegallySeparated === "Yes";
+      payload.separatedSince = separatedSince || null;
+    }
 
     try {
       setLoading(true);
@@ -831,41 +836,49 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           <div>
             <label className="block text-sm font-medium mb-1">Birth Place</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* City Dropdown */}
-              <div>
-                <label className="block text-sm font-medium mb-1">City</label>
-                <CustomSelect
-                  name="birthCity"
-                  value={formData.birthCity}
-                  onChange={handleChange}
-                  options={SORTED_INDIAN_CITIES}
-                  placeholder="Select or type city"
-                  allowCustom
-                  className={getInputClass("birthCity")}
-                />
-                {errors.birthCity && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.birthCity}
-                  </p>
-                )}
-              </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Birth State
                 </label>
-                <CustomSelect
+                <LocationSelect
+                  type="state"
                   name="birthState"
                   value={formData.birthState}
-                  onChange={handleChange}
-                  options={SORTED_INDIAN_STATES}
-                  placeholder="Select or type state"
-                  allowCustom
+                  onChange={(e) => {
+                    handleChange(e);
+                    // Use the code passed from LocationSelect, or calculate it
+                    const code = e.target.code || getStateCode("IN", e.target.value);
+                    setBirthStateCode(code);
+                  }}
+                  countryCode="IN"
+                  placeholder="Select state"
                   className={getInputClass("birthState")}
                 />
                 {errors.birthState && (
                   <p className="text-red-500 text-sm mt-1">
                     {errors.birthState}
+                  </p>
+                )}
+              </div>
+
+              {/* City Dropdown */}
+              <div>
+                <label className=" block text-sm font-medium mb-1">City</label>
+                <LocationSelect
+                  type="city"
+                  name="birthCity"
+                  value={formData.birthCity}
+                  onChange={(e) => {
+                    handleChange(e);
+                  }}
+                  countryCode="IN"
+                  stateCode={birthStateCode}
+                  placeholder="Select city"
+                  className={getInputClass("birthCity")}
+                />
+                {errors.birthCity && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.birthCity}
                   </p>
                 )}
               </div>
@@ -886,16 +899,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 }
                 onChange={(selected, actionMeta) => {
                   handleSelectChange("height", selected);
-
-                  if (actionMeta.action === "select-option") {
-                    document.activeElement.blur();
-                  }
                 }}
                 placeholder="Select or type height"
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
                 }}
+                tabSelectsValue={false}
                 styles={customSelectStyles(errors.height, formData.height)}
                 menuPlacement="auto"
                 menuPosition="fixed"
@@ -919,16 +929,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 }
                 onChange={(selected, actionMeta) => {
                   handleSelectChange("weight", selected);
-
-                  if (actionMeta.action === "select-option") {
-                    document.activeElement.blur();
-                  }
                 }}
                 placeholder="Select or type weight"
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
                 }}
+                tabSelectsValue={false}
                 styles={customSelectStyles(errors.weight, formData.weight)}
                 menuPlacement="auto"
                 menuPosition="fixed"
@@ -1129,41 +1136,42 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   )}
                 </div>
 
-                {/* City & State (always editable) */}
+                {/* State & City (always editable) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* City */}
-                  <div>
-                    <label className="block text-sm font-medium mb-1">City</label>
-                    <CustomSelect
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      options={SORTED_INDIAN_CITIES}
-                      placeholder="Select or type city"
-                      allowCustom
-                      className={getInputClass("city")}
-                    />
-                    {errors.city && (
-                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-                    )}
-                  </div>
-
                   {/* State */}
                   <div>
                     <label className="block text-sm font-medium mb-1">State</label>
-                    <CustomSelect
+                    <LocationSelect
+                      type="state"
                       name="state"
                       value={formData.state}
                       onChange={handleChange}
-                      options={SORTED_INDIAN_STATES}
-                      placeholder="Select or type state"
-                      allowCustom
+                      countryCode="IN"
+                      placeholder="Select state"
                       className={getInputClass("state")}
                     />
                     {errors.state && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.state}
                       </p>
+                    )}
+                  </div>
+
+                  {/* City */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">City</label>
+                    <LocationSelect
+                      type="city"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      countryCode="IN"
+                      stateCode={getStateCode("IN", formData.state) || ""}
+                      placeholder="Select city"
+                      className={getInputClass("city")}
+                    />
+                    {errors.city && (
+                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
                     )}
                   </div>
                 </div>
@@ -1495,31 +1503,21 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   <label className="block text-sm font-medium mb-1 text-gray-700">
                     Residing In Which Country
                   </label>
-                  <CustomSelect
+                  <LocationSelect
+                    type="country"
                     name="residingCountry"
                     value={formData.residingCountry}
                     onChange={(e) => {
                       handleChange(e);
+                      const code = getCountryCode(e.target.value);
+                      setResidingCountryCode(code);
                     }}
-                    onBlur={() => {
-                      if (!formData.residingCountry) {
-                        setErrors({
-                          ...errors,
-                          residingCountry:
-                            "Please select your residing country",
-                        });
-                      } else {
-                        setErrors({ ...errors, residingCountry: "" });
-                      }
-                    }}
-                    options={COUNTRIES.filter((c) => c !== "India")}
                     placeholder="Select Country"
-                    className={`capitalize w-full p-3 rounded-md border ${
+                    className={`w-full ${
                       errors.residingCountry
                         ? "border-red-500"
-                        : "border-[#D4A052]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition`}
-                    usePortal={true}
+                        : ""
+                    }`}
                   />
                   {errors.residingCountry && (
                     <p className="text-red-500 text-sm mt-1">
@@ -1549,12 +1547,11 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                     }}
                     options={SORTED_VISA_CATEGORIES}
                     placeholder="Select Visa Category"
-                    className={`capitalize w-full p-3 rounded-md border ${
+                    className={`capitalize ${
                       errors.visaCategory
                         ? "border-red-500"
-                        : "border-[#D4A052]"
-                    } text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition`}
-                    usePortal={true}
+                        : ""
+                    }`}
                   />
                   {errors.visaCategory && (
                     <p className="text-red-500 text-sm mt-1">

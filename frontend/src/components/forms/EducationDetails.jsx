@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { getNames } from "country-list";
 import CreatableSelect from "react-select/creatable";
 import CustomSelect from "../ui/CustomSelect";
+import LocationSelect from "../ui/LocationSelect";
 import {
   getEducationalDetails,
   saveEducationalDetails,
@@ -10,10 +10,6 @@ import {
 import toast from "react-hot-toast";
 
 const EducationDetails = ({ onNext, onPrevious }) => {
-  const sortAlpha = (list) =>
-    [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-
-  const countries = useMemo(() => sortAlpha(getNames()), []);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -23,7 +19,6 @@ const EducationDetails = ({ onNext, onPrevious }) => {
 
     universityName: "",
     countryOfEducation: "",
-    otherCountry: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -66,7 +61,6 @@ const EducationDetails = ({ onNext, onPrevious }) => {
               : null,
             universityName: res.data.University || "",
             countryOfEducation: res.data.CountryOfEducation || "",
-            otherCountry: res.data.OtherCountry || "",
           });
         }
       } catch (error) {
@@ -359,10 +353,6 @@ const EducationDetails = ({ onNext, onPrevious }) => {
     setErrors((prev) => {
       const next = { ...prev };
       if (shouldClear) delete next[name];
-      // If switching away from "Other" country, also clear otherCountry error
-      if (name === "countryOfEducation" && formattedValue !== "Other") {
-        delete next.otherCountry;
-      }
       // If highest education changes, also clear fieldOfStudy error
       if (name === "highestEducation") {
         delete next.fieldOfStudy;
@@ -392,7 +382,6 @@ const EducationDetails = ({ onNext, onPrevious }) => {
     if (!formData.fieldOfStudy || isEmpty(formData.fieldOfStudy.value)) newErrors.fieldOfStudy = "Field of study is required";
     if (isEmpty(formData.universityName)) newErrors.universityName = "University/College name is required";
     if (isEmpty(formData.countryOfEducation)) newErrors.countryOfEducation = "Country of education is required";
-    if (formData.countryOfEducation === "Other" && isEmpty(formData.otherCountry)) newErrors.otherCountry = "Please specify your country";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -420,7 +409,6 @@ const EducationDetails = ({ onNext, onPrevious }) => {
         FieldOfStudy: normalize(formData.fieldOfStudy),
         University: normalize(formData.universityName),
         CountryOfEducation: normalize(formData.countryOfEducation),
-        OtherCountry: normalize(formData.otherCountry),
       };
 
       const existing = await getEducationalDetails();
@@ -590,32 +578,16 @@ const EducationDetails = ({ onNext, onPrevious }) => {
             <label className="block text-sm font-medium mb-1">
               Country of Education
             </label>
-            <CustomSelect
+            <LocationSelect
+              type="country"
               name="countryOfEducation"
               value={formData.countryOfEducation}
               onChange={handleChange}
-              options={[...countries, "Other"]}
               placeholder="Select your country"
-               className={getInputClass("countryOfEducation")}
+              className={getInputClass("countryOfEducation")}
             />
             {errors.countryOfEducation && (
               <p className="text-red-500 text-sm mt-1">{errors.countryOfEducation}</p>
-            )}
-
-            {formData.countryOfEducation === "Other" && (
-              <>
-                <input
-                  type="text"
-                  name="otherCountry"
-                  value={formData.otherCountry}
-                  onChange={handleChange}
-                  placeholder="Please specify your country"
-                  className={`${getInputClass("otherCountry")} mt-2`}
-                />
-                {errors.otherCountry && (
-                  <p className="text-red-500 text-sm mt-1">{errors.otherCountry}</p>
-                )}
-              </>
             )}
           </div>
 

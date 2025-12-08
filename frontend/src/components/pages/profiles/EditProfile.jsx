@@ -2,15 +2,16 @@ import React, { useState, useEffect, useMemo } from "react";
 import ReactSelect from "react-select";
 import { getNames } from "country-list";
 import CreatableSelect from "react-select/creatable";
+import { State } from "country-state-city";
 import {
   nationalities,
   visaCategories,
   doshOptions,
   weightOptions,
   heightOptions,
-  INDIAN_CITIES,
-  INDIAN_STATES,
 } from "@/lib/constant";
+import LocationSelect from "../../ui/LocationSelect";
+import { getCountryCode, getStateCode } from "../../../lib/locationUtils";
 import { TabsComponent } from "../../TabsComponent";
 import { Label } from "../../ui/label";
 import CustomSelect from "../../ui/CustomSelect";
@@ -488,6 +489,7 @@ const EXPECT_DIET_OPTIONS = [
 ];
 const AGE_OPTIONS = Array.from({ length: 23 }, (_, i) => 18 + i); // 18..40
 const ALL_COUNTRIES = getNames();
+const INDIAN_STATES = State.getStatesOfCountry("IN").map(s => s.name).sort();
 const ABROAD_OPTIONS = ["No preference", ...ALL_COUNTRIES];
 
 export function EditProfile({ onNavigateBack }) {
@@ -1982,24 +1984,32 @@ export function EditProfile({ onNavigateBack }) {
             : undefined,
         residingCountry: personal.residingCountry || undefined,
         visaType: personal.visaCategory || undefined,
-        divorceStatus: personal.divorceStatus || undefined,
-        isHaveChildren:
+      };
+
+      // Only include children and divorce-related fields for applicable marital statuses
+      if (personal.maritalStatus !== "Never Married") {
+        payload.divorceStatus = personal.divorceStatus || undefined;
+        payload.isHaveChildren =
           personal.hasChildren === "Yes"
             ? true
             : personal.hasChildren === "No"
             ? false
-            : undefined,
-        numberOfChildren: personal.numChildren
+            : undefined;
+        payload.numberOfChildren = personal.numChildren
           ? parseInt(personal.numChildren)
-          : undefined,
-        isChildrenLivingWithYou:
+          : undefined;
+        payload.isChildrenLivingWithYou =
           personal.livingWith === "With Me"
             ? true
             : personal.livingWith === "No"
             ? false
-            : undefined,
-        separatedSince: personal.separatedSince || undefined,
-      };
+            : undefined;
+      }
+
+      // Include separation fields only for "Separated" status
+      if (personal.maritalStatus === "Separated") {
+        payload.separatedSince = personal.separatedSince || undefined;
+      }
 
       await updateUserPersonal(payload);
       
@@ -2608,30 +2618,29 @@ export function EditProfile({ onNavigateBack }) {
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">City *</Label>
-            <CustomSelect
-              options={INDIAN_CITIES.sort().map(city => city.charAt(0).toUpperCase() + city.slice(1))}
+            <LocationSelect
+              type="city"
+              name="city"
               value={personal.city || ""}
               onChange={(e) =>
                 setPersonal((p) => ({ ...p, city: e.target.value }))
               }
+              countryCode="IN"
+              stateCode={getStateCode("IN", personal.state) || ""}
               placeholder="Select city"
-              name="city"
-              allowCustom={true}
-              preserveCase={true}
             />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">State *</Label>
-            <CustomSelect
-              options={INDIAN_STATES.sort().map(state => state.charAt(0).toUpperCase() + state.slice(1))}
+            <LocationSelect
+              type="state"
+              name="state"
               value={personal.state || ""}
               onChange={(e) =>
                 setPersonal((p) => ({ ...p, state: e.target.value }))
               }
+              countryCode="IN"
               placeholder="Select state"
-              name="state"
-              allowCustom={true}
-              preserveCase={true}
             />
           </div>
           <div className="space-y-2">

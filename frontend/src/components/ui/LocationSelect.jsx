@@ -1,45 +1,89 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Country, State, City } from 'country-state-city';
+import { searchCountries, searchStates, searchCities, hasCitiesData } from '../../lib/locationUtils';
 
-export default function CustomSelect({
+/**
+ * LocationSelect Component - Searchable dropdown for Country/State/City selection
+ * Uses react-country-state-city library for real data
+ */
+export default function LocationSelect({
+  type = 'country',
   value,
   onChange,
-  options = [],
   placeholder = 'Select',
   className = '',
   disabled = false,
   name,
-  allowCustom = false,
-  preserveCase = false,
+  countryCode,
+  stateCode,
 }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [searchTerm, setSearchTerm] = useState('');
-  const containerRef = useRef(null);
-  const searchInputRef = useRef(null);
+  const [options, setOptions] = useState([]);
+  const containerRef = React.useRef(null);
+  const searchInputRef = React.useRef(null);
+  // Get options based on type
+  useEffect(() => {
+    try {
+      let data = [];
+      if (type === 'country') {
+        data = Country.getAllCountries().map(c => ({
+          name: c.name,
+          code: c.isoCode
+        }));
+      } else if (type === 'state' && countryCode) {
+        data = State.getStatesOfCountry(countryCode).map(s => ({
+          name: s.name,
+          code: s.isoCode
+        }));
+      } else if (type === 'city' && countryCode && stateCode) {
+        try {
+          const hasCities = hasCitiesData(countryCode, stateCode);
+          if (!hasCities) {
+            console.warn(`No city data available for ${countryCode}-${stateCode}`);
+          }
+          const cities = City.getCitiesOfState(countryCode, stateCode);
+          data = (cities || []).map(c => ({
+            name: c.name
+          }));
+        } catch (cityError) {
+          console.error(`Error loading cities for ${countryCode}-${stateCode}:`, cityError);
+          data = [];
+        }
+      }
+      setOptions(data);
+    } catch (error) {
+      console.error('LocationSelect error:', error);
+      setOptions([]);
+    }
+  }, [type, countryCode, stateCode]);
 
-  const displayLabel = useMemo(() => {
-    if (value === undefined || value === null || value === '') return '';
-    return value;
-  }, [value]);
+  const displayLabel = value || '';
 
-  const filteredOptions = useMemo(() => {
-    if (!searchTerm.trim()) return options;
-    const term = searchTerm.toLowerCase();
-    return options.filter(opt => opt.toLowerCase().includes(term));
-  }, [options, searchTerm]);
+  // Use enhanced search for all types
+  let filteredOptions;
+  if (searchTerm.trim()) {
+    if (type === 'country') {
+      filteredOptions = searchCountries(searchTerm);
+    } else if (type === 'state' && countryCode) {
+      filteredOptions = searchStates(countryCode, searchTerm);
+    } else if (type === 'city' && countryCode && stateCode) {
+      filteredOptions = searchCities(countryCode, stateCode, searchTerm);
+    } else {
+      filteredOptions = options.filter(opt => opt.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+  } else {
+    filteredOptions = options;
+  }
 
-  const customAvailable = useMemo(() => {
-    if (!allowCustom) return false;
-    const term = searchTerm.trim();
-    if (!term) return false;
-    const lower = term.toLowerCase();
-    return !options.some((opt) => opt.toLowerCase() === lower);
-  }, [allowCustom, searchTerm, options]);
+  const customAvailable = type === 'city'
+    && !!searchTerm.trim()
+    && !filteredOptions.some((opt) => opt.name.toLowerCase() === searchTerm.trim().toLowerCase());
 
   useEffect(() => {
     const onDocClick = (e) => {
-      // Close if clicking outside the container
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
         setHighlightIndex(-1);
@@ -74,31 +118,26 @@ export default function CustomSelect({
         e.preventDefault();
         setHighlightIndex((idx) => {
           const maxIndex = filteredOptions.length - 1 + (customAvailable ? 1 : 0);
-          const next = Math.min((idx < 0 ? -1 : idx) + 1, maxIndex);
-          return next;
+          return Math.min((idx < 0 ? -1 : idx) + 1, maxIndex);
         });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setHighlightIndex((idx) => {
           const start = customAvailable ? filteredOptions.length : filteredOptions.length - 1;
-          const prev = Math.max((idx < 0 ? start : idx) - 1, 0);
-          return prev;
+          return Math.max((idx < 0 ? start : idx) - 1, 0);
         });
       } else if (e.key === 'Enter') {
         e.preventDefault();
         const customIndex = filteredOptions.length;
+        const trimmed = searchTerm.trim();
         if (customAvailable && (highlightIndex === customIndex || filteredOptions.length === 0 || highlightIndex < 0)) {
-          let sel = searchTerm.trim();
-          if (preserveCase) {
-            sel = sel.charAt(0).toUpperCase() + sel.slice(1);
-          }
-          onChange && onChange({ target: { name, value: sel } });
+          onChange && onChange({ target: { name, value: trimmed } });
           setOpen(false);
           setSearchTerm('');
           setHighlightIndex(-1);
         } else if (highlightIndex >= 0 && highlightIndex < filteredOptions.length) {
           const sel = filteredOptions[highlightIndex];
-          onChange && onChange({ target: { name, value: sel } });
+          onChange && onChange({ target: { name, value: sel.name, code: sel.code } });
           setOpen(false);
           setSearchTerm('');
           setHighlightIndex(-1);
@@ -113,13 +152,10 @@ export default function CustomSelect({
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
     const spaceBelow = viewportHeight - rect.bottom;
     const spaceAbove = rect.top;
-    
-    // Estimate list height based on options count
+
     const estimatedListHeight = Math.min(Math.max((options.length || 0) * 40, 160), 300);
-    
-    // Check if we need to flip above: not enough space below AND enough space above
     const needsFlipUp = spaceBelow < estimatedListHeight + 20 && spaceAbove > estimatedListHeight + 20;
-    
+
     setDropUp(needsFlipUp);
   };
 
@@ -128,10 +164,10 @@ export default function CustomSelect({
       updatePosition();
       const handleScroll = () => updatePosition();
       const handleResize = () => updatePosition();
-      
+
       window.addEventListener('scroll', handleScroll, true);
       window.addEventListener('resize', handleResize);
-      
+
       return () => {
         window.removeEventListener('scroll', handleScroll, true);
         window.removeEventListener('resize', handleResize);
@@ -145,13 +181,12 @@ export default function CustomSelect({
 
   const handleInputChange = (e) => {
     const newSearchTerm = e.target.value;
-    // If user manually clears the field, also clear the selection
+    
     if (newSearchTerm === '' && value) {
       onChange && onChange({ target: { name, value: '' } });
     }
     setSearchTerm(newSearchTerm);
     setHighlightIndex(0);
-    // Always open dropdown when typing
     if (!open) {
       setOpen(true);
     }
@@ -169,14 +204,14 @@ export default function CustomSelect({
         setHighlightIndex(0);
         updatePosition();
       } else {
-        // If already open, clear search term to show all options
+        
         setSearchTerm('');
         setHighlightIndex(0);
       }
     }
   };
 
-  // Keep showing the selected value when open unless the user has typed a search term
+  
   const displayValue = open ? (searchTerm !== '' ? searchTerm : displayLabel) : displayLabel;
 
   return (
@@ -195,12 +230,17 @@ export default function CustomSelect({
             setSearchTerm('');
           }
         }}
+        onBlur={() => {
+          // Clear search term when leaving the field, but give dropdown time to process selection
+          setTimeout(() => {
+            setSearchTerm('');
+          }, 100);
+        }}
         onKeyDown={handleInputKeyDown}
         onClick={handleInputClick}
         placeholder={placeholder}
         aria-haspopup="listbox"
         aria-expanded={open}
-        autoCapitalize={preserveCase ? "none" : "sentences"}
       />
       {/* Dropdown Arrow Icon */}
       <svg
@@ -227,7 +267,6 @@ export default function CustomSelect({
             tabIndex={-1}
             className="max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none"
           >
-            {/* Placeholder option */}
             {placeholder && !searchTerm && (
               <li
                 role="option"
@@ -246,27 +285,36 @@ export default function CustomSelect({
               </li>
             )}
             {filteredOptions.length === 0 && !customAvailable ? (
-              <li className="px-3 py-2 text-sm text-gray-500 italic">No results found</li>
+              <li className="px-3 py-2 text-sm text-gray-500 italic">
+                {type === 'city' && countryCode && stateCode 
+                  ? 'No cities available for this state' 
+                  : 'No results found'}
+              </li>
             ) : (
               filteredOptions.map((opt, idx) => {
-                const selected = opt === value;
+                const selected = opt.name === value;
                 const highlighted = idx === highlightIndex;
                 return (
                   <li
-                    key={opt}
+                    key={opt.name}
                     role="option"
                     aria-selected={selected}
                     className={`px-3 py-2 text-sm cursor-pointer ${selected ? 'bg-blue-600 text-white' : highlighted ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
                     onMouseEnter={() => setHighlightIndex(idx)}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      onChange && onChange({ target: { name, value: opt } });
+                      const eventObj = { target: { name, value: opt.name } };
+                      // Pass code as additional property for state/city selections
+                      if (opt.code) {
+                        eventObj.target.code = opt.code;
+                      }
+                      onChange && onChange(eventObj);
                       setOpen(false);
                       setSearchTerm('');
                       setHighlightIndex(-1);
                     }}
                   >
-                    {opt}
+                    {opt.name}
                   </li>
                 );
               })
@@ -279,11 +327,8 @@ export default function CustomSelect({
                 onMouseEnter={() => setHighlightIndex(filteredOptions.length)}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  let sel = searchTerm.trim();
-                  if (preserveCase) {
-                    sel = sel.charAt(0).toUpperCase() + sel.slice(1);
-                  }
-                  onChange && onChange({ target: { name, value: sel } });
+                  const trimmed = searchTerm.trim();
+                  onChange && onChange({ target: { name, value: trimmed } });
                   setOpen(false);
                   setSearchTerm('');
                   setHighlightIndex(-1);

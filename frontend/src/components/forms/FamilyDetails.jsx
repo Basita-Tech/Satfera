@@ -237,6 +237,13 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
     }
   };
 
+  const handleRadioKeyDown = useCallback((e, onSelect) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect();
+    }
+  }, []);
+
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
       <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300">
@@ -420,13 +427,23 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                         siblings: [],
                       }))
                     }
+                    onKeyDown={(e) =>
+                      handleRadioKeyDown(e, () =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          hasSiblings: option === "Yes",
+                          siblingCount: 0,
+                          siblings: [],
+                        }))
+                      )
+                    }
                     className={`appearance-none w-4 h-4 rounded-full border border-[#E4C48A] transition duration-200
             ${
               formData.hasSiblings === (option === "Yes")
                 ? "bg-[#D4A052] border-[#D4A052]"
                 : "border-[#E4C48A]"
             }
-            focus:outline-none`}
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A052] focus-visible:ring-offset-1`}
                   />
                   <span className="text-gray-700">{option}</span>
                 </label>
@@ -528,13 +545,18 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
                     value={type}
                     checked={formData.familyType === type}
                     onChange={handleChange}
+                    onKeyDown={(e) =>
+                      handleRadioKeyDown(e, () =>
+                        setFormData((prev) => ({ ...prev, familyType: type }))
+                      )
+                    }
                     className={`appearance-none w-4 h-4 rounded-full border border-[#E4C48A] transition duration-200
             ${
               formData.familyType === type
                 ? "bg-[#D4A052] border-[#D4A052]"
                 : "border-[#E4C48A]"
             }
-          focus:outline-none`}
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A052] focus-visible:ring-offset-1`}
                   />
                   <span className="text-gray-700">{type}</span>
                 </label>

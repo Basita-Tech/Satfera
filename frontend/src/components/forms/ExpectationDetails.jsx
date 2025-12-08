@@ -4,9 +4,10 @@ import {
   saveUserExpectations,
   updateUserExpectations,
 } from "../../api/auth";
-import { getNames } from "country-list";
+import { Country, State } from "country-state-city";
 import Select from "react-select";
 import CustomSelect from "../ui/CustomSelect";
+import LocationSelect from "../ui/LocationSelect";
 import toast from "react-hot-toast";
 
 const sortAlpha = (list) =>
@@ -34,6 +35,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
     partnerLocation: "",
     partnerStateOrCountry: [],
+    selectedCountry: "",
+    selectedState: "",
     openToPartnerHabits: "",
     partnerEducation: [],
     partnerDiet: [],
@@ -89,11 +92,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     ["No preference"]
   );
 
-  const allCountries = sortAlpha([...getNames()]);
-  const abroadOptions = sortAlphaWithPinned(
-    ["No preference", ...allCountries],
-    ["No preference"]
-  );
+  // Countries from country-state-city library
+  const allCountries = useMemo(() => {
+    return Country.getAllCountries().map(c => c.name).sort();
+  }, []);
 
   const indianStates = [
     { code: "AP", name: "Andhra Pradesh" },
@@ -199,11 +201,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     [indianStates]
   );
 
-  const abroadOptionsFormatted = useMemo(
-    () => abroadOptions.map((c) => ({ value: String(c), label: String(c) })),
-    [abroadOptions]
-  );
-
   const handleChange = useCallback((field, value) => {
     if (field === "preferredAgeFrom" || field === "preferredAgeTo") {
       let num = Number(value);
@@ -224,7 +221,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-      ...(field === "partnerLocation" ? { partnerStateOrCountry: [] } : {}),
+      ...(field === "partnerLocation" ? { 
+        partnerStateOrCountry: [],
+        selectedCountry: "",
+        selectedState: ""
+      } : {}),
     }));
 
     if (shouldClearError) {
@@ -381,6 +382,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   label: c.label || c,
                 })) || []
               : [],
+          selectedState:
+            partnerLocation === "India" && data.livingInState?.length > 0
+              ? data.livingInState[0]
+              : "",
+          selectedCountry:
+            partnerLocation === "Abroad" && data.livingInCountry?.length > 0
+              ? (data.livingInCountry[0]?.value || data.livingInCountry[0])
+              : "",
           openToPartnerHabits: mapHabitDisplay(data.isConsumeAlcoholic),
           preferredAgeFrom:
             data.age?.from !== undefined && data.age?.from !== null
@@ -449,7 +458,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   label: c.label || c,
                 })) || []
               : [],
-
+          selectedState:
+            partnerLocation === "India" && data.livingInState?.length > 0
+              ? data.livingInState[0]
+              : "",
+          selectedCountry:
+            partnerLocation === "Abroad" && data.livingInCountry?.length > 0
+              ? (data.livingInCountry[0]?.value || data.livingInCountry[0])
+              : "",
           openToPartnerHabits: mapHabitsDisplay(data.isConsumeAlcoholic),
           partnerEducation:
             data.educationLevel?.map((e) => ({ value: e, label: e })) || [],
@@ -508,103 +524,77 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-          {/* State / Country */}
-          {(formData.partnerLocation === "India" ||
-            formData.partnerLocation === "Abroad") && (
-            <div className="mt-6">
-              <label className="block text-sm font-medium mb-1">
-                {formData.partnerLocation === "India"
-                  ? "Select State(s)"
-                  : "Select Country(ies)"}
-              </label>
-
-              <div className="w-full">
-                <Select
-                  isMulti
-                  name="partnerStateOrCountry"
-                  options={[
-                    { value: "Any", label: "Any" },
-                    ...(formData.partnerLocation === "India"
-                      ? indianStates.map((state) => ({
-                          value: String(state?.name || ""),
-                          label: String(state?.name || ""),
-                        }))
-                      : abroadOptions.map((country) => ({
-                          value: String(country || ""),
-                          label: String(country || ""),
-                        }))),
-                  ]}
-                  value={
-                    Array.isArray(formData.partnerStateOrCountry)
-                      ? formData.partnerStateOrCountry.map((opt) => ({
-                          value: String(opt.value),
-                          label: String(opt.label),
-                        }))
-                      : []
-                  }
-                  onChange={(selectedOptions) => {
-                    if (selectedOptions?.some((opt) => opt.value === "Any")) {
+          {/* State / Country using LocationSelect */}
+          {formData.partnerLocation === "Abroad" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Select Country
+                </label>
+                <LocationSelect
+                  type="country"
+                  name="selectedCountry"
+                  value={formData.selectedCountry}
+                  onChange={(e) => {
+                    const countryName = e.target.value;
+                    if (countryName) {
+                      // Add to array if not empty
                       handleChange("partnerStateOrCountry", [
-                        { value: "Any", label: "Any" },
+                        {
+                          value: countryName,
+                          label: countryName,
+                        },
                       ]);
+                      handleChange("selectedCountry", countryName);
                     } else {
-                      handleChange(
-                        "partnerStateOrCountry",
-                        selectedOptions || []
-                      );
+                      // Clear if empty
+                      handleChange("partnerStateOrCountry", []);
+                      handleChange("selectedCountry", "");
                     }
+                  }}
+                  placeholder="Search country"
+                  className={inputClass}
+                />
+              </div>
 
-                    if (selectedOptions && selectedOptions.length > 0) {
-                      setErrors((prev) => {
-                        const newErrors = { ...prev };
-                        delete newErrors.partnerStateOrCountry;
-                        return newErrors;
-                      });
+              {errors.partnerStateOrCountry && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.partnerStateOrCountry}
+                </p>
+              )}
+            </div>
+          )}
+
+          {formData.partnerLocation === "India" && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Select State
+                </label>
+                <LocationSelect
+                  type="state"
+                  name="selectedState"
+                  value={formData.selectedState}
+                  countryCode="IN"
+                  onChange={(e) => {
+                    const stateName = e.target.value;
+                    if (stateName) {
+                      // Add to array if not empty
+                      handleChange("partnerStateOrCountry", [
+                        {
+                          value: stateName,
+                          label: stateName,
+                        },
+                      ]);
+                      handleChange("selectedState", stateName);
+                    } else {
+                      // Clear if empty
+                      handleChange("partnerStateOrCountry", []);
+                      handleChange("selectedState", "");
                     }
                   }}
-                  placeholder={
-                    formData.partnerLocation === "India"
-                      ? "Select one or multiple states"
-                      : "Select one or multiple countries"
-                  }
-                  classNamePrefix="react-select"
-                  components={{
-                    IndicatorSeparator: () => null,
-                  }}
-                  menuPlacement="auto"
-                  menuPosition="fixed"
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
-                      borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-                      boxShadow: "none",
-                      borderRadius: "0.5rem",
-                      backgroundColor: "#fff",
-                      minHeight: "50px",
-                      fontSize: "0.875rem",
-                      "&:hover": {
-                        borderColor: "#D4A052",
-                      },
-                    }),
-                    valueContainer: (base) => ({
-                      ...base,
-                      padding: "0 8px",
-                      display: "flex",
-                      flexWrap: "wrap",
-                    }),
-                    multiValue: (base) => ({
-                      ...base,
-                      backgroundColor: "#F9F7F5",
-                      borderRadius: "0.5rem",
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                      borderRadius: "0.75rem",
-                      maxHeight: 200,
-                      overflowY: 'auto',
-                    }),
-                  }}
+                  placeholder="Search state"
+                  className={inputClass}
                 />
               </div>
 

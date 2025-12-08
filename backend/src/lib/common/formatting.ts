@@ -31,8 +31,6 @@ export async function formatListingProfile(
       country: personal?.residingCountry || null,
       religion: personal?.religion || null,
       subCaste: personal?.subCaste || null,
-      height: personal?.height || null,
-      weight: personal?.weight || null,
       profession: profession?.Occupation || null,
       isFavorite: isFavorite,
       closerPhoto: {

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
 import { Heart, MapPin, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { JOB_TITLES, INDIAN_CITIES } from "../lib/constant";
+import { JOB_TITLES } from "../lib/constant";
+import LocationSelect from "./ui/LocationSelect";
+import { State, City } from "country-state-city";
 import { searchProfiles } from "../api/auth";
 
 const RELIGIONS = ["Hindu", "Jain"];
@@ -37,6 +39,28 @@ const NewProfile = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [shouldFetch, setShouldFetch] = useState(true);
 
+  // Get Indian cities from all states
+  const indianCities = useMemo(() => {
+    try {
+      const states = State.getStatesOfCountry("IN");
+      const cities = new Set();
+      states.forEach(state => {
+        try {
+          const stateCities = City.getCitiesOfState("IN", state.isoCode);
+          stateCities.forEach(city => cities.add(city.name));
+        } catch (e) {
+          // Skip states with no cities
+        }
+      });
+      return Array.from(cities).sort();
+    } catch (error) {
+      console.error("Error loading Indian cities:", error);
+      return [];
+    }
+  }, []);
+
+  console.log('Filter Options Loaded:', { cities: indianCities?.length, professions: JOB_TITLES?.length });
+
   // Filter states
   const [filters, setFilters] = useState({
     name: "",
@@ -53,8 +77,6 @@ const NewProfile = () => {
     profession: "",
     education: "",
   });
-
-  console.log('Filter Options Loaded:', { cities: INDIAN_CITIES?.length, professions: JOB_TITLES?.length });
 
   // Fetch profiles with filters from backend
   const fetchProfiles = async () => {
@@ -392,20 +414,18 @@ const NewProfile = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">City:</span>
-                <select
-                  value={filters.city}
-                  onChange={(e) => handleFilterChange('city', e.target.value)}
-                  className="min-w-[160px] border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c8a227]"
-                >
-                  <option value="">All Cities</option>
-                  {INDIAN_CITIES && Array.isArray(INDIAN_CITIES) ? (
-                    INDIAN_CITIES.map((city) => (
-                      <option key={city} value={city}>{city}</option>
-                    ))
-                  ) : (
-                    <option disabled>Loading...</option>
-                  )}
-                </select>
+                <div className="min-w-[160px]">
+                  <LocationSelect
+                    type="city"
+                    name="city"
+                    value={filters.city}
+                    onChange={(e) => handleFilterChange('city', e.target.value)}
+                    countryCode="IN"
+                    stateCode="MH"
+                    placeholder="All Cities"
+                    className="border rounded-md px-3 py-1.5 text-sm"
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Profession:</span>
