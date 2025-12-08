@@ -12,7 +12,7 @@ export interface SecureCookieOptions {
 function getCookieDomain() {
   const isProduction = process.env.NODE_ENV === "production";
 
-  if (isProduction) return ".satfera.in";
+  if (isProduction) return "satfera.in";
 
   return undefined;
 }
@@ -37,6 +37,16 @@ export function setSecureTokenCookie(
   };
 
   res.cookie("token", token, tokenCookieOptions);
+
+  if (isProduction) {
+    logger.info("Cookie set in production:", {
+      domain: getCookieDomain(),
+      secure: tokenCookieOptions.secure,
+      sameSite: tokenCookieOptions.sameSite,
+      httpOnly: tokenCookieOptions.httpOnly,
+      maxAge: tokenCookieOptions.maxAge
+    });
+  }
 }
 
 /**
@@ -83,6 +93,13 @@ export function clearAuthCookies(res: Response): void {
 
   res.clearCookie("token", clearOptions);
   res.clearCookie("csrf_token", clearOptions);
+
+  if (isProduction) {
+    logger.info(
+      "Cookies cleared in production with domain:",
+      getCookieDomain()
+    );
+  }
 }
 
 /**
