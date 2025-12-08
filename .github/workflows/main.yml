@@ -53,7 +53,7 @@ jobs:
             cd frontend
             npm install
             npm run build
-            sudo cp -r build/* /var/www/satfera-frontend/
+            sudo cp -r dist/* /var/www/satfera-frontend/
             sudo systemctl reload nginx
 
       - name: Notify Deployment Success
