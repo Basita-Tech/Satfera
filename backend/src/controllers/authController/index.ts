@@ -27,6 +27,7 @@ import {
   verifyDeviceFingerprint
 } from "../../utils/secureToken";
 import { SessionService } from "../../services/sessionService";
+import { getClientIp, normalizeIp } from "../../utils/ipUtils";
 
 const authService = new AuthService();
 
@@ -50,9 +51,8 @@ function formatValidationErrors(req: Request) {
     message:
       e.msg && e.msg !== "Invalid value"
         ? e.msg
-        : `Invalid value provided${
-            typeof e.value !== "undefined" ? `: ${JSON.stringify(e.value)}` : ""
-          }`,
+        : `Invalid value provided${typeof e.value !== "undefined" ? `: ${JSON.stringify(e.value)}` : ""
+        }`,
     value: e.value
   }));
 }
@@ -116,13 +116,12 @@ export class AuthController {
         isDeleted: false
       });
       if (!user) {
-        const frontendLoginNoUser = `${
-          process.env.FRONTEND_URL
-        }/login?googleExists=false&email=${encodeURIComponent(
-          email
-        )}&name=${encodeURIComponent(
-          givenName || ""
-        )}&picture=${encodeURIComponent(picture || "")}`;
+        const frontendLoginNoUser = `${process.env.FRONTEND_URL
+          }/login?googleExists=false&email=${encodeURIComponent(
+            email
+          )}&name=${encodeURIComponent(
+            givenName || ""
+          )}&picture=${encodeURIComponent(picture || "")}`;
         return res.redirect(frontendLoginNoUser);
       }
 
@@ -158,9 +157,8 @@ export class AuthController {
         redirectTo = "/onboarding/review";
       }
 
-      const frontendLoginUrl = `${
-        process.env.FRONTEND_URL
-      }/login?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`;
+      const frontendLoginUrl = `${process.env.FRONTEND_URL
+        }/login?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`;
 
       return res.redirect(frontendLoginUrl);
     } catch (error: any) {
@@ -346,14 +344,18 @@ export class AuthController {
           .json({ success: false, message: "Not authenticated" });
       }
 
-      const reqIp = req.ip || "";
+      const reqIp = getClientIp(req);
       const reqUA = req.get("user-agent") || "";
 
       const strictSessionChecks = true;
 
       let isSuspicious = false;
 
-      if (session.ipAddress && reqIp && session.ipAddress !== reqIp) {
+      if (
+        session.ipAddress &&
+        reqIp &&
+        normalizeIp(session.ipAddress) !== normalizeIp(reqIp)
+      ) {
         logger.warn("IP mismatch", {
           userId,
           sessionIp: session.ipAddress,
@@ -642,9 +644,8 @@ export class AuthController {
           .status(400)
           .json({ success: false, message: "Invalid token payload" });
 
-      const redisKey = `forgot-password-token:${
-        payload.id || payload.email || payload.sub || payload.hash
-      }`;
+      const redisKey = `forgot-password-token:${payload.id || payload.email || payload.sub || payload.hash
+        }`;
 
       const stored = await redisClient.get(
         `forgot-password-token:${payload.email ?? payload.id}`

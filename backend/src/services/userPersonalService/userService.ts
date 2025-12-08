@@ -414,8 +414,11 @@ export async function searchService(
         User.findById(authObjId).select("blockedUsers").lean()
       ]);
       const blockedIds: any[] = (authUser as any)?.blockedUsers || [];
+
+      match._id = match._id || {};
+      match._id.$ne = authObjId;
+
       if (blockedIds.length > 0) {
-        match._id = match._id || {};
         match._id.$nin = blockedIds;
       }
 
@@ -487,7 +490,12 @@ export async function searchService(
           $convert: {
             input: {
               $ifNull: [
-                { $arrayElemAt: ["$$nums.match", { $subtract: [{ $size: "$$nums" }, 1] }] },
+                {
+                  $arrayElemAt: [
+                    "$$nums.match",
+                    { $subtract: [{ $size: "$$nums" }, 1] }
+                  ]
+                },
                 0
               ]
             },
@@ -540,7 +548,9 @@ export async function searchService(
     postMatch.$and.push({
       $or: [
         {
-          "profession.Occupation": { $regex: new RegExp(filters.profession, "i") }
+          "profession.Occupation": {
+            $regex: new RegExp(filters.profession, "i")
+          }
         },
         {
           "profession.OrganizationName": {
@@ -584,10 +594,7 @@ export async function searchService(
         in: {
           $convert: {
             input: {
-              $ifNull: [
-                { $arrayElemAt: ["$$nums.match", 0] },
-                0
-              ]
+              $ifNull: [{ $arrayElemAt: ["$$nums.match", 0] }, 0]
             },
             to: "double",
             onError: 0,
