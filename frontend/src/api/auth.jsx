@@ -85,6 +85,37 @@ export const signupUser = async (formData) => {
   }
 };
 
+export const forgotUsername = async (formData) => {
+  try {
+    const response = await axios.post(`${API}/auth/forgot-username`, formData, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    const status = error?.response?.status;
+    const data = error?.response?.data || {};
+
+    if (status === 404 || status === 400) {
+      return {
+        success: false,
+        message: "If an account exists with the provided details, the username will be displayed.",
+      };
+    }
+
+    if (status === 429) {
+      return {
+        success: false,
+        message: "Too many attempts. Please try again later.",
+      };
+    }
+
+    return {
+      success: false,
+      message: data.message || "Unable to retrieve username. Please try again.",
+    };
+  }
+};
+
 export const loginUser = async (formData) => {
   try {
     const response = await axios.post(`${API}/auth/login`, formData);

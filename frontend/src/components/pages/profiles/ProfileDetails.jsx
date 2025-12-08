@@ -706,70 +706,70 @@ function PersonalDetailsSection({ profile, capitalize, formatAgeFromDob }) {
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8 text-sm">
-        {profile?.gender && (
+        {(profile?.gender || profile?.personal?.gender) && (
           <DetailRow
             icon={<User className="text-[#C8A227]" size={18} />}
             label="Gender"
-            value={capitalize(profile.gender)}
+            value={capitalize(profile?.gender || profile?.personal?.gender)}
           />
         )}
-        {profile?.dateOfBirth && (
+        {(profile?.dateOfBirth || profile?.personal?.dateOfBirth) && (
           <>
             <DetailRow
               icon={<Calendar className="text-[#C8A227]" size={18} />}
               label="Date of Birth"
-              value={new Date(profile.dateOfBirth).toLocaleDateString()}
+              value={new Date(profile?.dateOfBirth || profile?.personal?.dateOfBirth).toLocaleDateString()}
             />
             <DetailRow
               icon={<Clock className="text-[#C8A227]" size={18} />}
               label="Age"
-              value={formatAgeFromDob(profile.dateOfBirth)}
+              value={formatAgeFromDob(profile?.dateOfBirth || profile?.personal?.dateOfBirth)}
             />
           </>
         )}
-        {profile?.personal?.birthPlace && profile?.personal?.birthState && (
+        {(profile?.personal?.birthPlace && profile?.personal?.birthState) && (
           <DetailRow
             icon={<MapPin className="text-[#C8A227]" size={18} />}
             label="Birthplace"
             value={`${profile.personal.birthPlace}, ${profile.personal.birthState}`}
           />
         )}
-        {profile?.personal?.height && (
+        {(profile?.personal?.height) && (
           <DetailRow
             icon={<Ruler className="text-[#C8A227]" size={18} />}
             label="Height"
             value={profile.personal.height}
           />
         )}
-        {profile?.personal?.weight && (
+        {(profile?.personal?.weight) && (
           <DetailRow
             icon={<Weight className="text-[#C8A227]" size={18} />}
             label="Weight"
             value={profile.personal.weight}
           />
         )}
-        {profile?.personal?.religion && (
+        {(profile?.personal?.religion) && (
           <DetailRow
             icon={<Heart className="text-[#C8A227]" size={18} />}
             label="Religion"
             value={capitalize(profile.personal.religion)}
           />
         )}
-        {profile?.personal?.subCaste && (
+        {(profile?.personal?.subCaste) && (
           <DetailRow
             icon={<User className="text-[#C8A227]" size={18} />}
             label="Subcaste"
             value={profile.personal.subCaste}
           />
         )}
-        {profile?.personal?.country && (
+        {(profile?.personal?.country) && (
           <DetailRow
             icon={<MapPin className="text-[#C8A227]" size={18} />}
             label="Country"
             value={profile.personal.country}
           />
         )}
-        {profile?.personal?.city && profile?.personal?.state && (
+        {(profile?.personal?.city && profile?.personal?.state) && (
           <DetailRow
             icon={<MapPin className="text-[#C8A227]" size={18} />}
             label="Current Location"
@@ -777,6 +777,85 @@ function PersonalDetailsSection({ profile, capitalize, formatAgeFromDob }) {
               profile.personal.state
             }`}
           />
+        )}
+        {(profile?.personal?.nationality) && (
+          <DetailRow
+            icon={<User className="text-[#C8A227]" size={18} />}
+            label="Nationality"
+            value={profile.personal.nationality}
+          />
+        )}
+        {(profile?.personal?.astrologicalSign) && (
+          <DetailRow
+            icon={<Star className="text-[#C8A227]" size={18} />}
+            label="Zodiac Sign"
+            value={profile.personal.astrologicalSign}
+          />
+        )}
+        {(profile?.personal?.dosh) && (
+          <DetailRow
+            icon={<Heart className="text-[#C8A227]" size={18} />}
+            label="Dosh"
+            value={profile.personal.dosh}
+          />
+        )}
+        {(profile?.personal?.marriedStatus) && (
+          <div className="col-span-full">
+            <DetailRow
+              icon={<User className="text-[#C8A227]" size={18} />}
+              label="Marital Status"
+              value={profile.personal.marriedStatus}
+            />
+            
+            {/* Conditional fields based on marital status */}
+            <div className="mt-3 space-y-2">
+              {/* Divorce Status - shown for Divorced or Awaiting Divorce */}
+              {(profile.personal.marriedStatus === "Divorced" || profile.personal.marriedStatus === "Awaiting Divorce") && profile.personal.divorceStatus && (
+                <ul className="list-disc list-inside ml-6 text-sm text-gray-600">
+                  <li>
+                    <span className="font-medium text-gray-700">Divorce Status:</span> {profile.personal.divorceStatus}
+                  </li>
+                </ul>
+              )}
+
+              {/* Children Information - shown for all statuses except Never Married */}
+              {profile.personal.marriedStatus !== "Never Married" && (
+                <ul className="list-disc list-inside ml-6 text-sm text-gray-600">
+                  {typeof profile.personal.isHaveChildren === "boolean" && (
+                    <li>
+                      <span className="font-medium text-gray-700">Has Children:</span> {profile.personal.isHaveChildren ? "Yes" : "No"}
+                    </li>
+                  )}
+                  {profile.personal.isHaveChildren && profile.personal.numberOfChildren && (
+                    <li>
+                      <span className="font-medium text-gray-700">Number of Children:</span> {profile.personal.numberOfChildren}
+                    </li>
+                  )}
+                  {profile.personal.isHaveChildren && typeof profile.personal.isChildrenLivingWithYou === "boolean" && (
+                    <li>
+                      <span className="font-medium text-gray-700">Children Living With:</span> {profile.personal.isChildrenLivingWithYou ? "With Me" : "Not With Me"}
+                    </li>
+                  )}
+                </ul>
+              )}
+
+              {/* Separation Details - shown for Separated status */}
+              {profile.personal.marriedStatus === "Separated" && (
+                <ul className="list-disc list-inside ml-6 text-sm text-gray-600">
+                  {typeof profile.personal.isLegallySeparated === "boolean" && (
+                    <li>
+                      <span className="font-medium text-gray-700">Legally Separated:</span> {profile.personal.isLegallySeparated ? "Yes" : "No"}
+                    </li>
+                  )}
+                  {profile.personal.separatedSince && (
+                    <li>
+                      <span className="font-medium text-gray-700">Separated Since:</span> {profile.personal.separatedSince}
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </section>
@@ -786,32 +865,101 @@ function PersonalDetailsSection({ profile, capitalize, formatAgeFromDob }) {
 function FamilyDetailsSection({ profile, capitalize }) {
   if (!profile?.family) return null;
 
+  const family = profile.family;
+
   return (
     <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold text-[#222] mb-4">Family Details</h3>
+      <h3 className="text-lg font-semibold text-[#222] mb-4 flex items-center gap-2">
+        <User className="text-[#C8A227]" size={20} />
+        Family Details
+      </h3>
 
-      <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-        {profile.family.fatherName && (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+        {(family.fatherName) && (
           <div>
             <p className="text-gray-500">Father's Name</p>
             <p className="font-medium">
-              {capitalize(profile.family.fatherName)}
+              {capitalize(family.fatherName)}
             </p>
           </div>
         )}
-        {profile.family.motherName && (
+        {(family.fatherOccupation) && (
+          <div>
+            <p className="text-gray-500">Father's Occupation</p>
+            <p className="font-medium">
+              {capitalize(family.fatherOccupation)}
+            </p>
+          </div>
+        )}
+        {(family.fatherNativePlace) && (
+          <div>
+            <p className="text-gray-500">Father's Native Place</p>
+            <p className="font-medium">
+              {capitalize(family.fatherNativePlace)}
+            </p>
+          </div>
+        )}
+        {(family.motherName) && (
           <div>
             <p className="text-gray-500">Mother's Name</p>
             <p className="font-medium">
-              {capitalize(profile.family.motherName)}
+              {capitalize(family.motherName)}
             </p>
           </div>
         )}
-        {profile.family.familyType && (
+        {(family.motherOccupation) && (
+          <div>
+            <p className="text-gray-500">Mother's Occupation</p>
+            <p className="font-medium">
+              {capitalize(family.motherOccupation)}
+            </p>
+          </div>
+        )}
+        {(family.grandFatherName) && (
+          <div>
+            <p className="text-gray-500">Grandfather's Name</p>
+            <p className="font-medium">
+              {capitalize(family.grandFatherName)}
+            </p>
+          </div>
+        )}
+        {(family.grandMotherName) && (
+          <div>
+            <p className="text-gray-500">Grandmother's Name</p>
+            <p className="font-medium">
+              {capitalize(family.grandMotherName)}
+            </p>
+          </div>
+        )}
+        {(family.nanaName) && (
+          <div>
+            <p className="text-gray-500">Maternal Grandfather's Name</p>
+            <p className="font-medium">
+              {capitalize(family.nanaName)}
+            </p>
+          </div>
+        )}
+        {(family.nanaNativePlace) && (
+          <div>
+            <p className="text-gray-500">Maternal Grandfather's Native Place</p>
+            <p className="font-medium">
+              {capitalize(family.nanaNativePlace)}
+            </p>
+          </div>
+        )}
+        {(family.naniName) && (
+          <div>
+            <p className="text-gray-500">Maternal Grandmother's Name</p>
+            <p className="font-medium">
+              {capitalize(family.naniName)}
+            </p>
+          </div>
+        )}
+        {(family.familyType) && (
           <div className="sm:col-span-2">
             <p className="text-gray-500">Family Type</p>
             <p className="font-medium">
-              {capitalize(profile.family.familyType)}
+              {capitalize(family.familyType)}
             </p>
           </div>
         )}
@@ -821,7 +969,9 @@ function FamilyDetailsSection({ profile, capitalize }) {
 }
 
 function EducationDetailsSection({ profile }) {
-  if (!profile?.education) return null;
+  const education = profile?.education;
+  
+  if (!education) return null;
 
   return (
     <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -831,18 +981,36 @@ function EducationDetailsSection({ profile }) {
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-        {profile.education.HighestEducation && (
+        {(education.HighestEducation) && (
           <div>
             <p className="text-gray-500">Qualification</p>
             <p className="font-semibold">
-              {profile.education.HighestEducation}
+              {education.HighestEducation}
             </p>
           </div>
         )}
-        {profile.education.University && (
+        {(education.FieldOfStudy) && (
+          <div>
+            <p className="text-gray-500">Field of Study</p>
+            <p className="font-semibold">{education.FieldOfStudy}</p>
+          </div>
+        )}
+        {(education.SchoolName) && (
+          <div>
+            <p className="text-gray-500">School/Institute</p>
+            <p className="font-semibold">{education.SchoolName}</p>
+          </div>
+        )}
+        {(education.University) && (
           <div>
             <p className="text-gray-500">University / College</p>
-            <p className="font-semibold">{profile.education.University}</p>
+            <p className="font-semibold">{education.University}</p>
+          </div>
+        )}
+        {(education.CountryOfEducation) && (
+          <div>
+            <p className="text-gray-500">Country of Education</p>
+            <p className="font-semibold">{education.CountryOfEducation}</p>
           </div>
         )}
       </div>
@@ -911,6 +1079,12 @@ function HealthLifestyleSection({ profile, capitalize }) {
           <p className="text-gray-500">Tobacco</p>
           <p className="font-semibold">
             {capitalize(profile.healthAndLifestyle.isTobaccoUser) || "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-500">Tattoo</p>
+          <p className="font-semibold">
+            {capitalize(profile.healthAndLifestyle.isHaveTattoos) || "—"}
           </p>
         </div>
         <div>

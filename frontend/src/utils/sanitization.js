@@ -42,20 +42,19 @@ export const sanitizeText = (input) => {
 };
 
 /**
- * Sanitize and validate email
+ * Sanitize email (removes HTML/dangerous chars, converts to lowercase)
+ * Note: Returns sanitized string even if invalid format (validation is separate)
  * @param {string} email - Email input
- * @returns {string|null} Sanitized email or null if invalid
+ * @returns {string} Sanitized email
  */
 export const sanitizeEmail = (email) => {
-  if (!email || typeof email !== 'string') return null;
+  if (!email || typeof email !== 'string') return '';
   
+  // Sanitize text and convert to lowercase
   const sanitized = sanitizeText(email).toLowerCase();
   
-  if (!validator.isEmail(sanitized)) {
-    return null;
-  }
-  
-  return sanitized;
+  // Remove any remaining dangerous characters while preserving email structure
+  return sanitized.replace(/[<>'\"]/g, '').trim();
 };
 
 /**
@@ -81,7 +80,12 @@ export const sanitizeName = (name) => {
   const sanitized = sanitizeText(name);
   
   // Allow only letters, spaces, hyphens, apostrophes, and dots
-  return sanitized.replace(/[^a-zA-Z\s\-'.]/g, '').trim();
+  let cleaned = sanitized.replace(/[^a-zA-Z\s\-'.]/g, '').trim();
+  
+  // Capitalize first letter of each word
+  cleaned = cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+  
+  return cleaned;
 };
 
 /**
@@ -97,23 +101,18 @@ export const sanitizeAlphanumeric = (input) => {
 };
 
 /**
- * Sanitize URL
+ * Sanitize URL (removes HTML/dangerous chars)
+ * Note: Returns sanitized string even if invalid format (validation is separate)
  * @param {string} url - URL input
- * @returns {string|null} Sanitized URL or null if invalid
+ * @returns {string} Sanitized URL
  */
 export const sanitizeURL = (url) => {
-  if (!url || typeof url !== 'string') return null;
+  if (!url || typeof url !== 'string') return '';
   
   const sanitized = sanitizeText(url).trim();
   
-  if (!validator.isURL(sanitized, {
-    protocols: ['http', 'https'],
-    require_protocol: true
-  })) {
-    return null;
-  }
-  
-  return sanitized;
+  // Remove dangerous characters
+  return sanitized.replace(/[<>'\"]/g, '');
 };
 
 /**
@@ -130,6 +129,33 @@ export const sanitizePassword = (password) => {
     ALLOWED_ATTR: [],
     KEEP_CONTENT: true
   });
+};
+
+/**
+ * Sanitize country code (e.g., +91, +1, +44)
+ * @param {string} code - Country code input
+ * @returns {string} Sanitized country code
+ */
+export const sanitizeCountryCode = (code) => {
+  if (!code || typeof code !== 'string') return '';
+  
+  // Only allow + and digits for country codes
+  return code.replace(/[^\d+]/g, '').trim();
+};
+
+/**
+ * Sanitize generic string input
+ * @param {string} input - The input string to sanitize
+ * @returns {string} Sanitized string
+ */
+export const sanitizeString = (input) => {
+  if (typeof input !== 'string') return '';
+  
+  return input
+    .replace(/[<>]/g, '') // Remove angle brackets
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim();
 };
 
 /**
@@ -176,10 +202,7 @@ export const validateAndSanitizeForm = (formData, schema = {}) => {
     switch (rules.type) {
       case 'email':
         const email = sanitizeEmail(value);
-        if (!email && value) {
-          errors[field] = 'Invalid email format';
-        }
-        sanitized[field] = email || '';
+        sanitized[field] = email;
         break;
         
       case 'phone':
@@ -195,10 +218,7 @@ export const validateAndSanitizeForm = (formData, schema = {}) => {
         
       case 'url':
         const url = sanitizeURL(value);
-        if (!url && value) {
-          errors[field] = 'Invalid URL format';
-        }
-        sanitized[field] = url || '';
+        sanitized[field] = url;
         break;
         
       case 'password':
@@ -263,6 +283,8 @@ export default {
   sanitizeAlphanumeric,
   sanitizeURL,
   sanitizePassword,
+  sanitizeCountryCode,
+  sanitizeString,
   sanitizeObject,
   validateAndSanitizeForm,
   escapeRegex,

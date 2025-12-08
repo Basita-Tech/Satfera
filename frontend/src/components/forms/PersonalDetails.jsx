@@ -734,7 +734,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.firstName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                style={{ backgroundColor: '#EEEAE6' }}
               />
             </div>
             <div>
@@ -742,7 +743,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.middleName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                style={{ backgroundColor: '#EEEAE6' }}
               />
             </div>
             <div>
@@ -750,7 +752,8 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.lastName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                style={{ backgroundColor: '#EEEAE6' }}
               />
             </div>
           </div>
@@ -764,17 +767,20 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <input
                 readOnly
                 value={formData.dobDay}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                style={{ backgroundColor: '#EEEAE6' }}
               />
               <input
                 readOnly
                 value={formData.dobMonth}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                style={{ backgroundColor: '#EEEAE6' }}
               />
               <input
                 readOnly
                 value={formData.dobYear}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] bg-white text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+                style={{ backgroundColor: '#EEEAE6' }}
               />
             </div>
           </div>

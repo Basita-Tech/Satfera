@@ -10,6 +10,27 @@ import {
 import { allCountries } from "country-telephone-data";
 import toast from "react-hot-toast";
 import { AuthContextr } from "../context/AuthContext";
+import {
+  sanitizeName,
+  sanitizeEmail,
+  sanitizePhone,
+  sanitizeCountryCode,
+  sanitizePassword,
+  sanitizeString,
+} from "../../utils/sanitization";
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validateDateOfBirth,
+  validatePassword,
+  validatePasswordMatch,
+  validateCountryCode,
+  validateProfileFor,
+  validateGender,
+  validateSignupForm,
+  getPasswordStrength,
+} from "../../utils/validation";
 
 const profileOptions = [
   { value: "myself", label: "Myself" },
@@ -85,38 +106,13 @@ const SignUpPage = () => {
     }
   };
 
+
   // Allow authenticated users to access signup page
   // (removed auto-redirect to dashboard)
 
   useEffect(() => {
     if (formData.gender) localStorage.setItem("gender", formData.gender);
   }, [formData.gender]);
-
-  const capitalizeWords = (str) =>
-    str.replace(
-      /\b\w+\b/g,
-      (word) => word[0].toUpperCase() + word.slice(1).toLowerCase()
-    );
-
-  const validateDOB = (day, month, year, gender) => {
-    if (!day || !month || !year) return "Complete Date of Birth required";
-    if (day.length !== 2 || month.length !== 2 || year.length !== 4)
-      return "Enter valid DD/MM/YYYY";
-    const birthDate = new Date(year, month - 1, day);
-    if (isNaN(birthDate.getTime())) return "Invalid Date";
-
-    const ageDifMs = today - birthDate;
-    const ageDate = new Date(ageDifMs);
-    const age = Math.abs(ageDate.getUTCFullYear() - 1970);
-
-    if ((gender === "male" && age < 21) || (gender === "female" && age < 20))
-      return `Age must be at least ${gender === "male" ? 21 : 20}`;
-
-    if ((gender === "male" && age > 40) || (gender === "female" && age > 40))
-      return `Age must be at most ${gender === "male" ? 40 : 40}`;
-
-    return "";
-  };
 
   const focusNext = (currentName) => {
     const order = ["dobDay", "dobMonth", "dobYear"];
@@ -131,37 +127,59 @@ const SignUpPage = () => {
     const { name, value } = e.target;
     let formattedValue = value;
 
+    // Sanitize input based on field type
     if (name === "email") {
-      formattedValue = value.toLowerCase();
-    }
-
-    if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
+      formattedValue = sanitizeEmail(value);
+    } else if (name === "mobile") {
+      formattedValue = sanitizePhone(value);
+    } else if (name === "countryCode") {
+      formattedValue = sanitizeCountryCode(value);
+    } else if (name === "password" || name === "confirmPassword") {
+      formattedValue = sanitizePassword(value);
+    } else if (["firstName", "middleName", "lastName"].includes(name)) {
+      formattedValue = sanitizeName(value);
+    } else if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
       formattedValue = value.replace(/\D/g, "");
-    }
-
-    if (["firstName", "middleName", "lastName"].includes(name)) {
-      formattedValue = capitalizeWords(value);
+    } else {
+      formattedValue = sanitizeString(value);
     }
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    if (name === "firstName" || name === "lastName") {
-      if (!formattedValue.trim()) {
-        setErrors((prev) => ({
-          ...prev,
-          [name]: `${name === "firstName" ? "First" : "Last"} Name required`,
-        }));
-      } else {
-        setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[name];
-          return newErrors;
-        });
+    // Real-time validation for names - only validate on blur or if field had previous error
+    if (["firstName", "lastName"].includes(name)) {
+      // Only show validation error if field was previously touched (had an error) or field is being blurred
+      if (formattedValue.trim() && errors[name]) {
+        const error = validateName(
+          formattedValue,
+          name === "firstName" ? "First Name" : "Last Name"
+        );
+        if (error) {
+          setErrors((prev) => ({ ...prev, [name]: error }));
+        }
       }
     }
 
+    // Real-time validation for email
+    if (name === "email" && formattedValue) {
+      const emailError = validateEmail(formattedValue);
+      if (emailError) {
+        setErrors((prev) => ({ ...prev, email: emailError }));
+      }
+    }
+
+    // Real-time validation for mobile
+    if (name === "mobile" && formattedValue) {
+      const phoneError = validatePhone(formattedValue, formData.countryCode);
+      if (phoneError) {
+        setErrors((prev) => ({ ...prev, mobile: phoneError }));
+      }
+    }
+
+    // Password strength indicator
     if (name === "password") {
+      const strength = getPasswordStrength(formattedValue);
       setPasswordCriteria({
         length: formattedValue.length >= 6,
         upper: /[A-Z]/.test(formattedValue),
@@ -171,90 +189,58 @@ const SignUpPage = () => {
       });
     }
 
+    // Real-time validation for DOB fields
     if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
       let dobError = "";
+      
       if (name === "dobDay" && formattedValue.length === 2) {
         if (+formattedValue < 1 || +formattedValue > 31)
           dobError = "Invalid day";
         else focusNext(name);
       }
+      
       if (name === "dobMonth" && formattedValue.length === 2) {
         if (+formattedValue < 1 || +formattedValue > 12)
           dobError = "Invalid month";
         else focusNext(name);
       }
+      
       if (name === "dobYear" && formattedValue.length === 4) {
         const year = +formattedValue;
         const currentYear = today.getFullYear();
         if (year < currentYear - 100 || year > currentYear)
           dobError = "Invalid year";
+        else {
+          // Validate full DOB when year is complete
+          const dobValidationError = validateDateOfBirth(
+            formData.dobDay,
+            formData.dobMonth,
+            formattedValue,
+            formData.gender
+          );
+          if (dobValidationError) dobError = dobValidationError;
+        }
       }
-      if (
-        name === "dobYear" &&
-        formData.dobDay.length === 2 &&
-        formData.dobMonth.length === 2
-      ) {
-        dobError = validateDOB(
-          formData.dobDay,
-          formData.dobMonth,
-          formattedValue,
-          formData.gender
-        );
+      
+      if (dobError) {
+        setErrors((prev) => ({ ...prev, dobDay: dobError }));
       }
-      setErrors((prev) => ({ ...prev, dobDay: dobError }));
-    }
-
-    if (name === "email") {
-      const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
-      if (!formattedValue)
-        setErrors((prev) => ({ ...prev, email: "Email required" }));
-      else if (/[A-Z]/.test(formattedValue))
-        setErrors((prev) => ({
-          ...prev,
-          email: "Uppercase letters are not allowed",
-        }));
-      else if (!emailRegex.test(formattedValue))
-        setErrors((prev) => ({ ...prev, email: "Invalid email format" }));
-      else if (existingEmails.includes(formattedValue))
-        setErrors((prev) => ({ ...prev, email: "Email already exists" }));
-      else setErrors((prev) => ({ ...prev, email: "" }));
-    }
-
-    if (name === "mobile") {
-      if (!formattedValue)
-        setErrors((prev) => ({ ...prev, mobile: "Mobile required" }));
-      else if (
-        formData.countryCode === "+91" &&
-        !/^\d{10}$/.test(formattedValue)
-      )
-        setErrors((prev) => ({
-          ...prev,
-          mobile: "Enter valid 10-digit number",
-        }));
-      else if (!/^\d{6,15}$/.test(formattedValue))
-        setErrors((prev) => ({
-          ...prev,
-          mobile: "Enter valid mobile number",
-        }));
-      else if (
-        formData.countryCode &&
-        existingMobiles.includes(formData.countryCode + formattedValue)
-      )
-        setErrors((prev) => ({ ...prev, mobile: "Mobile already exists" }));
-      else if (!formData.countryCode)
-        setErrors((prev) => ({ ...prev, mobile: "Select country code" }));
-      else setErrors((prev) => ({ ...prev, mobile: "" }));
     }
   };
 
   const handleProfileForChange = (value) => {
+    const sanitizedValue = sanitizeString(value);
+    const profileError = validateProfileFor(sanitizedValue);
+    
     let autoGender = "";
-    if (value === "son" || value === "brother") autoGender = "male";
-    if (value === "daughter" || value === "sister") autoGender = "female";
+    if (sanitizedValue === "son" || sanitizedValue === "brother")
+      autoGender = "male";
+    if (sanitizedValue === "daughter" || sanitizedValue === "sister")
+      autoGender = "female";
 
     setFormData((prev) => ({
       ...prev,
-      profileFor: value,
+      profileFor: sanitizedValue,
       gender: autoGender || "",
     }));
 
@@ -263,7 +249,7 @@ const SignUpPage = () => {
       delete updated.profileFor;
       if (autoGender) {
         delete updated.gender;
-      } else if (value === "myself" || value === "friend") {
+      } else if (sanitizedValue === "myself" || sanitizedValue === "friend") {
         updated.gender = "Please select gender";
       } else {
         delete updated.gender;
@@ -272,7 +258,7 @@ const SignUpPage = () => {
     });
 
     if (autoGender) {
-      const dobError = validateDOB(
+      const dobError = validateDateOfBirth(
         formData.dobDay,
         formData.dobMonth,
         formData.dobYear,
@@ -283,15 +269,18 @@ const SignUpPage = () => {
   };
 
   const handleGenderSelect = (gender) => {
-    setFormData((prev) => ({ ...prev, gender }));
+    const sanitizedGender = sanitizeString(gender);
+    const genderError = validateGender(sanitizedGender);
+    
+    setFormData((prev) => ({ ...prev, gender: sanitizedGender }));
     setErrors((prev) => ({ ...prev, gender: "" }));
-    localStorage.setItem("gender", gender);
+    localStorage.setItem("gender", sanitizedGender);
 
-    const dobError = validateDOB(
+    const dobError = validateDateOfBirth(
       formData.dobDay,
       formData.dobMonth,
       formData.dobYear,
-      gender
+      sanitizedGender
     );
     setErrors((prev) => ({ ...prev, dobDay: dobError }));
   };
@@ -306,6 +295,46 @@ const SignUpPage = () => {
       setErrors((prev) => {
         const newErr = { ...prev };
         delete newErr.gender;
+        return newErr;
+      });
+    }
+  };
+
+  const handleNameBlur = (fieldName) => {
+    const fieldLabel = fieldName === "firstName" ? "First Name" : fieldName === "lastName" ? "Last Name" : "Middle Name";
+    const fieldValue = formData[fieldName];
+    
+    if (fieldValue.trim()) {
+      const error = validateName(fieldValue, fieldLabel);
+      if (error) {
+        setErrors((prev) => ({ ...prev, [fieldName]: error }));
+      } else {
+        setErrors((prev) => {
+          const newErr = { ...prev };
+          delete newErr[fieldName];
+          return newErr;
+        });
+      }
+    }
+  };
+
+  const handleDOBBlur = () => {
+    // Validate complete DOB when user leaves any DOB field
+    const dobError = validateDateOfBirth(
+      formData.dobDay,
+      formData.dobMonth,
+      formData.dobYear,
+      formData.gender
+    );
+    
+    if (dobError) {
+      setErrors((prev) => ({ ...prev, dobDay: dobError }));
+    } else {
+      setErrors((prev) => {
+        const newErr = { ...prev };
+        delete newErr.dobDay;
+        delete newErr.dobMonth;
+        delete newErr.dobYear;
         return newErr;
       });
     }
@@ -333,74 +362,26 @@ const SignUpPage = () => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    const {
-      profileFor,
-      gender,
-      firstName,
-      lastName,
-      dobDay,
-      dobMonth,
-      dobYear,
-      email,
-      mobile,
-      password,
-      confirmPassword,
-      useAsUsername,
-      countryCode,
-    } = formData;
+    const validation = validateSignupForm({
+      profileFor: formData.profileFor,
+      gender: formData.gender,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      middleName: formData.middleName,
+      dobDay: formData.dobDay,
+      dobMonth: formData.dobMonth,
+      dobYear: formData.dobYear,
+      email: formData.email,
+      mobile: formData.mobile,
+      countryCode: formData.countryCode,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      useAsUsername: formData.useAsUsername,
+      termsAccepted: termsAccepted,
+    });
 
-    if (!profileFor)
-      newErrors.profileFor = "Please select Matrimony Profile For";
-    if ((profileFor === "myself" || profileFor === "friend") && !gender)
-      newErrors.gender = "Please select gender";
-    if (!firstName.trim()) newErrors.firstName = "First Name required";
-    if (!lastName.trim()) newErrors.lastName = "Last Name required";
-
-    const dobError = validateDOB(dobDay, dobMonth, dobYear, gender);
-    if (dobError) newErrors.dobDay = dobError;
-
-    if (!useAsUsername.length)
-      newErrors.useAsUsername = "Select Email or Mobile as Username";
-
-    if (!termsAccepted)
-      newErrors.termsAccepted = "You must agree to the Terms & Conditions";
-
-    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
-    if (useAsUsername.includes("email")) {
-      if (!email) newErrors.email = "Email required";
-      else if (/[A-Z]/.test(email))
-        newErrors.email = "Uppercase letters are not allowed";
-      else if (!emailRegex.test(email))
-        newErrors.email = "Invalid email format";
-      else if (existingEmails.includes(email))
-        newErrors.email = "Email already exists";
-    }
-
-    if (useAsUsername.includes("mobile")) {
-      if (!countryCode) {
-        newErrors.mobile = "Select country code";
-      } else if (!mobile) {
-        newErrors.mobile = "Mobile required";
-      } else if (countryCode === "+91" && !/^\d{10}$/.test(mobile)) {
-        newErrors.mobile = "Enter valid 10-digit number";
-      } else if (!/^\d{6,15}$/.test(mobile)) {
-        newErrors.mobile = "Enter valid mobile number";
-      } else if (existingMobiles.includes(countryCode + mobile)) {
-        newErrors.mobile = "Mobile already exists";
-      }
-    }
-
-    const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$/;
-    if (!passRegex.test(password || ""))
-      newErrors.password =
-        "Password must include uppercase, lowercase, number & special char";
-
-    if (password !== confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(validation.errors);
+    return validation.isValid;
   };
 
   const handleSubmit = async (e) => {
@@ -411,26 +392,38 @@ const SignUpPage = () => {
     setErrors({});
 
     try {
-      let mobile = formData.mobile.replace(/\D/g, "");
-      if (mobile.startsWith("0")) mobile = mobile.slice(1);
-      const phoneNumber = `${formData.countryCode}${mobile}`;
+      // Sanitize all input before submission
+      const sanitizedFirstName = sanitizeName(formData.firstName.trim());
+      const sanitizedMiddleName = sanitizeName(formData.middleName?.trim() || "");
+      const sanitizedLastName = sanitizeName(formData.lastName.trim());
+      const sanitizedEmail = sanitizeEmail(formData.email.trim());
+      let sanitizedMobile = sanitizePhone(formData.mobile).replace(/\D/g, "");
+      const sanitizedCountryCode = sanitizeCountryCode(formData.countryCode);
+      const sanitizedProfileFor = sanitizeString(formData.profileFor);
+      const sanitizedGender = sanitizeString(formData.gender);
+      const sanitizedPassword = sanitizePassword(formData.password);
+
+      if (sanitizedMobile.startsWith("0")) {
+        sanitizedMobile = sanitizedMobile.slice(1);
+      }
+      const phoneNumber = `${sanitizedCountryCode}${sanitizedMobile}`;
 
       const payload = {
-        firstName: formData.firstName.trim(),
-        middleName: formData.middleName?.trim() || "",
-        lastName: formData.lastName.trim(),
-        gender: formData.gender,
-        email: formData.email.toLowerCase().trim(),
+        firstName: sanitizedFirstName,
+        middleName: sanitizedMiddleName,
+        lastName: sanitizedLastName,
+        gender: sanitizedGender,
+        email: sanitizedEmail,
         phoneNumber,
-        password: formData.password,
+        password: sanitizedPassword,
         termsAndConditionsAccepted: termsAccepted,
         dateOfBirth: `${String(formData.dobDay).padStart(2, "0")}-${String(
           formData.dobMonth
         ).padStart(2, "0")}-${formData.dobYear}`,
-        for_Profile: formData.profileFor,
+        for_Profile: sanitizedProfileFor,
       };
 
-      console.log("Signup payload:", payload);
+      console.log("Signup payload (sanitized):", payload);
 
       const res = await signupUser(payload);
       console.log("Signup response:", res);
@@ -450,9 +443,9 @@ const SignUpPage = () => {
             navigate("/verify-otp", {
               state: {
                 email: payload.email,
-                countryCode: formData.countryCode,
-                mobile,
-                name: `${payload.firstName} ${payload.lastName}`,
+                countryCode: sanitizedCountryCode,
+                mobile: sanitizedMobile,
+                name: `${sanitizedFirstName} ${sanitizedLastName}`,
               },
             });
             return;
@@ -563,7 +556,7 @@ const SignUpPage = () => {
                   className={`px-4 py-3 text-sm font-medium shadow-md border rounded-md transition-all duration-200 
                     ${
                       formData.profileFor === opt.value
-                        ? "bg-[#D4A052] text-[#800000] border-[#E4C48A] font-semibold"
+                        ? "bg-[#D4A052] text-white border-[#E4C48A] font-semibold"
                         : "bg-white text-gray-700 border-[#E4C48A] hover:bg-[#FFF9F2]"
                     }`}
                 >
@@ -593,7 +586,7 @@ const SignUpPage = () => {
                     className={`px-4 py-3 text-sm font-medium shadow-md border rounded-md transition-all duration-200
             ${
               formData.gender === g
-                ? "bg-[#D4A052] text-[#800000] border-[#E4C48A] font-semibold"
+                ? "bg-[#D4A052] text-white border-[#E4C48A] font-semibold"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
             }`}
                   >
@@ -622,6 +615,7 @@ const SignUpPage = () => {
                   placeholder="First Name *"
                   value={formData.firstName}
                   onChange={handleInputChange}
+                  onBlur={() => handleNameBlur("firstName")}
                   autoComplete="off"
                   className={`w-full p-3 rounded-md border text-sm ${
                     errors.firstName ? "border-red-500" : "border-[#E4C48A]"
@@ -643,6 +637,7 @@ const SignUpPage = () => {
                   placeholder="Middle Name"
                   value={formData.middleName}
                   onChange={handleInputChange}
+                  onBlur={() => handleNameBlur("middleName")}
                   autoComplete="off"
                   className={`w-full p-3 rounded-md border text-sm ${
                     errors.middleName ? "border-red-500" : "border-[#E4C48A]"
@@ -658,6 +653,7 @@ const SignUpPage = () => {
                   placeholder="Last Name *"
                   value={formData.lastName}
                   onChange={handleInputChange}
+                  onBlur={() => handleNameBlur("lastName")}
                   autoComplete="off"
                   className={`w-full p-3 rounded-md border text-sm ${
                     errors.lastName ? "border-red-500" : "border-[#E4C48A]"
@@ -685,6 +681,7 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobDay}
                 onChange={handleInputChange}
+                onBlur={handleDOBBlur}
                 autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobDay ? "border-red-500" : "border-[#E4C48A]"
@@ -697,6 +694,7 @@ const SignUpPage = () => {
                 maxLength={2}
                 value={formData.dobMonth}
                 onChange={handleInputChange}
+                onBlur={handleDOBBlur}
                 autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobMonth ? "border-red-500" : "border-[#E4C48A]"
@@ -709,6 +707,7 @@ const SignUpPage = () => {
                 maxLength={4}
                 value={formData.dobYear}
                 onChange={handleInputChange}
+                onBlur={handleDOBBlur}
                 autoComplete="off"
                 className={`w-full p-3 rounded-md border text-sm ${
                   errors.dobYear ? "border-red-500" : "border-[#E4C48A]"
