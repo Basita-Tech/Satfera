@@ -846,6 +846,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                   value={formData.birthState}
                   onChange={(e) => {
                     handleChange(e);
+                    setFormData((prev) => ({ ...prev, birthCity: "" }));
                     // Use the code passed from LocationSelect, or calculate it
                     const code = e.target.code || getStateCode("IN", e.target.value);
                     setBirthStateCode(code);
@@ -996,7 +997,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               <CustomSelect
                 name="religion"
                 value={formData.religion}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  setFormData((prev) => ({ ...prev, caste: "" }));
+                }}
                 options={RELIGIONS}
                 placeholder="Select Religion"
                 className={getInputClass("religion")}
@@ -1145,7 +1149,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                       type="state"
                       name="state"
                       value={formData.state}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setFormData((prev) => ({ ...prev, city: "" }));
+                      }}
                       countryCode="IN"
                       placeholder="Select state"
                       className={getInputClass("state")}

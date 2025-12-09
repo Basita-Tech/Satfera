@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { allCountries } from "country-telephone-data";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../ui/CustomSelect";
+import SearchableCountryCode from "../SearchableCountryCode";
 import {
   saveUserFamilyDetails,
   getUserFamilyDetails,
@@ -9,9 +10,24 @@ import {
 } from "../../api/auth";
 import toast from "react-hot-toast";
 
+// Helper function to add aliases for common country name variations
+const getCountryAliases = (name) => {
+  const aliasMap = {
+    'United States': ['USA', 'US', 'America'],
+    'United Kingdom': ['UK', 'Britain', 'Great Britain'],
+    'United Arab Emirates': ['UAE'],
+    'South Korea': ['Korea'],
+    'Czech Republic': ['Czechia'],
+    'Netherlands': ['Holland'],
+    'Switzerland': ['Swiss'],
+  };
+  return aliasMap[name] || [];
+};
+
 const countryCodes = allCountries.map((c) => ({
   code: `+${c.dialCode}`,
   country: c.name,
+  aliases: getCountryAliases(c.name),
 }));
 
 const isValidPhone = (phone) => {
@@ -277,20 +293,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             <div className="flex flex-col">
               <label className="text-sm font-medium mb-1">Father's Phone</label>
               <div className="flex flex-col sm:flex-row gap-2">
-                <select
+                <SearchableCountryCode
                   value={formData.fatherPhoneCode}
-                  onChange={(e) =>
-                    handlePhoneChange("fatherPhoneCode", e.target.value)
-                  }
-                  className="w-full sm:w-32 border border-[#D4A052] rounded-md p-3 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                >
-                  <option value="">Country code</option>
-                  {countryCodes.map((c) => (
-                    <option key={`${c.code}-${c.country}`} value={c.code}>
-                      {c.code} {c.country}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(code) => handlePhoneChange("fatherPhoneCode", code)}
+                  countryCodes={countryCodes}
+                />
                 <input
                   type="tel"
                   name="fatherPhone"
@@ -329,20 +336,11 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             <div className="flex flex-col">
               <label className="text-sm font-medium mb-1">Mother's Phone</label>
               <div className="flex flex-col sm:flex-row gap-2">
-                <select
+                <SearchableCountryCode
                   value={formData.motherPhoneCode}
-                  onChange={(e) =>
-                    handlePhoneChange("motherPhoneCode", e.target.value)
-                  }
-                  className="w-full sm:w-32 border border-[#D4A052] rounded-md p-3 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition"
-                >
-                  <option value="">Country code</option>
-                  {countryCodes.map((c) => (
-                    <option key={`${c.code}-${c.country}`} value={c.code}>
-                      {c.code} {c.country}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(code) => handlePhoneChange("motherPhoneCode", code)}
+                  countryCodes={countryCodes}
+                />
                 <input
                   type="tel"
                   name="motherPhone"

@@ -274,7 +274,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="diet"
               value={formData.diet}
               onChange={(e) => handleChange("diet", e.target.value)}
-              options={["vegetarian", "non-vegetarian", "eggetarian", "jain", "swaminarayan", "veg-non-veg"]}
+              options={["vegetarian", "non-vegetarian", "eggetarian", "jain", "swaminarayan", "veg & non-veg"]}
               placeholder="Select"
               className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`}
             />

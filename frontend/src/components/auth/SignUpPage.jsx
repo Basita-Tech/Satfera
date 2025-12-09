@@ -8,6 +8,7 @@ import {
   CheckCircleFill,
 } from "react-bootstrap-icons";
 import { allCountries } from "country-telephone-data";
+import SearchableCountryCode from "../SearchableCountryCode";
 import toast from "react-hot-toast";
 import { AuthContextr } from "../context/AuthContext";
 import {
@@ -81,13 +82,28 @@ const SignUpPage = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
+  // Helper function to add aliases for common country name variations
+  const getCountryAliases = (name, iso2) => {
+    const aliasMap = {
+      'United States': ['USA', 'US', 'America'],
+      'United Kingdom': ['UK', 'Britain', 'Great Britain'],
+      'United Arab Emirates': ['UAE'],
+      'South Korea': ['Korea'],
+      'Czech Republic': ['Czechia'],
+      'Netherlands': ['Holland'],
+      'Switzerland': ['Swiss'],
+    };
+    return aliasMap[name] || [];
+  };
+
   const countryCodes = [
-    { code: "+91", country: "India" },
+    { code: "+91", country: "India", aliases: [] },
     ...allCountries
       .filter((c) => c.iso2 !== "in")
       .map((c) => ({
         code: `+${c.dialCode}`,
         country: c.name,
+        aliases: getCountryAliases(c.name, c.iso2),
       })),
   ];
 
@@ -773,57 +789,13 @@ const SignUpPage = () => {
 
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               {/* Country Code */}
-              <div
-                className={`relative w-full sm:w-32 md:w-40 rounded-lg border ${
-                  errors.mobile ? "border-red-500" : "border-[#E4C48A]"
-                } focus-within:ring-1 focus-within:ring-[#ecc988] overflow-hidden`}
-              >
-                <select
-                  name="countryCode"
+              <div>
+                <SearchableCountryCode
                   value={formData.countryCode}
-                  onChange={handleInputChange}
-                  autoComplete="off"
-                  className={`appearance-none w-full p-3 pr-8 rounded shadow-sm border text-sm ${
-                    errors.mobile ? "border-red-500" : "border-gray-300"
-                  } focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 text-gray-700 placeholder-gray-400`}
-                  style={{
-                    WebkitAppearance: "none",
-                    MozAppearance: "none",
-                    outline: "none",
-                    boxShadow: "none",
-                    backgroundColor: "white",
-                    WebkitTapHighlightColor: "transparent",
-                  }}
-                >
-                  <option value="" disabled>
-                    Select code
-                  </option>
-                  <option value="+91">+91 India</option>
-                  {countryCodes
-                    .filter((c) => c.code !== "+91")
-                    .map((c) => (
-                      <option key={`${c.code}-${c.country}`} value={c.code}>
-                        {c.code} {c.country}
-                      </option>
-                    ))}
-                </select>
-
-                {/* Dropdown Arrow */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 sm:pr-3">
-                  <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                  onChange={(code) => setFormData({ ...formData, countryCode: code })}
+                  error={errors.mobile}
+                  countryCodes={countryCodes}
+                />
               </div>
 
               <input
