@@ -414,7 +414,9 @@ const SignUpPage = () => {
       const sanitizedLastName = sanitizeName(formData.lastName.trim());
       const sanitizedEmail = sanitizeEmail(formData.email.trim());
       let sanitizedMobile = sanitizePhone(formData.mobile).replace(/\D/g, "");
-      const sanitizedCountryCode = sanitizeCountryCode(formData.countryCode);
+      // Extract just the country code from "+91 India" format
+      const countryCodeMatch = formData.countryCode.match(/^\+\d+/);
+      const sanitizedCountryCode = countryCodeMatch ? sanitizeCountryCode(countryCodeMatch[0]) : sanitizeCountryCode(formData.countryCode);
       const sanitizedProfileFor = sanitizeString(formData.profileFor);
       const sanitizedGender = sanitizeString(formData.gender);
       const sanitizedPassword = sanitizePassword(formData.password);
@@ -792,7 +794,10 @@ const SignUpPage = () => {
               <div>
                 <SearchableCountryCode
                   value={formData.countryCode}
-                  onChange={(code) => setFormData({ ...formData, countryCode: code })}
+                  onChange={(code) => {
+                    setFormData({ ...formData, countryCode: code });
+                    setErrors((prev) => ({ ...prev, mobile: "" }));
+                  }}
                   error={errors.mobile}
                   countryCodes={countryCodes}
                 />

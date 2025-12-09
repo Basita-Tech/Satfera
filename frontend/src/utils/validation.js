@@ -285,7 +285,7 @@ export const validatePasswordMatch = (password, confirmPassword) => {
 
 /**
  * Validate country code
- * @param {string} code - The country code (e.g., "+91")
+ * @param {string} code - The country code (e.g., "+91" or "+91 India")
  * @returns {string} - Error message or empty string if valid
  */
 export const validateCountryCode = (code) => {
@@ -293,8 +293,8 @@ export const validateCountryCode = (code) => {
     return "Country code is required";
   }
   
-  // Basic validation for country code format
-  if (!/^\+\d{1,3}$/.test(code)) {
+  // Validation for country code format - supports both "+91" and "+91 India" formats
+  if (!/^\+\d{1,4}(\s.+)?$/.test(code)) {
     return "Invalid country code format";
   }
   

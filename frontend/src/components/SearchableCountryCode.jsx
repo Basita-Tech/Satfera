@@ -30,14 +30,14 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
   });
 
   return (
-    <div className="relative w-full sm:w-32 md:w-40" ref={dropdownRef}>
+    <div className="relative w-full sm:w-auto" ref={dropdownRef}>
       <div
-        className={`rounded-lg border ${
+        className={`rounded-lg border min-w-[120px] ${
           error ? "border-red-500" : "border-[#b3b2ae]"
-        } p-3 text-sm cursor-pointer bg-white flex items-center justify-between`}
+        } p-3 text-sm cursor-pointer bg-white flex items-center justify-between whitespace-nowrap`}
         onClick={() => setOpen(!open)}
       >
-        <span>{value ? value : "Select code"}</span>
+        <span className="truncate">{value ? value : "Select code"}</span>
         <svg
           className={`w-4 h-4 text-gray-600 transition-transform ${
             open ? "rotate-180" : ""
@@ -55,7 +55,7 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
         </svg>
       </div>
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-[#b7b5b3] rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
+        <div className="absolute bottom-full left-0 mb-1 w-[280px] bg-white border border-[#b7b5b3] rounded-lg shadow-lg z-50 max-h-60 overflow-auto">
           <input
             type="text"
             className="w-full border-b p-2 text-sm outline-none"
@@ -66,9 +66,9 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
           {filteredList.map((c, i) => (
             <div
               key={i}
-             className="p-2 text-sm hover:bg-[rgb(156,189,235)]"
+              className="p-2 text-sm hover:bg-[rgb(156,189,235)] cursor-pointer"
               onClick={() => {
-                onChange(c.code);
+                onChange(`${c.code} ${c.country}`);
                 setOpen(false);
                 setSearch("");
               }}
