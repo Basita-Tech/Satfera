@@ -1079,15 +1079,13 @@ paths:
                       diet:
                         type: string
                         enum:
-                          [
-                            "vegetarian",
-                            "non-vegetarian",
-                            "eggetarian",
-                            "jain",
-                            "swaminarayan",
-                            "veg & non-veg",
-                            ""
-                          ]
+                          - vegetarian
+                          - non-vegetarian
+                          - eggetarian
+                          - jain
+                          - swaminarayan
+                          - "veg & non-veg"
+                          - ""
     post:
       summary: Add health details
       security:
@@ -1123,15 +1121,13 @@ paths:
                 diet:
                   type: string
                   enum:
-                    [
-                      "vegetarian",
-                      "non-vegetarian",
-                      "eggetarian",
-                      "jain",
-                      "swaminarayan",
-                      "veg & non-veg",
-                      ""
-                    ]
+                    - vegetarian
+                    - non-vegetarian
+                    - eggetarian
+                    - jain
+                    - swaminarayan
+                    - "veg & non-veg"
+                    - ""
                   description: Diet preference. HTML entities (like &amp;) will be automatically decoded.
             examples:
               example1:
@@ -1208,15 +1204,13 @@ paths:
                 diet:
                   type: string
                   enum:
-                    [
-                      "vegetarian",
-                      "non-vegetarian",
-                      "eggetarian",
-                      "jain",
-                      "swaminarayan",
-                      "veg & non-veg",
-                      ""
-                    ]
+                    - vegetarian
+                    - non-vegetarian
+                    - eggetarian
+                    - jain
+                    - swaminarayan
+                    - "veg & non-veg"
+                    - ""
                   description: Diet preference. HTML entities (like &amp;) will be automatically decoded.
       responses:
         "200":
