@@ -2,7 +2,6 @@ import { v2 as cloudinary } from "cloudinary";
 import { env } from "../../config";
 import { logger } from "../common";
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,
   api_key: env.CLOUDINARY_API_KEY,
@@ -19,6 +18,22 @@ export interface UploadResponse {
   bytes: number;
 }
 
+function getFileType(fileBuffer: Buffer, filename: string): "image" | "pdf" {
+  if (fileBuffer.length >= 4) {
+    const pdfSignature = [0x25, 0x50, 0x44, 0x46];
+    if (pdfSignature.every((byte, index) => fileBuffer[index] === byte)) {
+      return "pdf";
+    }
+  }
+
+  const ext = filename.toLowerCase().split(".").pop();
+  if (ext === "pdf") {
+    return "pdf";
+  }
+
+  return "image";
+}
+
 /**
  * Upload a file to Cloudinary
  * @param fileBuffer - File buffer from multer
@@ -32,16 +47,30 @@ export async function uploadToCloudinary(
   folder: string
 ): Promise<UploadResponse> {
   return new Promise((resolve, reject) => {
+    const fileType = getFileType(fileBuffer, filename);
+    const isPdf = fileType === "pdf";
+
+    const uploadOptions: any = {
+      folder: `satfera/${folder}`,
+      resource_type: "auto",
+      unique_filename: true,
+      overwrite: false
+    };
+
+    if (isPdf) {
+      uploadOptions.flags = "attachment";
+      uploadOptions.format = "pdf";
+      uploadOptions.use_filename = true;
+      const baseFilename = filename.replace(/\.pdf$/i, "");
+      uploadOptions.public_id = `${baseFilename}_${Date.now()}`;
+    } else {
+      uploadOptions.use_filename = false;
+      uploadOptions.quality = "auto:good";
+      uploadOptions.fetch_format = "auto";
+    }
+
     const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: `satfera/${folder}`,
-        resource_type: "auto",
-        use_filename: false,
-        unique_filename: true,
-        overwrite: false,
-        quality: "auto:good",
-        fetch_format: "auto"
-      },
+      uploadOptions,
       (error, result) => {
         if (error) {
           logger.error("Cloudinary upload error:", error);
@@ -49,14 +78,16 @@ export async function uploadToCloudinary(
             new Error(`Failed to upload file to Cloudinary: ${error.message}`)
           );
         } else if (result) {
-          logger.info(`File uploaded to Cloudinary: ${result.public_id}`);
+          logger.info(
+            `File uploaded to Cloudinary: ${result.public_id} (${isPdf ? "PDF" : "Image"})`
+          );
           resolve({
             url: result.url,
             public_id: result.public_id,
             secure_url: result.secure_url,
-            format: result.format,
-            width: result.width,
-            height: result.height,
+            format: isPdf ? "pdf" : result.format,
+            width: result.width || 0,
+            height: result.height || 0,
             bytes: result.bytes
           });
         } else {
@@ -76,7 +107,14 @@ export async function uploadToCloudinary(
  */
 export async function deleteFromCloudinary(publicId: string): Promise<boolean> {
   try {
-    const result = await cloudinary.uploader.destroy(publicId);
+    let result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result === "not found") {
+      result = await cloudinary.uploader.destroy(publicId, {
+        resource_type: "raw"
+      });
+    }
+
     if (result.result === "ok") {
       logger.info(`File deleted from Cloudinary: ${publicId}`);
       return true;
@@ -113,10 +151,14 @@ export async function getCloudinaryFileInfo(publicId: string) {
  * @returns Public ID
  */
 export function extractPublicIdFromUrl(secureUrl: string): string {
-  // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
   try {
-    const match = secureUrl.match(/\/upload\/(?:v\d+\/)?(.+?)\.[^.]+$/);
-    return match?.[1] ?? "";
+    const match = secureUrl.match(
+      /\/(?:image|raw|video|auto)\/upload\/(?:v\d+\/)?(.*?)(?:\?|$)/
+    );
+    if (match && match[1]) {
+      return match[1].replace(/\.[^.]+$/, "");
+    }
+    return "";
   } catch (error) {
     logger.error("Error extracting public ID from URL:", error);
     return "";

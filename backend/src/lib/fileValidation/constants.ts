@@ -1,18 +1,18 @@
 export const ALLOWED_MIME_TYPES = {
   profile: ["image/jpeg", "image/png", "image/webp"],
-  governmentId: ["image/jpeg", "image/png"],
+  governmentId: ["image/jpeg", "image/png", "application/pdf"],
   document: ["application/pdf", "image/jpeg", "image/png"]
 };
 
 export const ALLOWED_EXTENSIONS = {
   profile: [".jpg", ".jpeg", ".png", ".webp"],
-  governmentId: [".jpg", ".jpeg", ".png"],
+  governmentId: [".jpg", ".jpeg", ".png", ".pdf"],
   document: [".pdf", ".jpg", ".jpeg", ".png"]
 };
 
 export const FILE_SIZE_LIMITS = {
   profile: 2 * 1024 * 1024,
-  governmentId: 2 * 1024 * 1024,
+  governmentId: 5 * 1024 * 1024,
   document: 5 * 1024 * 1024
 };
 

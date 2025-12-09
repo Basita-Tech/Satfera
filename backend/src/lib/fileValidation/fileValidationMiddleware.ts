@@ -6,13 +6,13 @@ import { env } from "../../config";
 // Allowed MIME types for different photo types
 const ALLOWED_MIME_TYPES = {
   profile: ["image/jpeg", "image/png", "image/webp"],
-  governmentId: ["image/jpeg", "image/png"],
+  governmentId: ["image/jpeg", "image/png", "application/pdf"],
   document: ["application/pdf", "image/jpeg", "image/png"]
 };
 
 const ALLOWED_EXTENSIONS = {
   profile: [".jpg", ".jpeg", ".png", ".webp"],
-  governmentId: [".jpg", ".jpeg", ".png"],
+  governmentId: [".jpg", ".jpeg", ".png", ".pdf"],
   document: [".pdf", ".jpg", ".jpeg", ".png"]
 };
 
@@ -50,7 +50,7 @@ function isValidFileSignature(buffer: Buffer, mimeType: string): boolean {
 function detectPolyglotAttack(buffer: Buffer): boolean {
   // Only check ASCII portions to avoid false positives in binary image data
   const ascii = buffer.toString("ascii", 0, Math.min(buffer.length, 1024));
-  
+
   const suspiciousPatterns = [
     "<?php",
     "<%",
@@ -181,11 +181,13 @@ export async function validateUploadedFile(
   const allowedMimeTypes =
     options.allowedMimeTypes || ALLOWED_MIME_TYPES.profile;
 
-  // Check file size
-  if (file.size > maxSize) {
+  const isPdf = file.mimetype === "application/pdf";
+  const effectiveMaxSize = isPdf ? 5 * 1024 * 1024 : maxSize; // 5MB for PDF, 2MB for images
+
+  if (file.size > effectiveMaxSize) {
     return {
       valid: false,
-      error: `File size exceeds maximum allowed size of ${maxSize / 1024 / 1024}MB`
+      error: `File size exceeds maximum allowed size of ${effectiveMaxSize / 1024 / 1024}MB`
     };
   }
 
@@ -223,7 +225,6 @@ export async function validateUploadedFile(
   //     }
   //   }
 
-  // Strip EXIF data for images
   let cleanBuffer = file.buffer;
   if (file.mimetype.startsWith("image/")) {
     try {
@@ -263,7 +264,7 @@ export function createGovernmentIdUpload(): Multer {
     storage: createMulterStorage("governmentId"),
     fileFilter: createFileFilter("governmentId"),
     limits: {
-      fileSize: env.MAX_FILE_SIZE,
+      fileSize: 5 * 1024 * 1024,
       files: 1
     }
   });

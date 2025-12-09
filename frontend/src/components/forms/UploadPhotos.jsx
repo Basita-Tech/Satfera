@@ -133,7 +133,10 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     }
 
     setPhotos((prev) => ({ ...prev, [type]: file }));
-    toast.success("File validated successfully");
+
+    const isPdf = file.type === "application/pdf";
+    const fileType = isPdf ? "PDF" : "Photo";
+    toast.success(`${fileType} validated successfully`);
   }, []);
 
   const hasAllRequired = () =>
@@ -338,6 +341,15 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
         );
         const succeeded = uploadResult.results.map((r) => r.photoKey);
         if (succeeded.length > 0) {
+          const govIdUploaded = succeeded.includes("governmentId");
+          if (govIdUploaded) {
+            const govIdFile = photos.governmentId;
+            const isPdf = govIdFile && govIdFile.type === "application/pdf";
+            const fileType = isPdf ? "PDF" : "Photo";
+            toast.success(`Government ID ${fileType} uploaded successfully!`, {
+              duration: 2000,
+            });
+          }
           setPhotos((prev) => {
             const next = { ...prev };
             succeeded.forEach((k) => {
@@ -461,7 +473,8 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             />
             <p className="text-xs text-gray-500 mt-1">
               Supported: JPG, PNG, PDF — Max size:{" "}
-              <span className="font-semibold">2 MB</span>
+              <span className="font-semibold">5 MB (PDF)</span> or{" "}
+              <span className="font-semibold">2 MB (Image)</span>
             </p>
 
             {/* ✅ Show immediate preview if user selects an image */}
@@ -477,15 +490,35 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             {/* ✅ Show text when PDF is selected */}
             {photos.governmentId &&
               photos.governmentId.type === "application/pdf" && (
-                <p className="text-sm text-green-600 mt-2">
-                  📄 PDF file selected
-                </p>
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">
+                      {photos.governmentId.name}
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      {(photos.governmentId.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
               )}
 
             {/* ✅ Show uploaded image when page reloads (from backend) */}
             {!photos.governmentId &&
               uploadedUrls.governmentId &&
-              !uploadedUrls.governmentId.endsWith(".pdf") && (
+              !uploadedUrls.governmentId.includes(".pdf") && (
                 <img
                   src={uploadedUrls.governmentId}
                   alt="Government ID"
@@ -496,14 +529,27 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             {/* ✅ Show PDF link when reloaded from backend */}
             {!photos.governmentId &&
               uploadedUrls.governmentId &&
-              uploadedUrls.governmentId.endsWith(".pdf") && (
+              uploadedUrls.governmentId.includes(".pdf") && (
                 <a
                   href={uploadedUrls.governmentId}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm mt-2 inline-block"
+                  className="mt-2 inline-flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg text-green-700 hover:bg-green-100 transition-colors"
                 >
-                  📄 View Uploaded Document (PDF)
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium">View Uploaded PDF</span>
                 </a>
               )}
           </div>
