@@ -472,36 +472,42 @@ export async function searchService(
     typeof filters.heightTo === "number"
   ) {
     const hFrom =
-      typeof filters.heightFrom === "number" ? filters.heightFrom : -Infinity;
-    const hTo =
-      typeof filters.heightTo === "number" ? filters.heightTo : Infinity;
+      typeof filters.heightFrom === "number" ? filters.heightFrom : 0;
+    const hTo = typeof filters.heightTo === "number" ? filters.heightTo : 999;
 
     const heightValue = {
       $let: {
         vars: {
-          nums: {
-            $regexFindAll: {
-              input: { $ifNull: ["$personal.height", ""] },
-              regex: /[0-9]+(\.[0-9]+)?/
+          heightStr: { $toString: { $ifNull: ["$personal.height", "0"] } },
+          cmMatch: {
+            $regexFind: {
+              input: { $toString: { $ifNull: ["$personal.height", "0"] } },
+              regex: "(\\d+(?:\\.\\d+)?)\\s*cm",
+              options: "i"
             }
           }
         },
         in: {
-          $convert: {
-            input: {
-              $ifNull: [
-                {
-                  $arrayElemAt: [
-                    "$$nums.match",
-                    { $subtract: [{ $size: "$$nums" }, 1] }
-                  ]
+          $cond: {
+            if: { $ne: ["$$cmMatch", null] },
+            then: {
+              $convert: {
+                input: {
+                  $arrayElemAt: ["$$cmMatch.captures", 0]
                 },
-                0
-              ]
+                to: "double",
+                onError: 0,
+                onNull: 0
+              }
             },
-            to: "double",
-            onError: 0,
-            onNull: 0
+            else: {
+              $convert: {
+                input: "$$heightStr",
+                to: "double",
+                onError: 0,
+                onNull: 0
+              }
+            }
           }
         }
       }
@@ -510,7 +516,11 @@ export async function searchService(
     postMatch.$and = postMatch.$and || [];
     postMatch.$and.push({
       $expr: {
-        $and: [{ $gte: [heightValue, hFrom] }, { $lte: [heightValue, hTo] }]
+        $and: [
+          { $gte: [heightValue, hFrom] },
+          { $lte: [heightValue, hTo] },
+          { $gt: [heightValue, 0] }
+        ]
       }
     });
   }
@@ -577,28 +587,42 @@ export async function searchService(
     typeof filters.weightTo === "number"
   ) {
     const wFrom =
-      typeof filters.weightFrom === "number" ? filters.weightFrom : -Infinity;
-    const wTo =
-      typeof filters.weightTo === "number" ? filters.weightTo : Infinity;
+      typeof filters.weightFrom === "number" ? filters.weightFrom : 0;
+    const wTo = typeof filters.weightTo === "number" ? filters.weightTo : 999;
 
     const weightValue = {
       $let: {
         vars: {
-          nums: {
-            $regexFindAll: {
-              input: { $ifNull: ["$personal.weight", ""] },
-              regex: /[0-9]+(\.[0-9]+)?/
+          weightStr: { $toString: { $ifNull: ["$personal.weight", "0"] } },
+          kgMatch: {
+            $regexFind: {
+              input: { $toString: { $ifNull: ["$personal.weight", "0"] } },
+              regex: "(\\d+(?:\\.\\d+)?)\\s*kg",
+              options: "i"
             }
           }
         },
         in: {
-          $convert: {
-            input: {
-              $ifNull: [{ $arrayElemAt: ["$$nums.match", 0] }, 0]
+          $cond: {
+            if: { $ne: ["$$kgMatch", null] },
+            then: {
+              $convert: {
+                input: {
+                  $arrayElemAt: ["$$kgMatch.captures", 0]
+                },
+                to: "double",
+                onError: 0,
+                onNull: 0
+              }
             },
-            to: "double",
-            onError: 0,
-            onNull: 0
+            else: {
+              $convert: {
+                input: "$$weightStr",
+                to: "double",
+                onError: 0,
+                onNull: 0
+              }
+            }
           }
         }
       }
@@ -607,7 +631,11 @@ export async function searchService(
     postMatch.$and = postMatch.$and || [];
     postMatch.$and.push({
       $expr: {
-        $and: [{ $gte: [weightValue, wFrom] }, { $lte: [weightValue, wTo] }]
+        $and: [
+          { $gte: [weightValue, wFrom] },
+          { $lte: [weightValue, wTo] },
+          { $gt: [weightValue, 0] }
+        ]
       }
     });
   }

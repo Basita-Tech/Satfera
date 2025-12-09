@@ -424,7 +424,7 @@ paths:
         Logs out the user by:
         1. Invalidating the session in the database (sets isActive=false)
         2. Clearing HTTP-only authentication cookies (token, csrf_token)
-        
+
         This ensures the session cannot be reused even if someone obtains the cookie.
         The endpoint handles both valid and expired tokens gracefully.
       tags:
@@ -1044,6 +1044,50 @@ paths:
       responses:
         "200":
           description: Health details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      userId:
+                        type: string
+                      isAlcoholic:
+                        type: string
+                        enum: ["yes", "no", "occasional", ""]
+                      isTobaccoUser:
+                        type: string
+                        enum: ["yes", "no", "occasional", ""]
+                      isHaveTattoos:
+                        type: string
+                        enum: ["yes", "no", ""]
+                      isHaveHIV:
+                        type: string
+                        enum: ["yes", "no", ""]
+                      isPositiveInTB:
+                        type: string
+                        enum: ["yes", "no", ""]
+                      isHaveMedicalHistory:
+                        type: string
+                        enum: ["yes", "no", ""]
+                      medicalHistoryDetails:
+                        type: string
+                      diet:
+                        type: string
+                        enum:
+                          [
+                            "vegetarian",
+                            "non-vegetarian",
+                            "eggetarian",
+                            "jain",
+                            "swaminarayan",
+                            "veg & non-veg",
+                            ""
+                          ]
     post:
       summary: Add health details
       security:
@@ -1055,9 +1099,80 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                isAlcoholic:
+                  type: string
+                  enum: ["yes", "no", "occasional", ""]
+                isTobaccoUser:
+                  type: string
+                  enum: ["yes", "no", "occasional", ""]
+                isHaveTattoos:
+                  type: string
+                  enum: ["yes", "no", ""]
+                isHaveHIV:
+                  type: string
+                  enum: ["yes", "no", ""]
+                isPostiviInTB:
+                  type: string
+                  enum: ["yes", "no", ""]
+                isHaveMedicalHistory:
+                  type: string
+                  enum: ["yes", "no", ""]
+                medicalHistoryDetails:
+                  type: string
+                diet:
+                  type: string
+                  enum:
+                    [
+                      "vegetarian",
+                      "non-vegetarian",
+                      "eggetarian",
+                      "jain",
+                      "swaminarayan",
+                      "veg & non-veg",
+                      ""
+                    ]
+                  description: Diet preference. HTML entities (like &amp;) will be automatically decoded.
+            examples:
+              example1:
+                value:
+                  isAlcoholic: "no"
+                  isTobaccoUser: "no"
+                  isHaveTattoos: "no"
+                  isHaveHIV: "no"
+                  isPostiviInTB: "no"
+                  isHaveMedicalHistory: "no"
+                  diet: "veg & non-veg"
       responses:
         "201":
           description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidDiet:
+                  value:
+                    success: false
+                    message: "diet must be one of: vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg"
+        "409":
+          description: Health data already exists
     put:
       summary: Update health details
       security:
@@ -1069,9 +1184,56 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                isAlcoholic:
+                  type: string
+                  enum: ["yes", "no", "occasional", ""]
+                isTobaccoUser:
+                  type: string
+                  enum: ["yes", "no", "occasional", ""]
+                isHaveTattoos:
+                  type: string
+                  enum: ["yes", "no", ""]
+                isHaveHIV:
+                  type: string
+                  enum: ["yes", "no", ""]
+                isPostiviInTB:
+                  type: string
+                  enum: ["yes", "no", ""]
+                isHaveMedicalHistory:
+                  type: string
+                  enum: ["yes", "no", ""]
+                medicalHistoryDetails:
+                  type: string
+                diet:
+                  type: string
+                  enum:
+                    [
+                      "vegetarian",
+                      "non-vegetarian",
+                      "eggetarian",
+                      "jain",
+                      "swaminarayan",
+                      "veg & non-veg",
+                      ""
+                    ]
+                  description: Diet preference. HTML entities (like &amp;) will be automatically decoded.
       responses:
         "200":
           description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        "400":
+          description: Validation error
+        "404":
+          description: Health data not found
 
   /api/v1/user-personal/profession:
     get:
@@ -1356,7 +1518,13 @@ paths:
     get:
       summary: Search user profiles with filters
       description: |
-        Search user listings by name, new profile timeframe, age range, height range, religion, caste, city and profession.
+        Search user listings by name, new profile timeframe, age range, height range (in cm), weight range (in kg), religion, caste, city, state, country, profession, and education.
+
+        **Height & Weight Filtering:**
+        - Height values are extracted from database strings like "5'4\" / 163 cm" → 163 cm
+        - Weight values are extracted from database strings like "50 kg / 110 lbs" → 50 kg
+        - Both filters use the metric values (cm for height, kg for weight)
+        - Only users with valid height/weight data (> 0) are included in filtered results
       security:
         - bearerAuth: []
         - cookieAuth: []
@@ -1367,77 +1535,120 @@ paths:
             type: string
           description: Search by name (first or last)
         - in: query
+          name: customId
+          schema:
+            type: string
+          description: Search by custom user ID
+        - in: query
           name: newProfile
           schema:
             type: string
-            enum: [all, last_1_week, last_3_weeks, last_1_month]
+            enum: [all, last1week, last3week, last1month]
           description: Filter by recently created profiles
         - in: query
           name: ageFrom
           schema:
             type: integer
+            minimum: 18
+            maximum: 120
+          description: Minimum age filter
         - in: query
           name: ageTo
           schema:
             type: integer
+            minimum: 18
+            maximum: 120
+          description: Maximum age filter
         - in: query
           name: heightFrom
           schema:
-            type: integer
+            type: number
+            minimum: 0
+          description: Minimum height in centimeters (e.g., 150 for 150cm)
+          example: 135
         - in: query
           name: heightTo
           schema:
-            type: integer
+            type: number
+            minimum: 0
+          description: Maximum height in centimeters (e.g., 180 for 180cm)
+          example: 180
         - in: query
           name: weightFrom
           schema:
-            type: integer
+            type: number
+            minimum: 0
+          description: Minimum weight in kilograms (e.g., 50 for 50kg)
+          example: 50
         - in: query
           name: weightTo
           schema:
-            type: integer
+            type: number
+            minimum: 0
+          description: Maximum weight in kilograms (e.g., 70 for 70kg)
+          example: 70
         - in: query
           name: religion
           schema:
             type: string
+          description: Filter by religion (case-insensitive partial match)
         - in: query
           name: caste
           schema:
             type: string
+          description: Filter by caste/sub-caste (case-insensitive partial match)
         - in: query
           name: city
           schema:
             type: string
+          description: Filter by city (case-insensitive partial match)
         - in: query
           name: state
           schema:
             type: string
+          description: Filter by state (case-insensitive partial match)
         - in: query
           name: country
           schema:
             type: string
+          description: Filter by residing country (case-insensitive partial match)
         - in: query
           name: profession
           schema:
             type: string
+          description: Filter by profession or organization (case-insensitive partial match)
         - in: query
           name: education
           schema:
             type: string
+          description: Filter by education level or field of study (case-insensitive partial match)
+        - in: query
+          name: gender
+          schema:
+            type: string
+            enum: [male, female, other]
+          description: Filter by gender
         - in: query
           name: sortBy
           schema:
             type: string
-            enum: [newest, age_asc, age_desc, score]
-          description: Sorting preference
+            enum: [newest, age]
+          description: Sorting preference (newest = by creation date, age = by date of birth)
         - in: query
           name: page
           schema:
             type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
         - in: query
           name: limit
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of results per page (max 100)
       responses:
         "200":
           description: Search results

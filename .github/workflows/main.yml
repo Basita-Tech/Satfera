@@ -24,6 +24,12 @@ jobs:
           npm install
           npm run build
 
+      - name: Install & Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
       - name: Deploy to Production via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:

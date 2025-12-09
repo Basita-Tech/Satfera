@@ -440,7 +440,28 @@ export const UserHealthValidation = [
   body("medicalHistoryDetails")
     .optional()
     .isString()
-    .withMessage("medicalHistoryDetails must be a string")
+    .withMessage("medicalHistoryDetails must be a string"),
+
+  body("diet")
+    .optional()
+    .customSanitizer((value) => {
+      if (typeof value === "string") {
+        return value.replace(/&amp;/g, "&");
+      }
+      return value;
+    })
+    .isIn([
+      "vegetarian",
+      "non-vegetarian",
+      "eggetarian",
+      "jain",
+      "swaminarayan",
+      "veg & non-veg",
+      ""
+    ])
+    .withMessage(
+      "diet must be one of: vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg"
+    )
 ];
 
 export const validateUserExpectations = [
