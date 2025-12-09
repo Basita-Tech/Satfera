@@ -322,7 +322,7 @@ export const validateGovernmentID = async (file) => {
       minWidth: 300,
       minHeight: 200,
     },
-    allowedExtensions: [".jpg", ".jpeg", ".png"],
+    allowedExtensions: [".jpg", ".jpeg", ".png", ".pdf"],
   });
 };
 

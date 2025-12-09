@@ -83,10 +83,13 @@ export default function HomePage() {
       // Define the order of steps
       const steps = ["personal", "family", "education", "profession", "health", "expectation", "photos"];
 
-      if (!isOnboardingCompleted) {
+      if (!isOnboardingCompleted || !data.profileReviewStatus) {
         // Find the first uncompleted step
         const firstUncompletedStep = steps.find(step => !completedSteps.includes(step)) || "personal";
         navigate(`/onboarding/user?step=${firstUncompletedStep}`, { replace: true });
+        return;
+      } else if(data.profileReviewStatus === "pending" || data.profileReviewStatus === "rejected") {
+        navigate("/onboarding/review", { replace: true });
         return;
       }
 

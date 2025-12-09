@@ -751,12 +751,11 @@ export const getUserOnboardingStatus = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const data = await userPersonalService.getUserOnboardingStatusService(
-      authUser.id
-    );
+    const { user, profile } =
+      await userPersonalService.getUserOnboardingStatusService(authUser.id);
 
-    const completedSteps = Array.isArray(data?.completedSteps)
-      ? data!.completedSteps
+    const completedSteps = Array.isArray(user?.completedSteps)
+      ? user!.completedSteps
       : [];
 
     const stepsOrder = [
@@ -770,7 +769,13 @@ export const getUserOnboardingStatus = async (
 
     const nextStep = stepsOrder.find((step) => !completedSteps.includes(step));
 
-    if (!data?.isOnboardingCompleted) {
+    const data = {
+      completedSteps,
+      nextStep,
+      profileReviewStatus: profile?.profileReviewStatus || null
+    };
+
+    if (!user?.isOnboardingCompleted) {
       return res.status(200).json({
         success: false,
         message: "Onboarding is not completed",

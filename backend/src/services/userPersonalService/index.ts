@@ -7,7 +7,8 @@ import {
   UserPersonal,
   User,
   IUserExpectations,
-  UserExpectations
+  UserExpectations,
+  Profile
 } from "../../models";
 import { CreateUserPersonalInput } from "../../types";
 
@@ -183,9 +184,13 @@ export const updateUserExpectationDetailsService = async (
 
 export const getUserOnboardingStatusService = async (userId: string) => {
   const userObjectId = validateUserId(userId);
-  return User.findById(userObjectId)
+  const profile = await Profile.findOne({ userId: userObjectId }).select(
+    "profileReviewStatus"
+  );
+  const user = await User.findById(userObjectId)
     .select("isOnboardingCompleted completedSteps")
     .lean();
+  return { profile, user };
 };
 
 export const updateUserBoardingStatusService = async (
