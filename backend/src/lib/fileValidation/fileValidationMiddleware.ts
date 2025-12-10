@@ -80,6 +80,11 @@ async function stripExifData(
   buffer: Buffer,
   mimeType: string
 ): Promise<Buffer> {
+  if (mimeType === "application/pdf") {
+    logger.debug("Skipping EXIF stripping for PDF file");
+    return buffer;
+  }
+
   try {
     const img = sharp(buffer, { failOnError: false });
 

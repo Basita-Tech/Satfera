@@ -637,7 +637,8 @@ export async function getDetailedProfile(
       health,
       scoreDetail,
       status,
-      viewer
+      viewer,
+      connectionRequest
     ] = await Promise.all([
       User.findById(
         candidateId,
@@ -650,7 +651,13 @@ export async function getDetailedProfile(
       UserHealth.findOne({ userId: candidateId }).lean(),
       computeMatchScore(viewerId, candidateId),
       getConnectionStatus(viewerId, candidateId),
-      User.findById(viewerId, "firstName lastName blockedUsers").lean()
+      User.findById(viewerId, "firstName lastName blockedUsers").lean(),
+      ConnectionRequest.findOne({
+        $or: [
+          { sender: viewerId, receiver: candidateId },
+          { sender: candidateId, receiver: viewerId }
+        ]
+      }).lean()
     ]);
 
     if (!candidate) return null;
@@ -814,7 +821,8 @@ export async function getDetailedProfile(
       familyPhoto: filteredPhotos?.familyPhoto ?? null,
       otherPhotos: Array.isArray(filteredPhotos?.otherPhotos)
         ? filteredPhotos!.otherPhotos.slice(0, 2)
-        : []
+        : [],
+      requestId : connectionRequest?._id || null
     };
   } catch (error: any) {
     logger.error("Error in getDetailedProfile:", {

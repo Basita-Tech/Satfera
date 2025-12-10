@@ -326,6 +326,10 @@ export async function removeCompareProfilesFromProfile(
   return;
 }
 
+const escapeRegex = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 export async function searchService(
   filters: {
     name?: string;
@@ -360,7 +364,7 @@ export async function searchService(
   }
 
   if (filters.name) {
-    const nameRegex = new RegExp(filters.name, "i");
+    const nameRegex = new RegExp(escapeRegex(filters.name), "i");
     match.$or = [
       { firstName: { $regex: nameRegex } },
       { lastName: { $regex: nameRegex } },
@@ -369,7 +373,7 @@ export async function searchService(
   }
 
   if (filters.customId) {
-    const customIdRegex = new RegExp(`^${filters.customId}$`, "i");
+    const customIdRegex = new RegExp(`^${escapeRegex(filters.customId)}$`, "i");
     match.customId = { $regex: customIdRegex };
   }
 
@@ -527,29 +531,31 @@ export async function searchService(
 
   if (filters.religion) {
     postMatch["personal.religion"] = {
-      $regex: new RegExp(filters.religion, "i")
+      $regex: new RegExp(escapeRegex(filters.religion), "i")
     };
   }
 
   if (filters.caste) {
-    postMatch["personal.subCaste"] = { $regex: new RegExp(filters.caste, "i") };
+    postMatch["personal.subCaste"] = {
+      $regex: new RegExp(escapeRegex(filters.caste), "i")
+    };
   }
 
   if (filters.city) {
     postMatch["personal.full_address.city"] = {
-      $regex: new RegExp(filters.city, "i")
+      $regex: new RegExp(escapeRegex(filters.city), "i")
     };
   }
 
   if (filters.state) {
     postMatch["personal.full_address.state"] = {
-      $regex: new RegExp(filters.state, "i")
+      $regex: new RegExp(escapeRegex(filters.state), "i")
     };
   }
 
   if (filters.country) {
     postMatch["personal.residingCountry"] = {
-      $regex: new RegExp(filters.country, "i")
+      $regex: new RegExp(escapeRegex(filters.country), "i")
     };
   }
 
@@ -559,12 +565,12 @@ export async function searchService(
       $or: [
         {
           "profession.Occupation": {
-            $regex: new RegExp(filters.profession, "i")
+            $regex: new RegExp(escapeRegex(filters.profession), "i")
           }
         },
         {
           "profession.OrganizationName": {
-            $regex: new RegExp(filters.profession, "i")
+            $regex: new RegExp(escapeRegex(filters.profession), "i")
           }
         }
       ]
@@ -572,7 +578,7 @@ export async function searchService(
   }
 
   if (filters.education) {
-    const eduRegex = new RegExp(filters.education, "i");
+    const eduRegex = new RegExp(escapeRegex(filters.education), "i");
     postMatch.$and = postMatch.$and || [];
     postMatch.$and.push({
       $or: [

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { clearClientAuthData, updateActivity } from "../utils/secureStorage";
 import { getCSRFToken } from "../utils/csrfProtection";
 
 // Ensure cookies are sent with every request
@@ -27,8 +26,6 @@ axios.interceptors.request.use(
         }
       }
 
-      updateActivity();
-
       // No Authorization header needed; authentication via HttpOnly cookie
     } catch (e) {
       // no-op
@@ -36,20 +33,6 @@ axios.interceptors.request.use(
     return config;
   },
   (err) => Promise.reject(err)
-);
-
-// Response interceptor: handle global 401
-axios.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    try {
-      if (error?.response?.status === 401) {
-        // Clear local auth hints but avoid redirecting; protected pages already handle redirects
-        clearClientAuthData();
-      }
-    } catch (_) {}
-    return Promise.reject(error);
-  }
 );
 
 export default axios;
