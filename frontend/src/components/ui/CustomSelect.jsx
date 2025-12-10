@@ -143,8 +143,9 @@ export default function CustomSelect({
   }, [open]);
 
   const themeBase = 'w-full rounded-md p-2.5 sm:p-3 text-sm transition box-border bg-white';
-  const borderBase = 'border border-[#D4A052] focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A]';
-  const triggerClasses = `${themeBase} ${borderBase} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
+  const borderBase = 'border focus:outline-none focus:ring-1 transition-colors duration-200';
+  const borderColor = open ? 'border-[#D4A052] ring-1 ring-[#D4A052]' : 'border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]';
+  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
 
   const handleInputChange = (e) => {
     const newSearchTerm = e.target.value;
@@ -243,7 +244,7 @@ export default function CustomSelect({
       {open && (
         <ul
           tabIndex={-1}
-          className={`max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none absolute left-0 right-0 bg-white border border-[#e4c48a] rounded-md z-10 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-1'}`}
+          className={`max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none absolute left-0 right-0 bg-white border border-gray-300 rounded-md z-10 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-1'}`}
           role="listbox"
         >
           {placeholder && !searchTerm && (
