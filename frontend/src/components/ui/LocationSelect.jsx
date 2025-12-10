@@ -94,11 +94,12 @@ export default function LocationSelect({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
-  useEffect(() => {
-    if (open && searchInputRef.current) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    }
-  }, [open]);
+  // Remove auto-focus effect: input should only focus on manual tap
+  // useEffect(() => {
+  //   if (open && searchInputRef.current) {
+  //     setTimeout(() => searchInputRef.current?.focus(), 50);
+  //   }
+  // }, [open]);
 
   const handleKeyDown = (e) => {
     if (disabled) return;
@@ -197,7 +198,8 @@ export default function LocationSelect({
   };
 
   const handleInputClick = () => {
-    if (!disabled) {
+    if (!disabled && searchInputRef.current) {
+      searchInputRef.current.focus();
       if (!open) {
         setOpen(true);
         setSearchTerm('');
@@ -237,7 +239,7 @@ export default function LocationSelect({
           }, 100);
         }}
         onKeyDown={handleInputKeyDown}
-        onClick={handleInputClick}
+        // onClick={handleInputClick}
         placeholder={placeholder}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -251,94 +253,85 @@ export default function LocationSelect({
         fill="currentColor"
         aria-hidden="true"
       >
-        <path
-          fillRule="evenodd"
-          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-          clipRule="evenodd"
-        />
+        <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-
       {open && (
-        <div className={`absolute w-full z-50 rounded-md border border-[#D4A052] bg-white shadow-lg ${
-          dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
-        }`}>
-          <ul
-            role="listbox"
-            tabIndex={-1}
-            className="max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none"
-          >
-            {placeholder && !searchTerm && (
-              <li
-                role="option"
-                aria-selected={value === ''}
-                className={`px-3 py-2 text-sm cursor-pointer ${value === '' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                onMouseEnter={() => setHighlightIndex(-1)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onChange && onChange({ target: { name, value: '' } });
-                  setOpen(false);
-                  setSearchTerm('');
-                  setHighlightIndex(-1);
-                }}
-              >
-                {placeholder}
-              </li>
-            )}
-            {filteredOptions.length === 0 && !customAvailable ? (
-              <li className="px-3 py-2 text-sm text-gray-500 italic">
-                {type === 'city' && countryCode && stateCode 
-                  ? 'No cities available for this state' 
-                  : 'No results found'}
-              </li>
-            ) : (
-              filteredOptions.map((opt, idx) => {
-                const selected = opt.name === value;
-                const highlighted = idx === highlightIndex;
-                return (
-                  <li
-                    key={opt.name}
-                    role="option"
-                    aria-selected={selected}
-                    className={`px-3 py-2 text-sm cursor-pointer ${selected ? 'bg-blue-600 text-white' : highlighted ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
-                    onMouseEnter={() => setHighlightIndex(idx)}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      const eventObj = { target: { name, value: opt.name } };
-                      // Pass code as additional property for state/city selections
-                      if (opt.code) {
-                        eventObj.target.code = opt.code;
-                      }
-                      onChange && onChange(eventObj);
-                      setOpen(false);
-                      setSearchTerm('');
-                      setHighlightIndex(-1);
-                    }}
-                  >
-                    {opt.name}
-                  </li>
-                );
-              })
-            )}
-            {customAvailable && (
-              <li
-                role="option"
-                aria-selected={false}
-                className={`px-3 py-2 text-sm cursor-pointer ${highlightIndex === filteredOptions.length ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
-                onMouseEnter={() => setHighlightIndex(filteredOptions.length)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  const trimmed = searchTerm.trim();
-                  onChange && onChange({ target: { name, value: trimmed } });
-                  setOpen(false);
-                  setSearchTerm('');
-                  setHighlightIndex(-1);
-                }}
-              >
-                Use "{searchTerm.trim()}"
-              </li>
-            )}
-          </ul>
-        </div>
+        <ul
+          tabIndex={-1}
+          className={`max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none absolute left-0 right-0 bg-white border border-[#e4c48a] rounded-md z-10 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-1'}`}
+          role="listbox"
+        >
+          {placeholder && !searchTerm && (
+            <li
+              role="option"
+              aria-selected={value === ''}
+              className={`px-3 py-2 text-sm cursor-pointer ${value === '' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+              onMouseEnter={() => setHighlightIndex(-1)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange && onChange({ target: { name, value: '' } });
+                setOpen(false);
+                setSearchTerm('');
+                setHighlightIndex(-1);
+              }}
+            >
+              {placeholder}
+            </li>
+          )}
+          {filteredOptions.length === 0 && !customAvailable ? (
+            <li className="px-3 py-2 text-sm text-gray-500 italic">
+              {type === 'city' && countryCode && stateCode 
+                ? 'No cities available for this state' 
+                : 'No results found'}
+            </li>
+          ) : (
+            filteredOptions.map((opt, idx) => {
+              const selected = opt.name === value;
+              const highlighted = idx === highlightIndex;
+              return (
+                <li
+                  key={opt.name}
+                  role="option"
+                  aria-selected={selected}
+                  className={`px-3 py-2 text-sm cursor-pointer ${selected ? 'bg-blue-600 text-white' : highlighted ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
+                  onMouseEnter={() => setHighlightIndex(idx)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const eventObj = { target: { name, value: opt.name } };
+                    // Pass code as additional property for state/city selections
+                    if (opt.code) {
+                      eventObj.target.code = opt.code;
+                    }
+                    onChange && onChange(eventObj);
+                    setOpen(false);
+                    setSearchTerm('');
+                    setHighlightIndex(-1);
+                  }}
+                >
+                  {opt.name}
+                </li>
+              );
+            })
+          )}
+          {customAvailable && (
+            <li
+              role="option"
+              aria-selected={false}
+              className={`px-3 py-2 text-sm cursor-pointer ${highlightIndex === filteredOptions.length ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
+              onMouseEnter={() => setHighlightIndex(filteredOptions.length)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const trimmed = searchTerm.trim();
+                onChange && onChange({ target: { name, value: trimmed } });
+                setOpen(false);
+                setSearchTerm('');
+                setHighlightIndex(-1);
+              }}
+            >
+              Use "{searchTerm.trim()}"
+            </li>
+          )}
+        </ul>
       )}
     </div>
   );
