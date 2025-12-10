@@ -1,10 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, CheckCheck, Clock, User, Heart, UserCheck, X, Eye } from "lucide-react";
-import { 
-  getNotifications, 
+import {
+  Bell,
+  CheckCheck,
+  Clock,
+  User,
+  Heart,
+  UserCheck,
+  X,
+  Eye,
+} from "lucide-react";
+import {
+  getNotifications,
   getUnreadNotificationsCount,
-  markNotificationAsRead, 
-  markAllNotificationsAsRead 
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 } from "../api/auth";
 
 export default function NotificationDropdown({ onViewAll }) {
@@ -14,21 +23,18 @@ export default function NotificationDropdown({ onViewAll }) {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Fetch unread count on mount and set interval
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isOpen && notifications.length === 0) {
       fetchNotifications();
     }
   }, [isOpen]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -38,16 +44,16 @@ export default function NotificationDropdown({ onViewAll }) {
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
   const fetchUnreadCount = async () => {
     const response = await getUnreadNotificationsCount();
-    console.log("🔔 NotificationDropdown - Unread Count Response:", response);
-    if (response?.success && typeof response?.count === 'number') {
+
+    if (response?.success && typeof response?.count === "number") {
       setUnreadCount(response.count);
-      console.log("✅ Unread count set to:", response.count);
     } else {
       console.error("❌ Failed to get unread count:", response);
     }
@@ -55,11 +61,10 @@ export default function NotificationDropdown({ onViewAll }) {
 
   const fetchNotifications = async () => {
     setLoading(true);
-    const response = await getNotifications(1, 5); // Get latest 5 notifications
-    console.log("🔔 NotificationDropdown - Notifications Response:", response);
+    const response = await getNotifications(1, 5);
+
     if (response?.success && response?.data) {
       setNotifications(response.data);
-      console.log("✅ Loaded", response.data.length, "notifications in dropdown");
     } else {
       console.error("❌ Failed to load notifications:", response);
     }
@@ -70,22 +75,20 @@ export default function NotificationDropdown({ onViewAll }) {
     event.stopPropagation();
     const response = await markNotificationAsRead(notificationId);
     if (response?.success) {
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notificationId 
-            ? { ...notif, isRead: true } 
-            : notif
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif._id === notificationId ? { ...notif, isRead: true } : notif
         )
       );
-      fetchUnreadCount(); // Refresh count
+      fetchUnreadCount();
     }
   };
 
   const handleMarkAllAsRead = async () => {
     const response = await markAllNotificationsAsRead();
     if (response?.success) {
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, isRead: true }))
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, isRead: true }))
       );
       setUnreadCount(0);
     }
@@ -123,10 +126,10 @@ export default function NotificationDropdown({ onViewAll }) {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
-    return date.toLocaleDateString("en-US", { 
-      month: "short", 
-      day: "numeric"
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -162,7 +165,7 @@ export default function NotificationDropdown({ onViewAll }) {
               )}
             </h3>
             <div className="flex items-center gap-2">
-              {notifications.some(n => !n.isRead) && (
+              {notifications.some((n) => !n.isRead) && (
                 <button
                   onClick={handleMarkAllAsRead}
                   className="text-xs text-[#D4A052] hover:text-[#800000] transition-colors"
@@ -189,7 +192,9 @@ export default function NotificationDropdown({ onViewAll }) {
             ) : notifications.length === 0 ? (
               <div className="text-center py-6 sm:py-8 px-4">
                 <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-2 sm:mb-3" />
-                <p className="text-gray-500 text-xs sm:text-sm">No notifications yet</p>
+                <p className="text-gray-500 text-xs sm:text-sm">
+                  No notifications yet
+                </p>
               </div>
             ) : (
               notifications.map((notification) => (
@@ -198,7 +203,10 @@ export default function NotificationDropdown({ onViewAll }) {
                   className={`px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-[#D4A052]/5 active:bg-[#D4A052]/10 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0 ${
                     !notification.isRead ? "bg-blue-50/30" : ""
                   }`}
-                  onClick={(e) => !notification.isRead && handleMarkAsRead(notification._id, e)}
+                  onClick={(e) =>
+                    !notification.isRead &&
+                    handleMarkAsRead(notification._id, e)
+                  }
                 >
                   <div className="flex gap-2 sm:gap-3">
                     {/* Icon */}

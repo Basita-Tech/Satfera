@@ -2,7 +2,6 @@ import axios from "./http";
 import toast from "react-hot-toast";
 import { cachedFetch, dataCache } from "../utils/cache";
 import { dedupeRequest } from "../utils/optimize";
-import { clearClientAuthData, updateActivity } from "../utils/secureStorage";
 import { getCSRFToken } from "../utils/csrfProtection";
 
 const API = import.meta.env.VITE_API_URL;
@@ -30,7 +29,7 @@ axios.interceptors.request.use(
         }
       }
 
-      updateActivity();
+      
     } catch (e) {
       console.error("Error in request interceptor:", e);
     }
@@ -39,24 +38,7 @@ axios.interceptors.request.use(
   (err) => Promise.reject(err)
 );
 
-axios.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    try {
-      if (error?.response?.status === 401) {
-        console.warn(
-          "🌐 [auth] Global 401 response detected:",
-          error.response?.data || error.message
-        );
 
-        clearClientAuthData();
-      }
-    } catch (e) {
-      console.error("Error in response interceptor:", e);
-    }
-    return Promise.reject(error);
-  }
-);
 
 const getAuthHeaders = () => {
   const headers = {};
@@ -98,7 +80,8 @@ export const forgotUsername = async (formData) => {
     if (status === 404 || status === 400) {
       return {
         success: false,
-        message: "If an account exists with the provided details, the username will be displayed.",
+        message:
+          "If an account exists with the provided details, the username will be displayed.",
       };
     }
 
@@ -872,7 +855,7 @@ export const searchProfiles = async (filters = {}) => {
   try {
     // Build query params based on API spec
     const params = {};
-    
+
     // String filters
     if (filters.name) params.name = filters.name;
     if (filters.customId) params.customId = filters.customId;
@@ -880,32 +863,41 @@ export const searchProfiles = async (filters = {}) => {
     if (filters.caste) params.caste = filters.caste;
     if (filters.city) params.city = filters.city;
     if (filters.profession) params.profession = filters.profession;
+    if (filters.education) params.education = filters.education;
     if (filters.sortBy) params.sortBy = filters.sortBy;
-    
+
     // Enum filter for new profiles duration
     if (filters.newProfile) params.newProfile = filters.newProfile;
-    
+
     // Number range filters
-    if (filters.ageFrom !== undefined && filters.ageFrom !== null) params.ageFrom = filters.ageFrom;
-    if (filters.ageTo !== undefined && filters.ageTo !== null) params.ageTo = filters.ageTo;
-    if (filters.heightFrom !== undefined && filters.heightFrom !== null) params.heightFrom = filters.heightFrom;
-    if (filters.heightTo !== undefined && filters.heightTo !== null) params.heightTo = filters.heightTo;
-    
+    if (filters.ageFrom !== undefined && filters.ageFrom !== null)
+      params.ageFrom = filters.ageFrom;
+    if (filters.ageTo !== undefined && filters.ageTo !== null)
+      params.ageTo = filters.ageTo;
+    if (filters.heightFrom !== undefined && filters.heightFrom !== null)
+      params.heightFrom = filters.heightFrom;
+    if (filters.heightTo !== undefined && filters.heightTo !== null)
+      params.heightTo = filters.heightTo;
+    if (filters.weightFrom !== undefined && filters.weightFrom !== null)
+      params.weightFrom = filters.weightFrom;
+    if (filters.weightTo !== undefined && filters.weightTo !== null)
+      params.weightTo = filters.weightTo;
+
     // Pagination
     params.page = filters.page || 1;
     params.limit = filters.limit || 10;
 
-    console.log('[searchProfiles] Request params:', params);
+    console.log("[searchProfiles] Request params:", params);
 
     const response = await axios.get(`${API}/user/search`, {
       headers: getAuthHeaders(),
       params,
     });
 
-    console.log('[searchProfiles] Response:', {
+    console.log("[searchProfiles] Response:", {
       success: response.data?.success,
       listingsCount: response.data?.data?.listings?.length,
-      total: response.data?.data?.pagination?.total
+      total: response.data?.data?.pagination?.total,
     });
 
     return response.data;
@@ -915,7 +907,10 @@ export const searchProfiles = async (filters = {}) => {
     console.error("❌ Error Status:", error.response?.status);
     return {
       success: false,
-      data: { listings: [], pagination: { page: 1, limit: 10, total: 0, hasMore: false } },
+      data: {
+        listings: [],
+        pagination: { page: 1, limit: 10, total: 0, hasMore: false },
+      },
       message: error.response?.data?.message || "Failed to search profiles",
     };
   }
@@ -1013,12 +1008,9 @@ export const getViewProfiles = async (id, options = {}) => {
 
       const errorStatus = error.response?.status;
       const errorMsg = error.response?.data?.message || error.message;
-      
+
       if (errorStatus === 404) {
-        console.warn(
-          `⚠️ Profile not found (404): ${id}`,
-          errorMsg
-        );
+        console.warn(`⚠️ Profile not found (404): ${id}`, errorMsg);
       } else {
         console.error(
           "❌ Get User view  profile details Error:",
@@ -1026,7 +1018,7 @@ export const getViewProfiles = async (id, options = {}) => {
           error.response?.data || error.message
         );
       }
-      
+
       return {
         success: false,
         data: [],
@@ -1839,7 +1831,7 @@ export const downloadUserPdf = async () => {
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 12;
     const leftCol = margin + 3;
-    const valueCol = 45;
+
     let yPosition = 18;
 
     doc.setDrawColor(200, 162, 39);

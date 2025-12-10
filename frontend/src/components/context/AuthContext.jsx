@@ -1,8 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
-import {
-  clearClientAuthData,
-  initSessionTracking,
-} from "../../utils/secureStorage";
+import React, { createContext, useState, useEffect } from "react";
 import axios from "../../api/http";
 import { logoutUser } from "../../api/auth";
 import toast from "react-hot-toast";
@@ -25,16 +21,6 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Session expiration handler
-  const handleSessionExpired = useCallback(() => {
-    setUser(null);
-    clearClientAuthData();
-    toast.error("Your session has expired. Please log in again.");
-
-    const currentPath = window.location.pathname;
-    if (currentPath !== "/login" && !isPublicRoute(currentPath)) {
-      window.location.href = "/login";
-    }
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -63,18 +49,6 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Separate effect to handle session tracking only when user is authenticated
-  useEffect(() => {
-    if (!user || isLoading) return; // Only track if user is authenticated and done loading
-
-    // Initialize session activity tracking
-    const cleanup = initSessionTracking(handleSessionExpired);
-
-    return () => {
-      cleanup();
-    };
-  }, [user, isLoading, handleSessionExpired]);
-
   const login = (userData) => {
     // Backend sets httpOnly cookie; frontend should store only minimal user info
     if (userData && userData.user) {
@@ -93,8 +67,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Logout API error:", error);
     } finally {
-      // Always clear frontend state regardless of API result
-      clearClientAuthData();
       setUser(null);
       sessionStorage.clear();
       toast.success("Logged out successfully");

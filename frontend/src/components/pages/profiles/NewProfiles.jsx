@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Select,
@@ -7,18 +6,16 @@ import {
   SelectContent,
   SelectItem,
 } from "../../ui/select";
-import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Slider } from "../../ui/slider";
-import { Search } from "lucide-react";
+import { Search, RotateCcw } from "lucide-react";
 import { ProfileCard } from "../../ProfileCard";
-import { getAllProfiles } from "../../../api/auth";
+import { getAllProfiles, searchProfiles } from "../../../api/auth";
 import { useCompare } from "../../context/CompareContext";
 import { getNames } from "country-list";
 import { allCastes, JOB_TITLES, INDIAN_CITIES } from "../../../lib/constant";
 import CustomSelect from "../../ui/CustomSelect";
 
-// Form-validated constants (matching PersonalDetails & EducationDetails)
 const RELIGIONS = ["Hindu", "Jain"];
 const COUNTRIES = getNames();
 const QUALIFICATION_LEVELS = [
@@ -34,29 +31,26 @@ const QUALIFICATION_LEVELS = [
   "Less Than High School",
 ];
 
-const HEIGHT_SLIDER_MIN = 122; // Matches lowest option (4'0" / 122 cm)
-const HEIGHT_SLIDER_MAX = 193; // Matches highest option (6'4" / 193 cm)
+const HEIGHT_SLIDER_MIN = 122;
+const HEIGHT_SLIDER_MAX = 193;
 const DEFAULT_HEIGHT_RANGE = [HEIGHT_SLIDER_MIN, HEIGHT_SLIDER_MAX];
 const DEFAULT_WEIGHT_RANGE = [40, 120];
+const DEFAULT_AGE_RANGE = [18, 60];
 
 const parseHeightToCm = (value) => {
   if (value === null || value === undefined) return null;
   if (typeof value === "number") return value;
   const str = String(value).toLowerCase();
-
-  // Prefer explicit cm if present
   const cmMatch = str.match(/([0-9]+(?:\.[0-9]+)?)\s*cm/);
   if (cmMatch) return Number(cmMatch[1]);
-
-  // Handle common "5'8\"" or "5 ft 8 in" formats
-  const ftInMatch = str.match(/([0-9]+)\s*(?:ft|')\s*([0-9]{1,2})?\s*(?:in|"|”)?/);
+  const ftInMatch = str.match(
+    /([0-9]+)\s*(?:ft|')\s*([0-9]{1,2})?\s*(?:in|"|")?/
+  );
   if (ftInMatch) {
     const feet = Number(ftInMatch[1]) || 0;
     const inches = Number(ftInMatch[2]) || 0;
     return Math.round(feet * 30.48 + inches * 2.54);
   }
-
-  // Fallback: first number in string
   const anyNumber = str.match(/([0-9]+(?:\.[0-9]+)?)/);
   return anyNumber ? Number(anyNumber[1]) : null;
 };
@@ -71,385 +65,365 @@ const parseWeightToKg = (value) => {
   return anyNumber ? Number(anyNumber[1]) : null;
 };
 
-export default function NewProfiles({ profiles = [], onSendRequest, shortlistedIds = [], onToggleShortlist, onAddToCompare, onRemoveCompare, compareProfiles = [], sentProfileIds = [] }) {
-  // Local state for fetched profiles
+const hasActiveFilters = (filters) => {
+  return (
+    (filters.searchName && filters.searchName.length > 0) ||
+    filters.selectedReligion !== "all" ||
+    filters.selectedCaste !== "all" ||
+    filters.selectedCity !== "" ||
+    filters.selectedProfession !== "" ||
+    filters.selectedCountry !== "all" ||
+    filters.selectedEducation !== "all" ||
+    filters.newProfileDuration !== "all" ||
+    filters.ageRange[0] !== DEFAULT_AGE_RANGE[0] ||
+    filters.ageRange[1] !== DEFAULT_AGE_RANGE[1] ||
+    filters.heightRange[0] !== DEFAULT_HEIGHT_RANGE[0] ||
+    filters.heightRange[1] !== DEFAULT_HEIGHT_RANGE[1] ||
+    filters.weightRange[0] !== DEFAULT_WEIGHT_RANGE[0] ||
+    filters.weightRange[1] !== DEFAULT_WEIGHT_RANGE[1]
+  );
+};
+
+export default function NewProfiles({
+  onSendRequest,
+  shortlistedIds = [],
+  onToggleShortlist,
+  onAddToCompare,
+  onRemoveCompare,
+  compareProfiles = [],
+  sentProfileIds = [],
+}) {
+  const [pendingFilters, setPendingFilters] = useState({
+    searchInput: "",
+    searchName: "",
+    selectedReligion: "all",
+    selectedCaste: "all",
+    selectedCity: "",
+    selectedProfession: "",
+    selectedCountry: "all",
+    selectedEducation: "all",
+    newProfileDuration: "all",
+    ageRange: [...DEFAULT_AGE_RANGE],
+    heightRange: [...DEFAULT_HEIGHT_RANGE],
+    weightRange: [...DEFAULT_WEIGHT_RANGE],
+  });
+
+  const [appliedFilters, setAppliedFilters] = useState({
+    searchName: "",
+    selectedReligion: "all",
+    selectedCaste: "all",
+    selectedCity: "",
+    selectedProfession: "",
+    selectedCountry: "all",
+    selectedEducation: "all",
+    newProfileDuration: "all",
+    ageRange: [...DEFAULT_AGE_RANGE],
+    heightRange: [...DEFAULT_HEIGHT_RANGE],
+    weightRange: [...DEFAULT_WEIGHT_RANGE],
+  });
+
   const [allProfiles, setAllProfiles] = useState([]);
-  const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [errorProfiles, setErrorProfiles] = useState(null);
-  // Pagination state (frontend pagination after sorting)
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProfiles, setTotalProfiles] = useState(0);
+  const pageSize = 12;
 
-  // `searchInput` updates immediately from the input; `searchName` is debounced
-  const [searchInput, setSearchInput] = useState("");
-  const [searchName, setSearchName] = useState("");
-  const [selectedReligion, setSelectedReligion] = useState("all");
-  const [selectedCaste, setSelectedCaste] = useState("all");
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedProfession, setSelectedProfession] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("all");
-  const [selectedEducation, setSelectedEducation] = useState("all");
-  const [newProfileDuration, setNewProfileDuration] = useState("all");
-  const [ageRange, setAgeRange] = useState([18, 40]);
-  const [heightRange, setHeightRange] = useState(DEFAULT_HEIGHT_RANGE);
-  const [weightRange, setWeightRange] = useState(DEFAULT_WEIGHT_RANGE);
+  const {
+    addToCompare: ctxAddToCompare,
+    removeFromCompare: ctxRemoveFromCompare,
+  } = useCompare();
 
-  // Reset caste when religion changes (to maintain valid selection)
-  useEffect(() => {
-    if (selectedReligion !== "all") {
-      const validCastes = selectedReligion === "Hindu" 
-        ? allCastes.filter((c) => !c.toLowerCase().includes("jain"))
-        : selectedReligion?.toLowerCase().includes("jain")
-        ? ["Jain-Digambar", "Jain-Swetamber", "Jain-Vanta"]
-        : allCastes;
-      if (selectedCaste !== "all" && !validCastes.includes(selectedCaste)) {
-        setSelectedCaste("all");
-      }
-    }
-  }, [selectedReligion, selectedCaste]);
-
-  // Fetch all profiles from backend (with search if query provided)
-  useEffect(() => {
-    async function fetchAllProfiles() {
-      try {
-        setLoadingProfiles(true);
-        let response;
-        
-        // Check if any filter is active (excluding "all" defaults)
-        const hasActiveFilters = 
-          (searchName && searchName.length > 0) ||
-          selectedReligion !== "all" ||
-          selectedCaste !== "all" ||
-          selectedCity !== "" ||
-          selectedProfession !== "" ||
-          selectedCountry !== "all" ||
-          selectedEducation !== "all" ||
-          newProfileDuration !== "all" ||
-          ageRange[0] !== 18 || ageRange[1] !== 40 ||
-          heightRange[0] !== DEFAULT_HEIGHT_RANGE[0] || heightRange[1] !== DEFAULT_HEIGHT_RANGE[1] ||
-          weightRange[0] !== DEFAULT_WEIGHT_RANGE[0] || weightRange[1] !== DEFAULT_WEIGHT_RANGE[1];
-        
-        // Use search API when filters are active, otherwise use getAllProfiles
-        if (hasActiveFilters) {
-          const { searchProfiles } = await import('../../../api/auth');
-          
-          // Build filter object with all active filters
-          const filters = {
-            page: 1,
-            limit: 1000, // Get all matching results for frontend pagination
-          };
-          
-          if (searchName) filters.name = searchName;
-          if (selectedReligion !== "all") filters.religion = selectedReligion;
-          if (selectedCaste !== "all") filters.caste = selectedCaste;
-          if (selectedCity) filters.city = selectedCity;
-          if (selectedProfession) filters.profession = selectedProfession;
-          if (newProfileDuration !== "all") filters.newProfile = newProfileDuration === "today" ? "all" : 
-                                                                  newProfileDuration === "week" ? "last1week" :
-                                                                  newProfileDuration === "2weeks" ? "last3week" :
-                                                                  newProfileDuration === "month" ? "last1month" : "all";
-          
-          // Age range filters
-          if (ageRange[0] !== 18) filters.ageFrom = ageRange[0];
-          if (ageRange[1] !== 40) filters.ageTo = ageRange[1];
-          
-          // Height range filters (backend expects cm)
-          if (heightRange[0] !== DEFAULT_HEIGHT_RANGE[0]) filters.heightFrom = heightRange[0];
-          if (heightRange[1] !== DEFAULT_HEIGHT_RANGE[1]) filters.heightTo = heightRange[1];
-          
-          // Note: weight filtering will be done on frontend as backend doesn't support it yet
-          
-          console.log("🆕 [NewProfiles] Searching with filters:", filters);
-          response = await searchProfiles(filters);
-          console.log("🆕 [NewProfiles] Search API Response:", response);
-        } else {
-          // Fetch large batch to enable frontend sorting across all profiles
-          response = await getAllProfiles(1, 1000);
-          console.log("🆕 [NewProfiles] GetAll API Response:", response);
-        }
-        
-        // Handle both response formats: with/without listings wrapper
-        const dataArray = response?.data?.listings || response?.data || [];
-        if (response?.success && Array.isArray(dataArray)) {
-          const mapped = dataArray
-            .map((p) => {
-              const user = p.user || p;
-              const scoreDetail = p.scoreDetail;
-              const compatibilityScore = scoreDetail?.score || 0;
-              const userId = user.userId || user.id || user._id;
-              
-              // Skip profiles with invalid IDs
-              if (!userId || userId === 'undefined' || userId === 'null') {
-                console.warn('⚠️ [NewProfiles] Skipping profile with invalid ID:', user);
-                return null;
-              }
-              
-              return {
-                id: userId,
-                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
-                age: user.age,
-                city: user.city,
-                state: user.state,
-                country: user.country,
-                profession: user.profession || user.occupation || user.professional?.Occupation,
-                religion: user.religion,
-                caste: user.subCaste,
-                education: user.education?.HighestEducation,
-                height: user.personal?.height || user.height,
-                heightCm: parseHeightToCm(user.personal?.height || user.height),
-                weight: user.personal?.weight || user.weight,
-                weightKg: parseWeightToKg(user.personal?.weight || user.weight),
-                diet: user.healthAndLifestyle?.diet,
-                image: user.closerPhoto?.url || '',
-                compatibility: compatibilityScore,
-                status: null,
-                createdAt: user.createdAt,
-                scoreDetail: scoreDetail || null,
-              };
-            })
-            .filter(Boolean);
-          
-          // Filter out placeholder/test profiles: require valid id and at least one meaningful field
-          const isMeaningful = (p) => {
-            if (!p || !p.id || typeof p.id !== 'string' || p.id.length < 10) return false;
-            return Boolean(p.image || p.city || p.age || p.profession || p.createdAt);
-          };
-          const filtered = mapped.filter(isMeaningful);
-          setAllProfiles(filtered);
-          console.log("✅ [NewProfiles] Mapped profiles:", mapped.length, "-> meaningful:", filtered.length, "| Oldest:", filtered[filtered.length-1]?.createdAt, "| Newest:", filtered[0]?.createdAt);
-          if (response.pagination) {
-            setTotal(response.pagination.total || mapped.length);
-            setHasMore(response.pagination.hasMore || (response.pagination.page * response.pagination.limit < response.pagination.total));
-          } else {
-            setTotal(mapped.length);
-            setHasMore(false);
-          }
-        } else {
-          console.warn("⚠️ [NewProfiles] API returned no data");
-          setAllProfiles([]);
-          setTotal(0);
-          setHasMore(false);
-        }
-      } catch (error) {
-        console.error("❌ [NewProfiles] Error fetching profiles:", error);
-        setErrorProfiles(error.message || 'Failed to load profiles');
-      } finally {
-        setLoadingProfiles(false);
-      }
-    }
-    
-    fetchAllProfiles();
-  }, [searchName, selectedReligion, selectedCaste, selectedCity, selectedProfession, selectedCountry, selectedEducation, newProfileDuration, ageRange[0], ageRange[1], heightRange[0], heightRange[1], weightRange[0], weightRange[1]]); // Re-fetch when any filter changes
-
-  // Shortlist state is managed by parent `UserDashboard`; use provided props
-  // `shortlistedIds` is expected to be an array of ids and `onToggleShortlist` toggles them
-
-  // Debounce search input to avoid filtering on every keystroke
-  useEffect(() => {
-    const t = setTimeout(() => setSearchName(searchInput.trim()), 300);
-    return () => clearTimeout(t);
-  }, [searchInput]);
-
-  // Use backend profiles instead of prop profiles
-  const sourceProfiles = allProfiles.length > 0 ? allProfiles : profiles;
-
-  const filteredProfiles = useMemo(() => {
-    const normalize = (v) => (v ? v.toString().toLowerCase().trim() : "");
-    const selectedEduNorm = normalize(selectedEducation);
-    const selectedCountryNorm = normalize(selectedCountry);
-    const isHeightFilterActive =
-      heightRange[0] !== DEFAULT_HEIGHT_RANGE[0] || heightRange[1] !== DEFAULT_HEIGHT_RANGE[1];
-    const isWeightFilterActive =
-      weightRange[0] !== DEFAULT_WEIGHT_RANGE[0] || weightRange[1] !== DEFAULT_WEIGHT_RANGE[1];
-    const isEduFilterActive = selectedEducation !== "all" && selectedEduNorm.length > 0;
-    const isCountryFilterActive = selectedCountry !== "all" && selectedCountryNorm.length > 0;
-
-    // Apply only frontend-specific filters (weight, country, education, "today" duration)
-    // Backend already filtered: name, religion, caste, city, profession, age, height, and other newProfile durations
-    const filtered = sourceProfiles.filter((p) => {
-      // Filter out profiles that have been sent connection requests
-      if (sentProfileIds.includes(String(p.id))) {
-        return false;
-      }
-      // Exclude profiles that are already shortlisted
-      const isAlreadyShortlisted = Array.isArray(shortlistedIds) && 
-        shortlistedIds.some((sid) => String(sid) === String(p.id));
-      if (isAlreadyShortlisted) {
-        return false;
-      }
-
-      // Filter by "today" duration (backend doesn't have a "today" option, only receives all profiles)
-      if (newProfileDuration === "today") {
-        if (!p.createdAt) {
-          return false;
-        }
-        const created = new Date(p.createdAt);
-        const now = new Date();
-        let diffDays = (now - created) / (1000 * 60 * 60 * 24);
-        if (diffDays > 1) return false;
-      }
-
-      // Country filter (backend doesn't support this yet)
-      const countryNorm = normalize(p.country || p.location || "");
-      const matchCountry = !isCountryFilterActive
-        ? true
-        : countryNorm.length > 0 && (countryNorm.includes(selectedCountryNorm) || selectedCountryNorm.includes(countryNorm));
-      if (!matchCountry) return false;
-
-      // Education filter (backend doesn't support this yet)
-      const eduNorm = normalize(p.education || "");
-      const matchEducation = !isEduFilterActive
-        ? true
-        : eduNorm.length > 0 && (eduNorm.includes(selectedEduNorm) || selectedEduNorm.includes(eduNorm));
-      if (!matchEducation) return false;
-
-      // Height filter (frontend fallback; backend filter is not always reliable)
-      const heightCm = p.heightCm ?? parseHeightToCm(p.height);
-      if (isHeightFilterActive && (heightCm === null || heightCm === undefined)) {
-        return false; // Exclude when filter active but height missing
-      }
-      if (heightCm && (heightCm < heightRange[0] || heightCm > heightRange[1])) {
-        return false;
-      }
-
-      // Weight: handle numeric or strings like "70 kg" (backend doesn't support weight filter)
-      const weightKg = p.weightKg ?? parseWeightToKg(p.weight);
-      if (isWeightFilterActive && (weightKg === null || weightKg === undefined)) {
-        return false; // Exclude when filter active but weight missing
-      }
-      const matchWeight = weightKg === null || weightKg === undefined || (weightKg >= weightRange[0] && weightKg <= weightRange[1]);
-      if (!matchWeight && weightKg > 0 && process.env.NODE_ENV === 'development') {
-        console.log(`🔍 Weight filter: ${p.name} weight=${p.weight} (${weightKg} kg) not in [${weightRange[0]}, ${weightRange[1]}]`);
-      }
-
-      return matchWeight;
-    });
-    
-    const sorted = filtered.sort((a, b) => {
-      // Sort by creation date: newest first
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-    
-    console.log(`🔍 Filter: ${newProfileDuration} | Total: ${sourceProfiles.length} → Filtered: ${sorted.length}`);
-    return sorted;
-  }, [
-    sourceProfiles,
-    shortlistedIds,
-    searchName,
-    selectedReligion,
-    selectedCaste,
-    selectedCity,
-    selectedProfession,
-    selectedCountry,
-    selectedEducation,
-    newProfileDuration,
-    ageRange,
-    heightRange,
-    weightRange,
-    sentProfileIds,
-  ]);
-
-  // Frontend pagination: slice the filtered/sorted results
-  const paginatedProfiles = useMemo(() => {
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    return filteredProfiles.slice(startIndex, endIndex);
-  }, [filteredProfiles, page, limit]);
-
-  // Update total and pagination state based on filtered results
-  useEffect(() => {
-    setTotal(filteredProfiles.length);
-    // If current page exceeds available pages after filtering, reset to page 1
-    const maxPage = Math.max(1, Math.ceil(filteredProfiles.length / limit));
-    if (page > maxPage) {
-      setPage(1);
-    }
-  }, [filteredProfiles.length, limit, page]);
-
-  // Reset to page 1 when time filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [newProfileDuration]);
-
-  // --- Active filter tags ---
-  const activeFilters = [
-    selectedReligion !== "all" && { label: selectedReligion },
-    selectedCaste !== "all" && { label: selectedCaste },
-    selectedCountry !== "all" && { label: selectedCountry },
-    selectedEducation !== "all" && { label: selectedEducation },
-    selectedCity && { label: selectedCity },
-    selectedProfession && { label: selectedProfession },
-  ].filter(Boolean);
-
-  // --- Clear all filters ---
-  const clearAllFilters = () => {
-    setSearchInput("");
-    setSearchName("");
-    setSelectedReligion("all");
-    setSelectedCaste("all");
-    setSelectedCity("");
-    setSelectedProfession("");
-    setSelectedCountry("all");
-    setSelectedEducation("all");
-    setAgeRange([18, 40]);
-    setHeightRange(DEFAULT_HEIGHT_RANGE);
-    setWeightRange(DEFAULT_WEIGHT_RANGE);
-  };
-
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
-      setPage(newPage);
-    }
-  };
-  const handleLimitChange = (e) => {
-    const newLimit = parseInt(e.target.value, 10) || 10;
-    setLimit(newLimit);
-    setPage(1);
-  };
-
-  // Form-validated option lists (replaces dynamic profile-derived data for consistency)
-  const religionOptions = RELIGIONS;
-  const countryOptions = COUNTRIES;
-  const educationOptions = QUALIFICATION_LEVELS;
-  const { addToCompare: ctxAddToCompare, removeFromCompare: ctxRemoveFromCompare } = useCompare();
-  
-  // Caste options depend on selected religion (matches PersonalDetails logic)
   const casteOptions = useMemo(() => {
-    if (selectedReligion === "all") return allCastes;
-    if (selectedReligion === "Hindu") {
+    const selectedRel = pendingFilters.selectedReligion;
+    if (selectedRel === "all") return allCastes;
+    if (selectedRel === "Hindu") {
       return allCastes.filter((c) => !c.toLowerCase().includes("jain"));
     }
-    if (selectedReligion?.toLowerCase().includes("jain")) {
+    if (selectedRel?.toLowerCase().includes("jain")) {
       return ["Jain-Digambar", "Jain-Swetamber", "Jain-Vanta"];
     }
     return allCastes;
-  }, [selectedReligion]);
+  }, [pendingFilters.selectedReligion]);
+
+  const updatePendingFilter = (key, value) => {
+    setPendingFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+
+    if (
+      key === "selectedReligion" &&
+      value !== pendingFilters.selectedReligion
+    ) {
+      setPendingFilters((prev) => ({
+        ...prev,
+        selectedCaste: "all",
+      }));
+    }
+  };
+
+  const handleSubmit = async (e, pageNum = 1) => {
+    e?.preventDefault?.();
+    setPage(pageNum);
+    setAppliedFilters(pendingFilters);
+    setErrorProfiles(null);
+    setLoadingProfiles(true);
+
+    try {
+      let response;
+      const isFiltered = hasActiveFilters(pendingFilters);
+
+      if (isFiltered) {
+        const backendFilters = {
+          page: pageNum,
+          limit: pageSize,
+        };
+
+        if (pendingFilters.searchName)
+          backendFilters.name = pendingFilters.searchName;
+        if (pendingFilters.selectedReligion !== "all")
+          backendFilters.religion = pendingFilters.selectedReligion;
+        if (pendingFilters.selectedCaste !== "all")
+          backendFilters.caste = pendingFilters.selectedCaste;
+        if (pendingFilters.selectedCity)
+          backendFilters.city = pendingFilters.selectedCity;
+        if (pendingFilters.selectedProfession)
+          backendFilters.profession = pendingFilters.selectedProfession;
+        if (pendingFilters.selectedEducation !== "all")
+          backendFilters.education = pendingFilters.selectedEducation;
+        if (pendingFilters.newProfileDuration !== "all") {
+          const durationMap = {
+            today: "all",
+            week: "last1week",
+            "2weeks": "last3week",
+            month: "last1month",
+          };
+          backendFilters.newProfile =
+            durationMap[pendingFilters.newProfileDuration] || "all";
+        }
+
+        if (pendingFilters.ageRange[0] !== DEFAULT_AGE_RANGE[0])
+          backendFilters.ageFrom = pendingFilters.ageRange[0];
+        if (pendingFilters.ageRange[1] !== DEFAULT_AGE_RANGE[1])
+          backendFilters.ageTo = pendingFilters.ageRange[1];
+
+        if (pendingFilters.heightRange[0] !== DEFAULT_HEIGHT_RANGE[0])
+          backendFilters.heightFrom = pendingFilters.heightRange[0];
+        if (pendingFilters.heightRange[1] !== DEFAULT_HEIGHT_RANGE[1])
+          backendFilters.heightTo = pendingFilters.heightRange[1];
+
+        if (pendingFilters.weightRange[0] !== DEFAULT_WEIGHT_RANGE[0])
+          backendFilters.weightFrom = pendingFilters.weightRange[0];
+        if (pendingFilters.weightRange[1] !== DEFAULT_WEIGHT_RANGE[1])
+          backendFilters.weightTo = pendingFilters.weightRange[1];
+
+        response = await searchProfiles(backendFilters);
+      } else {
+        response = await getAllProfiles(pageNum, pageSize);
+      }
+
+      const dataArray = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.listings || [];
+      const pagination = response?.pagination;
+
+      if (response?.success && Array.isArray(dataArray)) {
+        const mapped = dataArray
+          .map((p) => {
+            const user = p.user || p;
+            const userId = user.userId || user.id || user._id;
+
+            if (!userId || userId === "undefined" || userId === "null") {
+              return null;
+            }
+
+            return {
+              id: userId,
+              name:
+                `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                "Unknown",
+              age: user.age,
+              city: user.city,
+              state: user.state,
+              country: user.country,
+              profession:
+                user.profession ||
+                user.occupation ||
+                user.professional?.Occupation,
+              religion: user.religion,
+              caste: user.subCaste,
+              education: user.education?.HighestEducation,
+              height: user.personal?.height || user.height,
+              heightCm: parseHeightToCm(user.personal?.height || user.height),
+              weight: user.personal?.weight || user.weight,
+              weightKg: parseWeightToKg(user.personal?.weight || user.weight),
+              diet: user.healthAndLifestyle?.diet,
+              image: user.closerPhoto?.url || "",
+              compatibility: 0,
+              status: null,
+              createdAt: user.createdAt,
+            };
+          })
+          .filter(Boolean);
+
+        const isMeaningful = (p) => {
+          if (!p || !p.id || typeof p.id !== "string" || p.id.length < 10)
+            return false;
+          return Boolean(
+            p.image || p.city || p.age || p.profession || p.createdAt
+          );
+        };
+        const filtered = mapped.filter(isMeaningful);
+
+        setAllProfiles(filtered);
+
+        if (pagination) {
+          setTotalProfiles(pagination.total || 0);
+          setTotalPages(Math.ceil((pagination.total || 0) / pageSize));
+        } else {
+          setTotalProfiles(filtered.length);
+          setTotalPages(Math.ceil(filtered.length / pageSize));
+        }
+
+        console.log(
+          `✅ [NewProfiles] Loaded ${
+            filtered.length
+          } profiles (page ${pageNum} of ${Math.ceil(
+            (pagination?.total || filtered.length) / pageSize
+          )})`
+        );
+      } else {
+        setAllProfiles([]);
+        setTotalProfiles(0);
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error("❌ [NewProfiles] Error fetching profiles:", error);
+      setErrorProfiles(error.message || "Failed to load profiles");
+    } finally {
+      setLoadingProfiles(false);
+      setInitialLoadDone(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialLoadDone) {
+      handleSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLoadDone]);
+
+  const filteredProfiles = useMemo(() => {
+    const normalize = (v) => (v ? v.toString().toLowerCase().trim() : "");
+
+    return allProfiles.filter((p) => {
+      if (sentProfileIds.includes(String(p.id))) return false;
+
+      const isShortlisted =
+        Array.isArray(shortlistedIds) &&
+        shortlistedIds.some((sid) => String(sid) === String(p.id));
+      if (isShortlisted) return false;
+
+      if (appliedFilters.newProfileDuration === "today") {
+        if (!p.createdAt) return false;
+        const created = new Date(p.createdAt);
+        const now = new Date();
+        const diffDays = (now - created) / (1000 * 60 * 60 * 24);
+        if (diffDays > 1) return false;
+      }
+
+      const isCountryFilterActive =
+        appliedFilters.selectedCountry !== "all" &&
+        normalize(appliedFilters.selectedCountry).length > 0;
+      if (isCountryFilterActive) {
+        const countryNorm = normalize(p.country || "");
+        if (
+          !countryNorm ||
+          !countryNorm.includes(normalize(appliedFilters.selectedCountry))
+        )
+          return false;
+      }
+
+      return true;
+    });
+  }, [allProfiles, appliedFilters, shortlistedIds, sentProfileIds]);
+
+  const clearAllFilters = () => {
+    setPendingFilters({
+      searchInput: "",
+      searchName: "",
+      selectedReligion: "all",
+      selectedCaste: "all",
+      selectedCity: "",
+      selectedProfession: "",
+      selectedCountry: "all",
+      selectedEducation: "all",
+      newProfileDuration: "all",
+      ageRange: [...DEFAULT_AGE_RANGE],
+      heightRange: [...DEFAULT_HEIGHT_RANGE],
+      weightRange: [...DEFAULT_WEIGHT_RANGE],
+    });
+  };
+
+  const handleClearAndSubmit = () => {
+    clearAllFilters();
+
+    setTimeout(() => {
+      setAppliedFilters({
+        searchName: "",
+        selectedReligion: "all",
+        selectedCaste: "all",
+        selectedCity: "",
+        selectedProfession: "",
+        selectedCountry: "all",
+        selectedEducation: "all",
+        newProfileDuration: "all",
+        ageRange: [...DEFAULT_AGE_RANGE],
+        heightRange: [...DEFAULT_HEIGHT_RANGE],
+        weightRange: [...DEFAULT_WEIGHT_RANGE],
+      });
+      handleSubmit(undefined, 1);
+    }, 50);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+      handleSubmit(undefined, newPage);
+    }
+  };
+
+  const hasFiltersActive = hasActiveFilters(pendingFilters);
+  const appliedFilterCount = hasActiveFilters(appliedFilters)
+    ? Object.values(appliedFilters).filter((v) => {
+        if (Array.isArray(v)) return false;
+        return v !== "all" && v !== "";
+      }).length
+    : 0;
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 md:gap-6 p-3 md:p-6 bg-[#faf8f3] min-h-screen">
       {/* Sidebar Filters */}
       <aside className="w-full lg:w-80 flex-shrink-0 self-start">
-        <div className="bg-white rounded-2xl shadow-md border border-[#e6dec5] p-4 md:p-6 space-y-4 md:space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-auto">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-2xl shadow-md border border-[#e6dec5] p-4 md:p-6 space-y-4 md:space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-auto"
+        >
           {/* Header */}
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900 m-0">Filters</h3>
-            {activeFilters.length > 0 && (
-              <button
-                onClick={clearAllFilters}
-                className="text-sm text-red-600 hover:text-red-500 transition-colors"
-              >
-                Clear All
-              </button>
+            {hasFiltersActive && (
+              <span className="text-xs bg-[#c8a227] text-white px-2 py-1 rounded-full">
+                {appliedFilterCount} active
+              </span>
             )}
           </div>
 
+          {/* Search Input */}
           <div className="flex items-center gap-2">
-            {/* Input with icon */}
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                 <Search className="w-4 h-4 text-gray-400" />
@@ -457,33 +431,32 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
               <input
                 type="text"
                 placeholder="Enter name..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                value={pendingFilters.searchInput}
+                onChange={(e) => {
+                  updatePendingFilter("searchInput", e.target.value);
+                  updatePendingFilter("searchName", e.target.value.trim());
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") setSearchName(searchInput.trim());
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
                 }}
                 className="w-full pl-10 h-10 rounded-xl border border-[#e0d3af] focus:border-[#c8a227] focus:ring-[#c8a227]/40 outline-none"
               />
             </div>
-            {/* Search Button */}
-            <button
-              onClick={() => setSearchName(searchInput.trim())}
-              aria-label="Search profiles"
-              className="bg-[#c8a227] text-white text-sm font-semibold px-4 h-10 rounded-lg hover:bg-[#b9941c] transition-colors flex items-center justify-center whitespace-nowrap flex-shrink-0 w-auto"
-            >
-              Search
-            </button>
           </div>
 
-
-          {/* New Profiles By */}
+          {/* New Profiles Duration */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
               New Profiles By
             </Label>
             <Select
-              value={newProfileDuration}
-              onValueChange={setNewProfileDuration}
+              value={pendingFilters.newProfileDuration}
+              onValueChange={(value) =>
+                updatePendingFilter("newProfileDuration", value)
+              }
             >
               <SelectTrigger className="rounded-xl bg-transparent text-[#3a2f00] font-medium border focus:ring-2 focus:ring-[#d4af37]/40">
                 <SelectValue placeholder="Select duration" />
@@ -498,48 +471,68 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
             </Select>
           </div>
 
-          {/* Age */}
+          {/* Age Range */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-700">
                 Age Range
               </Label>
               <span className="text-sm text-gray-600">
-                {ageRange[0]} - {ageRange[1]} yrs
+                {pendingFilters.ageRange[0]} - {pendingFilters.ageRange[1]} yrs
               </span>
             </div>
             <Slider
               min={18}
               max={60}
               step={1}
-              value={ageRange}
-              onValueChange={setAgeRange}
+              value={pendingFilters.ageRange}
+              onValueChange={(value) => updatePendingFilter("ageRange", value)}
               className="[&_[role=slider]]:bg-[#d4af37] [&_[role=track]]:bg-[#f1e6c7]"
             />
           </div>
 
-          {/* Religion (dynamic from profile data) */}
+          {/* Religion */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Religion</Label>
-            <Select value={selectedReligion} onValueChange={setSelectedReligion}>
-              <SelectTrigger className="rounded-xl bg-transparent text-[#3a2f00] font-medium border focus:ring-2 focus:ring-[#d4af37]/40 hover:border-[#d4af37]">
+            <Label className="text-sm font-medium text-gray-700">
+              Religion
+            </Label>
+            <Select
+              value={pendingFilters.selectedReligion}
+              onValueChange={(value) =>
+                updatePendingFilter("selectedReligion", value)
+              }
+            >
+              <SelectTrigger className="rounded-xl bg-transparent text-[#3a2f00] font-medium border focus:ring-2 focus:ring-[#d4af37]/40">
                 <SelectValue placeholder="Select religion" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Religions</SelectItem>
-                {religionOptions.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                {RELIGIONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Caste (searchable) */}
+          {/* Caste */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Caste</Label>
             <CustomSelect
-              value={selectedCaste === 'all' ? '' : selectedCaste}
-              onChange={(e) => setSelectedCaste(e.target.value && e.target.value.trim() ? e.target.value : 'all')}
+              value={
+                pendingFilters.selectedCaste === "all"
+                  ? ""
+                  : pendingFilters.selectedCaste
+              }
+              onChange={(e) =>
+                updatePendingFilter(
+                  "selectedCaste",
+                  e.target.value && e.target.value.trim()
+                    ? e.target.value
+                    : "all"
+                )
+              }
               options={casteOptions}
               placeholder="All Castes"
               allowCustom
@@ -548,21 +541,25 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
             />
           </div>
 
-
           {/* Height */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-gray-700">Height (cm)</Label>
+              <Label className="text-sm font-medium text-gray-700">
+                Height (cm)
+              </Label>
               <span className="text-sm text-gray-600">
-                {heightRange[0]} - {heightRange[1]} cm
+                {pendingFilters.heightRange[0]} -{" "}
+                {pendingFilters.heightRange[1]} cm
               </span>
             </div>
             <Slider
               min={HEIGHT_SLIDER_MIN}
               max={HEIGHT_SLIDER_MAX}
               step={1}
-              value={heightRange}
-              onValueChange={setHeightRange}
+              value={pendingFilters.heightRange}
+              onValueChange={(value) =>
+                updatePendingFilter("heightRange", value)
+              }
               className="[&_[role=slider]]:bg-[#d4af37] [&_[role=track]]:bg-[#f1e6c7]"
             />
           </div>
@@ -570,29 +567,44 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
           {/* Weight */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-gray-700">Weight (kg)</Label>
+              <Label className="text-sm font-medium text-gray-700">
+                Weight (kg)
+              </Label>
               <span className="text-sm text-gray-600">
-                {weightRange[0]} - {weightRange[1]} kg
+                {pendingFilters.weightRange[0]} -{" "}
+                {pendingFilters.weightRange[1]} kg
               </span>
             </div>
             <Slider
               min={40}
               max={120}
               step={1}
-              value={weightRange}
-              onValueChange={setWeightRange}
+              value={pendingFilters.weightRange}
+              onValueChange={(value) =>
+                updatePendingFilter("weightRange", value)
+              }
               className="[&_[role=slider]]:bg-[#c8a227] [&_[role=track]]:bg-[#f1e6c7]"
             />
           </div>
 
-
-          {/* Country (searchable) */}
+          {/* Country */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Country</Label>
             <CustomSelect
-              value={selectedCountry === 'all' ? '' : selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value && e.target.value.trim() ? e.target.value : 'all')}
-              options={countryOptions}
+              value={
+                pendingFilters.selectedCountry === "all"
+                  ? ""
+                  : pendingFilters.selectedCountry
+              }
+              onChange={(e) =>
+                updatePendingFilter(
+                  "selectedCountry",
+                  e.target.value && e.target.value.trim()
+                    ? e.target.value
+                    : "all"
+                )
+              }
+              options={COUNTRIES}
               placeholder="All Countries"
               allowCustom
               className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
@@ -600,13 +612,26 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
             />
           </div>
 
-          {/* Education (searchable) */}
+          {/* Education */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Education</Label>
+            <Label className="text-sm font-medium text-gray-700">
+              Education
+            </Label>
             <CustomSelect
-              value={selectedEducation === 'all' ? '' : selectedEducation}
-              onChange={(e) => setSelectedEducation(e.target.value && e.target.value.trim() ? e.target.value : 'all')}
-              options={educationOptions}
+              value={
+                pendingFilters.selectedEducation === "all"
+                  ? ""
+                  : pendingFilters.selectedEducation
+              }
+              onChange={(e) =>
+                updatePendingFilter(
+                  "selectedEducation",
+                  e.target.value && e.target.value.trim()
+                    ? e.target.value
+                    : "all"
+                )
+              }
+              options={QUALIFICATION_LEVELS}
               placeholder="All Education Levels"
               allowCustom
               className="bg-transparent text-[#3a2f00] font-medium h-10 py-2 rounded-xl border focus:ring-2 focus:ring-[#c8a227]/40 hover:border-[#c8a227]"
@@ -618,8 +643,10 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">City</Label>
             <CustomSelect
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
+              value={pendingFilters.selectedCity}
+              onChange={(e) =>
+                updatePendingFilter("selectedCity", e.target.value)
+              }
               options={INDIAN_CITIES}
               placeholder="All Cities"
               allowCustom
@@ -630,10 +657,14 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
 
           {/* Profession */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Profession</Label>
+            <Label className="text-sm font-medium text-gray-700">
+              Profession
+            </Label>
             <CustomSelect
-              value={selectedProfession}
-              onChange={(e) => setSelectedProfession(e.target.value)}
+              value={pendingFilters.selectedProfession}
+              onChange={(e) =>
+                updatePendingFilter("selectedProfession", e.target.value)
+              }
               options={JOB_TITLES}
               placeholder="All Professions"
               allowCustom
@@ -641,32 +672,53 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
               name="profession"
             />
           </div>
-        </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-4 border-t border-gray-200">
+            <button
+              type="submit"
+              className="flex-1 bg-[#c8a227] text-white font-semibold py-2 rounded-lg hover:bg-[#b9941c] transition-colors"
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={handleClearAndSubmit}
+              className="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+            >
+              Clear All
+            </button>
+          </div>
+        </form>
       </aside>
 
       {/* Profiles Section */}
       <section className="flex-1">
-        <div>
-          <h2 className="text-2xl font-semibold text-[#3a2f00]">New Profiles</h2>
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold text-[#3a2f00]">
+            New Profiles
+          </h2>
           <p className="text-gray-500">
-            Recently joined members looking for their perfect match
+            {filteredProfiles.length > 0
+              ? `Showing ${filteredProfiles.length} profile${
+                  filteredProfiles.length !== 1 ? "s" : ""
+                }`
+              : "Recently joined members looking for their perfect match"}
           </p>
-
-          {/* (Pagination summary removed; consolidated into bottom controls) */}
         </div>
 
         {/* Loading State */}
         {loadingProfiles && (
           <div className="py-16 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8A227] mx-auto" />
-            <p className="mt-4 text-gray-600">Loading new profiles...</p>
+            <p className="mt-4 text-gray-600">Loading profiles...</p>
           </div>
         )}
 
         {/* Error State */}
         {!loadingProfiles && errorProfiles && (
           <div className="py-12 text-center text-red-600 font-medium">
-            Failed to load profiles. Please try again.
+            {errorProfiles}
           </div>
         )}
 
@@ -677,89 +729,116 @@ export default function NewProfiles({ profiles = [], onSendRequest, shortlistedI
               <div className="text-center mt-10 p-8 bg-white rounded-xl border border-gray-200">
                 <p className="text-gray-600 text-lg mb-2">No profiles found</p>
                 <p className="text-gray-500 text-sm">
-                  {newProfileDuration === "today" && "No profiles created today. Try selecting a longer time period."}
-                  {newProfileDuration === "week" && "No profiles created in the last week. Try selecting a longer time period."}
-                  {newProfileDuration === "2weeks" && "No profiles created in the last 2 weeks. Try selecting a longer time period."}
-                  {newProfileDuration === "month" && "No profiles created in the last month. Try selecting 'All Profiles'."}
-                  {newProfileDuration === "all" && "No profiles match your current filters. Try adjusting your filter criteria."}
+                  {!initialLoadDone
+                    ? "Loading profiles..."
+                    : "Try adjusting your filter criteria"}
                 </p>
               </div>
             ) : (
               <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mt-4 auto-rows-fr">
-                {paginatedProfiles.map((profile) => (
-                  <ProfileCard
-                    key={profile.id}
-                    {...profile}
-                    variant="newprofiles"
-                    isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some((sid)=>String(sid)===String(profile.id)) : false}
-                    onToggleShortlist={onToggleShortlist}
-                    onSendRequest={onSendRequest}
-                    onAddToCompare={onAddToCompare || ctxAddToCompare}
-                    onRemoveCompare={onRemoveCompare || ctxRemoveFromCompare}
-                    isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
-                    profile={profile}
-                  />
-                ))}
-              </div>
-              {/* Pagination Controls - Show when there are results */}
-              {paginatedProfiles.length > 0 && (
-                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-[#e6dec5]">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-700">
-                    <span>Showing {((page-1) * limit) + 1}-{Math.min(page * limit, total)} of {total}</span>
-                    <span className="hidden sm:inline">| Page {page} of {totalPages}</span>
-                  </div>
-                  <div className="flex items-center gap-2 order-3 sm:order-2">
-                    <button
-                      onClick={() => handlePageChange(page - 1)}
-                      disabled={page === 1 || loadingProfiles}
-                      className={`px-3 py-1 rounded-full text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
-                        loadingProfiles && page > 1
-                          ? 'bg-[#d4af37] text-white border border-[#d4af37]'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:!bg-[#d4af37] hover:!text-white hover:!border-[#d4af37]'
-                      }`}
-                    >Prev</button>
-                    <div className="hidden sm:flex items-center gap-1">
-                      {Array.from({ length: totalPages }).map((_, idx) => {
-                        const pNum = idx + 1;
-                        if (pNum === 1 || pNum === totalPages || (pNum >= page - 1 && pNum <= page + 1)) {
-                          return (
-                            <button
-                              key={pNum}
-                              onClick={() => handlePageChange(pNum)}
-                              className={`w-9 h-9 rounded-full text-sm border ${pNum === page ? 'bg-[#c8a227] text-white border-[#c8a227]' : 'bg-white border-gray-300 text-gray-700 hover:bg-[#f9f5ed] active:bg-[#d4af37] active:text-white active:border-[#d4af37]'}`}
-                            >{pNum}</button>
-                          );
-                        } else if (pNum === page - 2 || pNum === page + 2) {
-                          return <span key={pNum} className="px-1">...</span>;
-                        }
-                        return null;
-                      })}
-                    </div>
-                    <button
-                      onClick={() => handlePageChange(page + 1)}
-                      disabled={page >= totalPages || (!hasMore && page >= totalPages) || loadingProfiles}
-                      className={`px-3 py-1 rounded-full text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
-                        loadingProfiles && page < totalPages
-                          ? 'bg-[#c8a227] text-white border border-[#c8a227]'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:!bg-[#c8a227] hover:!text-white hover:!border-[#d4af37]'
-                      }`}
-                    >Next</button>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm order-2 sm:order-3">
-                    <span className="text-gray-600">Per Page:</span>
-                    <select value={limit} onChange={handleLimitChange} className="border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4af37]">
-                      {[10,20,50,100].map(l => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mt-4 auto-rows-fr">
+                  {filteredProfiles.map((profile) => (
+                    <ProfileCard
+                      key={profile.id}
+                      {...profile}
+                      variant="newprofiles"
+                      isShortlisted={
+                        Array.isArray(shortlistedIds)
+                          ? shortlistedIds.some(
+                              (sid) => String(sid) === String(profile.id)
+                            )
+                          : false
+                      }
+                      onToggleShortlist={onToggleShortlist}
+                      onSendRequest={onSendRequest}
+                      onAddToCompare={onAddToCompare || ctxAddToCompare}
+                      onRemoveCompare={onRemoveCompare || ctxRemoveFromCompare}
+                      isInCompare={
+                        Array.isArray(compareProfiles)
+                          ? compareProfiles
+                              .map(String)
+                              .includes(
+                                String(
+                                  profile.id || profile._id || profile.userId
+                                )
+                              )
+                          : false
+                      }
+                      profile={profile}
+                    />
+                  ))}
                 </div>
-              )}
+
+                {/* Pagination Controls - Show only when totalPages > 1 */}
+                {filteredProfiles.length > 0 && totalPages > 1 && (
+                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-[#e6dec5]">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-700">
+                      <span>
+                        Showing {(page - 1) * pageSize + 1}-
+                        {Math.min(page * pageSize, totalProfiles)} of{" "}
+                        {totalProfiles}
+                      </span>
+                      <span className="hidden sm:inline">
+                        | Page {page} of {totalPages}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 order-3 sm:order-2">
+                      <button
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1}
+                        className="px-3 py-1 rounded-full text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-gray-300 text-gray-700 hover:bg-[#d4af37] hover:text-white hover:border-[#d4af37]"
+                      >
+                        Prev
+                      </button>
+
+                      <div className="hidden sm:flex items-center gap-1">
+                        {Array.from({ length: totalPages }).map((_, idx) => {
+                          const pNum = idx + 1;
+                          if (
+                            pNum === 1 ||
+                            pNum === totalPages ||
+                            (pNum >= page - 1 && pNum <= page + 1)
+                          ) {
+                            return (
+                              <button
+                                key={pNum}
+                                onClick={() => handlePageChange(pNum)}
+                                className={`w-9 h-9 rounded-full text-sm border transition-all ${
+                                  pNum === page
+                                    ? "bg-[#c8a227] text-white border-[#c8a227]"
+                                    : "bg-white border-gray-300 text-gray-700 hover:bg-[#f9f5ed]"
+                                }`}
+                              >
+                                {pNum}
+                              </button>
+                            );
+                          } else if (pNum === page - 2 || pNum === page + 2) {
+                            return (
+                              <span key={pNum} className="px-1 text-gray-400">
+                                ...
+                              </span>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+
+                      <button
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page >= totalPages}
+                        className="px-3 py-1 rounded-full text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-gray-300 text-gray-700 hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227]"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </>
         )}
       </section>
-
     </div>
   );
 }
