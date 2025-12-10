@@ -103,7 +103,13 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
               placeholder="Search country or code"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              // Only focus on user tap
+              ref={input => {
+                // Assign ref for manual focus only
+                if (input) {
+                  // No auto-focus on open
+                }
+              }}
+              onFocus={() => {}}
             />
           </div>
 

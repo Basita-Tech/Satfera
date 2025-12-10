@@ -197,7 +197,7 @@ export default function CustomSelect({
           }
         }}
         onKeyDown={handleInputKeyDown}
-        // onClick={handleInputClick}
+        onClick={handleInputClick}
         placeholder={placeholder}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -217,7 +217,7 @@ export default function CustomSelect({
       {open && (
         <ul
           tabIndex={-1}
-          className={`max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none absolute left-0 right-0 bg-white border border-[#e4c48a] rounded-md z-10 ${dropUp ? 'bottom-full mb-2' : 'top-full mt-1'}`}
+          className="max-h-48 overflow-auto focus:outline-none p-0 m-0 list-none absolute left-0 right-0 bg-white border border-[#e4c48a] rounded-md z-10 mt-1"
           role="listbox"
         >
           {placeholder && !searchTerm && (
