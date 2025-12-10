@@ -64,7 +64,7 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
   const displayValue = value || "Select Code";
 
   return (
-    <div className="relative w-full sm:w-40 flex-shrink-0" ref={dropdownRef}>
+    <div className="relative w-full sm:w-60 flex-shrink-0" ref={dropdownRef}>
       <div
         className={`w-full p-3 rounded-md border ${
           error ? "border-red-500" : "border-[#E4C48A]"
@@ -88,7 +88,7 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
       {open && (
         <div
           ref={menuRef}
-          className={`absolute z-50 left-0 w-64 bg-white border border-[#c7c4bd] rounded-md shadow-xl overflow-hidden ${
+          className={`absolute z-50 left-0 w-80 bg-white border border-[#c7c4bd] rounded-md shadow-xl overflow-hidden ${
             placement === "down" ? "top-full mt-2" : "bottom-full mb-2"
           }`}
         >
