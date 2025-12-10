@@ -62,6 +62,8 @@ export default function LocationSelect({
 
   const displayLabel = value || '';
 
+  const suppressKeyboard = options.length <= 15;
+
   // Use enhanced search for all types
   let filteredOptions;
   if (searchTerm.trim()) {
@@ -197,9 +199,14 @@ export default function LocationSelect({
     handleKeyDown(e);
   };
 
-  const handleInputClick = () => {
+  const handleInputClick = (e) => {
     if (!disabled && searchInputRef.current) {
-      searchInputRef.current.focus();
+      if (suppressKeyboard) {
+        e.preventDefault();
+        searchInputRef.current?.blur();
+      } else {
+        searchInputRef.current.focus();
+      }
       if (!open) {
         setOpen(true);
         setSearchTerm('');
@@ -223,13 +230,33 @@ export default function LocationSelect({
         type="text"
         name={name}
         disabled={disabled}
+        readOnly={suppressKeyboard}
+        inputMode={suppressKeyboard ? 'none' : undefined}
         className={triggerClasses}
         value={displayValue}
         onChange={handleInputChange}
-        onFocus={() => {
+        onFocus={(e) => {
           if (!disabled) {
+            if (suppressKeyboard) {
+              e.preventDefault();
+              e.target.blur();
+              return;
+            }
             setOpen(true);
             setSearchTerm('');
+          }
+        }}
+        onTouchStart={(e) => {
+          if (suppressKeyboard && !disabled) {
+            e.preventDefault();
+            searchInputRef.current?.blur();
+            setOpen(!open);
+            updatePosition();
+          }
+        }}
+        onMouseDown={(e) => {
+          if (suppressKeyboard && !disabled) {
+            e.preventDefault();
           }
         }}
         onBlur={() => {

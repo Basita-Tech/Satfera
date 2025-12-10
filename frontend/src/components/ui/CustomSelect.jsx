@@ -23,6 +23,8 @@ export default function CustomSelect({
     return value;
   }, [value]);
 
+  const suppressKeyboard = options.length <= 15;
+
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return options;
     const term = searchTerm.toLowerCase();
@@ -162,8 +164,12 @@ export default function CustomSelect({
     handleKeyDown(e);
   };
 
-  const handleInputClick = () => {
+  const handleInputClick = (e) => {
     if (!disabled) {
+      if (suppressKeyboard) {
+        e.preventDefault();
+        searchInputRef.current?.blur();
+      }
       if (!open) {
         setOpen(true);
         setSearchTerm('');
@@ -187,13 +193,33 @@ export default function CustomSelect({
         type="text"
         name={name}
         disabled={disabled}
+        readOnly={suppressKeyboard}
+        inputMode={suppressKeyboard ? 'none' : undefined}
         className={triggerClasses}
         value={displayValue}
         onChange={handleInputChange}
-        onFocus={() => {
+        onFocus={(e) => {
           if (!disabled) {
+            if (suppressKeyboard) {
+              e.preventDefault();
+              e.target.blur();
+              return;
+            }
             setOpen(true);
             setSearchTerm('');
+          }
+        }}
+        onTouchStart={(e) => {
+          if (suppressKeyboard && !disabled) {
+            e.preventDefault();
+            searchInputRef.current?.blur();
+            setOpen(!open);
+            updatePosition();
+          }
+        }}
+        onMouseDown={(e) => {
+          if (suppressKeyboard && !disabled) {
+            e.preventDefault();
           }
         }}
         onKeyDown={handleInputKeyDown}

@@ -23,7 +23,7 @@ const EducationDetails = ({ onNext, onPrevious }) => {
   const [errors, setErrors] = useState({});
 
   // Basic sanitization: trim, collapse spaces, remove dangerous characters, limit length
-  const sanitize = (val, max = 120) => {
+  const sanitize = (val, max = 200) => {
     if (val === null || val === undefined) return "";
     let s = String(val).replace(/[\x00-\x1F\x7F]/g, ""); // control chars
     s = s.replace(/[<>`]/g, ""); // strip markup/meta
@@ -33,7 +33,7 @@ const EducationDetails = ({ onNext, onPrevious }) => {
   };
 
   // Live sanitization used while typing: keep spaces/backspace behavior natural
-  const sanitizeLive = (val, max = 120) => {
+  const sanitizeLive = (val, max = 200) => {
     if (val === null || val === undefined) return "";
     let s = String(val).replace(/[\x00-\x1F\x7F]/g, ""); // remove control chars
     s = s.replace(/[<>`]/g, ""); // strip markup/meta
@@ -493,18 +493,7 @@ const EducationDetails = ({ onNext, onPrevious }) => {
               options={educationOptionsFormatted}
               value={formData.fieldOfStudy}
               onChange={(newValue, actionMeta) => {
-                const formatted =
-                  newValue && newValue.value
-                    ? {
-                        label: newValue.label.replace(/\b\w/g, (c) =>
-                          c.toUpperCase()
-                        ),
-                        value: newValue.value.replace(/\b\w/g, (c) =>
-                          c.toUpperCase()
-                        ),
-                      }
-                    : null;
-                handleFieldOfStudyChange(formatted);
+                handleFieldOfStudyChange(newValue);
 
                 if (actionMeta.action === "select-option") {
                   document.activeElement.blur();

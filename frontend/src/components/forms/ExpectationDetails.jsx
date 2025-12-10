@@ -6,6 +6,7 @@ import {
 } from "../../api/auth";
 import Select from "react-select";
 import CustomSelect from "../ui/CustomSelect";
+import NoKeyboardInput from "../ui/NoKeyboardInput";
 import toast from "react-hot-toast";
 import {
   getAllCountriesWithCodes,
@@ -684,6 +685,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 menuPlacement="auto"
                 menuPosition="fixed"
                 isMulti
+                isSearchable={false}
                 name="partnerEducation"
                 options={[
                   { value: "Any", label: "Any" },
@@ -715,6 +717,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
+                  Input: NoKeyboardInput,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -786,6 +789,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 menuPlacement="auto"
                 menuPosition="fixed"
                 isMulti
+                isSearchable={false}
                 name="partnerCommunity"
                 options={[
                   { value: "Any", label: "Any" },
@@ -808,6 +812,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
+                  Input: NoKeyboardInput,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -884,6 +889,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 menuPlacement="auto"
                 menuPosition="fixed"
                 isMulti
+                isSearchable={false}
                 name="partnerDiet"
                 options={[
                   { value: "Any", label: "Any" },
@@ -921,6 +927,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
+                  Input: NoKeyboardInput,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -995,6 +1002,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 menuPlacement="auto"
                 menuPosition="fixed"
                 isMulti
+                isSearchable={false}
                 name="profession"
                 options={professionOptions.map((profession) => ({
                   value: profession,
@@ -1014,6 +1022,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
+                  Input: NoKeyboardInput,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -1088,6 +1097,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 menuPlacement="auto"
                 menuPosition="fixed"
                 isMulti
+                isSearchable={false}
                 name="maritalStatus"
                 options={maritalStatuses.map((status) => ({
                   value: status,
@@ -1107,6 +1117,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                 classNamePrefix="react-select"
                 components={{
                   IndicatorSeparator: () => null,
+                  Input: NoKeyboardInput,
                 }}
                 styles={{
                   control: (base, state) => ({
@@ -1176,7 +1187,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
               Preferred Age
             </label>
 
-            <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-3">
+            <div className="flex flex-row flex-wrap items-center gap-2 sm:gap-3">
               {/* FROM */}
               <CustomSelect
                 name="preferredAgeFrom"
