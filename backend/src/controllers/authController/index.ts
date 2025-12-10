@@ -135,10 +135,10 @@ export class AuthController {
       const token = jwt.sign(
         { id: user._id, email: user.email },
         process.env.JWT_SECRET as string,
-        { expiresIn: "1d" }
+        { expiresIn: "7d" }
       );
 
-      setSecureTokenCookie(res, token, { maxAge: 7 * 24 * 60 * 60 * 1000 });
+      setSecureTokenCookie(res, token, { maxAge: APP_CONFIG.COOKIE_MAX_AGE });
 
       const csrfToken = generateCSRFToken();
       setCSRFTokenCookie(res, csrfToken);
@@ -210,10 +210,17 @@ export class AuthController {
         });
 
         const sanitized = sanitizeError(authError);
-        return res.status(401).json({
+        const statusCode = authError.status || 401;
+        const responseBody: any = {
           success: false,
           message: sanitized.message
-        });
+        };
+
+        if (authError.reason) {
+          responseBody.reason = authError.reason;
+        }
+
+        return res.status(statusCode).json(responseBody);
       }
 
       const identifier = email || phoneNumber!;
@@ -227,18 +234,6 @@ export class AuthController {
       const completedSteps = Array.isArray(publicUser?.completedSteps)
         ? publicUser.completedSteps
         : [];
-
-      const stepsOrder = [
-        "personal",
-        "family",
-        "education",
-        "profession",
-        "health",
-        "expectation"
-      ];
-      const nextStep = stepsOrder.find(
-        (step) => !completedSteps.includes(step)
-      );
 
       setSecureTokenCookie(res, result.token, { maxAge: COOKIE_MAX_AGE });
 
@@ -281,6 +276,7 @@ export class AuthController {
         success: true,
         message: "Login successful",
         user: publicUser,
+        token: result.token,
         isNewSession: result.isNewSession,
         redirectTo: "/dashboard"
       });
@@ -560,7 +556,8 @@ export class AuthController {
 
         return res.status(200).json({
           success: true,
-          message: response.message
+          message: response.message,
+          token: response.token
         });
       } else {
         const response = await authService.verifyForgotPasswordOtp(email, otp);

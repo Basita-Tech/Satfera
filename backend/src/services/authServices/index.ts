@@ -28,6 +28,7 @@ import {
 import { SessionService } from "../sessionService";
 import { generateDeviceFingerprint } from "../../utils/secureToken";
 import { getClientIp } from "../../utils/ipUtils";
+import { APP_CONFIG } from "../../utils/constants";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -102,7 +103,9 @@ export class AuthService {
           isActive: true,
           isEmailLoginEnabled: true,
           isDeleted: false
-        }),
+        }).select(
+          "isOnboardingCompleted completedSteps isEmailVerified password lastLoginAt _id"
+        ),
       100
     );
 
@@ -111,9 +114,12 @@ export class AuthService {
     }
 
     if (!user.isEmailVerified) {
-      return await timingSafe.fail(
-        new Error("Please verify your email before logging in.")
+      const error: any = new Error(
+        "Please verify your email before logging in."
       );
+      error.reason = "OTP_VERIFICATION_PENDING";
+      error.status = 202;
+      return await timingSafe.fail(error);
     }
 
     const isPasswordValid = await constantTimePasswordValidation(
@@ -157,7 +163,7 @@ export class AuthService {
         },
         this.jwtSecret(),
         {
-          expiresIn: "1d"
+          expiresIn: "7d"
         }
       );
 
@@ -172,7 +178,7 @@ export class AuthService {
         jti,
         req,
         ipAddress,
-        86400,
+        APP_CONFIG.COOKIE_MAX_AGE,
         fingerprint
       );
       isNewSession = true;
@@ -204,7 +210,9 @@ export class AuthService {
           isActive: true,
           isMobileLoginEnabled: true,
           isDeleted: false
-        }),
+        }).select(
+          "isOnboardingCompleted completedSteps isPhoneVerified password lastLoginAt _id"
+        ),
       100
     );
 
@@ -253,7 +261,7 @@ export class AuthService {
         },
         this.jwtSecret(),
         {
-          expiresIn: "1d"
+          expiresIn: "7d"
         }
       );
 
@@ -268,7 +276,7 @@ export class AuthService {
         jti,
         req,
         ipAddress,
-        86400,
+        APP_CONFIG.COOKIE_MAX_AGE,
         fingerprint
       );
       isNewSession = true;
@@ -510,7 +518,7 @@ export class AuthService {
       },
       this.jwtSecret(),
       {
-        expiresIn: "1d"
+        expiresIn: "7d"
       }
     );
 
@@ -525,7 +533,7 @@ export class AuthService {
       jti,
       req,
       ipAddress,
-      86400,
+      APP_CONFIG.COOKIE_MAX_AGE,
       fingerprint
     );
 

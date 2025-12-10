@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
   JWT_EXPIRES_IN: "1d",
 
-  COOKIE_MAX_AGE: 1 * 24 * 60 * 60 * 1000,
+  COOKIE_MAX_AGE: 7 * 24 * 60 * 60 * 1000,
 
   OTP_LENGTH: 6,
   OTP_EXPIRY_MINUTES: 5,

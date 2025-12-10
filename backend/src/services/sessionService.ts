@@ -3,6 +3,7 @@ import { UserSession, IUserSession } from "../models/UserSession";
 import { getDeviceInfo, formatDeviceInfo } from "../utils/deviceParser";
 import { logger } from "../lib/common/logger";
 import mongoose from "mongoose";
+import { APP_CONFIG } from "../utils/constants";
 
 export class SessionService {
   /**
@@ -41,11 +42,11 @@ export class SessionService {
     jti: string,
     req: Request,
     ipAddress: string,
-    expiresInSeconds: number = 86400,
+    expiresInSeconds: number = APP_CONFIG.COOKIE_MAX_AGE,
     fingerprint?: string
   ): Promise<IUserSession> {
     const deviceInfo = getDeviceInfo(req);
-    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+    const expiresAt = new Date(Date.now() + expiresInSeconds);
 
     const session = await UserSession.create({
       userId: new mongoose.Types.ObjectId(userId),

@@ -137,7 +137,7 @@ const ProfileSchema = new Schema(
     ProfileViewed: { type: Number, default: 0 },
     profileReviewStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected"]
+      enum: ["pending", "approved", "rejected"],
     },
     reviewedAt: { type: Date },
     reviewNotes: { type: String }

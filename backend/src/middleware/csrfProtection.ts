@@ -38,7 +38,8 @@ export const csrfProtection = (
 
   // const csrfTokenFromHeader =
   //   req.headers["x-csrf-token"] || req.headers["csrf-token"];
-  const csrfTokenFromCookie = req.cookies?.csrf_token;
+  const csrfTokenFromCookie =
+    req.cookies?.csrf_token || req.headers?.csrf_token;
 
   if (!csrfTokenFromCookie) {
     return next();

@@ -72,7 +72,8 @@ const UserSessionSchema = new Schema<IUserSession>(
     },
     expiresAt: {
       type: Date,
-      required: true
+      required: true,
+      default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     },
     isActive: {
       type: Boolean,

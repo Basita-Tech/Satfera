@@ -1,8 +1,9 @@
 import { Response } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/common/logger";
+import { APP_CONFIG } from "./constants";
 
-const COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
+const COOKIE_MAX_AGE = APP_CONFIG.COOKIE_MAX_AGE;
 
 export interface SecureCookieOptions {
   maxAge?: number;

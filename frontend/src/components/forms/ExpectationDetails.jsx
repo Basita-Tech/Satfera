@@ -4,14 +4,18 @@ import {
   saveUserExpectations,
   updateUserExpectations,
 } from "../../api/auth";
-import { Country, State } from "country-state-city";
 import Select from "react-select";
 import CustomSelect from "../ui/CustomSelect";
-import LocationSelect from "../ui/LocationSelect";
 import toast from "react-hot-toast";
+import {
+  getAllCountriesWithCodes,
+  getAllStatesWithCodes,
+} from "../../lib/locationUtils";
 
 const sortAlpha = (list) =>
-  [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  [...list].sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" })
+  );
 
 const sortAlphaWithPinned = (list, pinned = []) => {
   const pinnedSet = new Set(pinned);
@@ -20,23 +24,10 @@ const sortAlphaWithPinned = (list, pinned = []) => {
   return [...pinnedItems, ...sortAlpha(rest)];
 };
 
-const sortOptionsByLabel = (options, pinnedValues = []) => {
-  const pinnedSet = new Set(pinnedValues);
-  const pinned = options.filter((opt) => pinnedSet.has(opt.value));
-  const rest = options
-    .filter((opt) => !pinnedSet.has(opt.value))
-    .sort((a, b) =>
-      a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
-    );
-  return [...pinned, ...rest];
-};
-
 const ExpectationDetails = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
-    partnerLocation: [],
+    partnerLocation: "",
     partnerStateOrCountry: [],
-    selectedCountry: "",
-    selectedState: "",
     openToPartnerHabits: "",
     partnerEducation: [],
     partnerDiet: [],
@@ -48,7 +39,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
   });
 
   const [errors, setErrors] = useState({});
-  const [hasExistingData, setHasExistingData] = useState(false);
 
   const maritalStatuses = sortAlphaWithPinned(
     [
@@ -92,115 +82,36 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     ["No preference"]
   );
 
-  const allCountriesOptions = useMemo(() => {
-    return Country.getAllCountries().map(c => ({
-      value: c.name,
-      label: c.name,
-    })).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
-  }, []);
-
-  const indianStates = [
-    { code: "AP", name: "Andhra Pradesh" },
-    { code: "AR", name: "Arunachal Pradesh" },
-    { code: "AS", name: "Assam" },
-    { code: "BR", name: "Bihar" },
-    { code: "CG", name: "Chhattisgarh" },
-    { code: "GA", name: "Goa" },
-    { code: "GJ", name: "Gujarat" },
-    { code: "HR", name: "Haryana" },
-    { code: "HP", name: "Himachal Pradesh" },
-    { code: "JK", name: "Jammu & Kashmir" },
-    { code: "JH", name: "Jharkhand" },
-    { code: "KA", name: "Karnataka" },
-    { code: "KL", name: "Kerala" },
-    { code: "MP", name: "Madhya Pradesh" },
-    { code: "MH", name: "Maharashtra" },
-    { code: "MN", name: "Manipur" },
-    { code: "ML", name: "Meghalaya" },
-    { code: "MZ", name: "Mizoram" },
-    { code: "NL", name: "Nagaland" },
-    { code: "OR", name: "Odisha" },
-    { code: "PB", name: "Punjab" },
-    { code: "RJ", name: "Rajasthan" },
-    { code: "SK", name: "Sikkim" },
-    { code: "TN", name: "Tamil Nadu" },
-    { code: "TG", name: "Telangana" },
-    { code: "TR", name: "Tripura" },
-    { code: "UP", name: "Uttar Pradesh" },
-    { code: "UT", name: "Uttarakhand" },
-    { code: "WB", name: "West Bengal" },
-  ].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
-  );
-
   const inputClass =
-   "w-full p-3 rounded-md border border-[#ec482a] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
+    "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
+
   const ageOptions = useMemo(
     () => Array.from({ length: 23 }, (_, i) => 18 + i),
     []
   );
 
-  const partnerEducationOptions = useMemo(
-    () =>
-      sortOptionsByLabel(
-        [
-          { value: "Any", label: "Any" },
-          { value: "High School", label: "High School" },
-          { value: "Undergraduate", label: "Undergraduate" },
-          { value: "Associates Degree", label: "Associates Degree" },
-          { value: "Bachelors", label: "Bachelors" },
-          { value: "Honours Degree", label: "Honours Degree" },
-          { value: "Masters", label: "Masters" },
-          { value: "Doctorate", label: "Doctorate" },
-          { value: "Diploma", label: "Diploma" },
-          { value: "Trade School", label: "Trade School" },
-          { value: "Less Than High School", label: "Less Than High School" },
-        ],
-        ["Any"]
-      ),
-    []
-  );
+  const countryOptions = useMemo(() => {
+    const countries = getAllCountriesWithCodes();
 
-  const dietOptions = useMemo(
-    () =>
-      sortOptionsByLabel(
-        [
-          { value: "Any", label: "Any" },
-          { value: "Vegetarian", label: "Vegetarian" },
-          { value: "Non-Vegetarian", label: "Non-Vegetarian" },
-          { value: "Eggetarian", label: "Eggetarian" },
-          { value: "Jain", label: "Jain" },
-          { value: "Swaminarayan", label: "Swaminarayan" },
-          { value: "Veg & Non-Veg", label: "Veg & Non-veg" },
-        ],
-        ["Any"]
-      ),
-    []
-  );
-
-  const professionOptionsFormatted = useMemo(
-    () => professionOptions.map((p) => ({ value: p, label: p })),
-    [professionOptions]
-  );
-
-  const maritalStatusesFormatted = useMemo(
-    () => maritalStatuses.map((s) => ({ value: s, label: s })),
-    [maritalStatuses]
-  );
-
-  const casteOptionsFormatted = useMemo(
-    () => castOptions.map((c) => ({ value: c, label: c })),
-    [castOptions]
-  );
-
-  const indianStateOptions = useMemo(
-    () =>
-      indianStates.map((s) => ({
-        value: String(s.name),
-        label: String(s.name),
+    return [
+      { value: "Any", label: "Any" },
+      ...countries.map((c) => ({
+        value: c.name,
+        label: c.name,
       })),
-    [indianStates]
-  );
+    ];
+  }, []);
+
+  const stateOptions = useMemo(() => {
+    const states = getAllStatesWithCodes("IN");
+    return [
+      { value: "Any", label: "Any" },
+      ...states.map((s) => ({
+        value: s.name,
+        label: s.name,
+      })),
+    ];
+  }, []);
 
   const handleChange = useCallback((field, value) => {
     if (field === "preferredAgeFrom" || field === "preferredAgeTo") {
@@ -222,11 +133,11 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-      ...(field === "partnerLocation" ? { 
-        partnerStateOrCountry: [],
-        selectedCountry: "",
-        selectedState: ""
-      } : {}),
+      ...(field === "partnerLocation"
+        ? {
+            partnerStateOrCountry: [],
+          }
+        : {}),
     }));
 
     if (shouldClearError) {
@@ -240,7 +151,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         return newErrors;
       });
     }
-  });
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -261,10 +172,9 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         newErrors[key] = "This field is required";
     });
 
-    const partnerLocationValues = formData.partnerLocation.map((loc) => loc.value);
     if (
-      partnerLocationValues.includes("India") ||
-      partnerLocationValues.includes("Abroad")
+      formData.partnerLocation === "India" ||
+      formData.partnerLocation === "Abroad"
     ) {
       if (
         !Array.isArray(formData.partnerStateOrCountry) ||
@@ -318,30 +228,29 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       profession: formData.profession.map((x) => x.value),
     };
 
-    const partnerLocationValues = formData.partnerLocation.map((loc) => loc.value);
-    
-    if (partnerLocationValues.includes("India")) {
+    if (formData.partnerLocation === "India") {
       payload.livingInCountry = "India";
       payload.livingInState = formData.partnerStateOrCountry.map(
         (x) => x.value
       );
-    } else if (partnerLocationValues.includes("Abroad")) {
+    } else if (formData.partnerLocation === "Abroad") {
       payload.livingInCountry = formData.partnerStateOrCountry.map(
         (x) => x.value
       );
+      payload.livingInState = [];
     } else {
       payload.livingInCountry = "No preference";
+      payload.livingInState = [];
     }
 
     try {
       const existing = await getUserExpectations();
-      let res;
 
       if (existing?.data) {
-        res = await updateUserExpectations(payload);
+        await updateUserExpectations(payload);
         toast.success(" Expectations updated successfully!");
       } else {
-        res = await saveUserExpectations(payload);
+        await saveUserExpectations(payload);
         toast.success("Expectations saved successfully!");
       }
 
@@ -349,7 +258,16 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       if (updated?.data?.data) {
         const data = updated.data.data;
 
-        const determinePartnerLocation = (livingInCountry) => {
+        const determinePartnerLocation = (livingInCountry, livingInState) => {
+          // Check if livingInState has values first (means India is selected)
+          if (
+            livingInState &&
+            Array.isArray(livingInState) &&
+            livingInState.length > 0
+          ) {
+            return "India";
+          }
+
           if (!livingInCountry) return "No preference";
           if (typeof livingInCountry === "string") {
             if (livingInCountry === "India") return "India";
@@ -358,8 +276,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           }
           if (Array.isArray(livingInCountry)) {
             const countryValues = livingInCountry.map((c) => c.value || c);
-            if (countryValues.includes("India")) return "India";
-            return "Abroad";
+            // If only India and no other countries, show India
+            if (countryValues.length === 1 && countryValues[0] === "India") {
+              return "India";
+            }
+            // If array has multiple countries or non-India countries, show Abroad
+            if (countryValues.length > 0) {
+              return "Abroad";
+            }
           }
           return "No preference";
         };
@@ -372,32 +296,26 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           return String(val);
         };
 
-        const partnerLocation = determinePartnerLocation(data.livingInCountry);
+        const partnerLocation = determinePartnerLocation(
+          data.livingInCountry,
+          data.livingInState
+        );
 
         setFormData((prev) => ({
           ...prev,
-          partnerLocation: partnerLocation === "India" 
-            ? [{ value: "India", label: "India" }]
-            : partnerLocation === "Abroad"
-            ? [{ value: "Abroad", label: "Abroad" }]
-            : [{ value: "No preference", label: "No preference" }],
+          partnerLocation,
           partnerStateOrCountry:
             partnerLocation === "India"
-              ? data.livingInState?.map((s) => ({ value: s, label: s })) || []
+              ? data.livingInState?.map((s) => ({
+                  value: s.value || s,
+                  label: s.value || s,
+                })) || []
               : partnerLocation === "Abroad"
               ? data.livingInCountry?.map((c) => ({
-                  value: c.value || c,
-                  label: c.label || c,
+                  value: c.value || c.label || c,
+                  label: c.value || c.label || c,
                 })) || []
               : [],
-          selectedState:
-            partnerLocation === "India" && data.livingInState?.length > 0
-              ? data.livingInState[0]
-              : "",
-          selectedCountry:
-            partnerLocation === "Abroad" && data.livingInCountry?.length > 0
-              ? (data.livingInCountry[0]?.value || data.livingInCountry[0])
-              : "",
           openToPartnerHabits: mapHabitDisplay(data.isConsumeAlcoholic),
           preferredAgeFrom:
             data.age?.from !== undefined && data.age?.from !== null
@@ -428,8 +346,17 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         if (!mounted) return;
         const data = res?.data?.data || null;
         if (!data) return;
-        setHasExistingData(true);
+
         const partnerLocation = (() => {
+          // Check if livingInState has values first (means India is selected)
+          if (
+            data.livingInState &&
+            Array.isArray(data.livingInState) &&
+            data.livingInState.length > 0
+          ) {
+            return "India";
+          }
+
           if (!data.livingInCountry) return "No preference";
           if (typeof data.livingInCountry === "string") {
             if (data.livingInCountry === "India") return "India";
@@ -439,8 +366,14 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
           }
           if (Array.isArray(data.livingInCountry)) {
             const countryValues = data.livingInCountry.map((c) => c.value || c);
-            if (countryValues.includes("India")) return "India";
-            return "Abroad";
+            // If only India and no other countries, show India
+            if (countryValues.length === 1 && countryValues[0] === "India") {
+              return "India";
+            }
+            // If array has multiple countries or non-India countries, show Abroad
+            if (countryValues.length > 0) {
+              return "Abroad";
+            }
           }
 
           return "No preference";
@@ -456,11 +389,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
         setFormData((prev) => ({
           ...prev,
-          partnerLocation: partnerLocation === "India" 
-            ? [{ value: "India", label: "India" }]
-            : partnerLocation === "Abroad"
-            ? [{ value: "Abroad", label: "Abroad" }]
-            : [{ value: "No preference", label: "No preference" }],
+          partnerLocation,
           partnerStateOrCountry:
             partnerLocation === "India"
               ? data.livingInState?.map((s) => ({ value: s, label: s })) || []
@@ -470,14 +399,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   label: c.label || c,
                 })) || []
               : [],
-          selectedState:
-            partnerLocation === "India" && data.livingInState?.length > 0
-              ? data.livingInState[0]
-              : "",
-          selectedCountry:
-            partnerLocation === "Abroad" && data.livingInCountry?.length > 0
-              ? (data.livingInCountry[0]?.value || data.livingInCountry[0])
-              : "",
           openToPartnerHabits: mapHabitsDisplay(data.isConsumeAlcoholic),
           partnerEducation:
             data.educationLevel?.map((e) => ({ value: e, label: e })) || [],
@@ -516,86 +437,19 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         </div>
 
         <form className="space-y-4" onSubmit={handleNext}>
-          {/* Partner Location - SINGLE SELECT */}
+          {/* Partner Location */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Where would you prefer your partner to be based?
             </label>
-            <div className="w-full">
-              <Select
-                menuPlacement="auto"
-                menuPosition="fixed"
-                isMulti={false}
-                name="partnerLocation"
-                options={[
-                  { value: "India", label: "India" },
-                  { value: "Abroad", label: "Abroad" },
-                  { value: "No preference", label: "No preference" },
-                ]}
-                value={formData.partnerLocation.length > 0 ? formData.partnerLocation[0] : null}
-                onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    handleChange("partnerLocation", [selectedOption]);
-                  } else {
-                    handleChange("partnerLocation", []);
-                  }
-                }}
-                placeholder="Select location"
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null,
-                }}
-                styles={{
-                  control: (base, state) => ({
-                    ...base,
-                    borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
-                    boxShadow: "none",
-                    borderRadius: "0.5rem",
-                    backgroundColor: "#fff",
-                    minHeight: "50px",
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: "0.875rem",
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      borderColor: "#D4A052",
-                    },
-                  }),
-                  valueContainer: (base) => ({
-                    ...base,
-                    padding: "0 8px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    flexWrap: "wrap",
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: "#FDF8EF",
-                    borderRadius: "0.5rem",
-                    padding: "0 6px",
-                  }),
-                  multiValueLabel: (base) => ({
-                    ...base,
-                    color: "#111827",
-                    fontSize: "0.875rem",
-                  }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#6b7280",
-                    ":hover": {
-                      backgroundColor: "#D4A052",
-                      color: "white",
-                    },
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    zIndex: 9999,
-                    borderRadius: "0.75rem",
-                  }),
-                }}
-              />
-            </div>
+            <CustomSelect
+              name="partnerLocation"
+              value={formData.partnerLocation}
+              onChange={(e) => handleChange("partnerLocation", e.target.value)}
+              options={["India", "Abroad", "No preference"]}
+              placeholder="Select"
+              className={inputClass}
+            />
             {errors.partnerLocation && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.partnerLocation}
@@ -603,67 +457,93 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-          {/* State / Country using LocationSelect - using country-state-city library */}
-          {formData.partnerLocation.some((loc) => loc.value === "Abroad") && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Select Countries (Multi-select)
-                </label>
-                <div>
-                  <LocationSelect
-                    type="country"
-                    name="selectedCountry"
-                    value={formData.selectedCountry}
-                    onChange={(e) => {
-                      const countryName = e.target.value;
-                      if (countryName) {
-                        // Add to multi-select array if not already present
-                        const exists = formData.partnerStateOrCountry.some(
-                          (item) => item.value === countryName
-                        );
-                        if (!exists) {
-                          handleChange("partnerStateOrCountry", [
-                            ...formData.partnerStateOrCountry,
-                            {
-                              value: countryName,
-                              label: countryName,
-                            },
-                          ]);
-                        }
-                        handleChange("selectedCountry", "");
-                      }
-                    }}
-                    placeholder="Search country"
-                    className={inputClass}
-                  />
-                  {formData.partnerStateOrCountry.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 bg-white border border-t-0 border-[#D4A052] rounded-b-lg">
-                      {formData.partnerStateOrCountry.map((country) => (
-                        <div
-                          key={country.value}
-                          className="inline-flex items-center gap-2 bg-[#FDF8EF] text-gray-700 rounded-full px-3 py-1 text-sm"
-                        >
-                          <span>{country.label}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleChange(
-                                "partnerStateOrCountry",
-                                formData.partnerStateOrCountry.filter(
-                                  (c) => c.value !== country.value
-                                )
-                              );
-                            }}
-                            className="bg-gray-300 text-gray-700 hover:bg-gray-400 hover:text-gray-900 font-bold text-lg leading-none rounded-full w-6 h-6 flex items-center justify-center"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          {/* Countries / States - Multi Select */}
+          {formData.partnerLocation === "Abroad" && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-1">
+                Select Countries
+              </label>
+
+              <div className="w-full">
+                <Select
+                  menuPlacement="auto"
+                  menuPosition="fixed"
+                  isMulti
+                  name="partnerStateOrCountry"
+                  options={countryOptions}
+                  value={formData.partnerStateOrCountry}
+                  onChange={(selectedOptions) => {
+                    if (selectedOptions?.some((opt) => opt.value === "Any")) {
+                      handleChange("partnerStateOrCountry", [
+                        { value: "Any", label: "Any" },
+                      ]);
+                    } else {
+                      handleChange(
+                        "partnerStateOrCountry",
+                        selectedOptions || []
+                      );
+                    }
+                  }}
+                  placeholder="Search and select countries"
+                  classNamePrefix="react-select"
+                  components={{
+                    IndicatorSeparator: () => null,
+                  }}
+                  styles={{
+                    control: (base, state) => ({
+                      ...base,
+                      borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+                      boxShadow: "none",
+                      borderRadius: "0.5rem",
+                      backgroundColor: "#fff",
+                      minHeight: "50px",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "0.875rem",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        borderColor: "#D4A052",
+                      },
+                    }),
+                    valueContainer: (base) => ({
+                      ...base,
+                      padding: "0 8px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      flexWrap: "wrap",
+                    }),
+                    input: (base) => ({
+                      ...base,
+                      margin: 0,
+                      padding: 0,
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: "#F9F7F5",
+                      borderRadius: "0.5rem",
+                      padding: "0 6px",
+                    }),
+                    multiValueLabel: (base) => ({
+                      ...base,
+                      color: "#111827",
+                      fontSize: "0.875rem",
+                    }),
+                    multiValueRemove: (base) => ({
+                      ...base,
+                      color: "#6b7280",
+                      ":hover": {
+                        backgroundColor: "#D4A052",
+                        color: "white",
+                      },
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      borderRadius: "0.75rem",
+                    }),
+                  }}
+                />
               </div>
 
               {errors.partnerStateOrCountry && (
@@ -674,67 +554,92 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             </div>
           )}
 
-          {formData.partnerLocation.some((loc) => loc.value === "India") && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Select States (Multi-select)
-                </label>
-                <div>
-                  <LocationSelect
-                    type="state"
-                    name="selectedState"
-                    value={formData.selectedState}
-                    countryCode="IN"
-                    onChange={(e) => {
-                      const stateName = e.target.value;
-                      if (stateName) {
-                        // Add to multi-select array if not already present
-                        const exists = formData.partnerStateOrCountry.some(
-                          (item) => item.value === stateName
-                        );
-                        if (!exists) {
-                          handleChange("partnerStateOrCountry", [
-                            ...formData.partnerStateOrCountry,
-                            {
-                              value: stateName,
-                              label: stateName,
-                            },
-                          ]);
-                        }
-                        handleChange("selectedState", "");
-                      }
-                    }}
-                    placeholder="Search state"
-                    className={inputClass}
-                  />
-                  {formData.partnerStateOrCountry.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 bg-white border border-t-0 border-[#D4A052] rounded-b-lg">
-                      {formData.partnerStateOrCountry.map((state) => (
-                        <div
-                          key={state.value}
-                          className="inline-flex items-center gap-2 bg-[#FDF8EF] text-gray-700 rounded-full px-3 py-1 text-sm"
-                        >
-                          <span>{state.label}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleChange(
-                                "partnerStateOrCountry",
-                                formData.partnerStateOrCountry.filter(
-                                  (s) => s.value !== state.value
-                                )
-                              );
-                            }}
-                            className="bg-gray-300 text-gray-700 hover:bg-gray-400 hover:text-gray-900 font-bold text-lg leading-none rounded-full w-6 h-6 flex items-center justify-center"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          {formData.partnerLocation === "India" && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-1">
+                Select States
+              </label>
+
+              <div className="w-full">
+                <Select
+                  menuPlacement="auto"
+                  menuPosition="fixed"
+                  isMulti
+                  name="partnerStateOrCountry"
+                  options={stateOptions}
+                  value={formData.partnerStateOrCountry}
+                  onChange={(selectedOptions) => {
+                    if (selectedOptions?.some((opt) => opt.value === "Any")) {
+                      handleChange("partnerStateOrCountry", [
+                        { value: "Any", label: "Any" },
+                      ]);
+                    } else {
+                      handleChange(
+                        "partnerStateOrCountry",
+                        selectedOptions || []
+                      );
+                    }
+                  }}
+                  placeholder="Search and select states"
+                  classNamePrefix="react-select"
+                  components={{
+                    IndicatorSeparator: () => null,
+                  }}
+                  styles={{
+                    control: (base, state) => ({
+                      ...base,
+                      borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
+                      boxShadow: "none",
+                      borderRadius: "0.5rem",
+                      backgroundColor: "#fff",
+                      minHeight: "50px",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "0.875rem",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        borderColor: "#D4A052",
+                      },
+                    }),
+                    valueContainer: (base) => ({
+                      ...base,
+                      padding: "0 8px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      flexWrap: "wrap",
+                    }),
+                    input: (base) => ({
+                      ...base,
+                      margin: 0,
+                      padding: 0,
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: "#F9F7F5",
+                      borderRadius: "0.5rem",
+                      padding: "0 6px",
+                    }),
+                    multiValueLabel: (base) => ({
+                      ...base,
+                      color: "#111827",
+                      fontSize: "0.875rem",
+                    }),
+                    multiValueRemove: (base) => ({
+                      ...base,
+                      color: "#6b7280",
+                      ":hover": {
+                        backgroundColor: "#D4A052",
+                        color: "white",
+                      },
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                      borderRadius: "0.75rem",
+                    }),
+                  }}
+                />
               </div>
 
               {errors.partnerStateOrCountry && (
@@ -837,7 +742,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   }),
                   multiValue: (base) => ({
                     ...base,
-                    backgroundColor: "#FDF8EF",
+                    backgroundColor: "#F9F7F5",
                     borderRadius: "0.5rem",
                     padding: "0 6px",
                   }),
@@ -935,7 +840,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   }),
                   multiValue: (base) => ({
                     ...base,
-                    backgroundColor: "#FDF8EF",
+                    backgroundColor: "#F9F7F5",
                     borderRadius: "0.5rem",
                     padding: "0 6px",
                   }),
@@ -948,7 +853,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                     ...base,
                     color: "#6b7280",
                     ":hover": {
-                      backgroundColor: "#6b7280",
+                      backgroundColor: "#D4A052",
                       color: "white",
                     },
                   }),
@@ -1048,7 +953,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   }),
                   multiValue: (base) => ({
                     ...base,
-                    backgroundColor: "#FDF8EF",
+                    backgroundColor: "#F9F7F5",
                     borderRadius: "0.5rem",
                     padding: "0 6px",
                   }),
@@ -1141,7 +1046,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   }),
                   multiValue: (base) => ({
                     ...base,
-                    backgroundColor: "#FDF8EF",
+                    backgroundColor: "#F9F7F5",
                     borderRadius: "0.5rem",
                     padding: "0 6px",
                   }),
@@ -1232,7 +1137,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   }),
                   multiValue: (base) => ({
                     ...base,
-                    backgroundColor: "#FDF8EF",
+                    backgroundColor: "#F9F7F5",
                     borderRadius: "0.5rem",
                     padding: "0 6px",
                   }),
@@ -1267,7 +1172,6 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
 
           {/* Preferred Age */}
           <div className="flex flex-col mb-4">
-
             <label className="block text-sm font-medium mb-2">
               Preferred Age
             </label>
@@ -1275,16 +1179,16 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
             <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-3">
               {/* FROM */}
               <CustomSelect
-                  name="preferredAgeFrom"
-                  value={formData.preferredAgeFrom}
-                  onChange={(e) =>
-                    handleChange("preferredAgeFrom", e.target.value)
-                  }
-                  options={ageOptions.map((age) => String(age))}
-                  placeholder="From"
-                  className={inputClass}
-                  usePortal={true}
-                />
+                name="preferredAgeFrom"
+                value={formData.preferredAgeFrom}
+                onChange={(e) =>
+                  handleChange("preferredAgeFrom", e.target.value)
+                }
+                options={ageOptions.map((age) => String(age))}
+                placeholder="From"
+                className=""
+                usePortal={true}
+              />
 
               <span className="text-sm font-medium text-center">to</span>
 
@@ -1301,7 +1205,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   )
                   .map((age) => String(age))}
                 placeholder="To"
-                className={inputClass}
+                className=""
                 usePortal={true}
               />
             </div>

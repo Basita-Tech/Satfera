@@ -158,7 +158,7 @@ async function verifyOtp(req: AuthenticatedRequest, res: Response) {
 
     if (user.isEmailVerified && user.isPhoneVerified) {
       const token = jwt.sign({ id: user._id }, secret, {
-        expiresIn: "1d"
+        expiresIn: "7d"
       });
 
       return res.status(200).json({
