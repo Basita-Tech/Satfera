@@ -17,7 +17,8 @@ export function ProfileCard({
   id,
   name = "Unknown",
   age = null,
-  city = "",
+  state = "",
+  country = "",
   profession = "",
   religion = null,
   caste = null,
@@ -44,6 +45,26 @@ export function ProfileCard({
   const navigate = useNavigate();
   const [optimisticInCompare, setOptimisticInCompare] = React.useState(false);
   const isUiInCompare = isInCompare || optimisticInCompare;
+
+  // Resolve location pieces from props or nested profile data
+  const resolvedState = state || profile?.state || profile?.full_address?.state || profile?.fullAddress?.state || profile?.location?.state;
+  const resolvedCountry =
+    country ||
+    profile?.country ||
+    profile?.full_address?.country ||
+    profile?.fullAddress?.country ||
+    profile?.location?.country ||
+    (Array.isArray(profile?.livingInCountry)
+      ? profile.livingInCountry.map((c) => c?.value ?? c).find(Boolean)
+      : typeof profile?.livingInCountry === "string"
+        ? profile?.livingInCountry
+        : "");
+  // Only show state + country; if both missing, show nothing
+  const locationParts = [resolvedState, resolvedCountry].filter(Boolean);
+  const detailParts = [];
+  if (locationParts.length) detailParts.push(locationParts.join(", "));
+  if (profession) detailParts.push(profession);
+  const detailLine = detailParts.join(" • ");
 
   // Handle Send Request: no navigation
   const handleSendRequestClick = async (e) => {
@@ -586,7 +607,7 @@ export function ProfileCard({
         </div>
 
         <p className="text-sm text-gray-600 mb-1">
-          {city}, India • {profession}
+          {detailLine}
         </p>
 
         <div className="flex gap-2 mb-1 mt-0.5 h-[36px] items-start">

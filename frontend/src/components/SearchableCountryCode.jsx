@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
-const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
+const SearchableCountryCode = ({ value, onChange, error, countryCodes, className }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [placement, setPlacement] = useState("down"); // prefer opening down, flip if no space
@@ -64,7 +64,7 @@ const SearchableCountryCode = ({ value, onChange, error, countryCodes }) => {
   const displayValue = value || "Select Code";
 
   return (
-    <div className="relative w-full flex-shrink-0" ref={dropdownRef}>
+    <div className={`relative ${className || "w-full sm:w-40"} flex-shrink-0`} ref={dropdownRef}>
       <div
         className={`w-full p-3 md:p-2.5 rounded-md border ${
           error ? "border-red-500" : "border-[#E4C48A]"

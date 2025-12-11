@@ -25,6 +25,17 @@ const sortAlphaWithPinned = (list, pinned = []) => {
   return [...pinnedItems, ...sortAlpha(rest)];
 };
 
+const isAnyOrNoPreference = (val) => {
+  if (val === null || val === undefined) return false;
+  const candidates = Array.isArray(val) ? val : [val];
+  return candidates.some((item) => {
+    const lower = String(item?.value || item?.label || item)
+      .toLowerCase()
+      .trim();
+    return lower === "any" || lower === "no preference";
+  });
+};
+
 const ExpectationDetails = ({ onNext, onPrevious }) => {
   const [formData, setFormData] = useState({
     partnerLocation: "",
@@ -136,7 +147,10 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       [field]: value,
       ...(field === "partnerLocation"
         ? {
-            partnerStateOrCountry: [],
+            partnerStateOrCountry:
+              value === "No preference"
+                ? [{ value: "Any", label: "Any" }]
+                : [],
           }
         : {}),
     }));
@@ -240,8 +254,8 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
       );
       payload.livingInState = [];
     } else {
-      payload.livingInCountry = "No preference";
-      payload.livingInState = [];
+      payload.livingInCountry = ["Any"];
+      payload.livingInState = ["Any"];
     }
 
     try {
@@ -260,28 +274,34 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         const data = updated.data.data;
 
         const determinePartnerLocation = (livingInCountry, livingInState) => {
-          // Check if livingInState has values first (means India is selected)
-          if (
+          const hasStates =
             livingInState &&
             Array.isArray(livingInState) &&
-            livingInState.length > 0
+            livingInState.length > 0;
+          if (hasStates) return "India";
+
+          if (
+            !livingInCountry ||
+            isAnyOrNoPreference(livingInCountry) ||
+            isAnyOrNoPreference(livingInState)
           ) {
-            return "India";
+            return "No preference";
           }
 
-          if (!livingInCountry) return "No preference";
           if (typeof livingInCountry === "string") {
             if (livingInCountry === "India") return "India";
-            if (livingInCountry === "No preference") return "No preference";
             return "Abroad";
           }
+
           if (Array.isArray(livingInCountry)) {
             const countryValues = livingInCountry.map((c) => c.value || c);
-            // If only India and no other countries, show India
+            const hasOnlyAny =
+              countryValues.length === 0 ||
+              countryValues.every((c) => isAnyOrNoPreference(c));
+            if (hasOnlyAny) return "No preference";
             if (countryValues.length === 1 && countryValues[0] === "India") {
               return "India";
             }
-            // If array has multiple countries or non-India countries, show Abroad
             if (countryValues.length > 0) {
               return "Abroad";
             }
@@ -316,7 +336,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   value: c.value || c.label || c,
                   label: c.value || c.label || c,
                 })) || []
-              : [],
+              : [{ value: "Any", label: "Any" }],
           openToPartnerHabits: mapHabitDisplay(data.isConsumeAlcoholic),
           preferredAgeFrom:
             data.age?.from !== undefined && data.age?.from !== null
@@ -349,29 +369,33 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
         if (!data) return;
 
         const partnerLocation = (() => {
-          // Check if livingInState has values first (means India is selected)
-          if (
+          const hasStates =
             data.livingInState &&
             Array.isArray(data.livingInState) &&
-            data.livingInState.length > 0
+            data.livingInState.length > 0;
+          if (hasStates) return "India";
+
+          if (
+            !data.livingInCountry ||
+            isAnyOrNoPreference(data.livingInCountry) ||
+            isAnyOrNoPreference(data.livingInState)
           ) {
-            return "India";
+            return "No preference";
           }
 
-          if (!data.livingInCountry) return "No preference";
           if (typeof data.livingInCountry === "string") {
             if (data.livingInCountry === "India") return "India";
-            if (data.livingInCountry === "No preference")
-              return "No preference";
             return "Abroad";
           }
           if (Array.isArray(data.livingInCountry)) {
             const countryValues = data.livingInCountry.map((c) => c.value || c);
-            // If only India and no other countries, show India
+            const hasOnlyAny =
+              countryValues.length === 0 ||
+              countryValues.every((c) => isAnyOrNoPreference(c));
+            if (hasOnlyAny) return "No preference";
             if (countryValues.length === 1 && countryValues[0] === "India") {
               return "India";
             }
-            // If array has multiple countries or non-India countries, show Abroad
             if (countryValues.length > 0) {
               return "Abroad";
             }
@@ -399,7 +423,7 @@ const ExpectationDetails = ({ onNext, onPrevious }) => {
                   value: c.value || c,
                   label: c.label || c,
                 })) || []
-              : [],
+              : [{ value: "Any", label: "Any" }],
           openToPartnerHabits: mapHabitsDisplay(data.isConsumeAlcoholic),
           partnerEducation:
             data.educationLevel?.map((e) => ({ value: e, label: e })) || [],

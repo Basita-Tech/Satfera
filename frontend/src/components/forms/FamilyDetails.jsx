@@ -294,6 +294,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
               <label className="text-sm font-medium mb-1">Father's Phone</label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <SearchableCountryCode
+                  className="w-full sm:w-32"
                   value={formData.fatherPhoneCode}
                   onChange={(code) => handlePhoneChange("fatherPhoneCode", code)}
                   countryCodes={countryCodes}
@@ -337,6 +338,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
               <label className="text-sm font-medium mb-1">Mother's Phone</label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <SearchableCountryCode
+                  className="w-full sm:w-32"
                   value={formData.motherPhoneCode}
                   onChange={(code) => handlePhoneChange("motherPhoneCode", code)}
                   countryCodes={countryCodes}

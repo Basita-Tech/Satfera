@@ -853,13 +853,13 @@ const SignUpPage = () => {
               value={formData.password}
               onChange={handleInputChange}
               autoComplete="new-password"
-              className={`w-full p-3 rounded-md border text-sm ${
+              className={`w-full p-3 pr-12 rounded-md border text-sm ${
                 errors.password ? "border-red-500" : "border-[#E4C48A]"
               } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 w-5 h-5 flex items-center justify-center"
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer h-5 w-5"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
@@ -940,13 +940,13 @@ const SignUpPage = () => {
               value={formData.confirmPassword}
               onChange={handleInputChange}
               autoComplete="new-password"
-              className={`w-full p-3 rounded-md border text-sm ${
+              className={`w-full p-3 pr-12 rounded-md border text-sm ${
                 errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"
               } 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 w-5 h-5 flex items-center justify-center"
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer h-5 w-5"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
               {showConfirmPassword ? (

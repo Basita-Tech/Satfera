@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import ReactSelect from "react-select";
 import { getNames } from "country-list";
+import { allCountries } from "country-telephone-data";
 import CreatableSelect from "react-select/creatable";
 import { State } from "country-state-city";
 import {
@@ -15,6 +16,7 @@ import {
   getCountryCode, 
   getStateCode, 
   getAllCountries,
+  getAllCountriesWithCodes,
   searchCountries,
   searchStates,
   searchCities
@@ -22,6 +24,7 @@ import {
 import { TabsComponent } from "../../TabsComponent";
 import { Label } from "../../ui/label";
 import CustomSelect from "../../ui/CustomSelect";
+import SearchableCountryCode from "../../SearchableCountryCode";
 import { Textarea } from "../../ui/textarea";
 import { Button } from "../../ui/button";
 import { ArrowLeft, Save } from "lucide-react";
@@ -506,9 +509,15 @@ const EXPECT_DIET_OPTIONS = [
   "Vegetarian",
 ];
 const AGE_OPTIONS = Array.from({ length: 23 }, (_, i) => 18 + i); // 18..40
-const ALL_COUNTRIES = getNames();
+const ALL_COUNTRIES = getAllCountriesWithCodes().map(c => c.name);
 const INDIAN_STATES = State.getStatesOfCountry("IN").map(s => s.name).sort();
 const ABROAD_OPTIONS = ["No preference", ...ALL_COUNTRIES];
+
+// Country codes for phone numbers
+const countryCodes = allCountries.map((c) => ({
+  code: `+${c.dialCode}`,
+  country: c.name,
+}));
 
 export function EditProfile({ onNavigateBack }) {
   const { uploadPhotos } = usePhotoUpload();
@@ -744,9 +753,13 @@ export function EditProfile({ onNavigateBack }) {
       
       // Validate country/state based on partner location selection
       if (formData.partnerLocation === 'India') {
-        if (!isFieldValid(formData.partnerState)) errors.partnerState = 'Partner state is required';
+        if (!formData.partnerStateOrCountry || formData.partnerStateOrCountry.length === 0) {
+          errors.partnerState = 'Partner state is required';
+        }
       } else if (formData.partnerLocation === 'Abroad') {
-        if (!isFieldValid(formData.partnerCountry)) errors.partnerCountry = 'Partner country is required';
+        if (!formData.partnerStateOrCountry || formData.partnerStateOrCountry.length === 0) {
+          errors.partnerCountry = 'Partner country is required';
+        }
       }
       
       if (!isFieldValid(formData.openToPartnerHabits)) errors.openToPartnerHabits = 'Partner habits preference is required';
@@ -1311,15 +1324,32 @@ export function EditProfile({ onNavigateBack }) {
         const data = res?.data?.data;
         if (!mounted || !data) return;
 
+        const isAnyLocation = (val) => {
+          if (val === null || val === undefined) return false;
+          const values = Array.isArray(val) ? val : [val];
+          return values.some((entry) => {
+            const lower = String(entry?.value || entry?.label || entry)
+              .toLowerCase()
+              .trim();
+            return lower === "any" || lower === "no preference";
+          });
+        };
+
         const determinePartnerLocation = (livingInCountry) => {
-          if (!livingInCountry) return "No preference";
+          if (!livingInCountry || isAnyLocation(livingInCountry))
+            return "No preference";
           if (typeof livingInCountry === "string") {
             if (livingInCountry === "India") return "India";
-            if (livingInCountry === "No preference") return "No preference";
             return "Abroad";
           }
           if (Array.isArray(livingInCountry)) {
             const countryValues = livingInCountry.map((c) => c.value || c);
+            if (
+              countryValues.length === 0 ||
+              countryValues.every((c) => isAnyLocation(c))
+            ) {
+              return "No preference";
+            }
             if (countryValues.includes("India")) return "India";
             return "Abroad";
           }
@@ -1346,7 +1376,7 @@ export function EditProfile({ onNavigateBack }) {
               (c) => c.value || c.label || c
             );
           }
-          return [];
+          return ["Any"];
         })();
 
         // Extract individual state/country for single select
@@ -1650,16 +1680,22 @@ export function EditProfile({ onNavigateBack }) {
 
       if (activeTab === "expectations") {
         const normalize = (v) => (v === undefined || v === null ? "" : v);
+        const isNoPreferenceLocation =
+          expectations.partnerLocation === "No preference";
 
         const submissionData = {
           // if partnerLocation is India, send as livingInState, otherwise as livingInCountry
           livingInCountry:
             expectations.partnerLocation === "Abroad"
               ? expectations.partnerStateOrCountry || []
+              : isNoPreferenceLocation
+              ? ["Any"]
               : [],
           livingInState:
             expectations.partnerLocation === "India"
               ? expectations.partnerStateOrCountry || []
+              : isNoPreferenceLocation
+              ? ["Any"]
               : [],
           isConsumeAlcoholic: normalize(expectations.openToPartnerHabits),
           educationLevel: expectations.partnerEducation || [],
@@ -1688,15 +1724,32 @@ export function EditProfile({ onNavigateBack }) {
             const refetch = await getUserExpectations();
             const server = refetch?.data?.data || {};
             // reuse loader logic to map server -> expectations
+            const isAnyLocation = (val) => {
+              if (val === null || val === undefined) return false;
+              const values = Array.isArray(val) ? val : [val];
+              return values.some((entry) => {
+                const lower = String(entry?.value || entry?.label || entry)
+                  .toLowerCase()
+                  .trim();
+                return lower === "any" || lower === "no preference";
+              });
+            };
+
             const determinePartnerLocation = (livingInCountry) => {
-              if (!livingInCountry) return "No preference";
+              if (!livingInCountry || isAnyLocation(livingInCountry))
+                return "No preference";
               if (typeof livingInCountry === "string") {
                 if (livingInCountry === "India") return "India";
-                if (livingInCountry === "No preference") return "No preference";
                 return "Abroad";
               }
               if (Array.isArray(livingInCountry)) {
                 const countryValues = livingInCountry.map((c) => c.value || c);
+                if (
+                  countryValues.length === 0 ||
+                  countryValues.every((c) => isAnyLocation(c))
+                ) {
+                  return "No preference";
+                }
                 if (countryValues.includes("India")) return "India";
                 return "Abroad";
               }
@@ -1717,7 +1770,7 @@ export function EditProfile({ onNavigateBack }) {
                   (c) => c.value || c.label || c
                 );
               }
-              return [];
+              return ["Any"];
             })();
 
             // Extract individual state/country for single select
@@ -3333,21 +3386,25 @@ export function EditProfile({ onNavigateBack }) {
           {expectations.partnerLocation === "India" && (
             <div>
               <Label className="mb-2">Preferred State *</Label>
-              <LocationSelect
-                type="state"
-                name="partnerState"
-                value={expectations.partnerState || ""}
-                onChange={(e) => {
+              <ReactSelect
+                isMulti
+                closeMenuOnSelect={false}
+                value={toOptions(expectations.partnerStateOrCountry || [])}
+                onChange={(sel) => {
+                  const values = sel ? sel.map((o) => o.value) : [];
                   setExpectations((prev) => ({
                     ...prev,
-                    partnerState: e.target.value,
-                    partnerStateOrCountry: e.target.value ? [e.target.value] : [],
+                    partnerStateOrCountry: values,
+                    partnerState: values[0] || "",
                   }));
                   setExpectationErrors((prev) => ({ ...prev, partnerState: '' }));
                 }}
-                countryCode="IN"
-                placeholder="Select preferred state"
-                className={expectationErrors.partnerState ? 'border-red-500' : ''}
+                options={toOptions(INDIAN_STATES)}
+                classNamePrefix="react-select"
+                styles={multiStyles}
+                menuPlacement="auto"
+                menuPortalTarget={document.body}
+                placeholder="Search and select states"
               />
               {expectationErrors.partnerState && (
                 <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerState}</p>
@@ -3359,20 +3416,25 @@ export function EditProfile({ onNavigateBack }) {
           {expectations.partnerLocation === "Abroad" && (
             <div>
               <Label className="mb-2">Preferred Country *</Label>
-              <LocationSelect
-                type="country"
-                name="partnerCountry"
-                value={expectations.partnerCountry || ""}
-                onChange={(e) => {
+              <ReactSelect
+                isMulti
+                closeMenuOnSelect={false}
+                value={toOptions(expectations.partnerStateOrCountry || [])}
+                onChange={(sel) => {
+                  const values = sel ? sel.map((o) => o.value) : [];
                   setExpectations((prev) => ({
                     ...prev,
-                    partnerCountry: e.target.value,
-                    partnerStateOrCountry: e.target.value ? [e.target.value] : [],
+                    partnerStateOrCountry: values,
+                    partnerCountry: values[0] || "",
                   }));
                   setExpectationErrors((prev) => ({ ...prev, partnerCountry: '' }));
                 }}
-                placeholder="Select preferred country"
-                className={expectationErrors.partnerCountry ? 'border-red-500' : ''}
+                options={toOptions(ABROAD_OPTIONS)}
+                classNamePrefix="react-select"
+                styles={multiStyles}
+                menuPlacement="auto"
+                menuPortalTarget={document.body}
+                placeholder="Search and select countries"
               />
               {expectationErrors.partnerCountry && (
                 <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerCountry}</p>
@@ -3598,24 +3660,34 @@ export function EditProfile({ onNavigateBack }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Father's Phone</Label>
-          <EditableInput
-            placeholder="Enter father's phone"
-            value={(() => {
-              const val = family.fatherPhone;
-              if (!val) return "";
-              if (typeof val === "string") return val;
-              if (typeof val === "object") {
-                if (val.number) return String(val.number || "");
-                if (val.value || val.label) return String(val.value || val.label || "");
+          <div className="flex flex-col sm:flex-row gap-2">
+            <SearchableCountryCode
+              className="w-full sm:w-32"
+              value={family.fatherPhoneCode || ""}
+              onChange={(code) =>
+                setFamily((prev) => ({ ...prev, fatherPhoneCode: code }))
               }
-              return String(val || "");
-            })()}
-            onChange={(e) =>
-              handleFamilyPhoneChange("fatherPhone", e.target.value)
-            }
-            className="rounded-[12px]"
-            name="fatherPhone"
-          />
+              countryCodes={countryCodes}
+            />
+            <EditableInput
+              placeholder="Phone Number"
+              value={(() => {
+                const val = family.fatherPhone;
+                if (!val) return "";
+                if (typeof val === "string") return val;
+                if (typeof val === "object") {
+                  if (val.number) return String(val.number || "");
+                  if (val.value || val.label) return String(val.value || val.label || "");
+                }
+                return String(val || "");
+              })()}
+              onChange={(e) =>
+                handleFamilyPhoneChange("fatherPhone", e.target.value)
+              }
+              className="rounded-[12px] flex-1"
+              name="fatherPhone"
+            />
+          </div>
         </div>
         <div className="space-y-2">
           <Label>Father's Native Place</Label>
@@ -3658,24 +3730,34 @@ export function EditProfile({ onNavigateBack }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="space-y-2">
           <Label>Mother's Phone</Label>
-          <EditableInput
-            placeholder="Enter mother's phone"
-            value={(() => {
-              const val = family.motherPhone;
-              if (!val) return "";
-              if (typeof val === "string") return val;
-              if (typeof val === "object") {
-                if (val.number) return String(val.number || "");
-                if (val.value || val.label) return String(val.value || val.label || "");
+          <div className="flex flex-col sm:flex-row gap-2">
+            <SearchableCountryCode
+              className="w-full sm:w-32"
+              value={family.motherPhoneCode || ""}
+              onChange={(code) =>
+                setFamily((prev) => ({ ...prev, motherPhoneCode: code }))
               }
-              return String(val || "");
-            })()}
-            onChange={(e) =>
-              handleFamilyPhoneChange("motherPhone", e.target.value)
-            }
-            className="rounded-[12px]"
-            name="motherPhone"
-          />
+              countryCodes={countryCodes}
+            />
+            <EditableInput
+              placeholder="Phone Number"
+              value={(() => {
+                const val = family.motherPhone;
+                if (!val) return "";
+                if (typeof val === "string") return val;
+                if (typeof val === "object") {
+                  if (val.number) return String(val.number || "");
+                  if (val.value || val.label) return String(val.value || val.label || "");
+                }
+                return String(val || "");
+              })()}
+              onChange={(e) =>
+                handleFamilyPhoneChange("motherPhone", e.target.value)
+              }
+              className="rounded-[12px] flex-1"
+              name="motherPhone"
+            />
+          </div>
         </div>
       </div>
 
