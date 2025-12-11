@@ -139,13 +139,13 @@ export const corsOptions = {
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      logger.warn("CORS blocked request", { origin });
+      logger.warn("CORS blocked request", { origin, allowedOrigins });
       callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
@@ -181,7 +181,7 @@ export const sanitizeError = (
 
   if (isProduction && status >= 500) {
     message = "Internal server error";
-  } else if (isProduction) {
+  } else if (isProduction && status >= 400 && status < 500) {
     const hasSensitiveInfo = sensitivePatterns.some((pattern) =>
       pattern.test(message)
     );

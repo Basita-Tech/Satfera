@@ -121,7 +121,7 @@ export function ComparePage({
     };
 
     fetchRecommendations();
-  }, [loadingProfiles, fetchedProfiles.length]);
+  }, []);
 
   const compareProfileIds = Array.isArray(selectedProfiles)
     ? selectedProfiles

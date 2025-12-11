@@ -251,6 +251,7 @@ export async function compareProfilesService(
 
       return {
         userId: id,
+        fullName: u ? `${u.firstName || ""} ${u.lastName || ""}`.trim() : null,
         age: u ? calculateAge(u.dateOfBirth) : null,
         height: p?.height ?? null,
         weight: p?.weight ?? null,
