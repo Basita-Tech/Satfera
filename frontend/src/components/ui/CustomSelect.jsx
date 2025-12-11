@@ -10,20 +10,41 @@ export default function CustomSelect({
   name,
   allowCustom = false,
   preserveCase = false,
+  forcesMobileUI = false,
 }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(() => {
+    if (forcesMobileUI) return true;
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 600;
+  });
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Update mobile detection on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (forcesMobileUI) {
+        setIsMobile(true);
+      } else {
+        setIsMobile(window.innerWidth <= 600);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [forcesMobileUI]);
 
   const displayLabel = useMemo(() => {
     if (value === undefined || value === null || value === '') return '';
     return value;
   }, [value]);
 
-  const suppressKeyboard = options.length <= 15;
+  // Show button-only on mobile, searchable input on desktop
+  const suppressKeyboard = isMobile;
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return options;
@@ -184,6 +205,10 @@ export default function CustomSelect({
         setSearchTerm('');
         setHighlightIndex(0);
         updatePosition();
+        // Auto-focus when typing is allowed (desktop/laptop)
+        if (!suppressKeyboard && searchInputRef.current) {
+          setTimeout(() => searchInputRef.current?.focus(), 50);
+        }
       } else {
         // If already open, clear search term to show all options
         setSearchTerm('');
@@ -197,47 +222,66 @@ export default function CustomSelect({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <input
-        ref={searchInputRef}
-        type="text"
-        name={name}
-        disabled={disabled}
-        readOnly={suppressKeyboard}
-        inputMode={suppressKeyboard ? 'none' : undefined}
-        className={triggerClasses}
-        value={displayValue}
-        onChange={handleInputChange}
-        onFocus={(e) => {
-          if (!disabled && !suppressKeyboard) {
-            // Don't auto-open dropdown on Tab focus, only on click
-          }
-        }}
-        onTouchStart={(e) => {
-          if (suppressKeyboard && !disabled) {
+      {suppressKeyboard ? (
+        // Mobile: Button-only interface, no search input
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            if (!disabled) {
+              setOpen(!open);
+              setSearchTerm('');
+              setHighlightIndex(0);
+              updatePosition();
+            }
+          }}
+          onTouchStart={(e) => {
             e.preventDefault();
-            searchInputRef.current?.blur();
-            setOpen(!open);
-            updatePosition();
-          }
-        }}
-        onMouseDown={(e) => {
-          if (suppressKeyboard && !disabled) {
+          }}
+          onFocus={(e) => {
             e.preventDefault();
-          }
-        }}
-        onKeyDown={handleInputKeyDown}
-        onClick={handleInputClick}
-        onBlur={() => {
-          // Close dropdown when focus leaves
-          setOpen(false);
-          setHighlightIndex(-1);
-          setSearchTerm('');
-        }}
-        placeholder={placeholder}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        autoCapitalize={preserveCase ? "none" : "sentences"}
-      />
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
+          className={`${themeBase} ${borderBase} ${borderColor} ${open ? 'ring-1 ring-[#D4A052]' : ''} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} text-left`}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+        >
+          {displayLabel || placeholder}
+        </button>
+      ) : (
+        // Desktop: Full searchable input
+        <input
+          ref={searchInputRef}
+          type="text"
+          name={name}
+          disabled={disabled}
+          className={triggerClasses}
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={() => {
+            // allow normal focus when keyboard is not suppressed (desktop/laptop)
+          }}
+          onMouseDown={(e) => {
+            if (suppressKeyboard && !disabled) {
+              e.preventDefault();
+            }
+          }}
+          onKeyDown={handleInputKeyDown}
+          onClick={handleInputClick}
+          onBlur={() => {
+            // Close dropdown when focus leaves
+            setOpen(false);
+            setHighlightIndex(-1);
+            setSearchTerm('');
+          }}
+          placeholder={placeholder}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          autoCapitalize={preserveCase ? "none" : "sentences"}
+        />
+      )}
       {/* Dropdown Arrow Icon */}
       <svg
         className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none transition-transform duration-200 ${
