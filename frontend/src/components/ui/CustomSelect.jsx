@@ -61,6 +61,13 @@ export default function CustomSelect({
 
   const handleKeyDown = (e) => {
     if (disabled) return;
+    if (e.key === 'Tab') {
+      // Let Tab move focus to the next element and close the dropdown
+      setOpen(false);
+      setHighlightIndex(-1);
+      setSearchTerm('');
+      return;
+    }
     if (!open && (e.key === 'ArrowDown' || e.key === ' ')) {
       e.preventDefault();
       setOpen(true);
@@ -143,9 +150,10 @@ export default function CustomSelect({
   }, [open]);
 
   const themeBase = 'w-full rounded-md p-2.5 sm:p-3 text-sm transition box-border bg-white';
-  const borderBase = 'border focus:outline-none focus:ring-1 transition-colors duration-200';
-  const borderColor = open ? 'border-[#D4A052] ring-1 ring-[#D4A052]' : 'border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]';
-  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
+  const borderBase = 'border transition-colors duration-200';
+  const borderColor = 'border-[#D4A052] focus:border-[#D4A052] focus:ring-1 focus:ring-[#D4A052] focus:outline-none';
+  const openStyle = open ? 'ring-1 ring-[#D4A052]' : '';
+  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${openStyle} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
 
   const handleInputChange = (e) => {
     const newSearchTerm = e.target.value;
@@ -200,14 +208,8 @@ export default function CustomSelect({
         value={displayValue}
         onChange={handleInputChange}
         onFocus={(e) => {
-          if (!disabled) {
-            if (suppressKeyboard) {
-              e.preventDefault();
-              e.target.blur();
-              return;
-            }
-            setOpen(true);
-            setSearchTerm('');
+          if (!disabled && !suppressKeyboard) {
+            // Don't auto-open dropdown on Tab focus, only on click
           }
         }}
         onTouchStart={(e) => {
@@ -225,6 +227,12 @@ export default function CustomSelect({
         }}
         onKeyDown={handleInputKeyDown}
         onClick={handleInputClick}
+        onBlur={() => {
+          // Close dropdown when focus leaves
+          setOpen(false);
+          setHighlightIndex(-1);
+          setSearchTerm('');
+        }}
         placeholder={placeholder}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -259,6 +267,8 @@ export default function CustomSelect({
                 setOpen(false);
                 setSearchTerm('');
                 setHighlightIndex(-1);
+                // Keep focus on input after selection
+                setTimeout(() => searchInputRef.current?.focus(), 0);
               }}
             >
               {placeholder}
@@ -283,6 +293,8 @@ export default function CustomSelect({
                     setOpen(false);
                     setSearchTerm('');
                     setHighlightIndex(-1);
+                    // Keep focus on input after selection
+                    setTimeout(() => searchInputRef.current?.focus(), 0);
                   }}
                 >
                   {opt}
@@ -306,6 +318,8 @@ export default function CustomSelect({
                 setOpen(false);
                 setSearchTerm('');
                 setHighlightIndex(-1);
+                // Keep focus on input after selection
+                setTimeout(() => searchInputRef.current?.focus(), 0);
               }}
             >
               Use "{searchTerm.trim()}"
