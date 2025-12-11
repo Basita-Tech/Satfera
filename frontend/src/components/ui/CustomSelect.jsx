@@ -43,8 +43,8 @@ export default function CustomSelect({
     return value;
   }, [value]);
 
-  // Show button-only on mobile, searchable input on desktop
-  const suppressKeyboard = isMobile;
+  // Show button-only on mobile with ≤15 options, otherwise show search input
+  const suppressKeyboard = isMobile && options.length <= 15;
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return options;
