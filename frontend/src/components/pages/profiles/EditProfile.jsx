@@ -12,14 +12,9 @@ import {
   heightOptions,
 } from "@/lib/constant";
 import LocationSelect from "../../ui/LocationSelect";
-import { 
-  getCountryCode, 
-  getStateCode, 
-  getAllCountries,
+import {
+  getStateCode,
   getAllCountriesWithCodes,
-  searchCountries,
-  searchStates,
-  searchCities
 } from "../../../lib/locationUtils";
 import { TabsComponent } from "../../TabsComponent";
 import { Label } from "../../ui/label";
@@ -51,7 +46,6 @@ import {
 } from "../../../api/auth";
 import toast from "react-hot-toast";
 
-// Registration reference option arrays (duplicated for Edit view; original forms untouched)
 const QUALIFICATION_LEVELS = [
   "Associates Degree",
   "Bachelors",
@@ -65,7 +59,6 @@ const QUALIFICATION_LEVELS = [
   "Undergraduate",
 ];
 
-// Organized education options by qualification level (same as EducationDetails.jsx)
 const EDUCATION_OPTIONS_BY_LEVEL = {
   "High School": [
     "Higher Secondary School / High School",
@@ -73,11 +66,8 @@ const EDUCATION_OPTIONS_BY_LEVEL = {
     "Commerce Stream",
     "Arts Stream",
   ],
-  "Less Than High School": [
-    "Primary School",
-    "Middle School",
-  ],
-  "Undergraduate": [
+  "Less Than High School": ["Primary School", "Middle School"],
+  Undergraduate: [
     "Aeronautical Engineering",
     "B.Arch. - Bachelor of Architecture",
     "BCA - Bachelor of Computer Applications",
@@ -120,7 +110,7 @@ const EDUCATION_OPTIONS_BY_LEVEL = {
     "LLB - Bachelor of Legislative Law",
     "Other Bachelor's Degree in Legal",
   ],
-  "Bachelors": [
+  Bachelors: [
     "Aeronautical Engineering",
     "B.Arch. - Bachelor of Architecture",
     "BCA - Bachelor of Computer Applications",
@@ -180,7 +170,7 @@ const EDUCATION_OPTIONS_BY_LEVEL = {
     "Associates in Engineering",
     "Other Associates Degree",
   ],
-  "Masters": [
+  Masters: [
     "M.Arch. - Master of Architecture",
     "MCA - Master of Computer Applications",
     "M.E. - Master of Engineering",
@@ -219,7 +209,7 @@ const EDUCATION_OPTIONS_BY_LEVEL = {
     "CS - Company Secretary",
     "ICWA - Cost And Works Accountant",
   ],
-  "Doctorate": [
+  Doctorate: [
     "Ph.D. - Doctor of Philosophy",
     "DM - Doctor of Medicine",
     "DNB - Diplomate of National Board",
@@ -231,7 +221,7 @@ const EDUCATION_OPTIONS_BY_LEVEL = {
     "LL.D. - Doctor of Laws",
     "Postdoctoral Fellow",
   ],
-  "Diploma": [
+  Diploma: [
     "Diploma in Engineering",
     "Diploma in Computer Applications",
     "Diploma in Management",
@@ -360,14 +350,13 @@ const EMPLOYMENT_OPTIONS = [
   "student",
 ];
 
-// Display labels for employment options (for UI display)
 const EMPLOYMENT_DISPLAY_MAP = {
-  "business": "Business",
-  "government": "Government",
-  "unemployed": "Not Working",
+  business: "Business",
+  government: "Government",
+  unemployed: "Not Working",
   "private sector": "Private Sector",
   "self-employed": "Self-Employed",
-  "student": "Student",
+  student: "Student",
 };
 
 const INCOME_OPTIONS = [
@@ -508,12 +497,13 @@ const EXPECT_DIET_OPTIONS = [
   "Veg & Non-Veg",
   "Vegetarian",
 ];
-const AGE_OPTIONS = Array.from({ length: 23 }, (_, i) => 18 + i); // 18..40
-const ALL_COUNTRIES = getAllCountriesWithCodes().map(c => c.name);
-const INDIAN_STATES = State.getStatesOfCountry("IN").map(s => s.name).sort();
+const AGE_OPTIONS = Array.from({ length: 23 }, (_, i) => 18 + i);
+const ALL_COUNTRIES = getAllCountriesWithCodes().map((c) => c.name);
+const INDIAN_STATES = State.getStatesOfCountry("IN")
+  .map((s) => s.name)
+  .sort();
 const ABROAD_OPTIONS = ["No preference", ...ALL_COUNTRIES];
 
-// Country codes for phone numbers
 const countryCodes = allCountries.map((c) => ({
   code: `+${c.dialCode}`,
   country: c.name,
@@ -523,7 +513,6 @@ export function EditProfile({ onNavigateBack }) {
   const { uploadPhotos } = usePhotoUpload();
   const [activeTab, setActiveTab] = useState("personal");
 
-  // FAMILY state
   const [family, setFamily] = useState({
     fatherName: "",
     fatherProfession: "",
@@ -543,26 +532,22 @@ export function EditProfile({ onNavigateBack }) {
     familyType: "",
     numberOfBrothers: "",
     numberOfSisters: "",
-    // removed dummy fields: familyStatus, familyLocation, aboutFamily
+
     hasSiblings: null,
     siblingCount: 0,
     siblings: [],
     doYouHaveChildren: false,
   });
 
-  // EDUCATION state
   const [education, setEducation] = useState({
-    // canonical education fields (match `EducationDetails.jsx`)
     schoolName: "",
     highestEducation: "",
     fieldOfStudy: "",
     universityName: "",
     countryOfEducation: "",
     otherCountry: "",
-    // extras removed: occupation, companyName, annualIncome
   });
 
-  // PROFESSION state
   const [profession, setProfession] = useState({
     employmentStatus: "",
     occupation: "",
@@ -570,7 +555,6 @@ export function EditProfile({ onNavigateBack }) {
     organizationName: "",
   });
 
-  // LIFESTYLE state
   const [lifestyle, setLifestyle] = useState({
     diet: "",
     smoking: "",
@@ -583,7 +567,6 @@ export function EditProfile({ onNavigateBack }) {
   });
   const [lifestyleRaw, setLifestyleRaw] = useState(null);
 
-  // EXPECTATIONS state (read-only view in editor)
   const [expectations, setExpectations] = useState({
     partnerLocation: "",
     partnerCountry: "",
@@ -599,11 +582,9 @@ export function EditProfile({ onNavigateBack }) {
     preferredAgeTo: "",
   });
 
-  // PHOTOS state
   const [photos, setPhotos] = useState([]);
   const [uploadingPhotoIdx, setUploadingPhotoIdx] = useState(null);
 
-  // Immutable snapshots of initial API values per section
   const [initialPersonal, setInitialPersonal] = useState(null);
   const [initialFamily, setInitialFamily] = useState(null);
   const [initialEducation, setInitialEducation] = useState(null);
@@ -611,18 +592,16 @@ export function EditProfile({ onNavigateBack }) {
   const [initialLifestyle, setInitialLifestyle] = useState(null);
   const [initialExpectations, setInitialExpectations] = useState(null);
 
-  // countries list for Country of Education select
   const countries = useMemo(() => getNames(), []);
 
-  // Filtered field of study options based on selected qualification level
   const filteredFieldOfStudyOptions = useMemo(() => {
     if (!education.highestEducation) {
-      // If no qualification selected, show all options
       const allOptions = Object.values(EDUCATION_OPTIONS_BY_LEVEL).flat();
       return [...new Set(allOptions)];
     }
-    // Get options for the selected qualification level
-    const levelOptions = EDUCATION_OPTIONS_BY_LEVEL[education.highestEducation] || [];
+
+    const levelOptions =
+      EDUCATION_OPTIONS_BY_LEVEL[education.highestEducation] || [];
     return levelOptions;
   }, [education.highestEducation]);
 
@@ -636,10 +615,6 @@ export function EditProfile({ onNavigateBack }) {
     { key: "photos", label: "Photos" },
   ];
 
-  // ============================================
-  // SANITIZATION & VALIDATION HELPERS
-  // ============================================
-  
   /**
    * Sanitize input value:
    * - Trim spaces
@@ -647,11 +622,11 @@ export function EditProfile({ onNavigateBack }) {
    * - Replace multiple spaces with single space
    */
   const sanitizeInput = (value) => {
-    if (!value || typeof value !== 'string') return '';
+    if (!value || typeof value !== "string") return "";
     return value
       .trim()
-      .replace(/<[^>]*>?/gm, '') // Remove HTML/script tags
-      .replace(/\s+/g, ' '); // Replace multiple spaces with single space
+      .replace(/<[^>]*>?/gm, "")
+      .replace(/\s+/g, " ");
   };
 
   /**
@@ -659,7 +634,7 @@ export function EditProfile({ onNavigateBack }) {
    */
   const isFieldValid = (value, isRequired = true) => {
     if (!isRequired) return true;
-    const trimmed = String(value || '').trim();
+    const trimmed = String(value || "").trim();
     return trimmed.length > 0;
   };
 
@@ -669,113 +644,166 @@ export function EditProfile({ onNavigateBack }) {
    */
   const getTabErrors = (tabKey, formData) => {
     const errors = {};
-    
-    if (tabKey === 'personal') {
-      // Skip firstName, lastName, middleName, dateOfBirth - these are disabled/non-editable
-      if (!isFieldValid(formData.birthHour)) errors.birthHour = 'Birth hour is required';
-      if (!isFieldValid(formData.birthMinute)) errors.birthMinute = 'Birth minute is required';
-      if (!isFieldValid(formData.maritalStatus)) errors.maritalStatus = 'Marital status is required';
-      if (!isFieldValid(formData.height)) errors.height = 'Height is required';
-      if (!isFieldValid(formData.weight)) errors.weight = 'Weight is required';
-      if (!isFieldValid(formData.religion)) errors.religion = 'Religion is required';
-      if (!isFieldValid(formData.caste)) errors.caste = 'Caste is required';
-      if (!isFieldValid(formData.birthCity)) errors.birthCity = 'Birth city is required';
-      if (!isFieldValid(formData.birthState)) errors.birthState = 'Birth state is required';
-      if (!isFieldValid(formData.rashi)) errors.rashi = 'Rashi is required';
-      if (!isFieldValid(formData.dosh)) errors.dosh = 'Dosh is required';
-      if (!isFieldValid(formData.street1)) errors.street1 = 'Street 1 is required';
-      if (!isFieldValid(formData.street2)) errors.street2 = 'Street 2 is required';
-      if (!isFieldValid(formData.pincode)) errors.pincode = 'Pincode is required';
-      if (!isFieldValid(formData.city)) errors.city = 'City is required';
-      if (!isFieldValid(formData.state)) errors.state = 'State is required';
-      if (!isFieldValid(formData.ownHouse)) errors.ownHouse = 'Own house information is required';
-      if (!isFieldValid(formData.nationality)) errors.nationality = 'Nationality is required';
-      if (!isFieldValid(formData.residingInIndia)) errors.residingInIndia = 'Residing in India is required';
-      
-      // Conditionally validate residence fields only if user selected 'no'
-      if (formData.residingInIndia === 'no') {
-        if (!isFieldValid(formData.residingCountry)) errors.residingCountry = 'Residing country is required';
-        if (!isFieldValid(formData.visaCategory)) errors.visaCategory = 'Visa category is required';
+
+    if (tabKey === "personal") {
+      if (!isFieldValid(formData.birthHour))
+        errors.birthHour = "Birth hour is required";
+      if (!isFieldValid(formData.birthMinute))
+        errors.birthMinute = "Birth minute is required";
+      if (!isFieldValid(formData.maritalStatus))
+        errors.maritalStatus = "Marital status is required";
+      if (!isFieldValid(formData.height)) errors.height = "Height is required";
+      if (!isFieldValid(formData.weight)) errors.weight = "Weight is required";
+      if (!isFieldValid(formData.religion))
+        errors.religion = "Religion is required";
+      if (!isFieldValid(formData.caste)) errors.caste = "Caste is required";
+      if (!isFieldValid(formData.birthCity))
+        errors.birthCity = "Birth city is required";
+      if (!isFieldValid(formData.birthState))
+        errors.birthState = "Birth state is required";
+      if (!isFieldValid(formData.rashi)) errors.rashi = "Rashi is required";
+      if (!isFieldValid(formData.dosh)) errors.dosh = "Dosh is required";
+      if (!isFieldValid(formData.street1))
+        errors.street1 = "Street 1 is required";
+      if (!isFieldValid(formData.street2))
+        errors.street2 = "Street 2 is required";
+      if (!isFieldValid(formData.pincode))
+        errors.pincode = "Pincode is required";
+      if (!isFieldValid(formData.city)) errors.city = "City is required";
+      if (!isFieldValid(formData.state)) errors.state = "State is required";
+      if (!isFieldValid(formData.ownHouse))
+        errors.ownHouse = "Own house information is required";
+      if (!isFieldValid(formData.nationality))
+        errors.nationality = "Nationality is required";
+      if (!isFieldValid(formData.residingInIndia))
+        errors.residingInIndia = "Residing in India is required";
+
+      if (formData.residingInIndia === "no") {
+        if (!isFieldValid(formData.residingCountry))
+          errors.residingCountry = "Residing country is required";
+        if (!isFieldValid(formData.visaCategory))
+          errors.visaCategory = "Visa category is required";
       }
-      
-      // Conditionally validate children fields only if marital status is not 'Never Married'
-      if (formData.maritalStatus && formData.maritalStatus !== 'Never Married') {
-        if (!isFieldValid(formData.hasChildren)) errors.hasChildren = 'Has children is required';
-        if (formData.hasChildren === 'Yes') {
-          if (!isFieldValid(formData.numChildren)) errors.numChildren = 'Number of children is required';
-          if (!isFieldValid(formData.livingWith)) errors.livingWith = 'Living with is required';
+
+      if (
+        formData.maritalStatus &&
+        formData.maritalStatus !== "Never Married"
+      ) {
+        if (!isFieldValid(formData.hasChildren))
+          errors.hasChildren = "Has children is required";
+        if (formData.hasChildren === "Yes") {
+          if (!isFieldValid(formData.numChildren))
+            errors.numChildren = "Number of children is required";
+          if (!isFieldValid(formData.livingWith))
+            errors.livingWith = "Living with is required";
         }
       }
-      
-      // Conditionally validate divorce fields only if marital status is 'Divorced', 'Awaiting Divorce', or 'Separated'
-      if (formData.maritalStatus === 'Separated') {
-        if (!isFieldValid(formData.separatedSince)) errors.separatedSince = 'Separated since is required';
-      } else if (formData.maritalStatus === 'Divorced' || formData.maritalStatus === 'Awaiting Divorce') {
-        if (!isFieldValid(formData.divorceStatus)) errors.divorceStatus = 'Divorce status is required';
+
+      if (formData.maritalStatus === "Separated") {
+        if (!isFieldValid(formData.separatedSince))
+          errors.separatedSince = "Separated since is required";
+      } else if (
+        formData.maritalStatus === "Divorced" ||
+        formData.maritalStatus === "Awaiting Divorce"
+      ) {
+        if (!isFieldValid(formData.divorceStatus))
+          errors.divorceStatus = "Divorce status is required";
       }
     }
-    
-    if (tabKey === 'education') {
-      if (!isFieldValid(formData.schoolName)) errors.schoolName = 'School name is required';
-      if (!isFieldValid(formData.highestEducation)) errors.highestEducation = 'Highest qualification is required';
-      if (!isFieldValid(formData.fieldOfStudy)) errors.fieldOfStudy = 'Field of study is required';
-      if (!isFieldValid(formData.universityName)) errors.universityName = 'University/College name is required';
-      if (!isFieldValid(formData.countryOfEducation)) errors.countryOfEducation = 'Country of education is required';
-      // If "Other" country is selected, otherCountry field must be filled
-      if (formData.countryOfEducation === 'Other' && !isFieldValid(formData.otherCountry)) {
-        errors.otherCountry = 'Please specify your country';
+
+    if (tabKey === "education") {
+      if (!isFieldValid(formData.schoolName))
+        errors.schoolName = "School name is required";
+      if (!isFieldValid(formData.highestEducation))
+        errors.highestEducation = "Highest qualification is required";
+      if (!isFieldValid(formData.fieldOfStudy))
+        errors.fieldOfStudy = "Field of study is required";
+      if (!isFieldValid(formData.universityName))
+        errors.universityName = "University/College name is required";
+      if (!isFieldValid(formData.countryOfEducation))
+        errors.countryOfEducation = "Country of education is required";
+
+      if (
+        formData.countryOfEducation === "Other" &&
+        !isFieldValid(formData.otherCountry)
+      ) {
+        errors.otherCountry = "Please specify your country";
       }
     }
-    
-    if (tabKey === 'profession') {
-      if (!isFieldValid(formData.employmentStatus)) errors.employmentStatus = 'Employment status is required';
-      if (!isFieldValid(formData.occupation)) errors.occupation = 'Occupation is required';
-      if (!isFieldValid(formData.annualIncome)) errors.annualIncome = 'Annual income is required';
-      if (!isFieldValid(formData.organizationName)) errors.organizationName = 'Organization name is required';
+
+    if (tabKey === "profession") {
+      if (!isFieldValid(formData.employmentStatus))
+        errors.employmentStatus = "Employment status is required";
+      if (!isFieldValid(formData.occupation))
+        errors.occupation = "Occupation is required";
+      if (!isFieldValid(formData.annualIncome))
+        errors.annualIncome = "Annual income is required";
+      if (!isFieldValid(formData.organizationName))
+        errors.organizationName = "Organization name is required";
     }
-    
-    if (tabKey === 'lifestyle') {
-      if (!isFieldValid(formData.diet)) errors.diet = 'Diet is required';
-      if (!isFieldValid(formData.smoking)) errors.smoking = 'Smoking preference is required';
-      if (!isFieldValid(formData.drinking)) errors.drinking = 'Drinking preference is required';
-      if (!isFieldValid(formData.isHaveMedicalHistory)) errors.isHaveMedicalHistory = 'Medical history is required';
-      // Only require healthIssues if user has medical history
-      if (String(formData.isHaveMedicalHistory).toLowerCase() === 'yes') {
-        if (!isFieldValid(formData.healthIssues)) errors.healthIssues = 'Health issues information is required';
+
+    if (tabKey === "lifestyle") {
+      if (!isFieldValid(formData.diet)) errors.diet = "Diet is required";
+      if (!isFieldValid(formData.smoking))
+        errors.smoking = "Smoking preference is required";
+      if (!isFieldValid(formData.drinking))
+        errors.drinking = "Drinking preference is required";
+      if (!isFieldValid(formData.isHaveMedicalHistory))
+        errors.isHaveMedicalHistory = "Medical history is required";
+
+      if (String(formData.isHaveMedicalHistory).toLowerCase() === "yes") {
+        if (!isFieldValid(formData.healthIssues))
+          errors.healthIssues = "Health issues information is required";
       }
-      if (!isFieldValid(formData.isHaveTattoos)) errors.isHaveTattoos = 'Tattoo information is required';
-      if (!isFieldValid(formData.isHaveHIV)) errors.isHaveHIV = 'HIV information is required';
-      if (!isFieldValid(formData.isPositiveInTB)) errors.isPositiveInTB = 'TB information is required';
+      if (!isFieldValid(formData.isHaveTattoos))
+        errors.isHaveTattoos = "Tattoo information is required";
+      if (!isFieldValid(formData.isHaveHIV))
+        errors.isHaveHIV = "HIV information is required";
+      if (!isFieldValid(formData.isPositiveInTB))
+        errors.isPositiveInTB = "TB information is required";
     }
-    
-    if (tabKey === 'expectations') {
-      if (!isFieldValid(formData.partnerLocation)) errors.partnerLocation = 'Partner location is required';
-      
-      // Validate country/state based on partner location selection
-      if (formData.partnerLocation === 'India') {
-        if (!formData.partnerStateOrCountry || formData.partnerStateOrCountry.length === 0) {
-          errors.partnerState = 'Partner state is required';
+
+    if (tabKey === "expectations") {
+      if (!isFieldValid(formData.partnerLocation))
+        errors.partnerLocation = "Partner location is required";
+
+      if (formData.partnerLocation === "India") {
+        if (
+          !formData.partnerStateOrCountry ||
+          formData.partnerStateOrCountry.length === 0
+        ) {
+          errors.partnerState = "Partner state is required";
         }
-      } else if (formData.partnerLocation === 'Abroad') {
-        if (!formData.partnerStateOrCountry || formData.partnerStateOrCountry.length === 0) {
-          errors.partnerCountry = 'Partner country is required';
+      } else if (formData.partnerLocation === "Abroad") {
+        if (
+          !formData.partnerStateOrCountry ||
+          formData.partnerStateOrCountry.length === 0
+        ) {
+          errors.partnerCountry = "Partner country is required";
         }
       }
-      
-      if (!isFieldValid(formData.openToPartnerHabits)) errors.openToPartnerHabits = 'Partner habits preference is required';
-      if (!formData.partnerEducation || formData.partnerEducation.length === 0) errors.partnerEducation = 'Partner education is required';
-      if (!formData.partnerDiet || formData.partnerDiet.length === 0) errors.partnerDiet = 'Partner diet preference is required';
-      if (!formData.partnerCommunity || formData.partnerCommunity.length === 0) errors.partnerCommunity = 'Partner community is required';
-      if (!formData.profession || formData.profession.length === 0) errors.profession = 'Partner profession is required';
-      if (!formData.maritalStatus || formData.maritalStatus.length === 0) errors.maritalStatus = 'Partner marital status is required';
-      if (!isFieldValid(formData.preferredAgeFrom)) errors.preferredAgeFrom = 'Preferred age from is required';
-      if (!isFieldValid(formData.preferredAgeTo)) errors.preferredAgeTo = 'Preferred age to is required';
+
+      if (!isFieldValid(formData.openToPartnerHabits))
+        errors.openToPartnerHabits = "Partner habits preference is required";
+      if (!formData.partnerEducation || formData.partnerEducation.length === 0)
+        errors.partnerEducation = "Partner education is required";
+      if (!formData.partnerDiet || formData.partnerDiet.length === 0)
+        errors.partnerDiet = "Partner diet preference is required";
+      if (!formData.partnerCommunity || formData.partnerCommunity.length === 0)
+        errors.partnerCommunity = "Partner community is required";
+      if (!formData.profession || formData.profession.length === 0)
+        errors.profession = "Partner profession is required";
+      if (!formData.maritalStatus || formData.maritalStatus.length === 0)
+        errors.maritalStatus = "Partner marital status is required";
+      if (!isFieldValid(formData.preferredAgeFrom))
+        errors.preferredAgeFrom = "Preferred age from is required";
+      if (!isFieldValid(formData.preferredAgeTo))
+        errors.preferredAgeTo = "Preferred age to is required";
     }
-    
+
     return errors;
   };
 
-  // Error states for each validated tab
   const [personalErrors, setPersonalErrors] = useState({});
   const [educationErrors, setEducationErrors] = useState({});
   const [professionErrors, setProfessionErrors] = useState({});
@@ -815,11 +843,9 @@ export function EditProfile({ onNavigateBack }) {
     separatedSince: "",
   });
 
-  // State to control visibility of children and divorce fields based on marital status
   const [showChildrenFields, setShowChildrenFields] = useState(false);
   const [showDivorceFields, setShowDivorceFields] = useState(false);
 
-  // Birth state code for birth city selection
   const [birthStateCode, setBirthStateCode] = useState("");
 
   useEffect(() => {
@@ -828,7 +854,6 @@ export function EditProfile({ onNavigateBack }) {
         const res = await getUserPersonal();
         const data = res?.data?.data || {};
 
-        // Log any missing expected fields from API response to help debugging
         const checkMissingPersonalFields = (d) => {
           const expected = [
             "firstName",
@@ -968,39 +993,22 @@ export function EditProfile({ onNavigateBack }) {
             ? String(data.separatedSince)
             : "",
         };
-        
-        // Debug log to verify address is being loaded
-        console.log("[EditProfile] Full address data from API:", {
-          full_address: data.full_address,
-          street1: data.full_address?.street1,
-          street2: data.full_address?.street2,
-          city: data.full_address?.city,
-          state: data.full_address?.state,
-          zipCode: data.full_address?.zipCode,
-          mappedAddress: {
-            street1: personalMapped.street1,
-            street2: personalMapped.street2,
-            city: personalMapped.city,
-            state: personalMapped.state,
-            pincode: personalMapped.pincode,
-          }
-        });
-        
+
         setPersonal((p) => ({ ...p, ...personalMapped }));
         setInitialPersonal(personalMapped);
 
-        // Set birth state code if birth state exists
         if (personalMapped.birthState) {
           const code = getStateCode("IN", personalMapped.birthState);
           setBirthStateCode(code || "");
         }
 
-        // Initialize visibility flags based on loaded marital status
         const maritalStatus = personalMapped.maritalStatus;
         if (maritalStatus) {
           setShowChildrenFields(maritalStatus !== "Never Married");
           setShowDivorceFields(
-            maritalStatus === "Divorced" || maritalStatus === "Awaiting Divorce" || maritalStatus === "Separated"
+            maritalStatus === "Divorced" ||
+              maritalStatus === "Awaiting Divorce" ||
+              maritalStatus === "Separated"
           );
         }
       } catch (err) {
@@ -1011,9 +1019,6 @@ export function EditProfile({ onNavigateBack }) {
     load();
   }, []);
 
-  // ---------------------------------------
-  // PROFESSION loader (fetch on mount)
-  // ---------------------------------------
   useEffect(() => {
     const loadProfession = async () => {
       try {
@@ -1026,7 +1031,6 @@ export function EditProfile({ onNavigateBack }) {
           return;
         }
 
-        // Normalize server employment status to match EMPLOYMENT_OPTIONS casing
         const normalizeFromOptions = (val, opts) => {
           const s = String(val || "")
             .trim()
@@ -1035,7 +1039,6 @@ export function EditProfile({ onNavigateBack }) {
           return match || String(val || "").trim();
         };
 
-        // Support object or string shape from API
         const rawEmploymentStatus =
           typeof data?.EmploymentStatus === "object"
             ? data.EmploymentStatus.value || data.EmploymentStatus.label || ""
@@ -1044,7 +1047,6 @@ export function EditProfile({ onNavigateBack }) {
               data?.employment_status ??
               "";
 
-        // map to local profession state keys
         const profMapped = {
           employmentStatus: normalizeFromOptions(
             rawEmploymentStatus,
@@ -1066,9 +1068,6 @@ export function EditProfile({ onNavigateBack }) {
     loadProfession();
   }, []);
 
-  // ---------------------------------------
-  // FAMILY loader (fetch on mount)
-  // ---------------------------------------
   useEffect(() => {
     const loadFamily = async () => {
       try {
@@ -1085,11 +1084,10 @@ export function EditProfile({ onNavigateBack }) {
           if (!val) return "";
           if (typeof val === "string") return val;
           if (typeof val === "object" && val !== null) {
-            // Handle {code, number} structure from API (from MongoDB)
             if (val.number !== undefined && val.number !== null) {
               return String(val.number).trim();
             }
-            // Handle {value, label} structure
+
             if (val.value !== undefined && val.value !== null) {
               return String(val.value).trim();
             }
@@ -1099,10 +1097,6 @@ export function EditProfile({ onNavigateBack }) {
           }
           return "";
         };
-
-        console.log("[Family Debug] Raw API response:", data);
-        console.log("[Family Debug] fatherContact:", data.fatherContact, "-> normalized:", normalizePhone(data.fatherContact));
-        console.log("[Family Debug] motherContact:", data.motherContact, "-> normalized:", normalizePhone(data.motherContact));
 
         const familyMapped = {
           fatherName: data.fatherName || "",
@@ -1118,7 +1112,7 @@ export function EditProfile({ onNavigateBack }) {
           naniName: data.naniName || "",
           nanaNativePlace: data.nanaNativePlace || "",
           familyType: data.familyType || "",
-          // map sibling info if available
+
           hasSiblings:
             typeof data.haveSibling === "boolean" ? data.haveSibling : null,
           siblingCount: data.howManySiblings || 0,
@@ -1135,14 +1129,11 @@ export function EditProfile({ onNavigateBack }) {
     loadFamily();
   }, []);
 
-  // ---------------------------------------
-  // EDUCATION loader (fetch on mount)
-  // ---------------------------------------
   useEffect(() => {
     const loadEducation = async () => {
       try {
         const res = await getEducationalDetails();
-        // Debug: log the full API response to inspect why CountryOfEducation may be empty
+
         try {
           console.info("Education API raw response:", res);
           console.info("Education API res.data:", res?.data);
@@ -1158,7 +1149,6 @@ export function EditProfile({ onNavigateBack }) {
         }
 
         const educationMapped = {
-          // map canonical keys returned by the education API
           schoolName: data.SchoolName || data.schoolName || "",
           highestEducation:
             data.HighestEducation || data.highestEducation || "",
@@ -1181,7 +1171,7 @@ export function EditProfile({ onNavigateBack }) {
         };
         setEducation((e) => ({ ...e, ...educationMapped }));
         setInitialEducation(educationMapped);
-        // Diagnostics: log keys and CountryOfEducation value to help debugging missing country
+
         try {
           const presentKeys = Object.keys(data || {});
           console.info("Education API returned keys:", presentKeys);
@@ -1207,14 +1197,11 @@ export function EditProfile({ onNavigateBack }) {
     loadEducation();
   }, []);
 
-  // ---------------------------------------
-  // LIFESTYLE loader (fetch on mount)
-  // ---------------------------------------
   useEffect(() => {
     const loadLifestyle = async () => {
       try {
         const res = await getUserHealth();
-        // debug log
+
         console.info("Lifestyle (getUserHealth) raw response ->", res);
         const data = res?.data?.data;
         try {
@@ -1231,7 +1218,7 @@ export function EditProfile({ onNavigateBack }) {
               data?.medicalHistory ??
               data?.description,
           });
-          // persist raw server payload so the UI can display all returned keys/values
+
           setLifestyleRaw(data || null);
         } catch (diagErr) {
           console.error("Failed to log lifestyle server values", diagErr);
@@ -1243,7 +1230,6 @@ export function EditProfile({ onNavigateBack }) {
           return;
         }
 
-        // Map server fields to user-friendly display (like ExpectationDetails)
         const mapHabitDisplay = (val) => {
           if (val === undefined || val === null) return "";
           const s = String(val).toLowerCase();
@@ -1313,9 +1299,6 @@ export function EditProfile({ onNavigateBack }) {
     loadLifestyle();
   }, []);
 
-  // ---------------------------------------
-  // EXPECTATIONS loader (fetch when expectations tab active)
-  // ---------------------------------------
   useEffect(() => {
     let mounted = true;
     const loadExpectations = async () => {
@@ -1379,13 +1362,14 @@ export function EditProfile({ onNavigateBack }) {
           return ["Any"];
         })();
 
-        // Extract individual state/country for single select
-        const partnerState = partnerStateOrCountry.length > 0 && partnerLocation === "India" 
-          ? partnerStateOrCountry[0] 
-          : "";
-        const partnerCountry = partnerStateOrCountry.length > 0 && partnerLocation === "Abroad" 
-          ? partnerStateOrCountry[0] 
-          : "";
+        const partnerState =
+          partnerStateOrCountry.length > 0 && partnerLocation === "India"
+            ? partnerStateOrCountry[0]
+            : "";
+        const partnerCountry =
+          partnerStateOrCountry.length > 0 && partnerLocation === "Abroad"
+            ? partnerStateOrCountry[0]
+            : "";
 
         const toArray = (v) =>
           Array.isArray(v) ? v.map((e) => e.value || e) : [];
@@ -1417,7 +1401,7 @@ export function EditProfile({ onNavigateBack }) {
         setExpectations(expectationsMapped);
         setInitialExpectations(expectationsMapped);
       } catch (err) {
-        if (err?.response?.status === 404) return; // no expectations yet
+        if (err?.response?.status === 404) return;
         console.error("Failed to load expectations", err);
       }
     };
@@ -1429,16 +1413,12 @@ export function EditProfile({ onNavigateBack }) {
     };
   }, [activeTab]);
 
-  // ---------------------------------------
-  // PHOTOS loader (fetch on mount)
-  // ---------------------------------------
   useEffect(() => {
     const loadPhotos = async () => {
       try {
         const res = await getUserPhotos();
         console.info("getUserPhotos API Response ->", res);
 
-        // Backend returns nested structure: { success: true, data: { photos: {...} } }
         const payload = res?.data?.photos || res?.data || res || {};
         console.info("Extracted photo payload ->", payload);
 
@@ -1447,7 +1427,6 @@ export function EditProfile({ onNavigateBack }) {
           if (v) out.push(v);
         };
 
-        // personalPhotos is an array
         if (
           Array.isArray(payload.personalPhotos) &&
           payload.personalPhotos.length
@@ -1455,13 +1434,10 @@ export function EditProfile({ onNavigateBack }) {
           payload.personalPhotos.forEach((p) => pushIf(p?.url || p));
         }
 
-        // family photo (single object)
         pushIf(payload.familyPhoto?.url || payload.familyPhoto);
 
-        // closer photo (single object)
         pushIf(payload.closerPhoto?.url || payload.closerPhoto);
 
-        // other photos array (max 2)
         if (Array.isArray(payload.otherPhotos)) {
           payload.otherPhotos.forEach((p) => pushIf(p?.url || p));
         }
@@ -1476,67 +1452,49 @@ export function EditProfile({ onNavigateBack }) {
     loadPhotos();
   }, []);
 
-  // ---------------------------------------
-  // PERSONAL DETAILS TAB
-  // ---------------------------------------
-  // Removed - now defined above with EditableInput
-
   const handleSave = async () => {
     try {
-      // Only validate the active tab
       let formData = {};
       let currentErrors = {};
-      
-      if (activeTab === 'personal') {
+
+      if (activeTab === "personal") {
         formData = personal;
-        currentErrors = getTabErrors('personal', formData);
+        currentErrors = getTabErrors("personal", formData);
         setPersonalErrors(currentErrors);
-      } else if (activeTab === 'education') {
+      } else if (activeTab === "education") {
         formData = education;
-        currentErrors = getTabErrors('education', formData);
+        currentErrors = getTabErrors("education", formData);
         setEducationErrors(currentErrors);
-      } else if (activeTab === 'profession') {
+      } else if (activeTab === "profession") {
         formData = profession;
-        currentErrors = getTabErrors('profession', formData);
+        currentErrors = getTabErrors("profession", formData);
         setProfessionErrors(currentErrors);
-      } else if (activeTab === 'lifestyle') {
+      } else if (activeTab === "lifestyle") {
         formData = lifestyle;
-        currentErrors = getTabErrors('lifestyle', formData);
+        currentErrors = getTabErrors("lifestyle", formData);
         setLifestyleErrors(currentErrors);
-      } else if (activeTab === 'expectations') {
+      } else if (activeTab === "expectations") {
         formData = expectations;
-        currentErrors = getTabErrors('expectations', formData);
+        currentErrors = getTabErrors("expectations", formData);
         setExpectationErrors(currentErrors);
       }
 
-      // Prevent submission if validation failed for active tab
       if (Object.keys(currentErrors).length > 0) {
-        toast.error('Please fill in all required fields in this tab');
+        toast.error("Please fill in all required fields in this tab");
         return;
       }
 
-      // Log sanitized data on successful validation
-      console.log('Sanitized formData:', {
-        personal: personal,
-        education: education,
-        profession: profession,
-        lifestyle: lifestyle,
-        expectations: expectations,
-      });
-
-      // Save all tabs sequentially
       let savedCount = 0;
 
-      // Save Family (if on family tab)
       if (activeTab === "family") {
         const normalize = (v) => (v === undefined || v === null ? "" : v);
-        // Helper to build phone object from number string
+
         const buildPhoneObject = (phoneNumber) => {
           const num = normalize(phoneNumber).trim();
           if (!num) return { code: "+91", number: "" };
           return { code: "+91", number: num };
         };
-        
+
         const submissionData = {
           fatherName: normalize(family.fatherName),
           fatherOccupation: normalize(family.fatherProfession),
@@ -1598,13 +1556,17 @@ export function EditProfile({ onNavigateBack }) {
                 submissionData.fatherName,
               fatherProfession:
                 server.fatherOccupation || submissionData.fatherOccupation,
-              fatherPhone: normalizePhone(server.fatherContact) || normalizePhone(submissionData.fatherContact),
+              fatherPhone:
+                normalizePhone(server.fatherContact) ||
+                normalizePhone(submissionData.fatherContact),
               fatherNative:
                 server.fatherNativePlace || submissionData.fatherNativePlace,
               motherName: server.motherName || submissionData.motherName,
               motherProfession:
                 server.motherOccupation || submissionData.motherOccupation,
-              motherPhone: normalizePhone(server.motherContact) || normalizePhone(submissionData.motherContact),
+              motherPhone:
+                normalizePhone(server.motherContact) ||
+                normalizePhone(submissionData.motherContact),
               grandFatherName:
                 server.grandFatherName || submissionData.grandFatherName,
               grandMotherName:
@@ -1653,22 +1615,37 @@ export function EditProfile({ onNavigateBack }) {
             setFamily((prev) => ({
               ...prev,
               fatherName: server.fatherName || submissionData.fatherName,
-              fatherProfession: server.fatherOccupation || submissionData.fatherOccupation,
-              fatherPhone: normalizePhone(server.fatherContact) || normalizePhone(submissionData.fatherContact),
-              fatherNative: server.fatherNativePlace || submissionData.fatherNativePlace,
+              fatherProfession:
+                server.fatherOccupation || submissionData.fatherOccupation,
+              fatherPhone:
+                normalizePhone(server.fatherContact) ||
+                normalizePhone(submissionData.fatherContact),
+              fatherNative:
+                server.fatherNativePlace || submissionData.fatherNativePlace,
               motherName: server.motherName || submissionData.motherName,
-              motherProfession: server.motherOccupation || submissionData.motherOccupation,
-              motherPhone: normalizePhone(server.motherContact) || normalizePhone(submissionData.motherContact),
-              grandFatherName: server.grandFatherName || submissionData.grandFatherName,
-              grandMotherName: server.grandMotherName || submissionData.grandMotherName,
+              motherProfession:
+                server.motherOccupation || submissionData.motherOccupation,
+              motherPhone:
+                normalizePhone(server.motherContact) ||
+                normalizePhone(submissionData.motherContact),
+              grandFatherName:
+                server.grandFatherName || submissionData.grandFatherName,
+              grandMotherName:
+                server.grandMotherName || submissionData.grandMotherName,
               nanaName: server.nanaName || submissionData.nanaName,
               naniName: server.naniName || submissionData.naniName,
-              nanaNativePlace: server.nanaNativePlace || submissionData.nanaNativePlace,
+              nanaNativePlace:
+                server.nanaNativePlace || submissionData.nanaNativePlace,
               familyType: server.familyType || submissionData.familyType,
-              hasSiblings: typeof server.haveSibling === "boolean" ? server.haveSibling : submissionData.haveSibling,
-              siblingCount: server.howManySiblings || submissionData.howManySiblings,
+              hasSiblings:
+                typeof server.haveSibling === "boolean"
+                  ? server.haveSibling
+                  : submissionData.haveSibling,
+              siblingCount:
+                server.howManySiblings || submissionData.howManySiblings,
               siblings: server.siblingDetails || submissionData.siblingDetails,
-              doYouHaveChildren: server.doYouHaveChildren ?? submissionData.doYouHaveChildren,
+              doYouHaveChildren:
+                server.doYouHaveChildren ?? submissionData.doYouHaveChildren,
             }));
           } catch (refErr) {
             console.error("Failed to refetch family after save", refErr);
@@ -1684,7 +1661,6 @@ export function EditProfile({ onNavigateBack }) {
           expectations.partnerLocation === "No preference";
 
         const submissionData = {
-          // if partnerLocation is India, send as livingInState, otherwise as livingInCountry
           livingInCountry:
             expectations.partnerLocation === "Abroad"
               ? expectations.partnerStateOrCountry || []
@@ -1697,7 +1673,9 @@ export function EditProfile({ onNavigateBack }) {
               : isNoPreferenceLocation
               ? ["Any"]
               : [],
-          isConsumeAlcoholic: normalize(expectations.openToPartnerHabits),
+          isConsumeAlcoholic: normalize(
+            expectations.openToPartnerHabits.toLowerCase()
+          ),
           educationLevel: expectations.partnerEducation || [],
           diet: expectations.partnerDiet || [],
           community: expectations.partnerCommunity || [],
@@ -1723,7 +1701,7 @@ export function EditProfile({ onNavigateBack }) {
           try {
             const refetch = await getUserExpectations();
             const server = refetch?.data?.data || {};
-            // reuse loader logic to map server -> expectations
+
             const isAnyLocation = (val) => {
               if (val === null || val === undefined) return false;
               const values = Array.isArray(val) ? val : [val];
@@ -1773,13 +1751,14 @@ export function EditProfile({ onNavigateBack }) {
               return ["Any"];
             })();
 
-            // Extract individual state/country for single select
-            const partnerState = partnerStateOrCountry.length > 0 && partnerLocation === "India" 
-              ? partnerStateOrCountry[0] 
-              : "";
-            const partnerCountry = partnerStateOrCountry.length > 0 && partnerLocation === "Abroad" 
-              ? partnerStateOrCountry[0] 
-              : "";
+            const partnerState =
+              partnerStateOrCountry.length > 0 && partnerLocation === "India"
+                ? partnerStateOrCountry[0]
+                : "";
+            const partnerCountry =
+              partnerStateOrCountry.length > 0 && partnerLocation === "Abroad"
+                ? partnerStateOrCountry[0]
+                : "";
 
             const toArray = (v) =>
               Array.isArray(v) ? v.map((e) => e.value || e) : [];
@@ -1824,7 +1803,7 @@ export function EditProfile({ onNavigateBack }) {
           try {
             const refetch = await getUserExpectations();
             const server = refetch?.data?.data || {};
-            // minimal set to update UI
+
             setExpectations((prev) => ({
               ...prev,
               partnerEducation: server.educationLevel || prev.partnerEducation,
@@ -1838,7 +1817,6 @@ export function EditProfile({ onNavigateBack }) {
         return;
       }
       if (activeTab === "education") {
-        // Build education payload expected by backend
         const normalize = (v) =>
           v === undefined || v === null ? "" : String(v);
         const submissionData = {
@@ -1850,7 +1828,6 @@ export function EditProfile({ onNavigateBack }) {
           OtherCountry: normalize(education.otherCountry),
         };
 
-        // Log submission payload for debugging
         try {
           console.info("Education submissionData ->", submissionData);
         } catch (logErr) {
@@ -1861,7 +1838,7 @@ export function EditProfile({ onNavigateBack }) {
         if (existing?.data?.data) {
           const resUpdate = await updateEducationalDetails(submissionData);
           console.info("Education update response ->", resUpdate);
-          // Re-fetch from server to verify persistence and update UI
+
           try {
             const refetch = await getEducationalDetails();
             const server = refetch?.data?.data || {};
@@ -1913,7 +1890,7 @@ export function EditProfile({ onNavigateBack }) {
         } else {
           const resSave = await saveEducationalDetails(submissionData);
           console.info("Education save response ->", resSave);
-          // Re-fetch to ensure the server persisted the record
+
           try {
             const refetch = await getEducationalDetails();
             const server = refetch?.data?.data || {};
@@ -1979,7 +1956,6 @@ export function EditProfile({ onNavigateBack }) {
           console.error("Failed to log profession submissionData", logErr);
         }
 
-        // Optimistic UI update so selection reflects immediately
         setProfession((prev) => ({
           ...prev,
           employmentStatus: submissionData.EmploymentStatus,
@@ -2115,7 +2091,6 @@ export function EditProfile({ onNavigateBack }) {
           isPositiveInTB: toYesNo(lifestyle.isPositiveInTB),
         };
 
-        // Optimistic UI: reflect changes immediately in local state
         const toDisplay = (yesNo) => {
           const s = String(yesNo || "").toLowerCase();
           if (s === "yes") return "Yes";
@@ -2235,7 +2210,6 @@ export function EditProfile({ onNavigateBack }) {
         return;
       }
 
-      // default: save personal
       const timeOfBirth =
         personal.birthHour && personal.birthMinute
           ? `${personal.birthHour}:${personal.birthMinute}`
@@ -2276,7 +2250,6 @@ export function EditProfile({ onNavigateBack }) {
         visaType: personal.visaCategory || undefined,
       };
 
-      // Only include children and divorce-related fields for applicable marital statuses
       if (personal.maritalStatus !== "Never Married") {
         payload.divorceStatus = personal.divorceStatus || undefined;
         payload.isHaveChildren =
@@ -2296,18 +2269,16 @@ export function EditProfile({ onNavigateBack }) {
             : undefined;
       }
 
-      // Include separation fields only for "Separated" status
       if (personal.maritalStatus === "Separated") {
         payload.separatedSince = personal.separatedSince || undefined;
       }
 
       await updateUserPersonal(payload);
-      
-      // Refetch to ensure data is persisted correctly and display address properly
+
       try {
         const refetch = await getUserPersonal();
         const refetchedData = refetch?.data?.data || {};
-        
+
         const refetchedPersonal = {
           firstName: refetchedData.firstName || "",
           middleName: refetchedData.middleName || "",
@@ -2319,17 +2290,18 @@ export function EditProfile({ onNavigateBack }) {
           state: refetchedData.full_address?.state || "",
           ownHouse:
             typeof refetchedData.full_address?.isYourHome === "boolean"
-              ? refetchedData.full_address.isYourHome ? "Yes" : "No"
+              ? refetchedData.full_address.isYourHome
+                ? "Yes"
+                : "No"
               : "",
           nationality: refetchedData.nationality || "",
         };
-        
-        console.log("[EditProfile] Refetched address data:", refetchedPersonal);
+
         setPersonal((prev) => ({ ...prev, ...refetchedPersonal }));
       } catch (refetchErr) {
         console.error("Failed to refetch personal after save", refetchErr);
       }
-      
+
       toast.success("✅ Personal details saved");
     } catch (err) {
       console.error("Failed to save details", err);
@@ -2337,24 +2309,30 @@ export function EditProfile({ onNavigateBack }) {
     }
   };
 
-  // ---------------------------------------
-  // FAMILY handlers
-  // ---------------------------------------
   const handleFamilyChange = (field) => (e) => {
     const rawValue = e?.target ? e.target.value : e;
-    // Capitalize text fields in family details
+
     const fieldsToCapitalize = [
-      'fatherName', 'fatherProfession', 'fatherNative',
-      'motherName', 'motherProfession',
-      'grandFatherName', 'grandMotherName', 'nanaName', 'naniName', 'nanaNativePlace'
+      "fatherName",
+      "fatherProfession",
+      "fatherNative",
+      "motherName",
+      "motherProfession",
+      "grandFatherName",
+      "grandMotherName",
+      "nanaName",
+      "naniName",
+      "nanaNativePlace",
     ];
-    const value = fieldsToCapitalize.includes(field) ? capitalizeWords(rawValue) : rawValue;
+    const value = fieldsToCapitalize.includes(field)
+      ? capitalizeWords(rawValue)
+      : rawValue;
     setFamily((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleFamilyPhoneChange = (field, value) => {
     let phoneValue = value;
-    // Normalize if it's an object (from API response)
+
     if (typeof value === "object" && value !== null) {
       if (value.number !== undefined) {
         phoneValue = String(value.number || "");
@@ -2368,7 +2346,7 @@ export function EditProfile({ onNavigateBack }) {
     } else {
       phoneValue = String(value || "");
     }
-    // Extract only digits
+
     const digitsOnly = phoneValue.replace(/\D/g, "");
     setFamily((prev) => ({ ...prev, [field]: digitsOnly }));
   };
@@ -2377,8 +2355,8 @@ export function EditProfile({ onNavigateBack }) {
     setFamily((prev) => {
       const updated = [...(prev.siblings || [])];
       updated[index] = { ...(updated[index] || {}) };
-      // Capitalize name field
-      const finalValue = field === 'name' ? capitalizeWords(value) : value;
+
+      const finalValue = field === "name" ? capitalizeWords(value) : value;
       updated[index][field] = finalValue;
       return { ...prev, siblings: updated };
     });
@@ -2397,73 +2375,51 @@ export function EditProfile({ onNavigateBack }) {
     }));
   };
 
-  // Helper function to capitalize each word
   const capitalizeWords = (str) => {
     if (!str) return str;
     return str.replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  // EDUCATION handlers
   const handleEducationChange = (field) => (e) => {
     const rawValue = e?.target ? e.target.value : e;
-    // Capitalize text fields in education
-    const fieldsToCapitalize = ['schoolName', 'universityName', 'otherCountry'];
-    const value = fieldsToCapitalize.includes(field) ? capitalizeWords(rawValue) : rawValue;
+
+    const fieldsToCapitalize = ["schoolName", "universityName", "otherCountry"];
+    const value = fieldsToCapitalize.includes(field)
+      ? capitalizeWords(rawValue)
+      : rawValue;
     setEducation((prev) => ({ ...prev, [field]: value }));
-    // Clear error as user types
-    setEducationErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setEducationErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const handleProfessionChange = (field) => (e) => {
     const value = e?.target ? e.target.value : e;
     setProfession((prev) => ({ ...prev, [field]: value }));
-    // Clear error as user types
-    setProfessionErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setProfessionErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const handleLifestyleChange = (field) => (e) => {
     const value = e?.target ? e.target.value : e;
     setLifestyle((prev) => ({ ...prev, [field]: value }));
-    // Clear error as user types
-    setLifestyleErrors((prev) => ({ ...prev, [field]: '' }));
+
+    setLifestyleErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  // EXPECTATIONS handlers
   const handleExpectationsTextChange = (field) => (e) => {
     const value = e?.target ? e.target.value : e;
     setExpectations((prev) => ({ ...prev, [field]: value }));
-    // Clear error as user types
-    setExpectationErrors((prev) => ({ ...prev, [field]: '' }));
-  };
-
-  const handleExpectationsArrayChange = (field) => (e) => {
-    const raw = e?.target ? e.target.value : e;
-    const arr = String(raw || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    setExpectations((prev) => ({ ...prev, [field]: arr }));
-  };
-
-  const handlePartnerLocationChange = (e) => {
-    const val = e?.target ? e.target.value : e;
-    setExpectations((prev) => ({
-      ...prev,
-      partnerLocation: val,
-      partnerStateOrCountry: [],
-    }));
+    setExpectationErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const inputClass =
     "w-full border border-[#D4A052] rounded-md p-2.5 sm:p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
-  // Helper to treat empty/null/undefined as blank
   const isBlank = (v) =>
     v === undefined ||
     v === null ||
     (typeof v === "string" && String(v).trim() === "");
 
-  // Helper to get DOB parts
   const getDobParts = React.useCallback((isoDate) => {
     if (!isoDate) return { day: "", month: "", year: "" };
     const parts = String(isoDate).split("-");
@@ -2476,16 +2432,13 @@ export function EditProfile({ onNavigateBack }) {
     return { day: "", month: "", year: "" };
   }, []);
 
-  // Single stable handler for all personal inputs - uses name attribute to determine field
   const handleInputChange = React.useCallback((e) => {
     const { name, value } = e.target;
-    // Clear error as user types
-    setPersonalErrors((prev) => ({ ...prev, [name]: '' }));
-    
-    // Map name to the correct field in personal state
+
+    setPersonalErrors((prev) => ({ ...prev, [name]: "" }));
+
     if (name.startsWith("dateOfBirth_")) {
-      // Handle DOB parts separately
-      const part = name.split("_")[1]; // 'day', 'month', or 'year'
+      const part = name.split("_")[1];
       const val = String(value)
         .replace(/\D/g, "")
         .slice(0, part === "year" ? 4 : 2);
@@ -2519,12 +2472,10 @@ export function EditProfile({ onNavigateBack }) {
         }
       });
     } else {
-      // Store raw value as-is, don't modify during input
       setPersonal((prev) => ({ ...prev, [name]: value }));
     }
   }, []);
 
-  // Handler for marital status change - mirrors PersonalDetails.jsx logic
   const handleMaritalStatusChange = React.useCallback((e) => {
     const status = e.target.value;
 
@@ -2539,12 +2490,12 @@ export function EditProfile({ onNavigateBack }) {
 
     setShowChildrenFields(status && status !== "Never Married");
     setShowDivorceFields(
-      status === "Divorced" || status === "Awaiting Divorce" || status === "Separated"
+      status === "Divorced" ||
+        status === "Awaiting Divorce" ||
+        status === "Separated"
     );
   }, []);
 
-  // EditableInput: Simple controlled input that uses the stable handler
-  // Only fullName and dob are non-editable (disabled). All other fields are always editable.
   const EditableInput = React.useCallback(
     ({ name, value, disabled = false, className = "", ...rest }) => {
       return (
@@ -2575,36 +2526,48 @@ export function EditProfile({ onNavigateBack }) {
           <Label className="mb-2">First Name *</Label>
           <EditableInput
             value={personal.firstName || ""}
-            className={`rounded-md ${personalErrors.firstName ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              personalErrors.firstName ? "border-red-500" : "border-gray-300"
+            }`}
             name="firstName"
             disabled={true}
           />
           {personalErrors.firstName && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.firstName}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.firstName}
+            </p>
           )}
         </div>
         <div>
           <Label className="mb-2">Middle Name *</Label>
           <EditableInput
             value={personal.middleName || ""}
-            className={`rounded-md ${personalErrors.middleName ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              personalErrors.middleName ? "border-red-500" : "border-gray-300"
+            }`}
             name="middleName"
             disabled={true}
           />
           {personalErrors.middleName && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.middleName}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.middleName}
+            </p>
           )}
         </div>
         <div>
           <Label className="mb-2">Last Name *</Label>
           <EditableInput
             value={personal.lastName || ""}
-            className={`rounded-md ${personalErrors.lastName ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              personalErrors.lastName ? "border-red-500" : "border-gray-300"
+            }`}
             name="lastName"
             disabled={true}
           />
           {personalErrors.lastName && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.lastName}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.lastName}
+            </p>
           )}
         </div>
       </div>
@@ -2617,7 +2580,9 @@ export function EditProfile({ onNavigateBack }) {
             value={getDobParts(personal.dateOfBirth).day || ""}
             placeholder="DD"
             maxLength={2}
-            className={`rounded-md ${personalErrors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              personalErrors.dateOfBirth ? "border-red-500" : "border-gray-300"
+            }`}
             name="dateOfBirth_day"
             disabled={true}
           />
@@ -2628,7 +2593,9 @@ export function EditProfile({ onNavigateBack }) {
             value={getDobParts(personal.dateOfBirth).month || ""}
             placeholder="MM"
             maxLength={2}
-            className={`rounded-md ${personalErrors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              personalErrors.dateOfBirth ? "border-red-500" : "border-gray-300"
+            }`}
             name="dateOfBirth_month"
             disabled={true}
           />
@@ -2639,33 +2606,45 @@ export function EditProfile({ onNavigateBack }) {
             value={getDobParts(personal.dateOfBirth).year || ""}
             placeholder="YYYY"
             maxLength={4}
-            className={`rounded-md ${personalErrors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              personalErrors.dateOfBirth ? "border-red-500" : "border-gray-300"
+            }`}
             name="dateOfBirth_year"
             disabled={true}
           />
           {personalErrors.dateOfBirth && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.dateOfBirth}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.dateOfBirth}
+            </p>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-6">
         <div>
-          <Label className="mb-2">Time of Birth (24 hrs format - HH : MM) *</Label>
+          <Label className="mb-2">
+            Time of Birth (24 hrs format - HH : MM) *
+          </Label>
           <div className="flex gap-2 mt-1">
             <EditableInput
               name="birthHour"
               value={personal.birthHour || ""}
               placeholder="HH (00-23)"
               maxLength={2}
-              className={`rounded-md ${personalErrors.birthHour ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.birthHour ? "border-red-500" : "border-gray-300"
+              }`}
             />
             <EditableInput
               name="birthMinute"
               value={personal.birthMinute || ""}
               placeholder="MM (00-59)"
               maxLength={2}
-              className={`rounded-md ${personalErrors.birthMinute ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.birthMinute
+                  ? "border-red-500"
+                  : "border-gray-300"
+              }`}
             />
           </div>
           {(personalErrors.birthHour || personalErrors.birthMinute) && (
@@ -2685,11 +2664,13 @@ export function EditProfile({ onNavigateBack }) {
           onChange={handleMaritalStatusChange}
           options={LEGAL_STATUSES}
           placeholder="Select Marital Status"
-          className={personalErrors.maritalStatus ? 'border-red-500' : ''}
+          className={personalErrors.maritalStatus ? "border-red-500" : ""}
           disabled={false}
         />
         {personalErrors.maritalStatus && (
-          <p className="text-red-500 text-sm mt-1">{personalErrors.maritalStatus}</p>
+          <p className="text-red-500 text-sm mt-1">
+            {personalErrors.maritalStatus}
+          </p>
         )}
       </div>
 
@@ -2708,7 +2689,7 @@ export function EditProfile({ onNavigateBack }) {
                 checked={personal.hasChildren === "Yes"}
                 onChange={() => {
                   setPersonal((p) => ({ ...p, hasChildren: "Yes" }));
-                  setPersonalErrors((prev) => ({ ...prev, hasChildren: '' }));
+                  setPersonalErrors((prev) => ({ ...prev, hasChildren: "" }));
                 }}
                 className="peer hidden"
               />
@@ -2723,7 +2704,7 @@ export function EditProfile({ onNavigateBack }) {
                 checked={personal.hasChildren === "No"}
                 onChange={() => {
                   setPersonal((p) => ({ ...p, hasChildren: "No" }));
-                  setPersonalErrors((prev) => ({ ...prev, hasChildren: '' }));
+                  setPersonalErrors((prev) => ({ ...prev, hasChildren: "" }));
                 }}
                 className="peer hidden"
               />
@@ -2732,7 +2713,9 @@ export function EditProfile({ onNavigateBack }) {
             </label>
           </div>
           {personalErrors.hasChildren && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.hasChildren}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.hasChildren}
+            </p>
           )}
           {personal.hasChildren === "Yes" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -2743,10 +2726,12 @@ export function EditProfile({ onNavigateBack }) {
                   onChange={handleInputChange}
                   options={[...Array(10)].map((_, i) => String(i + 1))}
                   placeholder="Number of Children *"
-                  className={personalErrors.numChildren ? 'border-red-500' : ''}
+                  className={personalErrors.numChildren ? "border-red-500" : ""}
                 />
                 {personalErrors.numChildren && (
-                  <p className="text-red-500 text-sm mt-1">{personalErrors.numChildren}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {personalErrors.numChildren}
+                  </p>
                 )}
               </div>
               <div>
@@ -2756,10 +2741,12 @@ export function EditProfile({ onNavigateBack }) {
                   onChange={handleInputChange}
                   options={["Yes", "No"]}
                   placeholder="Living with you? *"
-                  className={personalErrors.livingWith ? 'border-red-500' : ''}
+                  className={personalErrors.livingWith ? "border-red-500" : ""}
                 />
                 {personalErrors.livingWith && (
-                  <p className="text-red-500 text-sm mt-1">{personalErrors.livingWith}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {personalErrors.livingWith}
+                  </p>
                 )}
               </div>
             </div>
@@ -2780,15 +2767,18 @@ export function EditProfile({ onNavigateBack }) {
                   name="separatedSince"
                   value={personal.separatedSince || ""}
                   onChange={handleInputChange}
-                  options={Array.from(
-                    { length: 50 },
-                    (_, i) => String(new Date().getFullYear() - i)
+                  options={Array.from({ length: 50 }, (_, i) =>
+                    String(new Date().getFullYear() - i)
                   )}
                   placeholder="Select Year"
-                  className={personalErrors.separatedSince ? 'border-red-500' : ''}
+                  className={
+                    personalErrors.separatedSince ? "border-red-500" : ""
+                  }
                 />
                 {personalErrors.separatedSince && (
-                  <p className="text-red-500 text-sm mt-1">{personalErrors.separatedSince}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {personalErrors.separatedSince}
+                  </p>
                 )}
               </div>
             </>
@@ -2804,10 +2794,14 @@ export function EditProfile({ onNavigateBack }) {
                   onChange={handleInputChange}
                   options={["court", "divorced", "filed", "process"]}
                   placeholder="Select Divorce Status"
-                  className={personalErrors.divorceStatus ? 'border-red-500' : ''}
+                  className={
+                    personalErrors.divorceStatus ? "border-red-500" : ""
+                  }
                 />
                 {personalErrors.divorceStatus && (
-                  <p className="text-red-500 text-sm mt-1">{personalErrors.divorceStatus}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {personalErrors.divorceStatus}
+                  </p>
                 )}
               </div>
             </>
@@ -2824,11 +2818,11 @@ export function EditProfile({ onNavigateBack }) {
             value={personal.height || ""}
             onChange={(e) => {
               setPersonal((p) => ({ ...p, height: e.target.value }));
-              setPersonalErrors((prev) => ({ ...prev, height: '' }));
+              setPersonalErrors((prev) => ({ ...prev, height: "" }));
             }}
             options={[...heightOptions].sort()}
             placeholder="Select Height"
-            className={personalErrors.height ? 'border-red-500' : ''}
+            className={personalErrors.height ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.height && (
@@ -2842,11 +2836,13 @@ export function EditProfile({ onNavigateBack }) {
             value={personal.weight || ""}
             onChange={(e) => {
               setPersonal((p) => ({ ...p, weight: e.target.value }));
-              setPersonalErrors((prev) => ({ ...prev, weight: '' }));
+              setPersonalErrors((prev) => ({ ...prev, weight: "" }));
             }}
-            options={[...weightOptions].sort((a, b) => parseFloat(a) - parseFloat(b))}
+            options={[...weightOptions].sort(
+              (a, b) => parseFloat(a) - parseFloat(b)
+            )}
             placeholder="Select Weight"
-            className={personalErrors.weight ? 'border-red-500' : ''}
+            className={personalErrors.weight ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.weight && (
@@ -2878,7 +2874,7 @@ export function EditProfile({ onNavigateBack }) {
               "Virgo (Kanya)",
             ].sort()}
             placeholder="Select Rashi"
-            className={personalErrors.rashi ? 'border-red-500' : ''}
+            className={personalErrors.rashi ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.rashi && (
@@ -2893,7 +2889,7 @@ export function EditProfile({ onNavigateBack }) {
             onChange={handleInputChange}
             options={[...doshOptions].sort()}
             placeholder="Select Dosh"
-            className={personalErrors.dosh ? 'border-red-500' : ''}
+            className={personalErrors.dosh ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.dosh && (
@@ -2910,16 +2906,26 @@ export function EditProfile({ onNavigateBack }) {
             name="religion"
             value={personal.religion || ""}
             onChange={(e) => {
-              setPersonal((p) => ({ ...p, religion: e.target.value, caste: '' }));
-              setPersonalErrors((prev) => ({ ...prev, religion: '', caste: '' }));
+              setPersonal((p) => ({
+                ...p,
+                religion: e.target.value,
+                caste: "",
+              }));
+              setPersonalErrors((prev) => ({
+                ...prev,
+                religion: "",
+                caste: "",
+              }));
             }}
             options={["Hindu", "Jain"]}
             placeholder="Select Religion"
-            className={personalErrors.religion ? 'border-red-500' : ''}
+            className={personalErrors.religion ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.religion && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.religion}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.religion}
+            </p>
           )}
         </div>
         <div>
@@ -2929,7 +2935,7 @@ export function EditProfile({ onNavigateBack }) {
             value={personal.caste || ""}
             onChange={(e) => {
               setPersonal((p) => ({ ...p, caste: e.target.value }));
-              setPersonalErrors((prev) => ({ ...prev, caste: '' }));
+              setPersonalErrors((prev) => ({ ...prev, caste: "" }));
             }}
             options={
               personal.religion === "Hindu"
@@ -2947,7 +2953,7 @@ export function EditProfile({ onNavigateBack }) {
                 : []
             }
             placeholder="Select Caste"
-            className={personalErrors.caste ? 'border-red-500' : ''}
+            className={personalErrors.caste ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.caste && (
@@ -2968,18 +2974,27 @@ export function EditProfile({ onNavigateBack }) {
               value={personal.birthState || ""}
               onChange={(e) => {
                 handleInputChange(e);
-                // Clear birth city when state changes and update the state code for city lookup
+
                 setPersonal((prev) => ({ ...prev, birthCity: "" }));
-                setPersonalErrors((prev) => ({ ...prev, birthState: '', birthCity: '' }));
-                const code = e.target.code || getStateCode("IN", e.target.value);
+                setPersonalErrors((prev) => ({
+                  ...prev,
+                  birthState: "",
+                  birthCity: "",
+                }));
+                const code =
+                  e.target.code || getStateCode("IN", e.target.value);
                 setBirthStateCode(code || "");
               }}
               countryCode="IN"
               placeholder="Select state"
-              className={`rounded-md ${personalErrors.birthState ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.birthState ? "border-red-500" : "border-gray-300"
+              }`}
             />
             {personalErrors.birthState && (
-              <p className="text-red-500 text-sm mt-1">{personalErrors.birthState}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {personalErrors.birthState}
+              </p>
             )}
           </div>
 
@@ -2993,11 +3008,15 @@ export function EditProfile({ onNavigateBack }) {
               countryCode="IN"
               stateCode={birthStateCode}
               placeholder="Select city"
-              className={`rounded-md ${personalErrors.birthCity ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.birthCity ? "border-red-500" : "border-gray-300"
+              }`}
               disabled={!birthStateCode}
             />
             {personalErrors.birthCity && (
-              <p className="text-red-500 text-sm mt-1">{personalErrors.birthCity}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {personalErrors.birthCity}
+              </p>
             )}
           </div>
         </div>
@@ -3013,7 +3032,9 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Enter street address"
               value={personal.street1 || ""}
               onChange={handleInputChange}
-              className={`rounded-md ${personalErrors.street1 ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.street1 ? "border-red-500" : "border-gray-300"
+              }`}
               name="street1"
             />
             {personalErrors.street1 && (
@@ -3021,12 +3042,16 @@ export function EditProfile({ onNavigateBack }) {
             )}
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Street Address Line 2 *</Label>
+            <Label className="text-sm font-medium">
+              Street Address Line 2 *
+            </Label>
             <EditableInput
               placeholder="Apartment, suite, etc."
               value={personal.street2 || ""}
               onChange={handleInputChange}
-              className={`rounded-md ${personalErrors.street2 ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.street2 ? "border-red-500" : "border-gray-300"
+              }`}
               name="street2"
             />
             {personalErrors.street2 && (
@@ -3044,12 +3069,16 @@ export function EditProfile({ onNavigateBack }) {
                 name="state"
                 value={personal.state || ""}
                 onChange={(e) => {
-                  setPersonal((p) => ({ ...p, state: e.target.value, city: "" }));
-                  setPersonalErrors((prev) => ({ ...prev, state: '' }));
+                  setPersonal((p) => ({
+                    ...p,
+                    state: e.target.value,
+                    city: "",
+                  }));
+                  setPersonalErrors((prev) => ({ ...prev, state: "" }));
                 }}
                 countryCode="IN"
                 placeholder="Select state"
-                className={personalErrors.state ? 'border-red-500' : ''}
+                className={personalErrors.state ? "border-red-500" : ""}
               />
               {personalErrors.state && (
                 <p className="text-red-500 text-sm">{personalErrors.state}</p>
@@ -3065,12 +3094,12 @@ export function EditProfile({ onNavigateBack }) {
                 value={personal.city || ""}
                 onChange={(e) => {
                   setPersonal((p) => ({ ...p, city: e.target.value }));
-                  setPersonalErrors((prev) => ({ ...prev, city: '' }));
+                  setPersonalErrors((prev) => ({ ...prev, city: "" }));
                 }}
                 countryCode="IN"
                 stateCode={getStateCode("IN", personal.state) || ""}
                 placeholder="Select city"
-                className={personalErrors.city ? 'border-red-500' : ''}
+                className={personalErrors.city ? "border-red-500" : ""}
                 disabled={!personal.state}
               />
               {personalErrors.city && (
@@ -3079,12 +3108,16 @@ export function EditProfile({ onNavigateBack }) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Pincode / Postal Code *</Label>
+            <Label className="text-sm font-medium">
+              Pincode / Postal Code *
+            </Label>
             <EditableInput
               placeholder="Enter pincode"
               value={personal.pincode || ""}
               onChange={handleInputChange}
-              className={`rounded-md ${personalErrors.pincode ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-md ${
+                personalErrors.pincode ? "border-red-500" : "border-gray-300"
+              }`}
               name="pincode"
             />
             {personalErrors.pincode && (
@@ -3093,7 +3126,9 @@ export function EditProfile({ onNavigateBack }) {
           </div>
         </div>
         <div className="space-y-2 mt-4">
-          <Label className="text-sm font-medium">Is this your own house? *</Label>
+          <Label className="text-sm font-medium">
+            Is this your own house? *
+          </Label>
           <div className="flex items-center gap-6 mt-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -3103,7 +3138,7 @@ export function EditProfile({ onNavigateBack }) {
                 checked={personal.ownHouse === "Yes"}
                 onChange={() => {
                   setPersonal((p) => ({ ...p, ownHouse: "Yes" }));
-                  setPersonalErrors((prev) => ({ ...prev, ownHouse: '' }));
+                  setPersonalErrors((prev) => ({ ...prev, ownHouse: "" }));
                 }}
                 className={`appearance-none w-4 h-4 rounded-full border transition duration-200 cursor-pointer ${
                   personal.ownHouse === "Yes"
@@ -3121,7 +3156,7 @@ export function EditProfile({ onNavigateBack }) {
                 checked={personal.ownHouse === "No"}
                 onChange={() => {
                   setPersonal((p) => ({ ...p, ownHouse: "No" }));
-                  setPersonalErrors((prev) => ({ ...prev, ownHouse: '' }));
+                  setPersonalErrors((prev) => ({ ...prev, ownHouse: "" }));
                 }}
                 className={`appearance-none w-4 h-4 rounded-full border transition duration-200 cursor-pointer ${
                   personal.ownHouse === "No"
@@ -3133,7 +3168,9 @@ export function EditProfile({ onNavigateBack }) {
             </label>
           </div>
           {personalErrors.ownHouse && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.ownHouse}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.ownHouse}
+            </p>
           )}
         </div>
       </div>
@@ -3148,11 +3185,13 @@ export function EditProfile({ onNavigateBack }) {
             onChange={handleInputChange}
             options={[...nationalities].sort()}
             placeholder="Select Nationality"
-            className={personalErrors.nationality ? 'border-red-500' : ''}
+            className={personalErrors.nationality ? "border-red-500" : ""}
             disabled={false}
           />
           {personalErrors.nationality && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.nationality}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.nationality}
+            </p>
           )}
         </div>
         <div>
@@ -3170,7 +3209,10 @@ export function EditProfile({ onNavigateBack }) {
                     residingInIndia: "yes",
                     residingCountry: "India",
                   }));
-                  setPersonalErrors((prev) => ({ ...prev, residingInIndia: '' }));
+                  setPersonalErrors((prev) => ({
+                    ...prev,
+                    residingInIndia: "",
+                  }));
                 }}
                 disabled={isBlank(personal.residingInIndia)}
                 className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${
@@ -3193,7 +3235,10 @@ export function EditProfile({ onNavigateBack }) {
                     residingInIndia: "no",
                     residingCountry: "",
                   }));
-                  setPersonalErrors((prev) => ({ ...prev, residingInIndia: '' }));
+                  setPersonalErrors((prev) => ({
+                    ...prev,
+                    residingInIndia: "",
+                  }));
                 }}
                 disabled={isBlank(personal.residingInIndia)}
                 className={`appearance-none w-4 h-4 rounded-full border transition duration-200 ${
@@ -3206,7 +3251,9 @@ export function EditProfile({ onNavigateBack }) {
             </label>
           </div>
           {personalErrors.residingInIndia && (
-            <p className="text-red-500 text-sm mt-1">{personalErrors.residingInIndia}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {personalErrors.residingInIndia}
+            </p>
           )}
         </div>
       </div>
@@ -3221,13 +3268,15 @@ export function EditProfile({ onNavigateBack }) {
               value={personal.residingCountry || ""}
               onChange={(e) => {
                 setPersonal((p) => ({ ...p, residingCountry: e.target.value }));
-                setPersonalErrors((prev) => ({ ...prev, residingCountry: '' }));
+                setPersonalErrors((prev) => ({ ...prev, residingCountry: "" }));
               }}
               placeholder="Select Country"
-              className={personalErrors.residingCountry ? 'border-red-500' : ''}
+              className={personalErrors.residingCountry ? "border-red-500" : ""}
             />
             {personalErrors.residingCountry && (
-              <p className="text-red-500 text-sm mt-1">{personalErrors.residingCountry}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {personalErrors.residingCountry}
+              </p>
             )}
           </div>
           <div>
@@ -3238,11 +3287,13 @@ export function EditProfile({ onNavigateBack }) {
               onChange={handleInputChange}
               options={[...visaCategories].sort()}
               placeholder="Select Visa Category"
-              className={personalErrors.visaCategory ? 'border-red-500' : ''}
+              className={personalErrors.visaCategory ? "border-red-500" : ""}
               disabled={false}
             />
             {personalErrors.visaCategory && (
-              <p className="text-red-500 text-sm mt-1">{personalErrors.visaCategory}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {personalErrors.visaCategory}
+              </p>
             )}
           </div>
         </div>
@@ -3250,25 +3301,22 @@ export function EditProfile({ onNavigateBack }) {
     </div>
   );
 
-  // ---------------------------------------
-  // EXPECTATIONS read-only renderer
-  // ---------------------------------------
   const renderExpectations = () => {
     const toOptions = (arr = []) => arr.map((v) => ({ label: v, value: v }));
     const multiStyles = {
       control: (base, state) => ({
         ...base,
         minHeight: "3rem",
-        borderColor: state.isFocused ? "#9ca3af" : "#d1d5db", // grey borders
+        borderColor: state.isFocused ? "#9ca3af" : "#d1d5db",
         boxShadow: "none",
         borderRadius: "10px",
-        backgroundColor: "#ffffff", // changed to pure white
+        backgroundColor: "#ffffff",
         "&:hover": { borderColor: state.isFocused ? "#6b7280" : "#9ca3af" },
       }),
       valueContainer: (base) => ({ ...base, padding: "0 0.75rem" }),
       multiValue: (base) => ({
         ...base,
-        backgroundColor: "#e5e7eb", // light grey for selected tag
+        backgroundColor: "#e5e7eb",
         borderRadius: "14px",
         padding: "2px 4px",
       }),
@@ -3298,9 +3346,9 @@ export function EditProfile({ onNavigateBack }) {
         ":hover": { color: "#111827" },
       }),
       indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
-      menu: (base) => ({ 
-        ...base, 
-        borderRadius: "10px", 
+      menu: (base) => ({
+        ...base,
+        borderRadius: "10px",
         overflow: "hidden",
         zIndex: 9999,
         maxHeight: "300px",
@@ -3340,17 +3388,6 @@ export function EditProfile({ onNavigateBack }) {
       }),
     };
 
-    const locationList =
-      expectations.partnerLocation === "India"
-        ? INDIAN_STATES
-        : expectations.partnerLocation === "Abroad"
-        ? ABROAD_OPTIONS
-        : [];
-
-    // Get dynamic country and state options using locationUtils
-    const allCountries = getAllCountries();
-    const countriesForPartner = ["Any", ...allCountries];
-
     return (
       <div className="space-y-6 px-4 md:px-6 py-2 md:py-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6">
@@ -3368,9 +3405,16 @@ export function EditProfile({ onNavigateBack }) {
                   partnerState: "",
                   partnerStateOrCountry: [],
                 }));
-                setExpectationErrors((prev) => ({ ...prev, partnerLocation: '' }));
+                setExpectationErrors((prev) => ({
+                  ...prev,
+                  partnerLocation: "",
+                }));
               }}
-              className={`${inputClass} ${expectationErrors.partnerLocation ? 'border-red-500' : 'border-gray-300'}`}
+              className={`${inputClass} ${
+                expectationErrors.partnerLocation
+                  ? "border-red-500"
+                  : "border-gray-300"
+              }`}
             >
               <option value="">Select</option>
               <option value="No preference">No preference</option>
@@ -3378,7 +3422,9 @@ export function EditProfile({ onNavigateBack }) {
               <option value="Abroad">Abroad (Select Countries)</option>
             </select>
             {expectationErrors.partnerLocation && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerLocation}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.partnerLocation}
+              </p>
             )}
           </div>
 
@@ -3397,7 +3443,10 @@ export function EditProfile({ onNavigateBack }) {
                     partnerStateOrCountry: values,
                     partnerState: values[0] || "",
                   }));
-                  setExpectationErrors((prev) => ({ ...prev, partnerState: '' }));
+                  setExpectationErrors((prev) => ({
+                    ...prev,
+                    partnerState: "",
+                  }));
                 }}
                 options={toOptions(INDIAN_STATES)}
                 classNamePrefix="react-select"
@@ -3407,7 +3456,9 @@ export function EditProfile({ onNavigateBack }) {
                 placeholder="Search and select states"
               />
               {expectationErrors.partnerState && (
-                <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerState}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {expectationErrors.partnerState}
+                </p>
               )}
             </div>
           )}
@@ -3427,7 +3478,10 @@ export function EditProfile({ onNavigateBack }) {
                     partnerStateOrCountry: values,
                     partnerCountry: values[0] || "",
                   }));
-                  setExpectationErrors((prev) => ({ ...prev, partnerCountry: '' }));
+                  setExpectationErrors((prev) => ({
+                    ...prev,
+                    partnerCountry: "",
+                  }));
                 }}
                 options={toOptions(ABROAD_OPTIONS)}
                 classNamePrefix="react-select"
@@ -3437,7 +3491,9 @@ export function EditProfile({ onNavigateBack }) {
                 placeholder="Search and select countries"
               />
               {expectationErrors.partnerCountry && (
-                <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerCountry}</p>
+                <p className="text-red-500 text-sm mt-1">
+                  {expectationErrors.partnerCountry}
+                </p>
               )}
             </div>
           )}
@@ -3446,16 +3502,20 @@ export function EditProfile({ onNavigateBack }) {
             <Label className="mb-2">Open To Partner Habits *</Label>
             <CustomSelect
               name="openToPartnerHabits"
-              value={expectations.openToPartnerHabits || ""}
+              value={capitalizeWords(expectations.openToPartnerHabits) || ""}
               onChange={(e) =>
                 handleExpectationsTextChange("openToPartnerHabits")(e)
               }
-              options={["Any", "No", "Occasional", "Yes"]}
+              options={["Yes", "No", "Occasional"]}
               placeholder="Select"
-              className={expectationErrors.openToPartnerHabits ? 'border-red-500' : ''}
+              className={
+                expectationErrors.openToPartnerHabits ? "border-red-500" : ""
+              }
             />
             {expectationErrors.openToPartnerHabits && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.openToPartnerHabits}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.openToPartnerHabits}
+              </p>
             )}
           </div>
 
@@ -3470,7 +3530,10 @@ export function EditProfile({ onNavigateBack }) {
                   ...prev,
                   partnerEducation: sel ? sel.map((o) => o.value) : [],
                 }));
-                setExpectationErrors((prev) => ({ ...prev, partnerEducation: '' }));
+                setExpectationErrors((prev) => ({
+                  ...prev,
+                  partnerEducation: "",
+                }));
               }}
               options={toOptions(EXPECT_EDUCATION_OPTIONS)}
               classNamePrefix="react-select"
@@ -3480,7 +3543,9 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Select education"
             />
             {expectationErrors.partnerEducation && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerEducation}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.partnerEducation}
+              </p>
             )}
           </div>
 
@@ -3495,7 +3560,7 @@ export function EditProfile({ onNavigateBack }) {
                   ...prev,
                   partnerDiet: sel ? sel.map((o) => o.value) : [],
                 }));
-                setExpectationErrors((prev) => ({ ...prev, partnerDiet: '' }));
+                setExpectationErrors((prev) => ({ ...prev, partnerDiet: "" }));
               }}
               options={toOptions(EXPECT_DIET_OPTIONS)}
               classNamePrefix="react-select"
@@ -3505,7 +3570,9 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Select diet"
             />
             {expectationErrors.partnerDiet && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerDiet}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.partnerDiet}
+              </p>
             )}
           </div>
 
@@ -3520,7 +3587,10 @@ export function EditProfile({ onNavigateBack }) {
                   ...prev,
                   partnerCommunity: sel ? sel.map((o) => o.value) : [],
                 }));
-                setExpectationErrors((prev) => ({ ...prev, partnerCommunity: '' }));
+                setExpectationErrors((prev) => ({
+                  ...prev,
+                  partnerCommunity: "",
+                }));
               }}
               options={toOptions(EXPECT_CAST_OPTIONS)}
               classNamePrefix="react-select"
@@ -3530,7 +3600,9 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Select community"
             />
             {expectationErrors.partnerCommunity && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.partnerCommunity}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.partnerCommunity}
+              </p>
             )}
           </div>
 
@@ -3545,7 +3617,7 @@ export function EditProfile({ onNavigateBack }) {
                   ...prev,
                   profession: sel ? sel.map((o) => o.value) : [],
                 }));
-                setExpectationErrors((prev) => ({ ...prev, profession: '' }));
+                setExpectationErrors((prev) => ({ ...prev, profession: "" }));
               }}
               options={toOptions(EXPECT_PROFESSION_OPTIONS)}
               classNamePrefix="react-select"
@@ -3555,7 +3627,9 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Select profession"
             />
             {expectationErrors.profession && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.profession}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.profession}
+              </p>
             )}
           </div>
 
@@ -3570,7 +3644,10 @@ export function EditProfile({ onNavigateBack }) {
                   ...prev,
                   maritalStatus: sel ? sel.map((o) => o.value) : [],
                 }));
-                setExpectationErrors((prev) => ({ ...prev, maritalStatus: '' }));
+                setExpectationErrors((prev) => ({
+                  ...prev,
+                  maritalStatus: "",
+                }));
               }}
               options={toOptions(EXPECT_MARITAL_STATUSES)}
               classNamePrefix="react-select"
@@ -3580,7 +3657,9 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Select marital status"
             />
             {expectationErrors.maritalStatus && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.maritalStatus}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.maritalStatus}
+              </p>
             )}
           </div>
 
@@ -3594,10 +3673,14 @@ export function EditProfile({ onNavigateBack }) {
               }
               options={AGE_OPTIONS.map((a) => String(a))}
               placeholder="From"
-              className={expectationErrors.preferredAgeFrom ? 'border-red-500' : ''}
+              className={
+                expectationErrors.preferredAgeFrom ? "border-red-500" : ""
+              }
             />
             {expectationErrors.preferredAgeFrom && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.preferredAgeFrom}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.preferredAgeFrom}
+              </p>
             )}
           </div>
 
@@ -3615,10 +3698,14 @@ export function EditProfile({ onNavigateBack }) {
                   age >= Number(expectations.preferredAgeFrom)
               ).map((a) => String(a))}
               placeholder="To"
-              className={expectationErrors.preferredAgeTo ? 'border-red-500' : ''}
+              className={
+                expectationErrors.preferredAgeTo ? "border-red-500" : ""
+              }
             />
             {expectationErrors.preferredAgeTo && (
-              <p className="text-red-500 text-sm mt-1">{expectationErrors.preferredAgeTo}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {expectationErrors.preferredAgeTo}
+              </p>
             )}
           </div>
         </div>
@@ -3626,9 +3713,6 @@ export function EditProfile({ onNavigateBack }) {
     );
   };
 
-  // ---------------------------------------
-  // FAMILY DETAILS TAB
-  // ---------------------------------------
   const renderFamilyDetails = () => (
     <div className="space-y-6">
       {/* Parents */}
@@ -3677,7 +3761,8 @@ export function EditProfile({ onNavigateBack }) {
                 if (typeof val === "string") return val;
                 if (typeof val === "object") {
                   if (val.number) return String(val.number || "");
-                  if (val.value || val.label) return String(val.value || val.label || "");
+                  if (val.value || val.label)
+                    return String(val.value || val.label || "");
                 }
                 return String(val || "");
               })()}
@@ -3747,7 +3832,8 @@ export function EditProfile({ onNavigateBack }) {
                 if (typeof val === "string") return val;
                 if (typeof val === "object") {
                   if (val.number) return String(val.number || "");
-                  if (val.value || val.label) return String(val.value || val.label || "");
+                  if (val.value || val.label)
+                    return String(val.value || val.label || "");
                 }
                 return String(val || "");
               })()}
@@ -3964,9 +4050,6 @@ export function EditProfile({ onNavigateBack }) {
     </div>
   );
 
-  // ---------------------------------------
-  // EDUCATION / CAREER TAB
-  // ---------------------------------------
   const renderEducationDetails = () => (
     <div className="space-y-6">
       {/* School Name */}
@@ -3976,7 +4059,9 @@ export function EditProfile({ onNavigateBack }) {
           placeholder="Enter your school name"
           value={education.schoolName || ""}
           onChange={handleEducationChange("schoolName")}
-          className={` rounded-[12px] ${educationErrors.schoolName ? 'border-red-500' : 'border-gray-300'}`}
+          className={` rounded-[12px] ${
+            educationErrors.schoolName ? "border-red-500" : "border-gray-300"
+          }`}
           name="schoolName"
           autoCapitalize="words"
         />
@@ -3995,10 +4080,12 @@ export function EditProfile({ onNavigateBack }) {
           }}
           options={QUALIFICATION_LEVELS}
           placeholder="Select your qualification"
-          className={educationErrors.highestEducation ? 'border-red-500' : ''}
+          className={educationErrors.highestEducation ? "border-red-500" : ""}
         />
         {educationErrors.highestEducation && (
-          <p className="text-red-500 text-sm mt-1">{educationErrors.highestEducation}</p>
+          <p className="text-red-500 text-sm mt-1">
+            {educationErrors.highestEducation}
+          </p>
         )}
       </div>
 
@@ -4017,7 +4104,7 @@ export function EditProfile({ onNavigateBack }) {
             const next = val ? val.value : "";
             const sanitized = next ? sanitizeInput(next) : "";
             setEducation((prev) => ({ ...prev, fieldOfStudy: sanitized }));
-            setEducationErrors((prev) => ({ ...prev, fieldOfStudy: '' }));
+            setEducationErrors((prev) => ({ ...prev, fieldOfStudy: "" }));
           }}
           options={filteredFieldOfStudyOptions.map((opt) => ({
             label: opt,
@@ -4028,7 +4115,11 @@ export function EditProfile({ onNavigateBack }) {
             control: (base, state) => ({
               ...base,
               minHeight: "3rem",
-              borderColor: educationErrors.fieldOfStudy ? '#ef4444' : (state.isFocused ? "#9ca3af" : "#d1d5db"),
+              borderColor: educationErrors.fieldOfStudy
+                ? "#ef4444"
+                : state.isFocused
+                ? "#9ca3af"
+                : "#d1d5db",
               boxShadow: "none",
               backgroundColor: "#ffffff",
               borderRadius: "10px",
@@ -4046,7 +4137,9 @@ export function EditProfile({ onNavigateBack }) {
           menuPlacement="top"
         />
         {educationErrors.fieldOfStudy && (
-          <p className="text-red-500 text-sm mt-1">{educationErrors.fieldOfStudy}</p>
+          <p className="text-red-500 text-sm mt-1">
+            {educationErrors.fieldOfStudy}
+          </p>
         )}
       </div>
 
@@ -4057,12 +4150,18 @@ export function EditProfile({ onNavigateBack }) {
           placeholder="Enter university name"
           value={education.universityName || ""}
           onChange={handleEducationChange("universityName")}
-          className={`rounded-[12px] ${educationErrors.universityName ? 'border-red-500' : 'border-gray-300'}`}
+          className={`rounded-[12px] ${
+            educationErrors.universityName
+              ? "border-red-500"
+              : "border-gray-300"
+          }`}
           name="universityName"
           autoCapitalize="words"
         />
         {educationErrors.universityName && (
-          <p className="text-red-500 text-sm">{educationErrors.universityName}</p>
+          <p className="text-red-500 text-sm">
+            {educationErrors.universityName}
+          </p>
         )}
       </div>
 
@@ -4075,10 +4174,12 @@ export function EditProfile({ onNavigateBack }) {
           onChange={(e) => handleEducationChange("countryOfEducation")(e)}
           options={[...countries].sort().concat("Other")}
           placeholder="Select your country"
-          className={educationErrors.countryOfEducation ? 'border-red-500' : ''}
+          className={educationErrors.countryOfEducation ? "border-red-500" : ""}
         />
         {educationErrors.countryOfEducation && (
-          <p className="text-red-500 text-sm mt-1">{educationErrors.countryOfEducation}</p>
+          <p className="text-red-500 text-sm mt-1">
+            {educationErrors.countryOfEducation}
+          </p>
         )}
         {education.countryOfEducation === "Other" && (
           <div className="mt-2">
@@ -4086,12 +4187,18 @@ export function EditProfile({ onNavigateBack }) {
               placeholder="Please specify your country"
               value={education.otherCountry || ""}
               onChange={handleEducationChange("otherCountry")}
-              className={`rounded-[12px] ${educationErrors.otherCountry ? 'border-red-500' : 'border-gray-300'}`}
+              className={`rounded-[12px] ${
+                educationErrors.otherCountry
+                  ? "border-red-500"
+                  : "border-gray-300"
+              }`}
               name="otherCountry"
               autoCapitalize="words"
             />
             {educationErrors.otherCountry && (
-              <p className="text-red-500 text-sm mt-1">{educationErrors.otherCountry}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {educationErrors.otherCountry}
+              </p>
             )}
           </div>
         )}
@@ -4101,9 +4208,6 @@ export function EditProfile({ onNavigateBack }) {
     </div>
   );
 
-  // ---------------------------------------
-  // PROFESSION DETAILS TAB
-  // ---------------------------------------
   const renderProfessionDetails = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6 mt-4">
@@ -4115,7 +4219,11 @@ export function EditProfile({ onNavigateBack }) {
             onChange={(e) => {
               handleProfessionChange("employmentStatus")(e);
             }}
-            className={`w-full border rounded-md p-2.5 sm:p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition ${professionErrors.employmentStatus ? 'border-red-500' : 'border-[#D4A052]'}`}
+            className={`w-full border rounded-md p-2.5 sm:p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition ${
+              professionErrors.employmentStatus
+                ? "border-red-500"
+                : "border-[#D4A052]"
+            }`}
           >
             <option value="">Select Employment Status</option>
             {EMPLOYMENT_OPTIONS.map((val) => (
@@ -4125,7 +4233,9 @@ export function EditProfile({ onNavigateBack }) {
             ))}
           </select>
           {professionErrors.employmentStatus && (
-            <p className="text-red-500 text-sm mt-1">{professionErrors.employmentStatus}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {professionErrors.employmentStatus}
+            </p>
           )}
         </div>
         <div className="flex flex-col">
@@ -4148,16 +4258,22 @@ export function EditProfile({ onNavigateBack }) {
                   ...prev,
                   occupation: sanitized,
                 }));
-                setProfessionErrors((prev) => ({ ...prev, occupation: '' }));
+                setProfessionErrors((prev) => ({ ...prev, occupation: "" }));
               }}
-              options={[...JOB_TITLES].sort().map((t) => ({ label: t, value: t }))}
+              options={[...JOB_TITLES]
+                .sort()
+                .map((t) => ({ label: t, value: t }))}
               classNamePrefix="react-select"
               maxMenuHeight={192}
               styles={{
                 control: (base, state) => ({
                   ...base,
                   minHeight: "3rem",
-                  borderColor: professionErrors.occupation ? "#ef4444" : (state.isFocused ? "#9ca3af" : "#d1d5db"),
+                  borderColor: professionErrors.occupation
+                    ? "#ef4444"
+                    : state.isFocused
+                    ? "#9ca3af"
+                    : "#d1d5db",
                   boxShadow: "none",
                   backgroundColor: "#ffffff",
                   borderRadius: "10px",
@@ -4175,7 +4291,9 @@ export function EditProfile({ onNavigateBack }) {
               menuPlacement="top"
             />
             {professionErrors.occupation && (
-              <p className="text-red-500 text-sm mt-1">{professionErrors.occupation}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {professionErrors.occupation}
+              </p>
             )}
           </div>
         </div>
@@ -4192,10 +4310,12 @@ export function EditProfile({ onNavigateBack }) {
             }}
             options={INCOME_OPTIONS}
             placeholder="Select Annual Income"
-            className={professionErrors.annualIncome ? 'border-red-500' : ''}
+            className={professionErrors.annualIncome ? "border-red-500" : ""}
           />
           {professionErrors.annualIncome && (
-            <p className="text-red-500 text-sm mt-1">{professionErrors.annualIncome}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {professionErrors.annualIncome}
+            </p>
           )}
         </div>
         <div>
@@ -4203,20 +4323,23 @@ export function EditProfile({ onNavigateBack }) {
           <EditableInput
             value={profession.organizationName || ""}
             onChange={handleProfessionChange("organizationName")}
-            className={`rounded-md ${professionErrors.organizationName ? 'border-red-500' : 'border-gray-300'}`}
+            className={`rounded-md ${
+              professionErrors.organizationName
+                ? "border-red-500"
+                : "border-gray-300"
+            }`}
             name="organizationName"
           />
           {professionErrors.organizationName && (
-            <p className="text-red-500 text-sm mt-1">{professionErrors.organizationName}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {professionErrors.organizationName}
+            </p>
           )}
         </div>
       </div>
     </div>
   );
 
-  // ---------------------------------------
-  // LIFESTYLE TAB (controlled inputs)
-  // ---------------------------------------
   const renderLifestyleDetails = () => (
     <div className="space-y-6 px-4 md:px-6 py-2 md:py-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6">
@@ -4230,7 +4353,7 @@ export function EditProfile({ onNavigateBack }) {
             }}
             options={LIFESTYLE_DIET_OPTIONS}
             placeholder="Select"
-            className={lifestyleErrors.diet ? 'border-red-500' : ''}
+            className={lifestyleErrors.diet ? "border-red-500" : ""}
           />
           {lifestyleErrors.diet && (
             <p className="text-red-500 text-sm mt-1">{lifestyleErrors.diet}</p>
@@ -4247,10 +4370,12 @@ export function EditProfile({ onNavigateBack }) {
             }}
             options={LIFESTYLE_HABIT_OPTIONS}
             placeholder="Select"
-            className={lifestyleErrors.smoking ? 'border-red-500' : ''}
+            className={lifestyleErrors.smoking ? "border-red-500" : ""}
           />
           {lifestyleErrors.smoking && (
-            <p className="text-red-500 text-sm mt-1">{lifestyleErrors.smoking}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {lifestyleErrors.smoking}
+            </p>
           )}
         </div>
 
@@ -4264,10 +4389,12 @@ export function EditProfile({ onNavigateBack }) {
             }}
             options={LIFESTYLE_HABIT_OPTIONS}
             placeholder="Select"
-            className={lifestyleErrors.drinking ? 'border-red-500' : ''}
+            className={lifestyleErrors.drinking ? "border-red-500" : ""}
           />
           {lifestyleErrors.drinking && (
-            <p className="text-red-500 text-sm mt-1">{lifestyleErrors.drinking}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {lifestyleErrors.drinking}
+            </p>
           )}
         </div>
 
@@ -4279,10 +4406,14 @@ export function EditProfile({ onNavigateBack }) {
             onChange={(e) => handleLifestyleChange("isHaveMedicalHistory")(e)}
             options={LIFESTYLE_YES_NO}
             placeholder="Select"
-            className={lifestyleErrors.isHaveMedicalHistory ? 'border-red-500' : ''}
+            className={
+              lifestyleErrors.isHaveMedicalHistory ? "border-red-500" : ""
+            }
           />
           {lifestyleErrors.isHaveMedicalHistory && (
-            <p className="text-red-500 text-sm mt-1">{lifestyleErrors.isHaveMedicalHistory}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {lifestyleErrors.isHaveMedicalHistory}
+            </p>
           )}
         </div>
 
@@ -4294,10 +4425,12 @@ export function EditProfile({ onNavigateBack }) {
             onChange={(e) => handleLifestyleChange("isHaveTattoos")(e)}
             options={LIFESTYLE_YES_NO}
             placeholder="Select"
-            className={lifestyleErrors.isHaveTattoos ? 'border-red-500' : ''}
+            className={lifestyleErrors.isHaveTattoos ? "border-red-500" : ""}
           />
           {lifestyleErrors.isHaveTattoos && (
-            <p className="text-red-500 text-sm mt-1">{lifestyleErrors.isHaveTattoos}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {lifestyleErrors.isHaveTattoos}
+            </p>
           )}
         </div>
 
@@ -4309,10 +4442,12 @@ export function EditProfile({ onNavigateBack }) {
             onChange={(e) => handleLifestyleChange("isHaveHIV")(e)}
             options={LIFESTYLE_YES_NO}
             placeholder="Select"
-            className={lifestyleErrors.isHaveHIV ? 'border-red-500' : ''}
+            className={lifestyleErrors.isHaveHIV ? "border-red-500" : ""}
           />
           {lifestyleErrors.isHaveHIV && (
-            <p className="text-red-500 text-sm mt-1">{lifestyleErrors.isHaveHIV}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {lifestyleErrors.isHaveHIV}
+            </p>
           )}
         </div>
 
@@ -4324,23 +4459,30 @@ export function EditProfile({ onNavigateBack }) {
             onChange={(e) => handleLifestyleChange("isPositiveInTB")(e)}
             options={LIFESTYLE_YES_NO}
             placeholder="Select"
-            className={lifestyleErrors.isPositiveInTB ? 'border-red-500' : ''}
+            className={lifestyleErrors.isPositiveInTB ? "border-red-500" : ""}
           />
           {lifestyleErrors.isPositiveInTB && (
-            <p className="text-red-500 text-sm mt-1">{lifestyleErrors.isPositiveInTB}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {lifestyleErrors.isPositiveInTB}
+            </p>
           )}
         </div>
 
-        {String(lifestyle.isHaveMedicalHistory || "").toLowerCase() === "yes" && (
+        {String(lifestyle.isHaveMedicalHistory || "").toLowerCase() ===
+          "yes" && (
           <div className="md:col-span-2">
             <Label className="mb-2">Medical History Details *</Label>
             <Textarea
               value={lifestyle.healthIssues || ""}
               onChange={(e) => handleLifestyleChange("healthIssues")(e)}
-              className={`${inputClass} ${lifestyleErrors.healthIssues ? 'border-red-500' : ''}`}
+              className={`${inputClass} ${
+                lifestyleErrors.healthIssues ? "border-red-500" : ""
+              }`}
             />
             {lifestyleErrors.healthIssues && (
-              <p className="text-red-500 text-sm mt-1">{lifestyleErrors.healthIssues}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {lifestyleErrors.healthIssues}
+              </p>
             )}
           </div>
         )}
@@ -4350,9 +4492,6 @@ export function EditProfile({ onNavigateBack }) {
     </div>
   );
 
-  // ---------------------------------------
-  // PHOTOS tab renderer
-  // ---------------------------------------
   const renderPhotosDetails = () => (
     <div className="space-y-6">
       <div className="text-left mb-4">
@@ -4393,7 +4532,6 @@ export function EditProfile({ onNavigateBack }) {
     </div>
   );
 
-  // helpers for photo labels and replace
   function getPhotoLabel(index) {
     if (index === 0) return "Personal Photo";
     if (index === 1) return "Family Photo";
@@ -4439,12 +4577,10 @@ export function EditProfile({ onNavigateBack }) {
       } else if (photoType === "family") {
         photoKey = "family";
       } else if (photoType === "other") {
-        // Calculate which optional photo (index 3 = optional1, index 4 = optional2)
         const otherIndex = index - 3;
         photoKey = otherIndex === 0 ? "optional1" : "optional2";
       }
 
-      // Use the production-ready upload hook
       const photosToUpload = [
         {
           key: photoKey,
@@ -4492,9 +4628,6 @@ export function EditProfile({ onNavigateBack }) {
     input.click();
   }
 
-  // ---------------------------------------
-  // MAIN UI
-  // ---------------------------------------
   return (
     <div className="p-3 sm:p-4 md:p-6 lg:p-10 max-w-5xl mx-auto">
       <div className="bg-white rounded-[16px] sm:rounded-[20px] md:rounded-[24px] shadow-md border border-[#e5e5e5] p-4 sm:p-5 md:p-6 lg:p-8">
@@ -4506,7 +4639,9 @@ export function EditProfile({ onNavigateBack }) {
           >
             <ArrowLeft className="w-8 h-8 text-white" strokeWidth={3} />
           </button>
-          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Edit Profile</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">
+            Edit Profile
+          </h2>
         </div>
 
         {/* Photos preview moved into Photos tab to avoid showing above header */}

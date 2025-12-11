@@ -287,6 +287,13 @@ export class AuthController {
         ip: req.ip
       });
 
+      if (err.message && err.message !== "An error occurred") {
+        return res.status(err.status || 401).json({
+          success: false,
+          message: err.message
+        });
+      }
+
       const sanitized = sanitizeError(err);
       return res.status(sanitized.status).json({
         success: false,

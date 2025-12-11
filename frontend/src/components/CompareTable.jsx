@@ -198,7 +198,7 @@ export function CompareTable({
                       <button
                         onClick={() => onViewProfile(getProfileId(profile))}
                         style={{ backgroundColor: "#ffffff" }}
-                        className="w-full px-2 py-1 text-xs border border-[#c8a227] text-[#c8a227] rounded-lg hover:bg-[#c8a227] hover:text-white transition-all flex items-center justify-center gap-1"
+                        className="w-full px-2 py-1 text-xs border border-[#c8a227] text-[#c8a227] rounded-lg transition-all flex items-center justify-center gap-1"
                       >
                         <Eye className="w-3 h-3" />
                         View
@@ -262,9 +262,6 @@ export function CompareTable({
                         <div>
                           <p className="m-0 font-semibold text-base">
                             {capitalize(resolveField(profile, "name")) ?? "-"}
-                          </p>
-                          <p className="text-sm text-muted-foreground m-0">
-                            {resolveField(profile, "age") ?? "-"} years
                           </p>
                         </div>
                       </div>
