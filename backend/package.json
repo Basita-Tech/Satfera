@@ -45,8 +45,6 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "@types/mongoose": "^5.11.96",
-    "@types/multer": "^2.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
@@ -54,8 +52,10 @@
     "@types/express-xss-sanitizer": "^2.0.0",
     "@types/hpp": "^0.2.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/mongoose": "^5.11.96",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^24.10.1",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.10.3",
     "@types/nodemailer": "^7.0.2",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/twilio": "^3.19.2",

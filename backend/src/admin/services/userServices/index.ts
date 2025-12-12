@@ -1,52 +1,129 @@
 import { logger } from "../../../lib";
 import { Profile, User } from "../../../models";
 import { calculateAge } from "../../../utils/utils";
+import { validateUserId } from "../../../services";
+import { enqueueProfileReviewEmail } from "../../../lib/queue/enqueue";
 
 async function updateProfileApproval(
-  userId: string,
+  profileIdOrUserId: string,
   updateData: Record<string, any>,
-  successMessage: string
+  successMessage: string,
+  sendEmail?: boolean
 ) {
-  try {
-    const profile = await Profile.findOne({ _id: userId, isDeleted: false });
+  const objectId = validateUserId(profileIdOrUserId);
 
-    if (!profile) {
-      return { success: false, message: "Profile not found" };
+  let profile = await Profile.findById(objectId)
+    .select("_id userId isProfileApproved profileReviewStatus")
+    .lean();
+  let userId = profile?.userId;
+
+  if (!profile) {
+    profile = await Profile.findOne({ userId: objectId })
+      .select("_id userId isProfileApproved profileReviewStatus")
+      .lean();
+    userId = objectId;
+  }
+
+  if (!profile) {
+    throw new Error("Profile not found");
+  }
+
+  const newStatus = updateData.profileReviewStatus;
+  const currentStatus = profile.profileReviewStatus;
+  const statusChanged = newStatus !== currentStatus;
+
+  if (!statusChanged) {
+    return {
+      success: false,
+      message: `Profile is already ${currentStatus}.`
+    };
+  }
+
+  const [updateResult, user] = await Promise.all([
+    Profile.findByIdAndUpdate(profile._id, updateData, { new: false }),
+    sendEmail
+      ? User.findById(userId).select("firstName lastName email").lean()
+      : Promise.resolve(null)
+  ]);
+
+  if (sendEmail && statusChanged && user && user.email) {
+    const reviewType = newStatus === "approved" ? "approved" : "rejected";
+
+    try {
+      const enqueued = await enqueueProfileReviewEmail(
+        userId,
+        {
+          email: user.email,
+          firstName: user.firstName || "",
+          lastName: user.lastName || ""
+        },
+        {
+          type: reviewType,
+          reason: updateData.reviewNotes,
+          dashboardLink: `${process.env.FRONTEND_URL || "https://satfera.in"}/dashboard`
+        }
+      );
+
+      if (enqueued) {
+        logger.info(
+          `✉️ Profile review email queued for user ${userId} (${reviewType}) - Status changed from ${currentStatus} to ${newStatus}`
+        );
+      } else {
+        logger.warn(`Failed to queue profile review email for user ${userId}`);
+      }
+    } catch (queueError: any) {
+      logger.error("Error queuing profile review email:", {
+        userId,
+        type: reviewType,
+        error: queueError.message
+      });
     }
+  } else if (!statusChanged) {
+    logger.info(`Profile status unchanged (${currentStatus}), no email sent`);
+  }
 
-    Object.assign(profile, updateData);
-    await profile.save();
+  return { success: true, message: successMessage };
+}
 
-    return { success: true, message: successMessage };
-  } catch (error) {
-    logger.error("Profile approval error:", error);
-    return { success: false, message: "Something went wrong" };
+export async function approveUserProfileService(userId: string) {
+  try {
+    return await updateProfileApproval(
+      userId,
+      {
+        profileReviewStatus: "approved",
+        isProfileApproved: true,
+        reviewedAt: new Date()
+      },
+      "Profile approved successfully",
+      true
+    );
+  } catch (error: any) {
+    logger.error("Error approving profile:", error);
+    throw error;
   }
 }
 
-export function approveUserProfileService(userId: string) {
-  return updateProfileApproval(
-    userId,
-    {
-      profileReviewStatus: "approved",
-      isProfileApproved: true,
-      reviewedAt: new Date()
-    },
-    "Profile approved successfully"
-  );
-}
+export async function rejectUserProfileService(userId: string, reason: string) {
+  try {
+    if (!reason) {
+      throw new Error("Rejection reason is required");
+    }
 
-export function rejectUserProfileService(userId: string, reason: string) {
-  return updateProfileApproval(
-    userId,
-    {
-      profileReviewStatus: "rejected",
-      isProfileApproved: false,
-      reviewNotes: reason,
-      reviewedAt: new Date()
-    },
-    "Profile rejected successfully"
-  );
+    return await updateProfileApproval(
+      userId,
+      {
+        profileReviewStatus: "rejected",
+        isProfileApproved: false,
+        reviewNotes: reason,
+        reviewedAt: new Date()
+      },
+      "Profile rejected successfully",
+      true
+    );
+  } catch (error: any) {
+    logger.error("Error rejecting profile:", error);
+    throw error;
+  }
 }
 
 export async function getPendingProfilesService() {
@@ -97,36 +174,49 @@ export async function getPendingProfilesService() {
 }
 
 export async function toggleVerificationService(
-  userId: string,
+  profileIdOrUserId: string,
   makeVerified: boolean
 ) {
   try {
-    const profile = await Profile.findOne({ userId, isDeleted: false });
+    const objectId = validateUserId(profileIdOrUserId);
+
+    let profile = await Profile.findById(objectId).select("_id isVerified");
 
     if (!profile) {
-      return { success: false, message: "Profile not found" };
+      profile = await Profile.findOne({ userId: objectId }).select(
+        "_id isVerified"
+      );
+    }
+
+    if (!profile) {
+      throw new Error("Profile not found");
     }
 
     if (profile.isVerified === makeVerified) {
       return {
-        success: true,
+        success: false,
         message: makeVerified
           ? "Profile is already verified"
-          : "Profile is already unverified"
+          : "Profile is already unverified",
+        data: { _id: profile._id, isVerified: profile.isVerified }
       };
     }
 
-    profile.isVerified = makeVerified;
-    await profile.save();
+    const updatedProfile = await Profile.findByIdAndUpdate(
+      profile._id,
+      { isVerified: makeVerified },
+      { new: true }
+    ).select("_id isVerified");
 
     return {
       success: true,
       message: makeVerified
         ? "Profile verified successfully"
-        : "Profile unverified successfully"
+        : "Profile unverified successfully",
+      data: updatedProfile
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Verification toggle error:", error);
-    return { success: false, message: "Something went wrong" };
+    throw error;
   }
 }

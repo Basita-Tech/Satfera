@@ -1,57 +1,61 @@
 import { logger } from "../../../lib";
 import { User } from "../../../models/User";
+import { Profile } from "../../../models/Profile";
+import { ConnectionRequest } from "../../../models/ConnectionRequest";
 
 class commonService {
   static async getAdminDashboardStats() {
     try {
       const premiumPrice = 1000;
 
-      const result = await Promise.all([
+      const [userStats, profileStats, connectionStats] = await Promise.all([
         User.aggregate([
           {
-            $facet: {
-              users: [
-                { $match: { role: "user", isDeleted: false } },
-                {
-                  $group: {
-                    _id: null,
-                    totalUsers: { $sum: 1 },
-                    activeUsers: { $sum: { $cond: ["$isActive", 1, 0] } },
-                    inactiveUsers: {
-                      $sum: { $cond: [{ $not: ["$isActive"] }, 1, 0] }
+            $match: { role: "user", isDeleted: false }
+          },
+          {
+            $group: {
+              _id: null,
+              totalUsers: { $sum: 1 },
+              activeUsers: { $sum: { $cond: ["$isActive", 1, 0] } },
+              inactiveUsers: {
+                $sum: { $cond: [{ $not: ["$isActive"] }, 1, 0] }
+              },
+              inactiveFemale: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $not: ["$isActive"] },
+                        { $eq: ["$gender", "female"] }
+                      ]
                     },
-                    inactiveFemale: {
-                      $sum: {
-                        $cond: [
-                          {
-                            $and: [
-                              { $not: ["$isActive"] },
-                              { $eq: ["$gender", "female"] }
-                            ]
-                          },
-                          1,
-                          0
-                        ]
-                      }
-                    },
-                    inactiveMale: {
-                      $sum: {
-                        $cond: [
-                          {
-                            $and: [
-                              { $not: ["$isActive"] },
-                              { $eq: ["$gender", "male"] }
-                            ]
-                          },
-                          1,
-                          0
-                        ]
-                      }
-                    }
-                  }
+                    1,
+                    0
+                  ]
                 }
-              ],
+              },
+              inactiveMale: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $not: ["$isActive"] },
+                        { $eq: ["$gender", "male"] }
+                      ]
+                    },
+                    1,
+                    0
+                  ]
+                }
+              }
+            }
+          }
+        ]),
 
+        Profile.aggregate([
+          {
+            $facet: {
               profileCounts: [
                 {
                   $group: {
@@ -60,7 +64,6 @@ class commonService {
                   }
                 }
               ],
-
               pendingGender: [
                 { $match: { profileReviewStatus: "pending" } },
                 {
@@ -79,7 +82,6 @@ class commonService {
                   }
                 }
               ],
-
               approvedGender: [
                 { $match: { profileReviewStatus: "approved" } },
                 {
@@ -98,12 +100,17 @@ class commonService {
                   }
                 }
               ],
-
-              premiumProfiles: [
+              premiumCount: [
                 { $match: { accountType: "premium" } },
-                { $count: "premiumSubscribers" }
-              ],
+                { $count: "count" }
+              ]
+            }
+          }
+        ]),
 
+        ConnectionRequest.aggregate([
+          {
+            $facet: {
               f2mRequests: [
                 {
                   $lookup: {
@@ -114,7 +121,6 @@ class commonService {
                   }
                 },
                 { $unwind: "$sender" },
-
                 {
                   $lookup: {
                     from: "users",
@@ -124,7 +130,6 @@ class commonService {
                   }
                 },
                 { $unwind: "$receiver" },
-
                 {
                   $match: {
                     "sender.gender": "female",
@@ -133,7 +138,6 @@ class commonService {
                 },
                 { $count: "count" }
               ],
-
               m2fRequests: [
                 {
                   $lookup: {
@@ -144,7 +148,6 @@ class commonService {
                   }
                 },
                 { $unwind: "$sender" },
-
                 {
                   $lookup: {
                     from: "users",
@@ -154,7 +157,6 @@ class commonService {
                   }
                 },
                 { $unwind: "$receiver" },
-
                 {
                   $match: {
                     "sender.gender": "male",
@@ -168,38 +170,47 @@ class commonService {
         ])
       ]);
 
-      const data = result[0][0];
+      const userStatsData = userStats[0] || {};
+      const profileData = profileStats[0];
+      const connectionData = connectionStats[0];
 
-      const counts = Object.fromEntries(
-        data.profileCounts.map((r) => [r._id, r.count])
+      const profileCounts = Object.fromEntries(
+        profileData.profileCounts.map((r: any) => [r._id, r.count])
       );
 
-      const premiumSubscribers =
-        data.premiumProfiles[0]?.premiumSubscribers || 0;
+      const premiumSubscribers = profileData.premiumCount[0]?.count || 0;
       const monthlyRevenue = premiumSubscribers * premiumPrice;
 
       return {
-        ...data.users[0],
+        totalUsers: userStatsData.totalUsers || 0,
+        activeUsers: userStatsData.activeUsers || 0,
+        inactiveUsers: userStatsData.inactiveUsers || 0,
+        inactiveFemale: userStatsData.inactiveFemale || 0,
+        inactiveMale: userStatsData.inactiveMale || 0,
 
-        receivedUsers: counts["pending"] || 0,
-        rejectedUsers: counts["rejected"] || 0,
-        approvedUsers: counts["approved"] || 0,
+        rejectedUsers: profileCounts["rejected"] || 0,
+        approvedUsers: profileCounts["approved"] || 0,
 
+        receivedUsers: profileCounts["pending"] || 0,
         receivedFemale:
-          data.pendingGender.find((g) => g._id === "female")?.count || 0,
+          profileData.pendingGender.find((g: any) => g._id === "female")
+            ?.count || 0,
         receivedMale:
-          data.pendingGender.find((g) => g._id === "male")?.count || 0,
+          profileData.pendingGender.find((g: any) => g._id === "male")?.count ||
+          0,
 
         approvedFemale:
-          data.approvedGender.find((g) => g._id === "female")?.count || 0,
+          profileData.approvedGender.find((g: any) => g._id === "female")
+            ?.count || 0,
         approvedMale:
-          data.approvedGender.find((g) => g._id === "male")?.count || 0,
+          profileData.approvedGender.find((g: any) => g._id === "male")
+            ?.count || 0,
 
         premiumSubscribers,
         monthlyRevenue,
 
-        femaleToMaleRequests: data.f2mRequests[0]?.count || 0,
-        maleToFemaleRequests: data.m2fRequests[0]?.count || 0
+        femaleToMaleRequests: connectionData.f2mRequests[0]?.count || 0,
+        maleToFemaleRequests: connectionData.m2fRequests[0]?.count || 0
       };
     } catch (error) {
       logger.error("Error fetching admin dashboard stats:", error);

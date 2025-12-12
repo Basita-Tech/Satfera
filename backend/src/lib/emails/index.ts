@@ -11,6 +11,7 @@ import {
   buildAccountActivationHtml
 } from "./email-templates";
 import { APP_CONFIG } from "../../utils/constants";
+import { logger } from "../common/logger";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -22,6 +23,15 @@ const transporter = nodemailer.createTransport({
   }
 } as nodemailer.TransportOptions);
 
+// Verify transporter connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    logger.error("SMTP connection error:", error);
+  } else {
+    logger.info("SMTP connection verified successfully");
+  }
+});
+
 export interface SendMailOptions {
   to: string;
   subject: string;
@@ -31,15 +41,40 @@ export interface SendMailOptions {
 
 export async function sendMail(options: SendMailOptions): Promise<any> {
   try {
-    const info = await transporter.sendMail({
+    if (!options.to || !options.subject || !options.html) {
+      throw new Error("Missing required email fields: to, subject, or html");
+    }
+
+    const mailOptions = {
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      ...options
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text || ""
+    };
+
+    logger.debug("Sending email", {
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      from: mailOptions.from
+    });
+
+    const info = await transporter.sendMail(mailOptions);
+
+    logger.info("Email sent successfully", {
+      to: options.to,
+      subject: options.subject,
+      messageId: info.messageId
     });
 
     return info;
-  } catch (error) {
-    console.error("Email send error:", error);
-    throw new Error("Failed to send email");
+  } catch (error: any) {
+    logger.error("Email send error:", {
+      error: error.message,
+      to: options.to,
+      subject: options.subject
+    });
+    throw error;
   }
 }
 
@@ -143,6 +178,13 @@ export async function sendProfileApprovedEmail(
   );
 
   const subject = "🎉 Your Satfera Profile Has Been Approved!";
+  
+  logger.debug("Sending profile approved email", {
+    to,
+    userName,
+    subject
+  });
+
   return sendMail({ to, subject, html, text });
 }
 
@@ -164,6 +206,13 @@ export async function sendProfileRejectedEmail(
   );
 
   const subject = "Satfera Profile Review - Action Required";
+  
+  logger.debug("Sending profile rejected email", {
+    to,
+    userName,
+    subject
+  });
+
   return sendMail({ to, subject, html, text });
 }
 

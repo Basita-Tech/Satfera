@@ -216,10 +216,11 @@ async function processProfileReviewEmail(
 ): Promise<void> {
   try {
     if (!data?.email || !data?.userId) {
-      logger.warn("Profile review email job missing required data, skipping", {
-        data
-      });
-      return;
+      throw new Error("Profile review email job missing required data");
+    }
+
+    if (!data.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      throw new Error(`Invalid email address: ${data.email}`);
     }
 
     if (process.env.NODE_ENV !== "production") {
@@ -236,9 +237,7 @@ async function processProfileReviewEmail(
         await sendProfileApprovedEmail(
           data.email,
           data.userName,
-          data.dashboardLink ||
-            process.env.FRONTEND_URL ||
-            "https://satfera.com"
+          data.dashboardLink || process.env.FRONTEND_URL || "https://satfera.in"
         );
         break;
       case "rejected":
@@ -248,13 +247,22 @@ async function processProfileReviewEmail(
           data.reason || "Profile does not meet our community standards"
         );
         break;
+      default:
+        throw new Error(`Unknown email type: ${data.type}`);
     }
 
-    logger.info(`Profile review email (${data.type}) sent to ${data.email}`);
+    logger.info(`Profile review email (${data.type}) sent successfully`, {
+      to: data.email,
+      type: data.type,
+      userId: data.userId
+    });
   } catch (error: any) {
-    logger.error(`Failed to send profile review email to ${data.email}:`, {
+    logger.error(`Failed to send profile review email:`, {
       error: error.message,
-      type: data.type
+      email: data.email,
+      type: data.type,
+      userId: data.userId,
+      stack: error.stack
     });
     throw error;
   }
@@ -318,7 +326,7 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
     const names = data.userName.split(" ");
     const reviewData: any = {
       type: data.type as any,
-      dashboardLink: process.env.FRONTEND_URL || "https://satfera.com/dashboard"
+      dashboardLink: process.env.FRONTEND_URL || "https://satfera.in/dashboard"
     };
     if (data.reason) reviewData.reason = data.reason;
 
@@ -353,7 +361,7 @@ export const mainWorker = new Worker(
   "main-queue",
   async (job: Job) => {
     try {
-      logger.debug(`Processing main job: ${job.id}`, { jobName: job.name });
+      logger.info(`▶ Processing main job: ${job.id}`, { jobName: job.name, data: job.data });
 
       switch (job.name) {
         case "deliver-notification": {
@@ -484,7 +492,8 @@ mainWorker.on("completed", (job: Job) => {
 mainWorker.on("failed", (job: Job | undefined, err: Error) => {
   logger.error(`Main job failed: ${job?.id || "unknown"}`, {
     error: err.message,
-    attempts: job?.attemptsMade
+    attempts: job?.attemptsMade,
+    jobName: job?.name
   });
 });
 

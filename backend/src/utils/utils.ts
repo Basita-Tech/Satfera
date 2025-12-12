@@ -114,3 +114,8 @@ export function isAffirmative(v: any): boolean {
   }
   return false;
 }
+
+export function isAdmin(role: string | undefined): boolean {
+  if (!role) return false;
+  return role === "admin";
+}

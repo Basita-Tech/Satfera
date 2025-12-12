@@ -3,6 +3,7 @@ import { getQueueStats, logger } from "../../lib";
 import authenticate from "../../middleware/authMiddleware";
 import * as adminController from "../controllers";
 import { commonControllers } from "../controllers/commonControllers";
+import { isAdmin } from "../../utils/utils";
 
 const adminRouter = express();
 
@@ -17,6 +18,17 @@ adminRouter.get("/queue-stats", async (req: Request, res: Response) => {
       .status(500)
       .json({ success: false, error: "Failed to fetch queue stats" });
   }
+});
+
+adminRouter.use(authenticate, (req: Request, res: Response, next) => {
+  const isAdminn = isAdmin(req.user.role);
+  if (!isAdminn) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied."
+    });
+  }
+  next();
 });
 
 adminRouter.post(
@@ -61,13 +73,13 @@ adminRouter.get(
   adminController.getPendingProfilesController
 );
 
-adminRouter.post(
+adminRouter.get(
   "/profile/verify/:userId",
   authenticate,
   adminController.verifiedProfilesController
 );
 
-adminRouter.post(
+adminRouter.get(
   "/profile/unverify/:userId",
   authenticate,
   adminController.unVerifiedProfilesController

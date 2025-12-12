@@ -222,6 +222,13 @@ components:
           minLength: 10
           maxLength: 500
       required: [reason]
+    AccessDeniedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: strings
 
 paths:
   /health:
@@ -2741,3 +2748,341 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/dashboard/stats:
+    get:
+      summary: Get Admin Dashboard Stats Number for cards.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Dashboard stats numbers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalUsers:
+                        type: integer
+                      activeUsers:
+                        type: integer
+                      inactiveUsers:
+                        type: integer
+                      inactiveFemale:
+                        type: integer
+                      inactiveMale:
+                        type: integer
+                      rejectedUsers:
+                        type: integer
+                      approvedUsers:
+                        type: integer
+                      receivedUsers:
+                        type: integer
+                      receivedFemale:
+                        type: integer
+                      receivedMale:
+                        type: integer
+                      approvedFemale:
+                        type: integer
+                      approvedMale:
+                        type: integer
+                      premiumSubscribers:
+                        type: integer
+                      monthlyRevenue:
+                        type: number
+                        format: float
+                      femaleToMaleRequests:
+                        type: integer
+                      maleToFemaleRequests:
+                        type: integer
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      totalUsers: 10
+                      activeUsers: 10
+                      inactiveUsers: 0
+                      inactiveFemale: 0
+                      inactiveMale: 0
+                      rejectedUsers: 1
+                      approvedUsers: 2
+                      receivedUsers: 0
+                      receivedFemale: 0
+                      receivedMale: 0
+                      approvedFemale: 1
+                      approvedMale: 1
+                      premiumSubscribers: 0
+                      monthlyRevenue: 0
+                      femaleToMaleRequests: 0
+                      maleToFemaleRequests: 0
+        "403":
+          description: If user role is "user" then access is denied. It only Allow to "admin" role.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Forbidden:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      message:
+                        type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/profiles/pending:
+    get:
+      summary: Get all pending profiles for admin review.
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: List of pending profiles for review
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        profileId:
+                          type: string
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                        gender:
+                          type: string
+                        age:
+                          type: integer
+                        phoneNumber:
+                          type: string
+                        email:
+                          type: string
+                        closerPhoto:
+                          type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - profileId: "693a522edc8bbe4457f9bae4"
+                        firstName: "Sddshjdshjds"
+                        lastName: "Dsds"
+                        gender: "male"
+                        age: 21
+                        phoneNumber: "+918743764362"
+                        email: "roshanbiyosi@gmiail.com"
+                        closerPhoto: "https://res.cloudinary.com/dpmdvt00f/image/upload/v1765430284/satfera/closer/693a522edc8bbe4457f9bae3/a7wh1liovdl8viqp8iw2.jpg"
+                      - profileId: "693a522edc8bbe4457f9baf0"
+                        firstName: "John"
+                        lastName: "Doe"
+                        gender: "male"
+                        age: 28
+                        phoneNumber: "+11234567890"
+                        email: "john.doe@example.com"
+                        closerPhoto: "https://res.cloudinary.com/sample.jpg"
+
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v2/admin/approve/profile:
+    post:
+      summary: Approve a user profile.
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user whose profile is to be approved
+              example:
+                userId: "693bb79cf6104a6d4e736838"
+      responses:
+        "200":
+          description: Profile approved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Profile approved successfully
+        "400":
+          description: Profile is already approved or invalid userId.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidUserId:
+                  value:
+                    success: false
+                    message: "Invalid userId"
+                alreadyApproved:
+                  value:
+                    success: false
+                    message: "Profile is already approved."
+                userIdRequired:
+                  value:
+                    success: false
+                    message: "userId is required"
+                other:
+                  value:
+                    success: false
+                    message: "Cannot destructure property 'userId' of 'req.body' as it is undefined."
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v2/admin/reject/profile:
+    post:
+      summary: Reject a user profile.
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user whose profile is to be rejected
+                reason:
+                  type: string
+                  description: Reason for rejecting the profile
+              example:
+                userId: "693bb79cf6104a6d4e736838"
+                reason: "Inappropriate content in profile photos"
+      responses:
+        "200":
+          description: Profile rejected successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Profile rejected successfully
+        "400":
+          description: Profile is already rejected or invalid userId or reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidUserId:
+                  value:
+                    success: false
+                    message: "Invalid userId"
+                alreadyApproved:
+                  value:
+                    success: false
+                    message: "Profile is already rejected."
+                userIdRequired:
+                  value:
+                    success: false
+                    message: "userId is required"
+                reasonRequired:
+                  value:
+                    success: false
+                    message: "reason is required"
+                other:
+                  value:
+                    success: false
+                    message: "Cannot destructure property 'userId' of 'req.body' as it is undefined."
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."

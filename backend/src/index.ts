@@ -164,7 +164,7 @@ server = app.listen(PORT, () => {
       const diff = process.hrtime(startTime);
       const ms = diff[0] * 1000 + diff[1] / 1e6;
       logger.info(
-        `Background init triggered (time spent on scheduling only: ~${ms.toFixed(2)}ms)`
+        `Background init completed in ~${ms.toFixed(2)}ms (workers ready: ${areWorkersReady})`
       );
     });
 })();

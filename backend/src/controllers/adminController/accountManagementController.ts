@@ -5,7 +5,7 @@ import {
   restoreDeletedAccount,
   hardDeleteAccount,
   getDeletedAccounts
-} from "../../services/adminService/accountManagementService";
+} from "../../admin/services";
 
 export async function restoreAccountController(
   req: AuthenticatedRequest,

@@ -8,16 +8,34 @@ const redisUrl = env.REDIS_URL || "";
 export const redisConnection = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
-
   enableOfflineQueue: true,
   retryStrategy: (times: number) => {
     const delay = Math.min(times * 50, 5000);
     return delay;
+  },
+  reconnectOnError: (err) => {
+    const targetError = "READONLY";
+    if (err.message.includes(targetError)) {
+      return true;
+    }
+    return false;
   }
 });
 
 redisConnection.on("connect", () => {
   logger.info("BullMQ Redis connection established");
+});
+
+redisConnection.on("ready", () => {
+  logger.info("BullMQ Redis connection ready");
+});
+
+redisConnection.on("error", (err: any) => {
+  logger.error("BullMQ Redis connection error:", err.message);
+});
+
+redisConnection.on("close", () => {
+  logger.info("BullMQ Redis connection closed");
 });
 
 redisConnection.on("error", (err: any) => {

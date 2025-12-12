@@ -162,12 +162,15 @@ export async function enqueueProfileReviewEmail(
       })
     } as types.ReviewEmailJobData;
 
+    const timestamp = Date.now();
+    const uniqueJobId = `profile-review-${userId}-${reviewData.type}-${timestamp}`;
+
     await mainQueue.add("send-profile-review-email", jobData, {
-      jobId: `profile-review-${userId}-${reviewData.type}`
+      jobId: uniqueJobId
     });
 
-    logger.debug(
-      `Profile review email enqueued for user: ${userId} | type: ${reviewData.type}`
+    logger.info(
+      `Profile review email enqueued for user: ${userId} | type: ${reviewData.type} | jobId: ${uniqueJobId}`
     );
     return true;
   } catch (error: any) {

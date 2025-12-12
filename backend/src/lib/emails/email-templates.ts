@@ -393,7 +393,7 @@ export function buildProfileApprovedHtml(
       .subtitle { margin: 0 0 18px; color: #556077; font-size: 14px; }
       .status-box { background: #eafaf1; border-left: 4px solid #27ae60; padding: 16px; border-radius: 8px; margin: 16px 0; }
       .status-text { font-weight: 600; color: #27ae60; margin-bottom: 4px; }
-      .btn { display: inline-block; padding: 12px 24px; border-radius: 8px; background: #D4A052;  font-weight: 600; text-decoration: none; font-size: 14px; margin-top: 12px; }
+      .btn { display: inline-block; padding: 12px 24px; border-radius: 8px; background: #c8a227; color: white; font-weight: 600; text-decoration: none; font-size: 14px; margin-top: 12px; }
       .note { font-size: 13px; color: #7a8598; margin-top: 14px; line-height: 1.6; }
       .footer { padding: 18px; text-align: center; font-size: 12px; color: #9aa3b2; border-top: 1px solid #f0f4fb; }
       @media (max-width:420px) { .content { padding: 18px; } }
@@ -541,7 +541,7 @@ export function buildProfileRejectedHtml(
 
         <div style="text-align: center; margin-top: 20px;">
           <a href="${
-            process.env.FRONTEND_URL || "https://satfera.com"
+            process.env.FRONTEND_URL || "https://satfera.in"
           }/onboarding/review" class="btn">Review & Update Profile</a>
         </div>
 
