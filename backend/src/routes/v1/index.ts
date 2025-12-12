@@ -1,6 +1,6 @@
 import express from "express";
 import userRouter from "./user";
-import adminRouter from "./admin";
+import adminRouter from "../../admin/routes";
 import recommendationRouter from "./user/recommendation";
 import sessionsRouter from "./sessions";
 

@@ -24,10 +24,12 @@ import {
   generateCSRFToken,
   setCSRFTokenCookie,
   clearAuthCookies,
-  verifyDeviceFingerprint
+  verifyDeviceFingerprint,
+  generateDeviceFingerprint
 } from "../../utils/secureToken";
 import { SessionService } from "../../services/sessionService";
 import { getClientIp, normalizeIp } from "../../utils/ipUtils";
+import { generateJTI } from "../../utils/timingSafe";
 
 const authService = new AuthService();
 
@@ -93,30 +95,88 @@ export class AuthController {
   static async googleCallback(req: Request, res: Response) {
     try {
       const code = req.query.code as string;
-      if (!code) return res.status(400).send("Missing code parameter");
+      const { idToken } = req.body;
+      const isMobile = req.body.platform === "mobile" || !!idToken;
 
-      const { tokens } = await client.getToken(code);
-      client.setCredentials(tokens);
+      let googleUser: any;
+      let email: string;
+      let emailVerified: boolean;
+      let givenName: string;
+      let picture: string;
 
-      const userInfoResponse = await fetch(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        {
-          headers: { Authorization: `Bearer ${tokens.access_token}` }
+      if (isMobile && idToken) {
+        try {
+          const ticket = await client.verifyIdToken({
+            idToken,
+            audience: [
+              env.GOOGLE_CLIENT_ID,
+              env.GOOGLE_ANDROID_CLIENT_ID,
+              env.GOOGLE_IOS_CLIENT_ID
+            ].filter(Boolean)
+          });
+
+          const payload = ticket.getPayload();
+          if (!payload) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Invalid Google token" });
+          }
+
+          email = (payload.email || "").toLowerCase();
+          emailVerified = payload.email_verified || false;
+          givenName = payload.given_name || "";
+          picture = payload.picture || "";
+        } catch (verifyError: any) {
+          logger.error("Google idToken verification failed", {
+            error: verifyError.message
+          });
+          return res.status(401).json({
+            success: false,
+            message: "Invalid or expired Google token"
+          });
         }
-      );
-      const googleUser: any = await userInfoResponse.json();
+      } else if (code) {
+        const { tokens } = await client.getToken(code);
+        client.setCredentials(tokens);
 
-      const email = (googleUser?.email || "").toLowerCase();
-      const emailVerified = googleUser?.email_verified;
-      const givenName = googleUser?.given_name;
-      const picture = googleUser?.picture;
+        const userInfoResponse = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${tokens.access_token}` }
+          }
+        );
+        googleUser = await userInfoResponse.json();
+
+        email = (googleUser?.email || "").toLowerCase();
+        emailVerified = googleUser?.email_verified;
+        givenName = googleUser?.given_name;
+        picture = googleUser?.picture;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Missing code parameter or idToken"
+        });
+      }
 
       const user = await User.findOne({
         email,
         isActive: true,
         isDeleted: false
       });
+
       if (!user) {
+        if (isMobile) {
+          return res.status(404).json({
+            success: false,
+            message: "User not found. Please sign up first.",
+            data: {
+              email,
+              name: givenName,
+              picture
+            }
+          });
+        }
+
         const frontendLoginNoUser = `${
           process.env.FRONTEND_URL
         }/login?googleExists=false&email=${encodeURIComponent(
@@ -132,16 +192,56 @@ export class AuthController {
         await user.save();
       }
 
-      const token = jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "7d" }
+      // Use existing session management logic
+      const userId = String(user._id);
+      const ipAddress = getClientIp(req);
+
+      const existingSession = await SessionService.findExistingSession(
+        userId,
+        req,
+        ipAddress
       );
 
-      setSecureTokenCookie(res, token, { maxAge: APP_CONFIG.COOKIE_MAX_AGE });
+      let token: string;
+      let isNewSession: boolean;
 
-      const csrfToken = generateCSRFToken();
-      setCSRFTokenCookie(res, csrfToken);
+      if (existingSession) {
+        token = existingSession.token;
+        isNewSession = false;
+        await SessionService.updateSessionActivity(String(existingSession._id));
+        logger.info(`Reusing existing session for Google OAuth user ${userId}`);
+      } else {
+        const jti = generateJTI();
+        token = jwt.sign(
+          {
+            id: userId,
+            email: user.email,
+            jti,
+            iat: Math.floor(Date.now() / 1000)
+          },
+          process.env.JWT_SECRET as string,
+          { expiresIn: "7d" }
+        );
+
+        const fingerprint = generateDeviceFingerprint(
+          req.get("user-agent") || "",
+          ipAddress
+        );
+
+        await SessionService.createSession(
+          userId,
+          token,
+          jti,
+          req,
+          ipAddress,
+          APP_CONFIG.COOKIE_MAX_AGE,
+          fingerprint
+        );
+        isNewSession = true;
+      }
+
+      user.lastLoginAt = new Date();
+      await user.save();
 
       const publicUser = sanitizeUser(user.toObject());
 
@@ -159,13 +259,54 @@ export class AuthController {
         redirectTo = "/onboarding/review";
       }
 
+      // Mobile response
+      if (isMobile) {
+        logger.info("Google OAuth mobile login successful", {
+          userId,
+          email,
+          isNewSession
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: "Login successful",
+          token,
+          user: publicUser,
+          isNewSession,
+          redirectTo
+        });
+      }
+
+      // Web response (with cookies and redirect)
+      setSecureTokenCookie(res, token, { maxAge: APP_CONFIG.COOKIE_MAX_AGE });
+
+      const csrfToken = generateCSRFToken();
+      setCSRFTokenCookie(res, csrfToken);
+
       const frontendLoginUrl = `${
         process.env.FRONTEND_URL
       }/login?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`;
 
+      logger.info("Google OAuth web login successful", {
+        userId,
+        email,
+        isNewSession
+      });
+
       return res.redirect(frontendLoginUrl);
     } catch (error: any) {
-      console.error("Google OAuth error:", error);
+      logger.error("Google OAuth error:", {
+        error: error.message,
+        stack: error.stack
+      });
+
+      if (req.body.platform === "mobile" || req.body.idToken) {
+        return res.status(500).json({
+          success: false,
+          message: "Authentication failed"
+        });
+      }
+
       res.status(500).send("Authentication failed");
     }
   }

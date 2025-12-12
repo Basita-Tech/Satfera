@@ -24,6 +24,7 @@ authRouter.post(
 
 authRouter.get("/google/start", AuthController.startGoogleAuth);
 authRouter.get("/google/callback", AuthController.googleCallback);
+authRouter.post("/google/callback", authLimiter, AuthController.googleCallback);
 
 authRouter.post(
   "/forgot-password",

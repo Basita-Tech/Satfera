@@ -149,6 +149,7 @@ export const updateUserPersonalController = async (
     }
 
     const authUser = req.user;
+    console.log(authUser, "authUser");
     if (!authUser) {
       return res
         .status(401)
@@ -158,7 +159,7 @@ export const updateUserPersonalController = async (
     const canUserDetailsExist = await UserPersonal.findOne({
       userId: authUser.id
     }).lean();
-
+    console.log(canUserDetailsExist, "_----------____");
     if (!canUserDetailsExist) {
       return res
         .status(404)

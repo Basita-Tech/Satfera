@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "format": "prettier --write .",
     "clean:build": "rm -rf dist",
-    "clean:all": "rm -rf dist node_modules"
+    "clean:all": "rm -rf dist node_modules",
+    "seed:admin": "ts-node src/scripts/seedAdmin.ts"
   },
   "keywords": [],
   "author": "",
