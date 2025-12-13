@@ -7,30 +7,25 @@ export interface IProfile extends Document {
     closerPhoto: {
       url: string;
       uploadedAt: Date;
-      visibility: "public";
     };
     personalPhotos: {
       url: string;
       uploadedAt: Date;
-      visibility: "connectionOnly";
     }[];
     familyPhoto: {
       url: string;
       uploadedAt: Date;
-      visibility: "connectionOnly";
     };
     otherPhotos: {
       url: string;
       title: string;
       uploadedAt: Date;
-      visibility: "connectionOnly";
     }[];
   };
   governmentIdImage: {
     url: string;
     uploadedAt: Date;
     verificationStatus: "pending" | "verified" | "rejected";
-    visibility: "adminOnly";
   };
   isProfileApproved: boolean;
   isVisible: boolean;
@@ -48,7 +43,7 @@ export interface IProfile extends Document {
   compareProfiles: mongoose.Types.ObjectId[];
   accountType: "free" | "premium" | "gold";
   ProfileViewed: number;
-  profileReviewStatus: "pending" | "approved" | "rejected";
+  profileReviewStatus: "pending" | "approved" | "rejected" | "rectification";
   reviewedAt?: Date;
   reviewNotes?: string;
   createdAt: Date;
@@ -137,7 +132,7 @@ const ProfileSchema = new Schema(
     ProfileViewed: { type: Number, default: 0 },
     profileReviewStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "rectification"]
     },
     reviewedAt: { type: Date },
     reviewNotes: { type: String }

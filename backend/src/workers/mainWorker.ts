@@ -9,7 +9,8 @@ import {
   sendWelcomeEmail,
   sendProfileReviewSubmissionEmail,
   sendProfileApprovedEmail,
-  sendProfileRejectedEmail
+  sendProfileRejectedEmail,
+  sendProfileRectificationEmail
 } from "../lib/emails";
 import {
   NotificationJobData,
@@ -247,6 +248,13 @@ async function processProfileReviewEmail(
           data.reason || "Profile does not meet our community standards"
         );
         break;
+      case "rectification":
+        await sendProfileRectificationEmail(
+          data.email,
+          data.userName,
+          data.reason || "Your profile requires updates to meet our community standards"
+        );
+        break;
       default:
         throw new Error(`Unknown email type: ${data.type}`);
     }
@@ -302,6 +310,13 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
           data.reason || "Does not meet community standards"
         }`;
         break;
+
+      case "rectification":
+        notificationTitle = "⚠ Action Required";
+        notificationMessage = `Your profile requires updates. Reason: ${
+          data.reason || "Please update your profile to meet our community standards"
+        }`;
+        break;
     }
 
     const notification = await Notification.create({
@@ -310,7 +325,9 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
         ? "profile_review_submitted"
         : data.type === "approved"
           ? "profile_approved"
-          : "profile_rejected",
+          : data.type === "rejected" || data.type === "rectification"
+            ? "profile_rejected"
+            : "profile_rejected",
       title: notificationTitle,
       message: notificationMessage,
       meta: {

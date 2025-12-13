@@ -67,6 +67,12 @@ adminRouter.post(
   adminController.rejectUserProfileController
 );
 
+adminRouter.post(
+  "/rectify/profile",
+  authenticate,
+  adminController.rectifyUserProfileController
+);
+
 adminRouter.get(
   "/profiles/pending",
   authenticate,
@@ -86,10 +92,15 @@ adminRouter.get(
 );
 
 adminRouter.get(
+  "/all/profiles",
+  authenticate,
+  adminController.getAllProfilesController
+);
+
+adminRouter.get(
   "/profile/:userId",
   authenticate,
   adminController.getUserProfileDetailsController
 );
-
 
 export default adminRouter;

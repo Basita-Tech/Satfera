@@ -15,7 +15,8 @@ async function updateProfileApproval(
   profileIdOrUserId: string,
   updateData: Record<string, any>,
   successMessage: string,
-  sendEmail?: boolean
+  sendEmail?: boolean,
+  emailType?: "submission" | "approved" | "rejected" | "rectification"
 ) {
   const objectId = validateUserId(profileIdOrUserId);
 
@@ -54,7 +55,8 @@ async function updateProfileApproval(
   ]);
 
   if (sendEmail && statusChanged && user && user.email) {
-    const reviewType = newStatus === "approved" ? "approved" : "rejected";
+    const reviewType: "submission" | "approved" | "rejected" | "rectification" =
+      emailType || (newStatus === "approved" ? "approved" : "rejected");
 
     try {
       const enqueued = await enqueueProfileReviewEmail(
@@ -133,6 +135,33 @@ export async function rejectUserProfileService(userId: string, reason: string) {
   }
 }
 
+export async function rectifyUserProfileService(
+  userId: string,
+  reason: string
+) {
+  try {
+    if (!reason) {
+      throw new Error("Rectification reason is required");
+    }
+
+    return await updateProfileApproval(
+      userId,
+      {
+        profileReviewStatus: "rectification",
+        isProfileApproved: false,
+        reviewNotes: reason,
+        reviewedAt: new Date()
+      },
+      "Profile sent for rectification successfully",
+      true,
+      "rectification"
+    );
+  } catch (error: any) {
+    logger.error("Error sending profile for rectification:", error);
+    throw error;
+  }
+}
+
 export async function getPendingProfilesService(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
@@ -173,8 +202,12 @@ export async function getPendingProfilesService(page: number, limit: number) {
           "firstName lastName gender dateOfBirth phoneNumber email customId"
         )
         .lean(),
-      UserProfession.find({ userId: { $in: userIds } }).lean(),
-      UserPersonal.find({ userId: { $in: userIds } }).lean()
+      UserProfession.find({ userId: { $in: userIds } })
+        .select("Occupation userId")
+        .lean(),
+      UserPersonal.find({ userId: { $in: userIds } })
+        .select("full_address userId")
+        .lean()
     ]);
 
     const userMap = new Map();
@@ -199,6 +232,7 @@ export async function getPendingProfilesService(page: number, limit: number) {
 
       return {
         profileId: profile._id,
+        userId: user._id,
         customId: user?.customId || null,
         firstName: user?.firstName,
         lastName: user?.lastName,
@@ -563,5 +597,95 @@ export async function getUserProfileDetailsService(userId: string) {
   } catch (error) {
     logger.error("Error fetching user profile details:", error);
     throw error;
+  }
+}
+
+export async function getAllProfilesService(page: number, limit: number) {
+  const skip = (page - 1) * limit;
+
+  try {
+    const totalCount = await Profile.countDocuments({});
+
+    const pendingProfiles = await Profile.find({})
+      .select("photos.closerPhoto userId")
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    if (!pendingProfiles || pendingProfiles.length === 0) {
+      return {
+        success: true,
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasMore: false
+        }
+      };
+    }
+
+    const userIds = pendingProfiles.map((profile) => profile.userId);
+
+    const [users, professions] = await Promise.all([
+      User.find({
+        _id: { $in: userIds }
+      })
+        .select(
+          "firstName lastName gender dateOfBirth phoneNumber email customId createdAt"
+        )
+        .lean(),
+      UserProfession.find({ userId: { $in: userIds } })
+        .select("Occupation userId")
+        .lean()
+    ]);
+
+    const userMap = new Map();
+    users.forEach((user) => {
+      userMap.set(user._id.toString(), user);
+    });
+
+    const professionMap = new Map();
+    professions.forEach((prof) => {
+      professionMap.set(prof.userId.toString(), prof);
+    });
+
+    const profilesWithUserData = pendingProfiles.map((profile) => {
+      const user = userMap.get(profile.userId.toString());
+      const profession = professionMap.get(profile.userId.toString());
+
+      return {
+        userId: user._id,
+        customId: user?.customId || null,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        gender: user?.gender,
+        age: calculateAge(user?.dateOfBirth),
+        phoneNumber: user?.phoneNumber,
+        email: user?.email,
+        occupation: profession?.Occupation || null,
+        closerPhoto: profile?.photos?.closerPhoto?.url || null,
+        createdAt: user?.createdAt
+      };
+    });
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page * limit < totalCount;
+
+    return {
+      success: true,
+      data: profilesWithUserData,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+        hasMore
+      }
+    };
+  } catch (error) {
+    logger.error("Error fetching pending profiles:", error);
+    return { success: false, message: "Failed to fetch pending profiles" };
   }
 }

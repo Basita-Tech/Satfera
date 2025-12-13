@@ -6,6 +6,7 @@ import {
   buildProfileReviewSubmissionHtml,
   buildProfileApprovedHtml,
   buildProfileRejectedHtml,
+  buildProfileRectificationHtml,
   buildAccountDeactivationHtml,
   buildAccountDeletionHtml,
   buildAccountActivationHtml
@@ -178,7 +179,7 @@ export async function sendProfileApprovedEmail(
   );
 
   const subject = "🎉 Your Satfera Profile Has Been Approved!";
-  
+
   logger.debug("Sending profile approved email", {
     to,
     userName,
@@ -206,7 +207,7 @@ export async function sendProfileRejectedEmail(
   );
 
   const subject = "Satfera Profile Review - Action Required";
-  
+
   logger.debug("Sending profile rejected email", {
     to,
     userName,
@@ -264,5 +265,33 @@ export async function sendAccountActivationEmail(to: string, userName: string) {
   );
 
   const subject = "Account Activated - Satfera";
+  return sendMail({ to, subject, html, text });
+}
+
+export async function sendProfileRectificationEmail(
+  to: string,
+  userName: string,
+  reason: string
+) {
+  const options = {
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+  };
+
+  const { html, text } = buildProfileRectificationHtml(
+    userName,
+    reason,
+    options.brandName,
+    options.logoUrl
+  );
+
+  const subject = "Satfera Action Required";
+
+  logger.debug("Sending profile rectification email", {
+    to,
+    userName,
+    subject
+  });
+
   return sendMail({ to, subject, html, text });
 }

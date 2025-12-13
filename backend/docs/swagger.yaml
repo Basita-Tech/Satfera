@@ -3135,6 +3135,90 @@ paths:
                     success: false
                     message: "Access denied."
 
+  /api/v1/admin/rectify/profile:
+    post:
+      summary: Send a profile to rectification (request updates from user).
+      description: Changes profile status to "rectification" and sends rejection email asking user to update their profile with provided reason
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user whose profile requires updates
+                reason:
+                  type: string
+                  description: Reason for rejecting the profile and requesting updates
+              example:
+                userId: "693bb79cf6104a6d4e736838"
+                reason: "Please provide more recent photos and complete your family details"
+      responses:
+        "200":
+          description: Profile sent to rectification successfully. User receives rejection email with reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Profile sent for rectification and email queued successfully
+        "400":
+          description: Profile is already in rectification state or invalid userId or reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidUserId:
+                  value:
+                    success: false
+                    message: "Invalid userId"
+                alreadyRectified:
+                  value:
+                    success: false
+                    message: "Profile is already rectification."
+                userIdRequired:
+                  value:
+                    success: false
+                    message: "userId is required"
+                reasonRequired:
+                  value:
+                    success: false
+                    message: "reason is required"
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
   /api/v1/admin/profile/{userId}:
     get:
       summary: Get complete user profile details for admin with all connections and statistics

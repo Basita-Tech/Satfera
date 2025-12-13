@@ -145,7 +145,7 @@ export async function enqueueProfileReviewEmail(
     lastName: string;
   },
   reviewData: {
-    type: "submission" | "approved" | "rejected";
+    type: "submission" | "approved" | "rejected" | "rectification";
     reason?: string;
     dashboardLink?: string;
   }

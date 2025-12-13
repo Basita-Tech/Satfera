@@ -332,7 +332,7 @@ export function buildProfileReviewSubmissionHtml(
         <p style="margin-top: 20px;">Best regards,<br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
       </div>
       <div class="footer">
-        ${brandName} • If you have any questions, contact us at support@satfera.com
+        ${brandName} • If you have any questions, contact us at support@satfera.in
       </div>
     </div>
   </body>
@@ -472,7 +472,7 @@ Your Trusted Matrimony Partner`
   };
 }
 
-export function buildProfileRejectedHtml(
+export function buildProfileRectificationHtml(
   userName: string,
   reason: string,
   brandName = "Satfera",
@@ -548,7 +548,7 @@ export function buildProfileRejectedHtml(
         <p style="margin-top: 20px;">Best regards,<br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
       </div>
       <div class="footer">
-        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.in
       </div>
     </div>
   </body>
@@ -573,6 +573,93 @@ Note: We're here to help! If you're unsure about any of the feedback, please rea
 Best regards,
 Team ${brandName}
 Your Trusted Matrimony Partner`
+  };
+}
+
+export function buildProfileRejectedHtml(
+  userName: string,
+  reason: string,
+  brandName = "Satfera",
+  logoUrl?: string
+) {
+  const title = "Action Required – Profile Rejected";
+  const preheader = "Your profile has been rejected and requires action.";
+
+  return {
+    html: `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+    <style>
+      body { background: #f4f6fb; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #333; }
+      .container { max-width: 620px; margin: 28px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(20,30,60,0.08); }
+      .header { padding: 22px; text-align: center; }
+      .logo { height: 44px; display: inline-block; margin-bottom: 6px; }
+      .header-text { color: white; font-weight: 700; font-size: 18px; }
+      .content { padding: 28px; }
+      .title { font-size: 20px; font-weight: 600; margin: 0 0 8px; color: #c0392b; }
+      .subtitle { margin: 0 0 18px; color: #556077; font-size: 14px; }
+      .status-box { background: #fadbd8; border-left: 4px solid #e74c3c; padding: 16px; border-radius: 8px; margin: 16px 0; }
+      .status-text { font-weight: 600; color: #c0392b; margin-bottom: 4px; }
+      .reason-text { color: #556077; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+      .note { font-size: 13px; color: #7a8598; margin-top: 14px; line-height: 1.6; }
+      .btn { display: inline-block; padding: 12px 24px; border-radius: 8px; background: #D4A052; font-weight: 600; text-decoration: none; font-size: 14px; margin-top: 12px; }
+      .footer { padding: 18px; text-align: center; font-size: 12px; color: #9aa3b2; border-top: 1px solid #f0f4fb; }
+      @media (max-width:420px) { .content { padding: 18px; } }
+    </style>
+  </head>
+  <body>
+    <span style="display:none;max-height:0px;overflow:hidden;">${preheader}</span>
+    <div class="container" role="article" aria-label="${title}">
+      <div class="header">
+        ${
+          logoUrl
+            ? `<img src="${logoUrl}" alt="${brandName} logo" class="logo">`
+            : `<div class="header-text">${brandName}</div>`
+        }
+      </div>
+      <div class="content">
+        <h1 class="title">⚠ Action Required – Profile Rejected</h1>
+        <p class="subtitle">Dear ${userName},</p>
+
+        <p>Your profile submitted on ${brandName} Matrimony has been reviewed and rejected by the admin team due to incomplete, inaccurate, or non-compliant information.</p>
+
+        <div class="status-box">
+          <div class="status-text">Reason:</div>
+          <div class="reason-text">${reason}</div>
+        </div>
+
+        <p>You may update your details and resubmit your profile for review to proceed further on the platform.</p>
+
+        <p>For any assistance, please reach out to our support team.</p>
+
+        <p style="margin-top: 20px;">Regards,<br><strong>${brandName} Matrimony Support</strong></p>
+      </div>
+      <div class="footer">
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.in
+      </div>
+    </div>
+  </body>
+</html>
+    `,
+    text: `${title}
+
+Dear ${userName},
+
+Your profile submitted on ${brandName} Matrimony has been reviewed and rejected by the admin team due to incomplete, inaccurate, or non-compliant information.
+
+Reason:
+${reason}
+
+You may update your details and resubmit your profile for review to proceed further on the platform.
+
+For any assistance, please reach out to our support team.
+
+Regards,
+${brandName} Matrimony Support`
   };
 }
 
@@ -647,7 +734,7 @@ export function buildAccountDeactivationHtml(
         <p style="margin-top: 20px;">Best regards,<br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
       </div>
       <div class="footer">
-        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.in
       </div>
     </div>
   </body>
@@ -746,7 +833,7 @@ export function buildAccountDeletionHtml(
         <p style="margin-top: 20px;">Thank you for being part of ${brandName}. We wish you all the best in your journey.<br><br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
       </div>
       <div class="footer">
-        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.in
       </div>
     </div>
   </body>
@@ -845,7 +932,7 @@ export function buildAccountActivationHtml(
         <p style="margin-top: 20px;">We're glad to have you back!<br><br><strong>Team ${brandName}</strong><br><em>Your Trusted Matrimony Partner</em></p>
       </div>
       <div class="footer">
-        ${brandName} • If you need help, reply to this email or contact us at support@satfera.com
+        ${brandName} • If you need help, reply to this email or contact us at support@satfera.in
       </div>
     </div>
   </body>

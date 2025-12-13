@@ -64,6 +64,42 @@ export async function rejectUserProfileController(req: Request, res: Response) {
   }
 }
 
+export async function rectifyUserProfileController(
+  req: Request,
+  res: Response
+) {
+  const { userId, reason } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: "userId is required"
+    });
+  }
+
+  if (!reason) {
+    return res.status(400).json({
+      success: false,
+      message: "reason is required"
+    });
+  }
+
+  try {
+    const result = await adminService.rectifyUserProfileService(userId, reason);
+
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error: any) {
+    logger.error("Error sending profile for rectification:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to send profile for rectification"
+    });
+  }
+}
+
 export async function getPendingProfilesController(
   req: Request,
   res: Response
@@ -165,6 +201,27 @@ export async function getUserProfileDetailsController(
     return res.status(400).json({
       success: false,
       message: error.message || "Failed to fetch user profile details"
+    });
+  }
+}
+
+export async function getAllProfilesController(req: Request, res: Response) {
+  const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
+  let limit = parseInt((req.query.limit as string) || "20", 10);
+  limit = Math.min(Math.max(1, limit), 100);
+
+  try {
+    const result = await adminService.getAllProfilesService(page, limit);
+
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error: any) {
+    logger.error("Error fetching all profiles:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch all profiles"
     });
   }
 }
