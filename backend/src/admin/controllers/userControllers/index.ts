@@ -225,3 +225,22 @@ export async function getAllProfilesController(req: Request, res: Response) {
     });
   }
 }
+
+export async function getReportsAndAnalyticsController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const result = await adminService.getReportsAndAnalyticsService();
+    return res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    logger.error("Error fetching reports and analytics:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch reports and analytics"
+    });
+  }
+}

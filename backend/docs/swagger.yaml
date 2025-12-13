@@ -3382,3 +3382,122 @@ paths:
           description: Access denied if role is not admin
         "400":
           description: Invalid userId or user not found
+
+  /api/v1/admin/analytics:
+    get:
+      summary: Get Reports & Analytics for admin dashboard
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Reports & Analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalUsers:
+                        type: integer
+                      activeUsers:
+                        type: integer
+                      premiumUsersPercentage:
+                        type: number
+                      pendingRequests:
+                        type: integer
+                      acceptedRequests:
+                        type: integer
+                      deviceTraffic:
+                        type: object
+                        properties:
+                          desktop:
+                            type: integer
+                          mobile:
+                            type: integer
+                      usersByGender:
+                        type: object
+                        properties:
+                          female:
+                            type: integer
+                          male:
+                            type: integer
+                      usersByReligion:
+                        type: object
+                        properties:
+                          hindu:
+                            type: integer
+                          jain:
+                            type: integer
+                      usersByAge:
+                        type: object
+                        properties:
+                          "20s":
+                            type: integer
+                          "30s":
+                            type: integer
+                      usersByPlan:
+                        type: object
+                        properties:
+                          free:
+                            type: integer
+                          premium:
+                            type: integer
+                      userRegistrationTrend:
+                        type: object
+                        properties:
+                          month:
+                            type: integer
+                          count:
+                            type: integer
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      totalUsers: 1000
+                      activeUsers: 850
+                      premiumUsersPercentage: 35.5
+                      pendingRequests: 150
+                      acceptedRequests: 700
+                      deviceTraffic:
+                        desktop: 600
+                        mobile: 400
+                      usersByGender:
+                        female: 450
+                        male: 550
+                      usersByReligion:
+                        hindu: 800
+                        jain: 200
+                      usersByAge:
+                        "20s": 400
+                        "30s": 350
+                      usersByPlan:
+                        free: 650
+                        premium: 350
+                      userRegistrationTrend:
+                        - month: 1
+                          count: 80
+                        - month: 2
+                          count: 90
+                        - month: 3
+                          count: 100
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."

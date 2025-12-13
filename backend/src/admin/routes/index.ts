@@ -103,4 +103,10 @@ adminRouter.get(
   adminController.getUserProfileDetailsController
 );
 
+adminRouter.get(
+  "/analytics",
+  authenticate,
+  adminController.getReportsAndAnalyticsController
+);
+
 export default adminRouter;

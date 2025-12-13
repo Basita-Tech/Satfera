@@ -140,6 +140,8 @@ const ProfileSchema = new Schema(
   { timestamps: true }
 );
 
+ProfileSchema.index({ accountType: 1 });
+
 export const Profile =
   (mongoose.models.Profile as mongoose.Model<IProfile>) ||
   mongoose.model<IProfile>("Profile", ProfileSchema);

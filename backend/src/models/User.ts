@@ -221,6 +221,8 @@ userSchema.index(
 
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ phoneNumber: 1, isActive: 1 });
+userSchema.index({ role: 1, gender: 1 });
+userSchema.index({ role: 1, createdAt: 1 });
 userSchema.index({ email: 1, isEmailLoginEnabled: 1 });
 userSchema.index({ phoneNumber: 1, isMobileLoginEnabled: 1 });
 

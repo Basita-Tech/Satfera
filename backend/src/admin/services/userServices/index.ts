@@ -4,12 +4,14 @@ import {
   Profile,
   User,
   UserPersonal,
-  UserProfession
+  UserProfession,
+  UserSession
 } from "../../../models";
 import { calculateAge } from "../../../utils/utils";
 import { validateUserId } from "../../../services";
 import { enqueueProfileReviewEmail } from "../../../lib/queue/enqueue";
 import { computeMatchScore } from "../../../services/recommendationService";
+import { startOfYear, endOfYear } from "date-fns";
 
 async function updateProfileApproval(
   profileIdOrUserId: string,
@@ -687,5 +689,162 @@ export async function getAllProfilesService(page: number, limit: number) {
   } catch (error) {
     logger.error("Error fetching pending profiles:", error);
     return { success: false, message: "Failed to fetch pending profiles" };
+  }
+}
+
+export async function getReportsAndAnalyticsService() {
+  try {
+    const now = new Date();
+    const currentYearStart = startOfYear(now);
+    const currentYearEnd = endOfYear(now);
+
+    const [
+      userStats,
+      registrationTrend,
+      profileStats,
+      connectionStats,
+      sessionStats,
+      personalStats
+    ] = await Promise.all([
+      User.aggregate([
+        { $match: { role: "user" } },
+        {
+          $facet: {
+            totalUsers: [{ $count: "count" }],
+            activeUsers: [{ $match: { isActive: true } }, { $count: "count" }],
+            byGender: [{ $group: { _id: "$gender", count: { $sum: 1 } } }],
+            byAge: [
+              {
+                $project: {
+                  age: {
+                    $dateDiff: {
+                      startDate: "$dateOfBirth",
+                      endDate: "$$NOW",
+                      unit: "year"
+                    }
+                  }
+                }
+              },
+
+              {
+                $group: {
+                  _id: {
+                    $concat: [
+                      {
+                        $toString: {
+                          $multiply: [{ $floor: { $divide: ["$age", 10] } }, 10]
+                        }
+                      },
+                      "s"
+                    ]
+                  },
+                  count: { $sum: 1 }
+                }
+              }
+            ]
+          }
+        }
+      ]),
+
+      User.aggregate([
+        {
+          $match: {
+            role: "user",
+            createdAt: { $gte: currentYearStart, $lte: currentYearEnd }
+          }
+        },
+        {
+          $group: {
+            _id: { $month: "$createdAt" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      Profile.aggregate([
+        { $group: { _id: "$accountType", count: { $sum: 1 } } }
+      ]),
+
+      ConnectionRequest.aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } }
+      ]),
+
+      UserSession.aggregate([
+        { $group: { _id: "$deviceInfo.device", count: { $sum: 1 } } }
+      ]),
+
+      UserPersonal.aggregate([
+        { $group: { _id: "$religion", count: { $sum: 1 } } }
+      ])
+    ]);
+
+    const stats = userStats[0];
+    const totalUsers = stats.totalUsers[0]?.count || 0;
+    const activeUsers = stats.activeUsers[0]?.count || 0;
+
+    const usersByGender = stats.byGender.reduce((acc: any, curr: any) => {
+      acc[curr._id || "Unknown"] = curr.count;
+      return acc;
+    }, {});
+
+    const usersByAge = stats.byAge.reduce((acc: any, curr: any) => {
+      if (curr._id !== "0s" && curr._id !== "NaNs") {
+        acc[curr._id] = curr.count;
+      }
+      return acc;
+    }, {});
+
+    let totalProfiles = 0;
+    let premiumCount = 0;
+    const usersByPlan = profileStats.reduce((acc: any, curr: any) => {
+      const plan = curr._id || "free";
+      acc[plan] = curr.count;
+      totalProfiles += curr.count;
+      if (plan === "premium") premiumCount += curr.count;
+      return acc;
+    }, {});
+
+    const premiumUsersPercentage =
+      totalProfiles > 0
+        ? Number(((premiumCount / totalProfiles) * 100).toFixed(2))
+        : 0;
+
+    const requestMap = connectionStats.reduce((acc: any, curr: any) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    const deviceTraffic = sessionStats.reduce((acc: any, curr: any) => {
+      acc[curr._id || "Unknown"] = curr.count;
+      return acc;
+    }, {});
+
+    const usersByReligion = personalStats.reduce((acc: any, curr: any) => {
+      acc[curr._id || "Unknown"] = curr.count;
+      return acc;
+    }, {});
+
+    const userRegistrationTrend = Array.from({ length: 12 }, (_, i) => {
+      const monthData = registrationTrend.find((d: any) => d._id === i + 1);
+      return { month: i + 1, count: monthData ? monthData.count : 0 };
+    });
+
+    return {
+      totalUsers,
+      activeUsers,
+      premiumUsersPercentage,
+      pendingRequests: requestMap["pending"] || 0,
+      acceptedRequests: requestMap["accepted"] || 0,
+      deviceTraffic,
+      usersByGender,
+      usersByReligion,
+      usersByAge,
+      usersByPlan,
+      userRegistrationTrend
+    };
+  } catch (error) {
+    logger.error("Error fetching reports and analytics:", error);
+    return { success: false, message: "Failed to fetch reports and analytics" };
   }
 }
