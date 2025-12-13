@@ -2848,12 +2848,25 @@ paths:
 
   /api/v1/admin/profiles/pending:
     get:
-      summary: Get all pending profiles for admin review.
+      summary: Get all pending profiles for admin review with pagination.
       tags:
         - Admin Dashboard
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination (default 1)
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page (default 20, max 100)
+          schema:
+            type: integer
+            default: 20
       responses:
         "200":
-          description: List of pending profiles for review
+          description: List of pending profiles for review with pagination metadata
           content:
             application/json:
               schema:
@@ -2868,6 +2881,8 @@ paths:
                       properties:
                         profileId:
                           type: string
+                        customId:
+                          type: string
                         firstName:
                           type: string
                         lastName:
@@ -2880,14 +2895,34 @@ paths:
                           type: string
                         email:
                           type: string
+                        occupation:
+                          type: string
+                        city:
+                          type: string
+                        state:
+                          type: string
                         closerPhoto:
                           type: string
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      totalPages:
+                        type: integer
+                      hasMore:
+                        type: boolean
               examples:
                 success:
                   value:
                     success: true
                     data:
                       - profileId: "693a522edc8bbe4457f9bae4"
+                        customId: "SAT-12345"
                         firstName: "Sddshjdshjds"
                         lastName: "Dsds"
                         gender: "male"
@@ -2895,7 +2930,11 @@ paths:
                         phoneNumber: "+918743764362"
                         email: "roshanbiyosi@gmiail.com"
                         closerPhoto: "https://res.cloudinary.com/dpmdvt00f/image/upload/v1765430284/satfera/closer/693a522edc8bbe4457f9bae3/a7wh1liovdl8viqp8iw2.jpg"
+                        occupation: "Software Engineer"
+                        city: "New York"
+                        state: "NY"
                       - profileId: "693a522edc8bbe4457f9baf0"
+                        customId: "SAT-12346"
                         firstName: "John"
                         lastName: "Doe"
                         gender: "male"
@@ -2903,6 +2942,15 @@ paths:
                         phoneNumber: "+11234567890"
                         email: "john.doe@example.com"
                         closerPhoto: "https://res.cloudinary.com/sample.jpg"
+                        occupation: "Doctor"
+                        city: "Los Angeles"
+                        state: "CA"
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 45
+                      totalPages: 3
+                      hasMore: true
 
         "403":
           description: Access denied if role is not admin.
@@ -3086,3 +3134,167 @@ paths:
                   value:
                     success: false
                     message: "Access denied."
+
+  /api/v1/admin/profile/{userId}:
+    get:
+      summary: Get complete user profile details for admin with all connections and statistics
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        "200":
+          description: Complete user profile details with statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        description: User basic information
+                      profile:
+                        type: object
+                        description: User profile information
+                      healthData:
+                        type: object
+                        description: Health information
+                      professionData:
+                        type: object
+                        description: Professional information
+                      personalData:
+                        type: object
+                        description: Personal information
+                      familyData:
+                        type: object
+                        description: Family information
+                      educationsData:
+                        type: object
+                        description: Education information
+                      expectationsData:
+                        type: object
+                        description: Expectations and preferences
+                      stats:
+                        type: object
+                        properties:
+                          requestsSent:
+                            type: integer
+                            description: Number of connection requests sent
+                          requestsReceived:
+                            type: integer
+                            description: Number of connection requests received
+                          accepted:
+                            type: integer
+                            description: Number of accepted connections
+                          highMatch:
+                            type: integer
+                            description: Number of high match profiles (>70%)
+                      requestsSentDetails:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            age:
+                              type: integer
+                            profession:
+                              type: string
+                            closerPhoto:
+                              type: string
+                            matchPercentage:
+                              type: number
+                            status:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+                        description: Detailed list of sent connection requests
+                      requestsReceivedDetails:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            age:
+                              type: integer
+                            profession:
+                              type: string
+                            closerPhoto:
+                              type: string
+                            matchPercentage:
+                              type: number
+                            status:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+                        description: Detailed list of received connection requests
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      user:
+                        _id: "693bb79cf6104a6d4e736838"
+                        firstName: "Rahul"
+                        lastName: "Verma"
+                        email: "rahul@example.com"
+                      profile:
+                        _id: "693bb79cf6104a6d4e736837"
+                        isProfileApproved: true
+                        profileReviewStatus: "approved"
+                      stats:
+                        requestsSent: 2
+                        requestsReceived: 2
+                        accepted: 2
+                        highMatch: 4
+                      requestsSentDetails:
+                        - userId: "693bb79cf6104a6d4e736839"
+                          name: "Priya Singh"
+                          age: 28
+                          profession: "Doctor"
+                          matchPercentage: 85
+                          status: "accepted"
+                          createdAt: "2024-11-15T10:30:00Z"
+                        - userId: "693bb79cf6104a6d4e73683a"
+                          name: "Anjali Patel"
+                          age: 26
+                          profession: "Engineer"
+                          matchPercentage: 78
+                          status: "pending"
+                          createdAt: "2024-11-14T15:45:00Z"
+                      requestsReceivedDetails:
+                        - userId: "693bb79cf6104a6d4e73683b"
+                          name: "Neha Sharma"
+                          age: 27
+                          profession: "Architect"
+                          matchPercentage: 92
+                          status: "accepted"
+                          createdAt: "2024-11-13T12:00:00Z"
+                        - userId: "693bb79cf6104a6d4e73683c"
+                          name: "Sneha Gupta"
+                          age: 25
+                          profession: "Lawyer"
+                          matchPercentage: 75
+                          status: "rejected"
+                          createdAt: "2024-11-12T09:20:00Z"
+        "403":
+          description: Access denied if role is not admin
+        "400":
+          description: Invalid userId or user not found

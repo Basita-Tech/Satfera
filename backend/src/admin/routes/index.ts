@@ -85,4 +85,11 @@ adminRouter.get(
   adminController.unVerifiedProfilesController
 );
 
+adminRouter.get(
+  "/profile/:userId",
+  authenticate,
+  adminController.getUserProfileDetailsController
+);
+
+
 export default adminRouter;

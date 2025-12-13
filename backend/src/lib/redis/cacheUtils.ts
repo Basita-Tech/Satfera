@@ -83,18 +83,6 @@ export async function markProfileViewed(
   );
 }
 
-export async function invalidateMatchScoreCache(
-  seekerId: mongoose.Types.ObjectId,
-  candidateId: mongoose.Types.ObjectId
-): Promise<void> {
-  const cacheKey = `match_score:${seekerId.toString()}:${candidateId.toString()}`;
-  await safeRedisOperation(
-    () => redisClient.del(cacheKey),
-    "Invalidate match score cache"
-  );
-  logger.debug(`Invalidated match score cache: ${cacheKey}`);
-}
-
 export async function invalidateUserMatchScores(
   userId: mongoose.Types.ObjectId
 ): Promise<void> {
