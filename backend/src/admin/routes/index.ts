@@ -109,4 +109,10 @@ adminRouter.get(
   adminController.getReportsAndAnalyticsController
 );
 
+adminRouter.get(
+  "/request-sent",
+  authenticate,
+  adminController.getAllRequestsController
+);
+
 export default adminRouter;

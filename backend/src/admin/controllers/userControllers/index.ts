@@ -244,3 +244,23 @@ export async function getReportsAndAnalyticsController(
     });
   }
 }
+
+export async function getAllRequestsController(req: Request, res: Response) {
+  const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
+  let limit = parseInt((req.query.limit as string) || "20", 10);
+  limit = Math.min(Math.max(1, limit), 100);
+
+  try {
+    const result = await adminService.getAllRequestsService(page, limit);
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error: any) {
+    logger.error("Error fetching all requests:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch all requests"
+    });
+  }
+}

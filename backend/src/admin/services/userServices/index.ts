@@ -848,3 +848,129 @@ export async function getReportsAndAnalyticsService() {
     return { success: false, message: "Failed to fetch reports and analytics" };
   }
 }
+
+export async function getAllRequestsService(page: number, limit: number) {
+  const skip = (page - 1) * limit;
+
+  try {
+    const totalCount = await ConnectionRequest.countDocuments({});
+
+    const requests = await ConnectionRequest.aggregate([
+      { $skip: skip },
+      { $limit: limit },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "sender",
+          foreignField: "_id",
+          as: "senderUser"
+        }
+      },
+
+      { $unwind: { path: "$senderUser", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "receiver",
+          foreignField: "_id",
+          as: "receiverUser"
+        }
+      },
+
+      { $unwind: { path: "$receiverUser", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "profiles",
+          localField: "sender",
+          foreignField: "userId",
+          as: "senderProfile"
+        }
+      },
+
+      { $unwind: { path: "$senderProfile", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "profiles",
+          localField: "receiver",
+          foreignField: "userId",
+          as: "receiverProfile"
+        }
+      },
+
+      {
+        $unwind: { path: "$receiverProfile", preserveNullAndEmptyArrays: true }
+      },
+
+      {
+        $project: {
+          _id: 0,
+          status: "$status",
+          createdAt: "$createdAt",
+          sender: {
+            userId: "$sender",
+            name: {
+              $concat: ["$senderUser.firstName", " ", "$senderUser.lastName"]
+            },
+            dateOfBirth: "$senderUser.dateOfBirth",
+            gender: "$senderUser.gender",
+            closerPhoto: "$senderProfile.photos.closerPhoto.url"
+          },
+          receiver: {
+            userId: "$receiver",
+            name: {
+              $concat: [
+                "$receiverUser.firstName",
+                " ",
+                "$receiverUser.lastName"
+              ]
+            },
+            dateOfBirth: "$receiverUser.dateOfBirth",
+            gender: "$receiverUser.gender",
+            closerPhoto: "$receiverProfile.photos.closerPhoto.url"
+          }
+        }
+      }
+    ]);
+
+    const requestsWithUserData = requests.map((request) => ({
+      status: request.status,
+      createdAt: request.createdAt,
+      sender: {
+        ...request.sender,
+        name: request.sender.name || "Unknown",
+        age: request.sender.dateOfBirth
+          ? calculateAge(request.sender.dateOfBirth)
+          : null
+      },
+      receiver: {
+        ...request.receiver,
+        name: request.receiver.name || "Unknown",
+        age: request.receiver.dateOfBirth
+          ? calculateAge(request.receiver.dateOfBirth)
+          : null
+      }
+    }));
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page * limit < totalCount;
+
+    return {
+      success: true,
+      data: requestsWithUserData,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+        hasMore
+      }
+    };
+  } catch (error) {
+    logger.error("Error fetching all requests:", error);
+    return { success: false, message: "Failed to fetch all requests" };
+  }
+}
