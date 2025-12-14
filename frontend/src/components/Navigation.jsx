@@ -149,11 +149,11 @@ export function Navigation({ activePage, onNavigate }) {
               <button
                 key={item.key}
                 onClick={() => handleNavigation(item.key)}
-                className={`flex-1 max-w-[160px] px-2 py-1.5 text-[0.875rem] rounded-lg transition-all whitespace-nowrap ${
-                  activePage === item.key
-                    ? "text-[#D4A052] border-b-2 border-[#D4A052] -mb-[2px]"
-                    : "text-[#800000] hover:text-[#D4A052]  hover:border-b-2 hover:border-[#D4A052]"
-                }`}
+                className={`flex-1 max-w-[160px] px-2 py-2 text-[0.95rem] rounded-lg transition-all whitespace-nowrap
+                  ${activePage === item.key
+                    ? "text-[#D4A052] font-bold border-b-2 border-[#D4A052] -mb-[2px]"
+                    : "text-[#800000] hover:text-[#D4A052] hover:underline hover:decoration-[#D4A052]"}
+                `}
               >
                 {item.label}
               </button>
@@ -162,7 +162,7 @@ export function Navigation({ activePage, onNavigate }) {
 
           {/* Search - Desktop and Mobile */}
           <div className="hidden lg:block">
-            <div className="relative w-[200px] md:w-[240px] lg:w-[280px]">
+            <div className="relative w-[180px] md:w-[200px] lg:w-[220px] xl:w-[260px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#7b3b3b]/60 pointer-events-none z-10" />
               <input
                 type="text"
@@ -266,9 +266,10 @@ export function Navigation({ activePage, onNavigate }) {
           </div>
 
           {/* Right Section - Icons */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+
+          <div className="flex items-center flex-shrink-0 gap-2 lg:gap-4 pr-3 lg:pr-6 min-w-[56px] max-w-full overflow-visible">
             {/* Notification Bell */}
-            <div className="block">
+            <div className="p-0 m-0 flex items-center justify-center min-w-[44px] min-h-[44px] overflow-visible" style={{marginRight: '8px'}}>
               <NotificationDropdown
                 onViewAll={() => handleNavigation("notifications")}
               />

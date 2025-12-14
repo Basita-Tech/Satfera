@@ -3,10 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { sendEmailOtp, signupUser } from "../../api/auth";
 import {
   ArrowLeft,
-  EyeFill,
-  EyeSlashFill,
   CheckCircleFill,
 } from "react-bootstrap-icons";
+import { Eye, EyeOff } from "lucide-react";
 import { allCountries } from "country-telephone-data";
 import SearchableCountryCode from "../SearchableCountryCode";
 import toast from "react-hot-toast";
@@ -859,13 +858,13 @@ const SignUpPage = () => {
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer h-5 w-5"
+              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 cursor-pointer h-5 w-5"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeSlashFill className="w-4 h-4" />
+                <EyeOff className="w-5 h-5" />
               ) : (
-                <EyeFill className="w-4 h-4" />
+                <Eye className="w-5 h-5" />
               )}
             </span>
             {errors.password && (
@@ -946,13 +945,13 @@ const SignUpPage = () => {
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer h-5 w-5"
+              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 cursor-pointer h-5 w-5"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
               {showConfirmPassword ? (
-                <EyeSlashFill className="w-4 h-4" />
+                <EyeOff className="w-5 h-5" />
               ) : (
-                <EyeFill className="w-4 h-4" />
+                <Eye className="w-5 h-5" />
               )}
             </span>
             {errors.confirmPassword && (

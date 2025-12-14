@@ -25,7 +25,7 @@ export default function NotificationDropdown({ onViewAll }) {
 
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
+    const interval = setInterval(fetchUnreadCount, 1000); // Poll every 1 second
     return () => clearInterval(interval);
   }, []);
 
@@ -152,7 +152,10 @@ export default function NotificationDropdown({ onViewAll }) {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-20 sm:top-auto sm:mt-2 w-auto sm:w-80 md:w-96 bg-white rounded-lg shadow-xl border border-[#D4A052]/20 z-[9999] max-h-[calc(100vh-100px)] sm:max-h-[500px] overflow-hidden">
+        <div
+          className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-20 sm:top-auto sm:mt-2 w-[95vw] sm:w-80 md:w-96 max-w-[360px] bg-white rounded-lg shadow-xl border border-[#D4A052]/20 z-[9999] max-h-[calc(100vh-60px)] sm:max-h-[500px] overflow-hidden"
+          style={{ minWidth: '220px' }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#D4A052]/20 bg-gradient-to-r from-[#800000]/5 to-[#D4A052]/5">
             <h3 className="font-semibold text-sm sm:text-base text-[#800000] flex items-center gap-1.5 sm:gap-2">
