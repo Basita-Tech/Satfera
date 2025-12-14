@@ -9,6 +9,13 @@ import { AuthContextr } from "./context/AuthContext";
 import toast from "react-hot-toast";
 
 export function Navigation({ activePage, onNavigate }) {
+  // Prevent horizontal scroll on layout
+  React.useEffect(() => {
+    document.body.style.overflowX = 'hidden';
+    return () => {
+      document.body.style.overflowX = '';
+    };
+  }, []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
