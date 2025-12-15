@@ -3,6 +3,11 @@ import { redisClient, safeRedisOperation } from ".";
 import { logger } from "../common/logger";
 import { ScoreDetail } from "../../types";
 
+interface CachedMatchData {
+  scoreDetail: ScoreDetail;
+  userData?: any;
+}
+
 const CACHE_TTL = {
   MATCH_SCORE: 3600,
   PROFILE_VIEW: 86400
@@ -25,7 +30,7 @@ export function getProfileViewCacheKey(
 export async function getCachedMatchScore(
   seekerId: mongoose.Types.ObjectId,
   candidateId: mongoose.Types.ObjectId
-): Promise<ScoreDetail | null> {
+): Promise<CachedMatchData | null> {
   const cacheKey = getMatchScoreCacheKey(seekerId, candidateId);
   const cached = await safeRedisOperation(
     () => redisClient.get(cacheKey),
@@ -34,7 +39,13 @@ export async function getCachedMatchScore(
 
   if (cached) {
     try {
-      return JSON.parse(cached);
+      const data = JSON.parse(cached);
+
+      if (data.scoreDetail) {
+        return data as CachedMatchData;
+      } else {
+        return { scoreDetail: data, userData: undefined };
+      }
     } catch (error) {
       logger.warn(`Failed to parse cached match score for key ${cacheKey}`);
       return null;
@@ -46,15 +57,20 @@ export async function getCachedMatchScore(
 export async function setCachedMatchScore(
   seekerId: mongoose.Types.ObjectId,
   candidateId: mongoose.Types.ObjectId,
-  scoreDetail: ScoreDetail
+  scoreDetail: ScoreDetail,
+  userData?: any
 ): Promise<void> {
   const cacheKey = getMatchScoreCacheKey(seekerId, candidateId);
+  const cacheData: CachedMatchData = {
+    scoreDetail,
+    userData
+  };
   await safeRedisOperation(
     () =>
       redisClient.setEx(
         cacheKey,
         CACHE_TTL.MATCH_SCORE,
-        JSON.stringify(scoreDetail)
+        JSON.stringify(cacheData)
       ),
     "Set cached match score"
   );

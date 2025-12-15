@@ -110,15 +110,12 @@ export async function computeMatchScore(
       return null;
     }
 
-    const cachedScore = await getCachedMatchScore(
-      seekerUserId,
-      candidateUserId
-    );
-    if (cachedScore) {
+    const cachedData = await getCachedMatchScore(seekerUserId, candidateUserId);
+    if (cachedData) {
       logger.debug(
         `Using cached match score for ${seekerUserId} -> ${candidateUserId}`
       );
-      return cachedScore;
+      return cachedData.scoreDetail;
     }
 
     let seeker = preloadedData?.seeker;
@@ -631,8 +628,18 @@ export async function findMatchingUsers(
     const scoredCandidates = await Promise.all(
       candidates.map(async (candidate) => {
         const candidateIdStr = candidate._id.toString();
-
         const candidateId = candidate._id as unknown as mongoose.Types.ObjectId;
+
+        const cachedData = await getCachedMatchScore(seekerUserId, candidateId);
+
+        if (cachedData && cachedData.userData) {
+          return {
+            candidate,
+            candidateIdStr,
+            scoreDetail: cachedData.scoreDetail,
+            cachedUserData: cachedData.userData
+          };
+        }
 
         const scoreDetail = await computeMatchScore(seekerUserId, candidateId, {
           seeker: seekerUser,
@@ -644,7 +651,7 @@ export async function findMatchingUsers(
           candidateHealth: healthMap.get(candidateIdStr)
         });
 
-        return { candidate, candidateIdStr, scoreDetail };
+        return { candidate, candidateIdStr, scoreDetail, cachedUserData: null };
       })
     );
 
@@ -659,19 +666,37 @@ export async function findMatchingUsers(
       const item = qualifiedCandidates[i];
       if (!item || !item.scoreDetail) continue;
 
-      const { candidate, candidateIdStr, scoreDetail } = item;
-      const personal = personalMap.get(candidateIdStr);
-      const profile = profileMap.get(candidateIdStr);
-      const profession = professionMap.get(candidateIdStr);
+      const { candidate, candidateIdStr, scoreDetail, cachedUserData } = item;
 
-      const listingProfile = await formatListingProfile(
-        candidate,
-        personal,
-        profile,
-        profession,
-        scoreDetail,
-        null
-      );
+      let listingProfile;
+
+      if (cachedUserData) {
+        listingProfile = {
+          user: cachedUserData,
+          scoreDetail: scoreDetail
+        };
+      } else {
+        const personal = personalMap.get(candidateIdStr);
+        const profile = profileMap.get(candidateIdStr);
+        const profession = professionMap.get(candidateIdStr);
+
+        listingProfile = await formatListingProfile(
+          candidate,
+          personal,
+          profile,
+          profession,
+          scoreDetail,
+          null
+        );
+
+        const candidateId = candidate._id as unknown as mongoose.Types.ObjectId;
+        await setCachedMatchScore(
+          seekerUserId,
+          candidateId,
+          scoreDetail,
+          listingProfile.user
+        );
+      }
 
       matchingUsers.push(listingProfile);
     }
