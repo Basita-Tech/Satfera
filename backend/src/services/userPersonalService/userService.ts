@@ -356,7 +356,12 @@ export async function searchService(
   limit = 20,
   authUserId?: string
 ) {
-  const match: any = { isActive: true, isDeleted: false };
+  const match: any = { 
+    isActive: true, 
+    isDeleted: false,
+    isProfileApproved: true,
+    profileReviewStatus: "approved"
+  };
 
   const now = new Date();
 
@@ -483,12 +488,6 @@ export async function searchService(
       }
     },
     { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } },
-    {
-      $match: {
-        "profile.profileReviewStatus": "approved",
-        "profile.isProfileApproved": true
-      }
-    },
     {
       $lookup: {
         from: UserEducation.collection.name,

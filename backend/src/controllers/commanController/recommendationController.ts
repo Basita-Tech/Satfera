@@ -292,7 +292,9 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
     const matchCriteria: any = {
       isActive: true,
-      isDeleted: false
+      isDeleted: false,
+      isProfileApproved: true,
+      profileReviewStatus: "approved"
     };
 
     let hivFilter: any = null;
@@ -346,14 +348,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
         }
       },
 
-      { $unwind: "$profileDoc" },
-
-      {
-        $match: {
-          "profileDoc.isProfileApproved": true,
-          "profileDoc.profileReviewStatus": "approved"
-        }
-      }
+      { $unwind: "$profileDoc" }
     ];
 
     if (hivFilter) {

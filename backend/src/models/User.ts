@@ -27,6 +27,8 @@ export interface IUser extends Document {
   isOnboardingCompleted: boolean;
   completedSteps?: string[];
   termsAndConditionsAccepted: boolean;
+  isProfileApproved: boolean;
+  profileReviewStatus: "pending" | "approved" | "rejected" | "rectification";
   customId?: string;
   blockedUsers?: mongoose.Types.ObjectId[];
 }
@@ -181,6 +183,11 @@ const userSchema: Schema = new Schema(
       }
     },
     termsAndConditionsAccepted: { type: Boolean, default: false },
+    isProfileApproved: { type: Boolean, default: false },
+    profileReviewStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "rectification"]
+    },
     customId: {
       type: String,
       unique: true,
@@ -225,6 +232,8 @@ userSchema.index({ role: 1, gender: 1 });
 userSchema.index({ role: 1, createdAt: 1 });
 userSchema.index({ email: 1, isEmailLoginEnabled: 1 });
 userSchema.index({ phoneNumber: 1, isMobileLoginEnabled: 1 });
+userSchema.index({ isDeleted: 1, isActive: 1 });
+userSchema.index({ isProfileApproved: 1, profileReviewStatus: 1 });
 
 userSchema.pre("save", function (next) {
   try {

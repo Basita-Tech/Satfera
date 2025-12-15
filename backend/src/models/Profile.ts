@@ -27,7 +27,6 @@ export interface IProfile extends Document {
     uploadedAt: Date;
     verificationStatus: "pending" | "verified" | "rejected";
   };
-  isProfileApproved: boolean;
   isVisible: boolean;
   privacy: {
     allowProfileViewOnRequest: boolean;
@@ -43,7 +42,6 @@ export interface IProfile extends Document {
   compareProfiles: mongoose.Types.ObjectId[];
   accountType: "free" | "premium" | "gold";
   ProfileViewed: number;
-  profileReviewStatus: "pending" | "approved" | "rejected" | "rectification";
   reviewedAt?: Date;
   reviewNotes?: string;
   createdAt: Date;
@@ -109,7 +107,6 @@ const ProfileSchema = new Schema(
       visibility: { type: String, enum: ["adminOnly"], default: "adminOnly" }
     },
 
-    isProfileApproved: { type: Boolean, default: true },
     isVisible: { type: Boolean, default: true },
     privacy: {
       allowProfileViewOnRequest: { type: Boolean, default: false },
@@ -130,10 +127,6 @@ const ProfileSchema = new Schema(
       default: "free"
     },
     ProfileViewed: { type: Number, default: 0 },
-    profileReviewStatus: {
-      type: String,
-      enum: ["pending", "approved", "rejected", "rectification"]
-    },
     reviewedAt: { type: Date },
     reviewNotes: { type: String }
   },

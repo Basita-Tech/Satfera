@@ -53,7 +53,7 @@ class commonService {
           }
         ]),
 
-        Profile.aggregate([
+        User.aggregate([
           {
             $facet: {
               profileCounts: [
@@ -67,17 +67,8 @@ class commonService {
               pendingGender: [
                 { $match: { profileReviewStatus: "pending" } },
                 {
-                  $lookup: {
-                    from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
-                    as: "user"
-                  }
-                },
-                { $unwind: "$user" },
-                {
                   $group: {
-                    _id: "$user.gender",
+                    _id: "$gender",
                     count: { $sum: 1 }
                   }
                 }
@@ -85,17 +76,8 @@ class commonService {
               approvedGender: [
                 { $match: { profileReviewStatus: "approved" } },
                 {
-                  $lookup: {
-                    from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
-                    as: "user"
-                  }
-                },
-                { $unwind: "$user" },
-                {
                   $group: {
-                    _id: "$user.gender",
+                    _id: "$gender",
                     count: { $sum: 1 }
                   }
                 }

@@ -752,8 +752,9 @@ export const getUserOnboardingStatus = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const { user, profile } =
-      await userPersonalService.getUserOnboardingStatusService(authUser.id);
+    const { user } = await userPersonalService.getUserOnboardingStatusService(
+      authUser.id
+    );
 
     const completedSteps = Array.isArray(user?.completedSteps)
       ? user!.completedSteps
@@ -773,7 +774,7 @@ export const getUserOnboardingStatus = async (
     const data = {
       completedSteps,
       nextStep,
-      profileReviewStatus: profile?.profileReviewStatus || null
+      profileReviewStatus: user?.profileReviewStatus || null
     };
 
     if (!user?.isOnboardingCompleted) {
@@ -865,27 +866,24 @@ export const getProfileReviewStatusController = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const profile = await Profile.findOne({ userId: authUser.id }).select(
-      "profileReviewStatus reviewedAt reviewNotes"
+    const user = await User.findById(authUser.id).select(
+      "firstName email profileReviewStatus isProfileApproved"
     );
 
-    if (!profile) {
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Profile not found"
+        message: "User not found"
       });
     }
-
-    const user = await User.findById(authUser.id).select("firstName email");
 
     return res.status(200).json({
       success: true,
       data: {
-        profileReviewStatus: profile.profileReviewStatus,
-        reviewedAt: profile.reviewedAt || null,
-        reviewNotes: profile.reviewNotes || null,
-        userName: user?.firstName || "User",
-        email: user?.email || null
+        profileReviewStatus: user.profileReviewStatus,
+        isProfileApproved: user.isProfileApproved,
+        userName: user.firstName || "User",
+        email: user.email || null
       }
     });
   } catch (error: any) {
@@ -916,29 +914,25 @@ export const submitProfileForReviewController = async (
       });
     }
 
-    let profile = await Profile.findOne({ userId: authUser.id });
-    if (!profile) {
-      profile = new Profile({ userId: authUser.id });
-    }
-
     const isFirstSubmission =
-      !profile.profileReviewStatus ||
-      profile.profileReviewStatus === undefined ||
-      profile.profileReviewStatus === null;
+      !user.profileReviewStatus ||
+      user.profileReviewStatus === undefined ||
+      user.profileReviewStatus === null;
 
     if (!isFirstSubmission) {
       return res.status(200).json({
         success: true,
-        message: `Profile already ${profile.profileReviewStatus}.`,
+        message: `Profile already ${user.profileReviewStatus}.`,
         data: {
-          profileReviewStatus: profile.profileReviewStatus,
-          submittedAt: profile.createdAt || new Date()
+          profileReviewStatus: user.profileReviewStatus,
+          submittedAt: user.createdAt || new Date()
         }
       });
     }
 
-    profile.profileReviewStatus = "pending";
-    await profile.save();
+    await User.findByIdAndUpdate(authUser.id, {
+      profileReviewStatus: "pending"
+    });
 
     try {
       await sendProfileReviewSubmissionEmail(user.email, user.firstName);
@@ -955,7 +949,7 @@ export const submitProfileForReviewController = async (
       success: true,
       message: "Profile submitted for review successfully",
       data: {
-        profileReviewStatus: profile.profileReviewStatus,
+        profileReviewStatus: "pending",
         submittedAt: new Date()
       }
     });

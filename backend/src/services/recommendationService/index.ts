@@ -124,6 +124,73 @@ export async function computeMatchScore(
     let seeker = preloadedData?.seeker;
     let seekerExpectRaw = preloadedData?.seekerExpect;
     let candidate = preloadedData?.candidate;
+
+    if (!preloadedData) {
+      const [seekerUser, candidateUser] = await Promise.all([
+        User.findById(
+          seekerUserId,
+          "gender isActive isDeleted isProfileApproved profileReviewStatus"
+        ).lean(),
+        User.findById(
+          candidateUserId,
+          "gender isActive isDeleted isProfileApproved profileReviewStatus"
+        ).lean()
+      ]);
+
+      if (!seekerUser || !seekerUser.isActive || seekerUser.isDeleted) {
+        logger.debug(
+          `computeScore: Seeker ${seekerUserId} failed status check`
+        );
+        return { score: 0, reasons: ["Seeker account not active"] };
+      }
+      if (
+        !seekerUser.isProfileApproved ||
+        seekerUser.profileReviewStatus !== "approved"
+      ) {
+        logger.debug(
+          `computeScore: Seeker ${seekerUserId} profile not approved`
+        );
+        return { score: 0, reasons: ["Seeker profile not approved"] };
+      }
+
+      if (
+        !candidateUser ||
+        !candidateUser.isActive ||
+        candidateUser.isDeleted
+      ) {
+        logger.debug(
+          `computeScore: Candidate ${candidateUserId} failed status check`
+        );
+        return { score: 0, reasons: ["Candidate account not active"] };
+      }
+      if (
+        !candidateUser.isProfileApproved ||
+        candidateUser.profileReviewStatus !== "approved"
+      ) {
+        logger.debug(
+          `computeScore: Candidate ${candidateUserId} profile not approved`
+        );
+        return { score: 0, reasons: ["Candidate profile not approved"] };
+      }
+
+      const seekerGender = String(seekerUser.gender);
+      const candidateGender = String(candidateUser.gender);
+      if (seekerGender === candidateGender) {
+        logger.debug(
+          `computeScore: Same gender - seeker: ${seekerGender}, candidate: ${candidateGender}`
+        );
+        return { score: 0, reasons: ["Same gender"] };
+      }
+      if (
+        !(
+          (seekerGender === "male" && candidateGender === "female") ||
+          (seekerGender === "female" && candidateGender === "male")
+        )
+      ) {
+        logger.debug(`computeScore: Invalid gender pairing`);
+        return { score: 0, reasons: ["Invalid gender pairing"] };
+      }
+    }
     let candidatePersonalData = preloadedData?.candidatePersonal;
     let candidateHealthData = preloadedData?.candidateHealth;
     let candidateEducationData = preloadedData?.candidateEducation;
@@ -416,20 +483,21 @@ export async function findMatchingUsers(
     const oppositeGender = genderValue === "male" ? "female" : "male";
 
     const excludedIds: any[] = (seekerUser as any)?.blockedUsers || [];
+
+    const allExcludedIds = [seekerUserId, ...excludedIds];
     const baseQuery: any = {
-      _id: { $ne: seekerUserId },
+      _id: { $nin: allExcludedIds },
       gender: oppositeGender,
-      // isActive: true,
-      // isDeleted: false,
+      isActive: true,
+      isDeleted: false,
+      isProfileApproved: true,
+      profileReviewStatus: "approved",
       blockedUsers: { $ne: seekerUserId }
     };
-    if (excludedIds.length > 0) {
-      baseQuery._id.$nin = excludedIds;
-    }
 
     let candidates = (await User.find(
       baseQuery,
-      "firstName lastName dateOfBirth gender createdAt"
+      "firstName lastName dateOfBirth gender createdAt isProfileApproved profileReviewStatus"
     ).lean()) as any[];
 
     const favoriteIds = new Set(
@@ -822,7 +890,7 @@ export async function getDetailedProfile(
       otherPhotos: Array.isArray(filteredPhotos?.otherPhotos)
         ? filteredPhotos!.otherPhotos.slice(0, 2)
         : [],
-      requestId : connectionRequest?._id || null
+      requestId: connectionRequest?._id || null
     };
   } catch (error: any) {
     logger.error("Error in getDetailedProfile:", {

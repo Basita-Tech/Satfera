@@ -22,24 +22,18 @@ async function updateProfileApproval(
 ) {
   const objectId = validateUserId(profileIdOrUserId);
 
-  let profile = await Profile.findById(objectId)
-    .select("_id userId isProfileApproved profileReviewStatus")
+  let user = await User.findById(objectId)
+    .select(
+      "_id isProfileApproved profileReviewStatus firstName lastName email"
+    )
     .lean();
-  let userId = profile?.userId;
 
-  if (!profile) {
-    profile = await Profile.findOne({ userId: objectId })
-      .select("_id userId isProfileApproved profileReviewStatus")
-      .lean();
-    userId = objectId;
-  }
-
-  if (!profile) {
-    throw new Error("Profile not found");
+  if (!user) {
+    throw new Error("User not found");
   }
 
   const newStatus = updateData.profileReviewStatus;
-  const currentStatus = profile.profileReviewStatus;
+  const currentStatus = user.profileReviewStatus;
   const statusChanged = newStatus !== currentStatus;
 
   if (!statusChanged) {
@@ -49,12 +43,7 @@ async function updateProfileApproval(
     };
   }
 
-  const [updateResult, user] = await Promise.all([
-    Profile.findByIdAndUpdate(profile._id, updateData, { new: false }),
-    sendEmail
-      ? User.findById(userId).select("firstName lastName email").lean()
-      : Promise.resolve(null)
-  ]);
+  await User.findByIdAndUpdate(objectId, updateData, { new: false });
 
   if (sendEmail && statusChanged && user && user.email) {
     const reviewType: "submission" | "approved" | "rejected" | "rectification" =
@@ -62,7 +51,7 @@ async function updateProfileApproval(
 
     try {
       const enqueued = await enqueueProfileReviewEmail(
-        userId,
+        objectId,
         {
           email: user.email,
           firstName: user.firstName || "",
@@ -77,14 +66,16 @@ async function updateProfileApproval(
 
       if (enqueued) {
         logger.info(
-          `✉️ Profile review email queued for user ${userId} (${reviewType}) - Status changed from ${currentStatus} to ${newStatus}`
+          `✉️ Profile review email queued for user ${objectId} (${reviewType}) - Status changed from ${currentStatus} to ${newStatus}`
         );
       } else {
-        logger.warn(`Failed to queue profile review email for user ${userId}`);
+        logger.warn(
+          `Failed to queue profile review email for user ${objectId}`
+        );
       }
     } catch (queueError: any) {
       logger.error("Error queuing profile review email:", {
-        userId,
+        userId: objectId,
         type: reviewType,
         error: queueError.message
       });
@@ -168,19 +159,21 @@ export async function getPendingProfilesService(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
   try {
-    const totalCount = await Profile.countDocuments({
+    const totalCount = await User.countDocuments({
       profileReviewStatus: "pending"
     });
 
-    const pendingProfiles = await Profile.find({
+    const pendingUserIds = await User.find({
       profileReviewStatus: "pending"
     })
-      .select("photos.closerPhoto userId")
+      .select("_id")
       .skip(skip)
       .limit(limit)
       .lean();
 
-    if (!pendingProfiles || pendingProfiles.length === 0) {
+    const userIds = pendingUserIds.map((u: any) => u._id);
+
+    if (!userIds || userIds.length === 0) {
       return {
         success: true,
         data: [],
@@ -194,9 +187,7 @@ export async function getPendingProfilesService(page: number, limit: number) {
       };
     }
 
-    const userIds = pendingProfiles.map((profile) => profile.userId);
-
-    const [users, professions, personalData] = await Promise.all([
+    const [users, professions, personalData, profiles] = await Promise.all([
       User.find({
         _id: { $in: userIds }
       })
@@ -209,6 +200,9 @@ export async function getPendingProfilesService(page: number, limit: number) {
         .lean(),
       UserPersonal.find({ userId: { $in: userIds } })
         .select("full_address userId")
+        .lean(),
+      Profile.find({ userId: { $in: userIds } })
+        .select("photos.closerPhoto userId")
         .lean()
     ]);
 
@@ -227,13 +221,19 @@ export async function getPendingProfilesService(page: number, limit: number) {
       personalMap.set(personal.userId.toString(), personal);
     });
 
-    const profilesWithUserData = pendingProfiles.map((profile) => {
-      const user = userMap.get(profile.userId.toString());
-      const profession = professionMap.get(profile.userId.toString());
-      const personal = personalMap.get(profile.userId.toString());
+    const profileMap = new Map();
+    profiles.forEach((prof: any) => {
+      profileMap.set(prof.userId.toString(), prof);
+    });
+
+    const profilesWithUserData = userIds.map((userId: any) => {
+      const user = userMap.get(userId.toString());
+      const profile = profileMap.get(userId.toString());
+      const profession = professionMap.get(userId.toString());
+      const personal = personalMap.get(userId.toString());
 
       return {
-        profileId: profile._id,
+        profileId: profile?._id || null,
         userId: user._id,
         customId: user?.customId || null,
         firstName: user?.firstName,
