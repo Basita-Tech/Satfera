@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { EyeFill, EyeSlashFill } from "react-bootstrap-icons";
+import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   loginUser,
@@ -275,9 +275,9 @@ const LoginForm = () => {
                 tabIndex={-1}
               >
                 {showPassword ? (
-                  <EyeSlashFill size={18} />
+                  <EyeOff size={20} />
                 ) : (
-                  <EyeFill size={18} />
+                  <Eye size={20} />
                 )}
               </button>
             </div>

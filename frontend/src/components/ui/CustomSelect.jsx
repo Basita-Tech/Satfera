@@ -10,20 +10,41 @@ export default function CustomSelect({
   name,
   allowCustom = false,
   preserveCase = false,
+  forcesMobileUI = false,
 }) {
   const [open, setOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(() => {
+    if (forcesMobileUI) return true;
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 600;
+  });
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Update mobile detection on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (forcesMobileUI) {
+        setIsMobile(true);
+      } else {
+        setIsMobile(window.innerWidth <= 600);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [forcesMobileUI]);
 
   const displayLabel = useMemo(() => {
     if (value === undefined || value === null || value === '') return '';
     return value;
   }, [value]);
 
-  const suppressKeyboard = options.length <= 15;
+  // Show button-only on mobile with ≤15 options, otherwise show search input
+  const suppressKeyboard = isMobile && options.length <= 15;
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return options;
@@ -61,6 +82,13 @@ export default function CustomSelect({
 
   const handleKeyDown = (e) => {
     if (disabled) return;
+    if (e.key === 'Tab') {
+      // Let Tab move focus to the next element and close the dropdown
+      setOpen(false);
+      setHighlightIndex(-1);
+      setSearchTerm('');
+      return;
+    }
     if (!open && (e.key === 'ArrowDown' || e.key === ' ')) {
       e.preventDefault();
       setOpen(true);
@@ -143,9 +171,10 @@ export default function CustomSelect({
   }, [open]);
 
   const themeBase = 'w-full rounded-md p-2.5 sm:p-3 text-sm transition box-border bg-white';
-  const borderBase = 'border focus:outline-none focus:ring-1 transition-colors duration-200';
-  const borderColor = open ? 'border-[#D4A052] ring-1 ring-[#D4A052]' : 'border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]';
-  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
+  const borderBase = 'border transition-colors duration-200';
+  const borderColor = 'border-[#D4A052] focus:border-[#D4A052] focus:ring-1 focus:ring-[#D4A052] focus:outline-none';
+  const openStyle = open ? 'ring-1 ring-[#D4A052]' : '';
+  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${openStyle} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
 
   const handleInputChange = (e) => {
     const newSearchTerm = e.target.value;
@@ -176,6 +205,10 @@ export default function CustomSelect({
         setSearchTerm('');
         setHighlightIndex(0);
         updatePosition();
+        // Auto-focus when typing is allowed (desktop/laptop)
+        if (!suppressKeyboard && searchInputRef.current) {
+          setTimeout(() => searchInputRef.current?.focus(), 50);
+        }
       } else {
         // If already open, clear search term to show all options
         setSearchTerm('');
@@ -189,47 +222,66 @@ export default function CustomSelect({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <input
-        ref={searchInputRef}
-        type="text"
-        name={name}
-        disabled={disabled}
-        readOnly={suppressKeyboard}
-        inputMode={suppressKeyboard ? 'none' : undefined}
-        className={triggerClasses}
-        value={displayValue}
-        onChange={handleInputChange}
-        onFocus={(e) => {
-          if (!disabled) {
-            if (suppressKeyboard) {
-              e.preventDefault();
-              e.target.blur();
-              return;
+      {suppressKeyboard ? (
+        // Mobile: Button-only interface, no search input
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            if (!disabled) {
+              setOpen(!open);
+              setSearchTerm('');
+              setHighlightIndex(0);
+              updatePosition();
             }
-            setOpen(true);
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault();
+          }}
+          onFocus={(e) => {
+            e.preventDefault();
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
+          className={`${themeBase} ${borderBase} ${borderColor} ${open ? 'ring-1 ring-[#D4A052]' : ''} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} text-left`}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+        >
+          {displayLabel || placeholder}
+        </button>
+      ) : (
+        // Desktop: Full searchable input
+        <input
+          ref={searchInputRef}
+          type="text"
+          name={name}
+          disabled={disabled}
+          className={triggerClasses}
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={() => {
+            // allow normal focus when keyboard is not suppressed (desktop/laptop)
+          }}
+          onMouseDown={(e) => {
+            if (suppressKeyboard && !disabled) {
+              e.preventDefault();
+            }
+          }}
+          onKeyDown={handleInputKeyDown}
+          onClick={handleInputClick}
+          onBlur={() => {
+            // Close dropdown when focus leaves
+            setOpen(false);
+            setHighlightIndex(-1);
             setSearchTerm('');
-          }
-        }}
-        onTouchStart={(e) => {
-          if (suppressKeyboard && !disabled) {
-            e.preventDefault();
-            searchInputRef.current?.blur();
-            setOpen(!open);
-            updatePosition();
-          }
-        }}
-        onMouseDown={(e) => {
-          if (suppressKeyboard && !disabled) {
-            e.preventDefault();
-          }
-        }}
-        onKeyDown={handleInputKeyDown}
-        onClick={handleInputClick}
-        placeholder={placeholder}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        autoCapitalize={preserveCase ? "none" : "sentences"}
-      />
+          }}
+          placeholder={placeholder}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          autoCapitalize={preserveCase ? "none" : "sentences"}
+        />
+      )}
       {/* Dropdown Arrow Icon */}
       <svg
         className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none transition-transform duration-200 ${
@@ -259,6 +311,8 @@ export default function CustomSelect({
                 setOpen(false);
                 setSearchTerm('');
                 setHighlightIndex(-1);
+                // Keep focus on input after selection
+                setTimeout(() => searchInputRef.current?.focus(), 0);
               }}
             >
               {placeholder}
@@ -283,6 +337,8 @@ export default function CustomSelect({
                     setOpen(false);
                     setSearchTerm('');
                     setHighlightIndex(-1);
+                    // Keep focus on input after selection
+                    setTimeout(() => searchInputRef.current?.focus(), 0);
                   }}
                 >
                   {opt}
@@ -306,6 +362,8 @@ export default function CustomSelect({
                 setOpen(false);
                 setSearchTerm('');
                 setHighlightIndex(-1);
+                // Keep focus on input after selection
+                setTimeout(() => searchInputRef.current?.focus(), 0);
               }}
             >
               Use "{searchTerm.trim()}"

@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "./ui/button";
-import { Star, Download } from "lucide-react";
+import { Star, Download, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getViewProfiles } from "../api/auth";
@@ -41,10 +41,14 @@ export function ProfileCard({
   profile,
   onChat,
   onDownloadPDF,
+  isVerified: isVerifiedProp,
 }) {
   const navigate = useNavigate();
   const [optimisticInCompare, setOptimisticInCompare] = React.useState(false);
   const isUiInCompare = isInCompare || optimisticInCompare;
+  // Derive isVerified from prop or profile object, fallback to false
+  // Force badge to always show for testing
+  const isVerified = true;
 
   // Resolve location pieces from props or nested profile data
   const resolvedState = state || profile?.state || profile?.full_address?.state || profile?.fullAddress?.state || profile?.location?.state;
@@ -136,9 +140,9 @@ export function ProfileCard({
                   }
                   navigate(`/dashboard/profile/${profileId}`);
                 }}
-                className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.5px] border-[#c8a227] rounded-full font-medium 
-                hover:bg-[#c8a227]   hover:text-white transition-all duration-200"
+                className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.5px] border-[#c8a227] rounded-full font-medium hover:bg-[#c8a227] hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
               >
+                <Eye className="w-5 h-5" />
                 View
               </Button>
 
@@ -599,12 +603,42 @@ export function ProfileCard({
           </motion.button>
         )}
 
-        <div className="flex items-center gap-2 mb-1 pr-10">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {name}, {age}
-          </h3>
-          <img src="/badge.png" alt="Verified" className="w-4 h-4 object-contain" />
-        </div>
+  {name.length > 18 ? (
+    <div className="flex flex-col mb-1 min-w-0">
+      <span className="text-lg font-semibold text-gray-900 leading-snug break-words w-full">
+        {name}
+      </span>
+      <span className="flex items-center flex-shrink-0 mt-0.5">
+        {typeof age === "number" && (
+          <span className="whitespace-nowrap">, {age}</span>
+        )}
+        {isVerified && (
+          <img
+            src="/badge.png"
+            alt="Verified"
+            className="w-4 h-4 object-contain ml-1 inline-block align-middle"
+          />
+        )}
+      </span>
+    </div>
+  ) : (
+    <div className="flex items-center flex-wrap mb-1 min-w-0">
+      <span className="text-lg font-semibold text-gray-900 leading-snug break-words">
+        {name}
+      </span>
+      {typeof age === "number" && (
+        <span className="whitespace-nowrap">, {age}</span>
+      )}
+      {isVerified && (
+        <img
+          src="/badge.png"
+          alt="Verified"
+          className="w-4 h-4 object-contain ml-1 inline-block align-middle"
+        />
+      )}
+    </div>
+  )}
+
 
         <p className="text-sm text-gray-600 mb-1">
           {detailLine}
@@ -613,16 +647,17 @@ export function ProfileCard({
         <div className="flex gap-2 mb-1 mt-0.5 h-[36px] items-start">
           {religion && (
             <span
-              className="text-black px-4 py-[4px] rounded-full text-sm font-semibold whitespace-nowrap"
+              className="text-black px-4 py-[4px] rounded-full text-sm font-semibold max-w-[160px] h-7 flex items-center overflow-hidden text-ellipsis whitespace-nowrap"
               style={{ backgroundColor: "#f6f1e6" }}
+              title={religion}
             >
               {religion}
             </span>
           )}
           {caste && (
             <span
-              className="text-black px-4 py-[4px] rounded-full text-sm font-semibold whitespace-nowrap"
-              style={{ backgroundColor: "#f6f1e6" }}
+              className="text-black px-3 min-w-0 max-w-[160px] h-7 flex items-center justify-center rounded-full text-sm font-semibold bg-[#f6f1e6] truncate"
+              title={caste}
             >
               {caste}
             </span>

@@ -482,20 +482,22 @@ export function ProfileDetails({
           Back
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 lg:gap-8">
           {/* LEFT COLUMN: PHOTOS */}
-          <PhotoSection
-            photos={photos}
-            activeIndex={activeIndex}
-            setActiveIndex={setActiveIndex}
-            matchText={matchText}
-            isShortlisted={isShortlisted}
-            onToggleShortlist={handleToggle}
-            profile={profile}
-          />
+          <div className="w-full max-w-[320px]">
+            <PhotoSection
+              photos={photos}
+              activeIndex={activeIndex}
+              setActiveIndex={setActiveIndex}
+              matchText={matchText}
+              isShortlisted={isShortlisted}
+              onToggleShortlist={handleToggle}
+              profile={profile}
+            />
+          </div>
 
           {/* RIGHT COLUMN: DETAILS */}
-          <div className="lg:col-span-3 space-y-7">
+          <div className="min-w-0 space-y-7">
             <HeaderSection profile={profile} capitalize={capitalize} />
             <PersonalDetailsSection
               profile={profile}
