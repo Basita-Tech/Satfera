@@ -29,6 +29,7 @@ import { SessionService } from "../sessionService";
 import { generateDeviceFingerprint } from "../../utils/secureToken";
 import { getClientIp } from "../../utils/ipUtils";
 import { APP_CONFIG } from "../../utils/constants";
+import { notifyAdminsOfNewUserRegistration } from "../../admin/utils/notification";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -542,6 +543,12 @@ export class AuthService {
     );
 
     await sendWelcomeEmailOnce(user);
+
+    try {
+      await notifyAdminsOfNewUserRegistration(user);
+    } catch (error) {
+      logger.error("Failed to notify admins of new user registration:", error);
+    }
 
     return await timingSafe.complete({
       token,

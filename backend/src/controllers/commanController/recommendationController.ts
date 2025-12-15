@@ -288,176 +288,150 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const skip = (pageNum - 1) * limitNum;
 
     const requesterId = req.user?.id;
-    let users: any[] = [];
-    let personals: any[] = [];
-    let profiles: any[] = [];
-    let professions: any[] = [];
+    let authObjId: mongoose.Types.ObjectId | null = null;
 
-    const authObjId =
-      requesterId && mongoose.Types.ObjectId.isValid(requesterId)
-        ? new mongoose.Types.ObjectId(requesterId)
-        : null;
+    const matchCriteria: any = {
+      isActive: true,
+      isDeleted: false
+    };
 
-    const baseQuery: any = {};
-    if (authObjId) {
-      baseQuery._id = { $ne: authObjId };
-    }
+    let hivFilter: any = null;
 
-    try {
-      let targetIds: mongoose.Types.ObjectId[] | null = null;
+    if (requesterId && mongoose.Types.ObjectId.isValid(requesterId)) {
+      authObjId = new mongoose.Types.ObjectId(requesterId);
 
-      if (authObjId) {
-        const seekerHealth = await UserHealth.findOne({ userId: authObjId })
-          .select("isHaveHIV")
-          .lean();
-        const seekerHasHIV =
-          seekerHealth && isAffirmative((seekerHealth as any).isHaveHIV);
-        const seekerHasNegative =
-          seekerHealth && !isAffirmative((seekerHealth as any).isHaveHIV);
+      matchCriteria._id = { $ne: authObjId };
 
-        if (seekerHasHIV) {
-          const hivUserIds = await UserHealth.find(
-            {
-              $or: [
-                { isHaveHIV: true },
-                { isHaveHIV: "true" },
-                { isHaveHIV: "yes" },
-                { isHaveHIV: "1" },
-                { isHaveHIV: 1 }
-              ]
-            },
-            "userId"
-          )
-            .lean()
-            .then((rows: any[]) => rows.map((r) => r.userId));
+      const [authUser, authHealth] = await Promise.all([
+        User.findById(authObjId, "gender blockedUsers").lean(),
+        UserHealth.findOne({ userId: authObjId }, "isHaveHIV").lean()
+      ]);
 
-          if (hivUserIds.length > 0) {
-            targetIds = hivUserIds.map((id: any) =>
-              mongoose.Types.ObjectId.isValid(String(id))
-                ? new mongoose.Types.ObjectId(id)
-                : id
-            );
-          } else {
-            targetIds = [];
-          }
-        } else if (seekerHasNegative) {
-          const noHivUserIds = await UserHealth.find(
-            {
-              $or: [
-                { isHaveHIV: false },
-                { isHaveHIV: "false" },
-                { isHaveHIV: "no" },
-                { isHaveHIV: "0" },
-                { isHaveHIV: 0 }
-              ]
-            },
-            "userId"
-          )
-            .lean()
-            .then((rows: any[]) => rows.map((r) => r.userId));
+      if (authUser) {
+        const blockedByMe = (authUser as any).blockedUsers || [];
 
-          if (noHivUserIds.length > 0) {
-            targetIds = noHivUserIds.map((id: any) =>
-              mongoose.Types.ObjectId.isValid(String(id))
-                ? new mongoose.Types.ObjectId(id)
-                : id
-            );
-          } else {
-            targetIds = [];
-          }
+        if (blockedByMe.length > 0) {
+          matchCriteria._id = { ...matchCriteria._id, $nin: blockedByMe };
         }
+
+        matchCriteria.blockedUsers = { $ne: authObjId };
+
+        const gender = String(authUser.gender).toLowerCase();
+        if (gender === "male") matchCriteria.gender = "female";
+        else if (gender === "female") matchCriteria.gender = "male";
       }
 
-      if (targetIds !== null) {
-        if (targetIds.length === 0) {
-          return res.json({
-            success: true,
-            data: [],
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              total: 0,
-              hasMore: false
+      if (authHealth) {
+        const isHIV = isAffirmative((authHealth as any).isHaveHIV);
+        const trueValues = [true, "true", "yes", "1", 1];
+        const falseValues = [false, "false", "no", "0", 0];
+
+        if (isHIV) {
+          hivFilter = { $in: trueValues };
+        } else {
+          hivFilter = { $in: falseValues };
+        }
+      }
+    }
+
+    const pipeline: any[] = [
+      { $match: matchCriteria },
+
+      {
+        $lookup: {
+          from: "profiles",
+          localField: "_id",
+          foreignField: "userId",
+          as: "profileDoc"
+        }
+      },
+
+      { $unwind: "$profileDoc" },
+
+      {
+        $match: {
+          "profileDoc.isProfileApproved": true,
+          "profileDoc.profileReviewStatus": "approved"
+        }
+      }
+    ];
+
+    if (hivFilter) {
+      pipeline.push(
+        {
+          $lookup: {
+            from: "userhealths",
+            localField: "_id",
+            foreignField: "userId",
+            as: "healthDoc"
+          }
+        },
+        { $unwind: { path: "$healthDoc", preserveNullAndEmptyArrays: false } },
+        {
+          $match: {
+            "healthDoc.isHaveHIV": hivFilter
+          }
+        }
+      );
+    }
+
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $sort: { createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limitNum },
+
+          {
+            $lookup: {
+              from: "userpersonals",
+              localField: "_id",
+              foreignField: "userId",
+              as: "personalDoc"
             }
-          });
-        }
+          },
+          {
+            $lookup: {
+              from: "userprofessions",
+              localField: "_id",
+              foreignField: "userId",
+              as: "professionDoc"
+            }
+          },
 
-        baseQuery._id = { ...baseQuery._id, $in: targetIds };
+          {
+            $addFields: {
+              personal: { $arrayElemAt: ["$personalDoc", 0] },
+              profession: { $arrayElemAt: ["$professionDoc", 0] },
+              profile: "$profileDoc"
+            }
+          },
+
+          {
+            $project: {
+              personalDoc: 0,
+              professionDoc: 0,
+              profileDoc: 0,
+              healthDoc: 0
+            }
+          }
+        ]
       }
+    });
 
-      [users, personals, profiles, professions] = await Promise.all([
-        User.find(baseQuery, "firstName lastName dateOfBirth createdAt").lean(),
-        UserPersonal.find({
-          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
-        })
-          .select(
-            "userId full_address.city full_address.state residingCountry religion subCaste"
-          )
-          .lean(),
-        Profile.find({
-          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
-        })
-          .select("userId favoriteProfiles photos.closerPhoto.url")
-          .lean(),
-        UserProfession.find({
-          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
-        })
-          .select("userId Occupation")
-          .lean()
-      ]);
+    const result = await User.aggregate(pipeline);
 
-      if (!targetIds && authObjId) {
-        const authIdStr = authObjId.toString();
-        personals = personals.filter((p) => p.userId.toString() !== authIdStr);
-        profiles = profiles.filter((p) => p.userId.toString() !== authIdStr);
-        professions = professions.filter(
-          (p) => p.userId.toString() !== authIdStr
-        );
-      }
-    } catch (e) {
-      logger.error("Error in getAllProfiles logic:", e);
-
-      [users, personals, profiles, professions] = await Promise.all([
-        User.find(baseQuery, "firstName lastName dateOfBirth createdAt").lean(),
-        UserPersonal.find({ userId: { $ne: authObjId } })
-          .select(
-            "userId full_address.city full_address.state residingCountry religion subCaste"
-          )
-          .lean(),
-        Profile.find({ userId: { $ne: authObjId } })
-          .select("userId favoriteProfiles photos.closerPhoto.url")
-          .lean(),
-        UserProfession.find({ userId: { $ne: authObjId } })
-          .select("userId Occupation")
-          .lean()
-      ]);
-    }
-
-    const personalMap = new Map(
-      personals.map((p: any) => [p.userId.toString(), p])
-    );
-    const profileMap = new Map(
-      profiles.map((p: any) => [p.userId.toString(), p])
-    );
-    const professionMap = new Map(
-      professions.map((p: any) => [p.userId.toString(), p])
-    );
+    const metadata = result[0].metadata[0] || { total: 0 };
+    const usersData = result[0].data || [];
 
     const formattedResults = await Promise.all(
-      users.map((u: any) => {
-        const candidateId = u._id.toString();
-        const user = u;
-        const personal = personalMap.get(candidateId);
-        const profile = profileMap.get(candidateId);
-        const profession = professionMap.get(candidateId);
-
-        if (!user) return null;
-
+      usersData.map((user: any) => {
         return formatListingProfile(
           user,
-          personal,
-          profile,
-          profession,
+          user.personal,
+          user.profile,
+          user.profession,
           { score: 0, reasons: [] },
           null
         );
@@ -465,21 +439,20 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     );
 
     const validResults = formattedResults.filter((r) => r !== null);
-    const paginatedResults = validResults.slice(skip, skip + limitNum);
 
-    res.json({
+    return res.json({
       success: true,
-      data: paginatedResults,
+      data: validResults,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: validResults.length,
-        hasMore: skip + limitNum < validResults.length
+        total: metadata.total,
+        hasMore: skip + limitNum < metadata.total
       }
     });
   } catch (error) {
     logger.error("Error fetching matches:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch matches"
     });

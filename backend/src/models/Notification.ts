@@ -22,7 +22,10 @@ export interface NotificationDocument extends Document {
     | "welcome"
     | "profile_review_submitted"
     | "profile_approved"
-    | "profile_rejected";
+    | "profile_rejected"
+    | "new_user_registered"
+    | "user_blocked"
+    | "profile_reported";
   title: string;
   message: string;
   isRead: boolean;
@@ -73,7 +76,10 @@ const NotificationSchema = new Schema<NotificationDocument>(
         "welcome",
         "profile_review_submitted",
         "profile_approved",
-        "profile_rejected"
+        "profile_rejected",
+        "new_user_registered",
+        "user_blocked",
+        "profile_reported"
       ],
       required: true,
       index: true

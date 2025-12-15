@@ -10,6 +10,7 @@ import {
 import { APP_CONFIG } from "../../../utils/constants";
 import { NotificationSettings } from "../../../types";
 import { generateOtp, redisClient, safeRedisOperation } from "../../../lib";
+import { notifyAdminsOfUserBlocked } from "../../../admin/utils/notification";
 import bcrypt from "bcryptjs";
 import {
   clearOtpData,
@@ -93,6 +94,17 @@ export async function blockUser(
 
   const name =
     `${(target as any).firstName || ""} ${(target as any).lastName || ""}`.trim();
+
+  try {
+    const blocker = await User.findById(blockerObjectId).select(
+      "firstName lastName email"
+    );
+    if (blocker) {
+      await notifyAdminsOfUserBlocked(blocker, target);
+    }
+  } catch (error) {
+    logger.error("Failed to notify admins of user block:", error);
+  }
 
   return {
     success: true,
@@ -882,4 +894,48 @@ export async function verifyAndChangePhone(
     logger.error("Error in verifyAndChangePhone:", error.message);
     throw error;
   }
+}
+
+export async function reportProfile(
+  reporterId: string,
+  reportedUserCustomId: string,
+  reason: string,
+  description?: string
+): Promise<{ success: true; message: string }> {
+  const reporterObjectId = validateUserId(reporterId);
+
+  const reportedUser = await User.findOne({
+    customId: reportedUserCustomId
+  }).select("_id firstName lastName email customId");
+
+  if (!reportedUser) throw new Error("Reported user not found");
+
+  if (String(reportedUser._id) === String(reporterObjectId)) {
+    throw new Error("Cannot report your own profile");
+  }
+
+  const reporter = await User.findById(reporterObjectId).select(
+    "firstName lastName email"
+  );
+
+  if (!reporter) throw new Error("Reporter user not found");
+
+  try {
+    const { notifyAdminsOfProfileReported } = await import(
+      "../../../admin/utils/notification"
+    );
+    await notifyAdminsOfProfileReported(
+      reporter,
+      reportedUser,
+      reason,
+      description
+    );
+  } catch (error) {
+    logger.error("Failed to notify admins of profile report:", error);
+  }
+
+  return {
+    success: true,
+    message: "Profile reported successfully. Our team will review it soon."
+  };
 }

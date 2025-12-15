@@ -139,7 +139,7 @@ export async function getSentRequests(
           connReq.status
         );
 
-        if (connReq.status === "pending" && connReq._id) {
+        if (connReq.status && connReq._id) {
           formatted.user = formatted.user || {};
           formatted.user.connectionId = connReq._id.toString();
         }

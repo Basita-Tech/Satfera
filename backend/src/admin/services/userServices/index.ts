@@ -936,24 +936,38 @@ export async function getAllRequestsService(page: number, limit: number) {
       }
     ]);
 
-    const requestsWithUserData = requests.map((request) => ({
-      status: request.status,
-      createdAt: request.createdAt,
-      sender: {
-        ...request.sender,
-        name: request.sender.name || "Unknown",
-        age: request.sender.dateOfBirth
-          ? calculateAge(request.sender.dateOfBirth)
-          : null
-      },
-      receiver: {
-        ...request.receiver,
-        name: request.receiver.name || "Unknown",
-        age: request.receiver.dateOfBirth
-          ? calculateAge(request.receiver.dateOfBirth)
-          : null
-      }
-    }));
+    const requestsWithUserData = await Promise.all(
+      requests.map(async (request) => {
+        const senderToReceiverResp: any = await computeMatchScore(
+          request.sender.userId,
+          request.receiver.userId
+        );
+        const senderToReceiverMatch =
+          typeof senderToReceiverResp === "number"
+            ? senderToReceiverResp
+            : senderToReceiverResp?.score || 0;
+
+        return {
+          status: request.status,
+          createdAt: request.createdAt,
+          sender: {
+            ...request.sender,
+            name: request.sender.name || "Unknown",
+            age: request.sender.dateOfBirth
+              ? calculateAge(request.sender.dateOfBirth)
+              : null
+          },
+          receiver: {
+            ...request.receiver,
+            name: request.receiver.name || "Unknown",
+            age: request.receiver.dateOfBirth
+              ? calculateAge(request.receiver.dateOfBirth)
+              : null
+          },
+          match: senderToReceiverMatch
+        };
+      })
+    );
 
     const totalPages = Math.ceil(totalCount / limit);
     const hasMore = page * limit < totalCount;

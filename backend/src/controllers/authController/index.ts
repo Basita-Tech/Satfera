@@ -497,100 +497,100 @@ export class AuthController {
       const isProduction = process.env.NODE_ENV === "production";
       const strictSessionChecks = !isProduction;
 
-      let isSuspicious = false;
+      // let isSuspicious = false;
 
-      if (
-        session.ipAddress &&
-        reqIp &&
-        normalizeIp(session.ipAddress) !== normalizeIp(reqIp)
-      ) {
-        logger.warn("IP mismatch", {
-          userId,
-          sessionIp: session.ipAddress,
-          reqIp,
-          strictMode: strictSessionChecks
-        });
-        if (strictSessionChecks) {
-          try {
-            await SessionService.logoutSession(userId, String(session._id));
-          } catch (e) {
-            logger.error("Failed to logout session after IP mismatch", {
-              error: e
-            });
-          }
-          clearAuthCookies(res);
-          return res
-            .status(401)
-            .json({ success: false, message: "Not authenticated" });
-        } else {
-          isSuspicious = true;
-          logger.info(
-            "Non-strict mode: marking session suspicious due to IP change",
-            { userId }
-          );
-        }
-      }
+      // if (
+      //   session.ipAddress &&
+      //   reqIp &&
+      //   normalizeIp(session.ipAddress) !== normalizeIp(reqIp)
+      // ) {
+      //   logger.warn("IP mismatch", {
+      //     userId,
+      //     sessionIp: session.ipAddress,
+      //     reqIp,
+      //     strictMode: strictSessionChecks
+      //   });
+      //   if (strictSessionChecks) {
+      //     try {
+      //       await SessionService.logoutSession(userId, String(session._id));
+      //     } catch (e) {
+      //       logger.error("Failed to logout session after IP mismatch", {
+      //         error: e
+      //       });
+      //     }
+      //     clearAuthCookies(res);
+      //     return res
+      //       .status(401)
+      //       .json({ success: false, message: "Not authenticated" });
+      //   } else {
+      //     isSuspicious = true;
+      //     logger.info(
+      //       "Non-strict mode: marking session suspicious due to IP change",
+      //       { userId }
+      //     );
+      //   }
+      // }
 
-      const sessionUA = session.deviceInfo?.userAgent || "";
-      if (
-        sessionUA &&
-        reqUA &&
-        !sessionUA.startsWith(reqUA) &&
-        !reqUA.startsWith(sessionUA)
-      ) {
-        logger.warn("User-Agent mismatch", { userId, sessionUA, reqUA });
-        if (strictSessionChecks) {
-          try {
-            await SessionService.logoutSession(userId, String(session._id));
-          } catch (e) {
-            logger.error("Failed to logout session after UA mismatch", {
-              error: e
-            });
-          }
-          clearAuthCookies(res);
-          return res
-            .status(401)
-            .json({ success: false, message: "Not authenticated" });
-        } else {
-          isSuspicious = true;
-          logger.info(
-            "Non-strict mode: marking session suspicious due to UA change",
-            { userId }
-          );
-        }
-      }
+      // const sessionUA = session.deviceInfo?.userAgent || "";
+      // if (
+      //   sessionUA &&
+      //   reqUA &&
+      //   !sessionUA.startsWith(reqUA) &&
+      //   !reqUA.startsWith(sessionUA)
+      // ) {
+      //   logger.warn("User-Agent mismatch", { userId, sessionUA, reqUA });
+      //   if (strictSessionChecks) {
+      //     try {
+      //       await SessionService.logoutSession(userId, String(session._id));
+      //     } catch (e) {
+      //       logger.error("Failed to logout session after UA mismatch", {
+      //         error: e
+      //       });
+      //     }
+      //     clearAuthCookies(res);
+      //     return res
+      //       .status(401)
+      //       .json({ success: false, message: "Not authenticated" });
+      //   } else {
+      //     isSuspicious = true;
+      //     logger.info(
+      //       "Non-strict mode: marking session suspicious due to UA change",
+      //       { userId }
+      //     );
+      //   }
+      // }
 
-      const storedFingerprint = (session as any).fingerprint || "";
-      if (storedFingerprint) {
-        const ok = verifyDeviceFingerprint(storedFingerprint, reqUA, reqIp);
-        if (!ok) {
-          logger.warn("Device fingerprint mismatch", {
-            userId,
-            reqIp,
-            reqUA
-          });
-          if (strictSessionChecks) {
-            try {
-              await SessionService.logoutSession(userId, String(session._id));
-            } catch (e) {
-              logger.error(
-                "Failed to logout session after fingerprint mismatch",
-                { error: e }
-              );
-            }
-            clearAuthCookies(res);
-            return res
-              .status(401)
-              .json({ success: false, message: "Not authenticated" });
-          } else {
-            isSuspicious = true;
-            logger.info(
-              "Non-strict mode: marking session suspicious due to fingerprint change",
-              { userId }
-            );
-          }
-        }
-      }
+      // const storedFingerprint = (session as any).fingerprint || "";
+      // if (storedFingerprint) {
+      //   const ok = verifyDeviceFingerprint(storedFingerprint, reqUA, reqIp);
+      //   if (!ok) {
+      //     logger.warn("Device fingerprint mismatch", {
+      //       userId,
+      //       reqIp,
+      //       reqUA
+      //     });
+      //     if (strictSessionChecks) {
+      //       try {
+      //         await SessionService.logoutSession(userId, String(session._id));
+      //       } catch (e) {
+      //         logger.error(
+      //           "Failed to logout session after fingerprint mismatch",
+      //           { error: e }
+      //         );
+      //       }
+      //       clearAuthCookies(res);
+      //       return res
+      //         .status(401)
+      //         .json({ success: false, message: "Not authenticated" });
+      //     } else {
+      //       isSuspicious = true;
+      //       logger.info(
+      //         "Non-strict mode: marking session suspicious due to fingerprint change",
+      //         { userId }
+      //       );
+      //     }
+      //   }
+      // }
 
       const userRecord =
         req.user || (await User.findById(userId).select("-password -__v"));
@@ -605,11 +605,11 @@ export class AuthController {
         : userRecord;
       const publicUser = sanitizeUser(userObj);
 
-      if (isSuspicious) {
-        return res
-          .status(200)
-          .json({ success: true, user: publicUser, suspicious: true });
-      }
+      // if (isSuspicious) {
+      //   return res
+      //     .status(200)
+      //     .json({ success: true, user: publicUser, suspicious: true });
+      // }
 
       return res.status(200).json({ success: true, user: publicUser });
     } catch (err: any) {

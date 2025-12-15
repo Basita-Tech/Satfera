@@ -356,11 +356,35 @@ export async function searchService(
   limit = 20,
   authUserId?: string
 ) {
-  const match: any = { isActive: true };
+  const match: any = { isActive: true, isDeleted: false };
 
   const now = new Date();
 
-  if (filters.gender) {
+  let authUserGender: string | null = null;
+  let authUserHasHIV = false;
+  if (authUserId) {
+    const [authUser, authHealth] = await Promise.all([
+      User.findById(authUserId, "gender blockedUsers").lean(),
+      UserHealth.findOne({ userId: authUserId }, "isHaveHIV").lean()
+    ]);
+    if (authUser) {
+      authUserGender = String(authUser.gender);
+      authUserHasHIV =
+        authHealth && isAffirmative((authHealth as any).isHaveHIV);
+
+      const blockedUsers = (authUser as any)?.blockedUsers || [];
+      if (blockedUsers.length > 0) {
+        match._id = { $nin: blockedUsers };
+      }
+
+      match.blockedUsers = { $ne: authUserId };
+    }
+  }
+
+  if (authUserGender) {
+    const oppositeGender = authUserGender === "male" ? "female" : "male";
+    match.gender = String(oppositeGender);
+  } else if (filters.gender) {
     match.gender = String(filters.gender);
   }
 
@@ -460,6 +484,12 @@ export async function searchService(
     },
     { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } },
     {
+      $match: {
+        "profile.profileReviewStatus": "approved",
+        "profile.isProfileApproved": true
+      }
+    },
+    {
       $lookup: {
         from: UserEducation.collection.name,
         localField: "_id",
@@ -467,7 +497,16 @@ export async function searchService(
         as: "education"
       }
     },
-    { $unwind: { path: "$education", preserveNullAndEmptyArrays: true } }
+    { $unwind: { path: "$education", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: UserHealth.collection.name,
+        localField: "_id",
+        foreignField: "userId",
+        as: "health"
+      }
+    },
+    { $unwind: { path: "$health", preserveNullAndEmptyArrays: true } }
   );
 
   const postMatch: any = {};
@@ -682,13 +721,25 @@ export async function searchService(
   const agg = User.aggregate(pipeline);
   const res = (await agg.exec()) as any[];
 
-  const results = (res[0] && res[0].results) || [];
+  let results = (res[0] && res[0].results) || [];
   const total =
     (res[0] &&
       res[0].totalCount &&
       res[0].totalCount[0] &&
       res[0].totalCount[0].count) ||
     0;
+
+  if (authUserHasHIV) {
+    results = results.filter((r: any) => {
+      const health = r.health;
+      return health && isAffirmative(health.isHaveHIV);
+    });
+  } else if (authUserId) {
+    results = results.filter((r: any) => {
+      const health = r.health;
+      return !health || !isAffirmative(health.isHaveHIV);
+    });
+  }
 
   const listings = await Promise.all(
     results.map(async (r: any) => {
