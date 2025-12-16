@@ -487,58 +487,18 @@ const EducationDetails = ({ onNext, onPrevious }) => {
           {/* Field of Study */}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">Field of Study</label>
-            <CreatableSelect
-              key={formData.highestEducation || 'no-qualification'}
-              isClearable
-              options={educationOptionsFormatted}
-              value={formData.fieldOfStudy}
-              onChange={(newValue, actionMeta) => {
-                handleFieldOfStudyChange(newValue);
-
-                if (actionMeta.action === "select-option") {
-                  document.activeElement.blur();
-                }
+            <CustomSelect
+              name="fieldOfStudy"
+              value={formData.fieldOfStudy ? formData.fieldOfStudy.value : ''}
+              onChange={e => {
+                handleFieldOfStudyChange(e.target.value ? { label: e.target.value, value: e.target.value } : null);
               }}
+              options={educationOptionsFormatted.map(opt => opt.label)}
               placeholder={formData.highestEducation ? "Select or type field of study" : "Please select highest qualification first"}
-              isDisabled={!formData.highestEducation}
-              classNamePrefix="react-select"
-              components={{
-                IndicatorSeparator: () => null,
-              }}
-              styles={{
-                control: (base, state) => {
-                  let borderColor = "#d1d5db";
-                  if (errors.fieldOfStudy) borderColor = "red";
-                  else if (formData.fieldOfStudy && formData.fieldOfStudy.value)
-                    borderColor = "#D4A052";
-                  else if (state.isFocused) borderColor = "#E4C48A";
-
-                  return {
-                    ...base,
-                    minHeight: "3rem",
-                    borderRadius: "0.5rem",
-                    borderColor,
-                    boxShadow: "none",
-                    "&:hover": { borderColor },
-                    transition: "all 0.2s",
-                  };
-                },
-                valueContainer: (base) => ({
-                  ...base,
-                  padding: "0 0.75rem",
-                  height: "3rem",
-                  display: "flex",
-                  alignItems: "center",
-                }),
-                input: (base) => ({ ...base, margin: 0, padding: 0 }),
-                indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
-                placeholder: (base) => ({ ...base, margin: 0 }),
-                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-              }}
-              menuPlacement="top"
-              menuPosition="absolute"
+              allowCustom={true}
+              className={getInputClass("fieldOfStudy")}
+              disabled={!formData.highestEducation}
             />
-
             {errors.fieldOfStudy && (
               <p className="text-red-500 text-sm mt-1">{errors.fieldOfStudy}</p>
             )}

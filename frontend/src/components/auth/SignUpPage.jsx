@@ -852,19 +852,19 @@ const SignUpPage = () => {
               value={formData.password}
               onChange={handleInputChange}
               autoComplete="new-password"
-              className={`w-full p-3 pr-12 rounded-md border text-sm ${
+              className={`w-full p-3 pr-14 rounded-md border text-sm min-h-[48px] ${
                 errors.password ? "border-red-500" : "border-[#E4C48A]"
-              } 
-    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 cursor-pointer h-5 w-5"
+              className="absolute inset-y-0 right-3 flex items-center justify-center text-gray-500 cursor-pointer h-[48px] w-10"
+              style={{ pointerEvents: 'auto' }}
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff className="w-5 h-5" />
+                <EyeOff className="w-6 h-6" />
               ) : (
-                <Eye className="w-5 h-5" />
+                <Eye className="w-6 h-6" />
               )}
             </span>
             {errors.password && (
@@ -939,19 +939,19 @@ const SignUpPage = () => {
               value={formData.confirmPassword}
               onChange={handleInputChange}
               autoComplete="new-password"
-              className={`w-full p-3 pr-12 rounded-md border text-sm ${
+              className={`w-full p-3 pr-14 rounded-md border text-sm min-h-[48px] ${
                 errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"
-              } 
-    focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
+              } focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`}
             />
             <span
-              className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 cursor-pointer h-5 w-5"
+              className="absolute inset-y-0 right-3 flex items-center justify-center text-gray-500 cursor-pointer h-[48px] w-10"
+              style={{ pointerEvents: 'auto' }}
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
               {showConfirmPassword ? (
-                <EyeOff className="w-5 h-5" />
+                <EyeOff className="w-6 h-6" />
               ) : (
-                <Eye className="w-5 h-5" />
+                <Eye className="w-6 h-6" />
               )}
             </span>
             {errors.confirmPassword && (

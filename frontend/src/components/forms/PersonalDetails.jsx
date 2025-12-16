@@ -885,27 +885,15 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             {/* Height */}
             <div className="flex flex-col">
               <label className="block text-sm font-medium mb-1">Height</label>
-              <CreatableSelect
-                isClearable
-                options={HEIGHT_SELECT_OPTIONS}
-                value={
-                  formData.height
-                    ? { label: formData.height, value: formData.height }
-                    : null
-                }
-                onChange={(selected, actionMeta) => {
-                  handleSelectChange("height", selected);
-                }}
+              <CustomSelect
+                name="height"
+                value={formData.height}
+                onChange={handleChange}
+                options={HEIGHT_SELECT_OPTIONS.map(opt => opt.label)}
                 placeholder="Select or type height"
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null,
-                }}
-                tabSelectsValue={false}
-                styles={customSelectStyles(errors.height, formData.height)}
-                menuPlacement="auto"
-                menuPosition="fixed"
-                menuPortalTarget={document.body}
+                allowCustom={true}
+                className={getInputClass("height")}
+                disabled={false}
               />
               {errors.height && (
                 <p className="text-red-500 text-sm mt-1">{errors.height}</p>
@@ -915,27 +903,15 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             {/* Weight */}
             <div className="flex flex-col">
               <label className="block text-sm font-medium mb-1">Weight</label>
-              <CreatableSelect
-                isClearable
-                options={WEIGHT_SELECT_OPTIONS}
-                value={
-                  formData.weight
-                    ? { label: formData.weight, value: formData.weight }
-                    : null
-                }
-                onChange={(selected, actionMeta) => {
-                  handleSelectChange("weight", selected);
-                }}
+              <CustomSelect
+                name="weight"
+                value={formData.weight}
+                onChange={handleChange}
+                options={WEIGHT_SELECT_OPTIONS.map(opt => opt.label)}
                 placeholder="Select or type weight"
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null,
-                }}
-                tabSelectsValue={false}
-                styles={customSelectStyles(errors.weight, formData.weight)}
-                menuPlacement="auto"
-                menuPosition="fixed"
-                menuPortalTarget={document.body}
+                allowCustom={true}
+                className={getInputClass("weight")}
+                disabled={false}
               />
               {errors.weight && (
                 <p className="text-red-500 text-sm mt-1">{errors.weight}</p>
