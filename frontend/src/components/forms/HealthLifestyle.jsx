@@ -67,14 +67,14 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     }
 
     const payload = {
-      isAlcoholic: String(formData.alcohol || ""),
-      isTobaccoUser: String(formData.tobacco || ""),
-      isHaveTattoos: String(formData.tattoos || ""),
-      isHaveHIV: String(formData.hiv || ""),
-      isPositiveInTB: String(formData.tb || ""),
-      isHaveMedicalHistory: String(formData.medicalHistory || ""),
+      isAlcoholic: String(formData.alcohol || "").toLowerCase(),
+      isTobaccoUser: String(formData.tobacco || "").toLowerCase(),
+      isHaveTattoos: String(formData.tattoos || "").toLowerCase(),
+      isHaveHIV: String(formData.hiv || "").toLowerCase(),
+      isPositiveInTB: String(formData.tb || "").toLowerCase(),
+      isHaveMedicalHistory: String(formData.medicalHistory || "").toLowerCase(),
       medicalHistoryDetails: formData.medicalHistoryDetails?.trim() || "",
-      diet: String(formData.diet || ""),
+      diet: String(formData.diet || "").toLowerCase(),
     };
 
     try {
@@ -124,7 +124,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
     };
   }, []);
   const inputClass =
-    "capitalize w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
+    "w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
 
   return (
     <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
@@ -143,7 +143,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="alcohol"
               value={formData.alcohol}
               onChange={(e) => handleChange("alcohol", e.target.value)}
-              options={["yes", "no", "occasional"]}
+              options={["Yes", "No", "Occasional"]}
               placeholder="Select"
               className={`${inputClass} ${
                 errors.alcohol ? "border-red-500" : ""
@@ -163,7 +163,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="tobacco"
               value={formData.tobacco}
               onChange={(e) => handleChange("tobacco", e.target.value)}
-              options={["yes", "no", "occasional"]}
+              options={["Yes", "No", "Occasional"]}
               placeholder="Select"
               className={`${inputClass} ${
                 errors.tobacco ? "border-red-500" : ""
@@ -183,7 +183,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="tattoos"
               value={formData.tattoos}
               onChange={(e) => handleChange("tattoos", e.target.value)}
-              options={["yes", "no"]}
+              options={["Yes", "No"]}
               placeholder="Select"
               className={`${inputClass} ${
                 errors.tattoos ? "border-red-500" : ""
@@ -203,7 +203,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="hiv"
               value={formData.hiv}
               onChange={(e) => handleChange("hiv", e.target.value)}
-              options={["yes", "no"]}
+              options={["Yes", "No"]}
               placeholder="Select"
               className={`${inputClass} ${errors.hiv ? "border-red-500" : ""}`}
             />
@@ -221,7 +221,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="tb"
               value={formData.tb}
               onChange={(e) => handleChange("tb", e.target.value)}
-              options={["yes", "no"]}
+              options={["Yes", "No"]}
               placeholder="Select"
               className={`${inputClass} ${errors.tb ? "border-red-500" : ""}`}
             />
@@ -240,7 +240,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="medicalHistory"
               value={formData.medicalHistory}
               onChange={(e) => handleChange("medicalHistory", e.target.value)}
-              options={["yes", "no"]}
+              options={["Yes", "No"]}
               placeholder="Select"
               className={`${inputClass} ${
                 errors.medicalHistory ? "border-red-500" : ""
@@ -252,15 +252,17 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               </p>
             )}
 
-            {formData.medicalHistory === "yes" && (
+            {formData.medicalHistory && formData.medicalHistory.toLowerCase() === "yes" && (
               <textarea
                 value={formData.medicalHistoryDetails}
-                onChange={(e) =>
-                  handleChange("medicalHistoryDetails", e.target.value)
-                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const fixed = val.charAt(0).toUpperCase() + val.slice(1);
+                  handleChange("medicalHistoryDetails", fixed);
+                }}
                 placeholder="Please specify in under 100 words"
                 maxLength={500}
-                className={`${inputClass} mt-2 capitalize`}
+                className={`${inputClass} mt-2`}
               />
             )}
           </div>
@@ -274,7 +276,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
               name="diet"
               value={formData.diet}
               onChange={(e) => handleChange("diet", e.target.value)}
-              options={["vegetarian", "non-vegetarian", "eggetarian", "jain", "swaminarayan", "veg & non-veg"]}
+              options={["Vegetarian", "Non-vegetarian", "Eggetarian", "Jain", "Swaminarayan", "Veg & Non-veg"]}
               placeholder="Select"
               className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`}
             />
@@ -283,7 +285,7 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
             )}
           </div>
 
-          {/* ✅ Buttons */}
+     
           <div className="pt-6 flex  justify-between items-center gap-4">
             <button
               type="button"

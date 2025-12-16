@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { CheckCircle2 } from "lucide-react";
 
 const SuccessPage = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ console.log('userData', userData)
         {/* Success Icon */}
         <div className="mb-6">
           <div className="inline-flex p-4 rounded-full" style={{ backgroundColor: "#FFF3D6" }}>
-            <i className="bi bi-check-circle-fill text-4xl" style={{ color: "#D4A052" }}></i>
+            <CheckCircle2 size={48} color="#D4A052" strokeWidth={2.5} fill="#FFF3D6" />
           </div>
         </div>
 

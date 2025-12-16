@@ -433,12 +433,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     let newValue = value;
 
     if (capitalizeFields.includes(name) && value.length > 0) {
-      newValue = value
-        .split(" ")
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join(" ");
+      newValue = value.charAt(0).toUpperCase() + value.slice(1);
     }
 
     setFormData((prev) => ({ ...prev, [name]: newValue }));

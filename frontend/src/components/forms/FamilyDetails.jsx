@@ -273,7 +273,7 @@ const FamilyDetails = ({ onNext, onPrevious }) => {
             <h4 className="text-lg font-semibold text-gray-800 mb-2">
               Father's Details
             </h4>
-            {["Name", "Profession", "Native"].map((field) => (
+            {["Name", "Profession", "Native Place"].map((field) => (
               <div className="flex flex-col" key={field}>
                 <label className="text-sm font-medium mb-1">
                   Father's {field}
