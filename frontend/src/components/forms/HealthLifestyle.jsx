@@ -102,17 +102,23 @@ const HealthLifestyle = ({ onNext, onPrevious }) => {
         const data = res?.data?.data || null;
         if (!data) return;
 
-        setFormData((prev) => ({
-          ...prev,
-          alcohol: data.isAlcoholic || "",
-          tobacco: data.isTobaccoUser || "",
-          tattoos: data.isHaveTattoos || "",
-          hiv: data.isHaveHIV || "",
-          tb: data.isPositiveInTB || "",
-          medicalHistory: data.isHaveMedicalHistory || "",
-          medicalHistoryDetails: data.medicalHistoryDetails || "",
-          diet: data.diet || "",
-        }));
+          // Helper to capitalize first letter
+          const capitalize = (val) =>
+            typeof val === "string" && val.length > 0
+              ? val.charAt(0).toUpperCase() + val.slice(1)
+              : val;
+
+          setFormData((prev) => ({
+            ...prev,
+            alcohol: capitalize(data.isAlcoholic || ""),
+            tobacco: capitalize(data.isTobaccoUser || ""),
+            tattoos: capitalize(data.isHaveTattoos || ""),
+            hiv: capitalize(data.isHaveHIV || ""),
+            tb: capitalize(data.isPositiveInTB || ""),
+            medicalHistory: capitalize(data.isHaveMedicalHistory || ""),
+            medicalHistoryDetails: data.medicalHistoryDetails || "",
+            diet: capitalize(data.diet || ""),
+          }));
       })
       .catch((err) => {
         if (err?.response?.status === 404) return;
