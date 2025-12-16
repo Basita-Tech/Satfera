@@ -10,7 +10,8 @@ interface CachedMatchData {
 
 const CACHE_TTL = {
   MATCH_SCORE: 3600,
-  PROFILE_VIEW: 86400
+  PROFILE_VIEW: 86400,
+  USER_PROFILE: 86400
 };
 
 export function getMatchScoreCacheKey(
@@ -25,6 +26,12 @@ export function getProfileViewCacheKey(
   candidateId: mongoose.Types.ObjectId
 ): string {
   return `profile_view:${viewerId.toString()}:${candidateId.toString()}`;
+}
+
+export function getUserProfileCacheKey(
+  userId: mongoose.Types.ObjectId
+): string {
+  return `user_profile:${userId.toString()}`;
 }
 
 export async function getCachedMatchScore(
@@ -102,18 +109,20 @@ export async function markProfileViewed(
 export async function invalidateUserMatchScores(
   userId: mongoose.Types.ObjectId
 ): Promise<void> {
-  const pattern = `match_score:*${userId.toString()}*`;
+  const matchPattern = `match_score:*${userId.toString()}*`;
+  const profilePattern = getUserProfileCacheKey(userId);
+
   await safeRedisOperation(async () => {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length > 0) {
-      await redisClient.del(keys);
+    const matchKeys = await redisClient.keys(matchPattern);
+    const allKeys = [...matchKeys, profilePattern];
+
+    if (allKeys.length > 0) {
+      await redisClient.del(allKeys);
       logger.info(
-        `Invalidated ${
-          keys.length
-        } match score cache entries for user ${userId.toString()}`
+        `Invalidated ${matchKeys.length} match score cache entries and user profile cache for user ${userId.toString()}`
       );
     }
-  }, "Invalidate user match scores");
+  }, "Invalidate user match scores and profile cache");
 }
 
 export async function invalidateProfileViewCache(
@@ -137,6 +146,42 @@ export async function clearAllMatchScoreCache(): Promise<void> {
       logger.warn(`Cleared ${keys.length} match score cache entries`);
     }
   }, "Clear all match score cache");
+}
+
+export async function getCachedUserProfile(
+  userId: mongoose.Types.ObjectId
+): Promise<any | null> {
+  const cacheKey = getUserProfileCacheKey(userId);
+  const cached = await safeRedisOperation(
+    () => redisClient.get(cacheKey),
+    "Get cached user profile"
+  );
+
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (error) {
+      logger.warn(`Failed to parse cached user profile for key ${cacheKey}`);
+      return null;
+    }
+  }
+  return null;
+}
+
+export async function setCachedUserProfile(
+  userId: mongoose.Types.ObjectId,
+  profileData: any
+): Promise<void> {
+  const cacheKey = getUserProfileCacheKey(userId);
+  await safeRedisOperation(
+    () =>
+      redisClient.setEx(
+        cacheKey,
+        CACHE_TTL.USER_PROFILE,
+        JSON.stringify(profileData)
+      ),
+    "Set cached user profile"
+  );
 }
 
 /**

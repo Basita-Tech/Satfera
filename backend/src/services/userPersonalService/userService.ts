@@ -16,40 +16,118 @@ import { computeMatchScore } from "../recommendationService";
 import { validateUserId } from "./userSettingService";
 
 export async function getUserDashboardService(userId: string) {
-  const [user, userPersonal, userProfile, userProfession, sentRequests] =
-    await Promise.all([
-      User.findById(userId, "firstName lastName dateOfBirth customId").lean(),
-      UserPersonal.findOne({ userId }, "full_address.city").lean(),
-      Profile.findOne(
-        { userId },
-        "photos.closerPhoto favoriteProfiles isVerified ProfileViewed accountType"
-      ).lean(),
-      UserProfession.findOne({ userId }, "Occupation").lean(),
-      ConnectionRequest.countDocuments({ sender: userId, status: "pending" })
-    ]);
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const queryStart = Date.now();
 
-  if (!user || !userProfile) {
+  const result = await User.aggregate([
+    { $match: { _id: userObjectId } },
+    {
+      $lookup: {
+        from: "userpersonals",
+        localField: "_id",
+        foreignField: "userId",
+        pipeline: [{ $project: { "full_address.city": 1 } }],
+        as: "personal"
+      }
+    },
+    {
+      $lookup: {
+        from: "profiles",
+        localField: "_id",
+        foreignField: "userId",
+        pipeline: [
+          {
+            $project: {
+              "photos.closerPhoto.url": 1,
+              favoriteProfiles: 1,
+              isVerified: 1,
+              ProfileViewed: 1,
+              accountType: 1
+            }
+          }
+        ],
+        as: "profile"
+      }
+    },
+    {
+      $lookup: {
+        from: "userprofessions",
+        localField: "_id",
+        foreignField: "userId",
+        pipeline: [{ $project: { Occupation: 1 } }],
+        as: "profession"
+      }
+    },
+    {
+      $lookup: {
+        from: "connectionrequests",
+        let: { userId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$sender", "$$userId"] },
+                  { $eq: ["$status", "pending"] }
+                ]
+              }
+            }
+          },
+          { $count: "count" }
+        ],
+        as: "sentRequests"
+      }
+    },
+    {
+      $project: {
+        firstName: 1,
+        lastName: 1,
+        dateOfBirth: 1,
+        customId: 1,
+        city: { $arrayElemAt: ["$personal.full_address.city", 0] },
+        closerPhotoUrl: {
+          $arrayElemAt: ["$profile.photos.closerPhoto.url", 0]
+        },
+        accountType: { $arrayElemAt: ["$profile.accountType", 0] },
+        isVerified: { $arrayElemAt: ["$profile.isVerified", 0] },
+        profileViewsCount: { $arrayElemAt: ["$profile.ProfileViewed", 0] },
+        favoriteProfiles: { $arrayElemAt: ["$profile.favoriteProfiles", 0] },
+        occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
+        sentRequestsCount: {
+          $ifNull: [{ $arrayElemAt: ["$sentRequests.count", 0] }, 0]
+        }
+      }
+    }
+  ])
+    .allowDiskUse(true)
+    .exec();
+
+  const queryTime = Date.now() - queryStart;
+  logger.info(
+    `Dashboard aggregation query took ${queryTime}ms for user ${userId}`
+  );
+
+  if (!result || result.length === 0) {
     throw new Error("User or profile data not found");
   }
 
-  const profile = userProfile as any;
-  const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : null;
+  const data = result[0];
+  const age = data.dateOfBirth ? calculateAge(data.dateOfBirth) : null;
 
-  const dashboardData = {
-    firstName: user.firstName || null,
-    lastName: user.lastName || null,
+  return {
+    firstName: data.firstName || null,
+    lastName: data.lastName || null,
     age: age,
-    closerPhotoUrl: profile.photos?.closerPhoto?.url || null,
-    city: userPersonal?.full_address?.city || null,
-    occupation: userProfession?.Occupation || null,
-    accountType: profile.accountType || "free",
-    isVerified: profile.isVerified || false,
-    interestSentCount: sentRequests || 0,
-    profileViewsCount: profile.ProfileViewed || 0,
-    shortListedCount: profile.favoriteProfiles?.length || 0,
-    userId: user.customId || null
+    closerPhotoUrl: data.closerPhotoUrl || null,
+    city: data.city || null,
+    occupation: data.occupation || null,
+    accountType: data.accountType || "free",
+    isVerified: data.isVerified || false,
+    interestSentCount: data.sentRequestsCount || 0,
+    profileViewsCount: data.profileViewsCount || 0,
+    shortListedCount: data.favoriteProfiles?.length || 0,
+    userId: data.customId || null
   };
-  return dashboardData;
 }
 
 export async function getUserProfileViewsService(
@@ -356,8 +434,8 @@ export async function searchService(
   limit = 20,
   authUserId?: string
 ) {
-  const match: any = { 
-    isActive: true, 
+  const match: any = {
+    isActive: true,
     isDeleted: false,
     isProfileApproved: true,
     profileReviewStatus: "approved"

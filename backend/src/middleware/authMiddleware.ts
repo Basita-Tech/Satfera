@@ -5,18 +5,42 @@ import { AuthenticatedRequest, JWTPayload } from "../types";
 import { logger } from "../lib/common/logger";
 import { getClientIp } from "../utils/ipUtils";
 import { SessionService } from "../services/sessionService";
+import { redisClient, safeRedisOperation } from "../lib/redis";
+
+const AUTH_CACHE_TTL = 300;
+
+interface CachedAuthData {
+  user: {
+    id: string;
+    email: string;
+    role: string;
+    phoneNumber?: string;
+    isDeleted: boolean;
+    isActive?: boolean;
+  };
+  jtiValid: boolean;
+}
 
 export const verifyToken = (token: string): JWTPayload => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error("JWT_SECRET is not defined");
+    throw new Error("SERVER_CONFIG_ERROR: JWT_SECRET is not defined");
   }
   try {
-    const decoded = jwt.verify(token, secret) as JWTPayload;
-    return decoded;
+    return jwt.verify(token, secret) as JWTPayload;
   } catch (error) {
-    throw new Error("Invalid token");
+    throw new Error("Invalid or expired token");
   }
+};
+
+const extractToken = (req: AuthenticatedRequest): string | null => {
+  const authHeader = req.headers?.authorization;
+  const tokenFromHeader =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : authHeader;
+
+  return tokenFromHeader || req.cookies?.token || null;
 };
 
 export const authenticate = async (
@@ -25,57 +49,100 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers?.authorization || "";
-    const token =
-      authHeader && authHeader.startsWith("Bearer ")
-        ? authHeader.split(" ")[1]
-        : authHeader || req.cookies?.token;
+    const token = extractToken(req);
 
     if (!token) {
       logger.warn("Authentication failed - no token", {
         hasCookies: !!req.cookies,
-        cookieKeys: req.cookies ? Object.keys(req.cookies) : [],
-        hasAuthHeader: !!authHeader,
-        origin: req.headers.origin,
-        referer: req.headers.referer
+        hasAuthHeader: !!req.headers?.authorization,
+        ip: getClientIp(req)
       });
-
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
 
+    let decoded: JWTPayload;
     try {
-      const decoded = verifyToken(token);
-      if (!decoded?.id) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Unauthorized Access" });
+      decoded = verifyToken(token);
+    } catch (tokenError) {
+      logger.warn("Token verification failed", {
+        error: (tokenError as Error)?.message,
+        ip: getClientIp(req),
+        path: req.path
+      });
+      return res.status(401).json({
+        success: false,
+        message: (tokenError as Error)?.message || "Invalid token"
+      });
+    }
+
+    const userId = decoded.id;
+    const jti = (decoded as any).jti as string | undefined;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Unauthorized Access: Missing ID" });
+    }
+
+    const cacheKey = `auth:${userId}:${jti || "no-jti"}`;
+    let cachedAuth: CachedAuthData | null = null;
+
+    const cachedString = await safeRedisOperation(
+      () => redisClient.get(cacheKey),
+      "Get cached auth"
+    );
+
+    if (cachedString) {
+      try {
+        cachedAuth = JSON.parse(cachedString) as CachedAuthData;
+      } catch (parseError) {
+        logger.error("Failed to parse cached auth data", {
+          cacheKey,
+          error: (parseError as Error).message
+        });
+
+        await safeRedisOperation(
+          () => redisClient.del(cacheKey),
+          "Delete bad cache"
+        );
       }
+    }
 
-      const jti = (decoded as any).jti;
+    let user: any;
+    let jtiValid = false;
+
+    if (cachedAuth) {
+      user = cachedAuth.user;
+      jtiValid = cachedAuth.jtiValid;
+    } else {
       if (jti) {
-        const session = await SessionService.validateSession(decoded.id, jti);
+        const session = await SessionService.validateSession(userId, jti);
+        jtiValid = !!session;
 
-        if (!session) {
-          logger.warn("Unauthorized Access", {
-            userId: decoded.id,
+        if (!jtiValid) {
+          logger.warn("Unauthorized Access: Invalid Session", {
+            userId,
             jti,
             ip: getClientIp(req)
           });
-
           return res.status(401).json({
             success: false,
-            message: "Session is invalid, please log in again."
+            message: "Session is invalid or expired, please log in again."
           });
         }
 
-        await SessionService.updateSessionActivity(String(session._id));
+        SessionService.updateSessionActivity(String(session.id)).catch(
+          (err) => {
+            logger.warn(`Failed to update session activity: ${err.message}`);
+          }
+        );
       }
 
-      const user = await User.findById(decoded.id).select(
-        "email role phoneNumber isDeleted isActive"
-      );
+      user = await User.findById(userId)
+        .select("email role phoneNumber isDeleted isActive")
+        .lean();
 
       if (!user) {
         return res
@@ -83,7 +150,7 @@ export const authenticate = async (
           .json({ success: false, message: "User not found" });
       }
 
-      if ((user as any).isDeleted) {
+      if (user.isDeleted) {
         return res.status(403).json({
           success: false,
           message:
@@ -91,46 +158,50 @@ export const authenticate = async (
         });
       }
 
-      if (!(user as any).isActive) {
+      if (user.isActive === false) {
         return res.status(403).json({
           success: false,
           message: "Account has been deactivated. Please contact support."
         });
       }
 
-      const emailFromToken = (decoded as any).email;
-      const phoneFromToken = (decoded as any).phoneNumber;
-
-      req.user = {
-        id: String(user._id),
-        role: (user as any).role || "user",
-        email: emailFromToken || user.email,
-        phoneNumber: phoneFromToken || (user as any).phoneNumber
-      };
-    } catch (error) {
-      logger.warn("Authentication failed", {
-        error: (error as any)?.message,
-        ip: getClientIp(req),
-        path: req.path
-      });
-
-      return res.status(401).json({
-        success: false,
-        message: (error as any)?.message || "Invalid token"
+      const dataToCache: CachedAuthData = { user, jtiValid };
+      await safeRedisOperation(
+        () =>
+          redisClient.setEx(
+            cacheKey,
+            AUTH_CACHE_TTL,
+            JSON.stringify(dataToCache)
+          ),
+        "Cache auth data"
+      ).catch((err) => {
+        logger.warn(`Failed to cache auth data: ${err.message}`);
       });
     }
 
+    const emailFromToken = (decoded as any).email;
+    const phoneFromToken = (decoded as any).phoneNumber;
+    const userIdFromUser = String(user.id || decoded.id);
+
+    req.user = {
+      id: userIdFromUser,
+      role: user.role || "user",
+      email: emailFromToken || user.email,
+      phoneNumber: phoneFromToken || user.phoneNumber
+    };
+
     return next();
   } catch (e: any) {
-    logger.error("Authentication error", {
+    logger.error("Critical Authentication error", {
       error: e?.message,
       stack: e?.stack,
       ip: getClientIp(req)
     });
 
-    return res
-      .status(401)
-      .json({ success: false, message: "Authentication failed" });
+    return res.status(500).json({
+      success: false,
+      message: "An internal authentication error occurred."
+    });
   }
 };
 

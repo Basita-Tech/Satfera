@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { User } from "../models";
+import { Profile, User } from "../models";
 import bcrypt from "bcryptjs";
 import { env } from "../config";
 
@@ -33,6 +33,7 @@ async function seedAdminUser() {
     }
 
     const seedUser = await User.create(adminUser);
+    await Profile.create({ userId: seedUser.id });
     console.log("Admin user seeded:", seedUser);
     await mongoose.disconnect();
     process.exit(0);

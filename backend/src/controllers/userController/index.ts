@@ -11,13 +11,31 @@ import {
   searchService,
   downloadMyPdfData
 } from "../../services/userPersonalService/userService";
-import { User } from "../../models";
+import mongoose from "mongoose";
+import {
+  getCachedUserProfile,
+  setCachedUserProfile
+} from "../../lib/redis/cacheUtils";
 
 export async function getUserDashboardController(req: Request, res: Response) {
   try {
     const userId = req.user!.id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const cachedData = await getCachedUserProfile(userObjectId);
+
+    if (cachedData) {
+      return res.status(200).json({
+        success: true,
+        data: cachedData
+      });
+    }
 
     const dashboardData = await getUserDashboardService(userId);
+
+    setCachedUserProfile(userObjectId, dashboardData).catch((err) => {
+      logger.warn(`Failed to cache user profile for ${userId}:`, err);
+    });
 
     return res.status(200).json({
       success: true,
