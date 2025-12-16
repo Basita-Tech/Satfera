@@ -1,10 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+type Gender = "male" | "female" | "other";
+
 export interface IUser extends Document {
   firstName: string;
   middleName?: string;
   lastName: string;
-  gender: { type: string; enum: ["male", "female", "other"] };
+  gender: Gender;
   role: { type: string; enum: ["user", "admin"] };
   phoneNumber?: string;
   password: string;

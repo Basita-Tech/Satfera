@@ -7,11 +7,11 @@ import {
   UserProfession,
   UserSession
 } from "../../../models";
-import { calculateAge } from "../../../utils/utils";
 import { validateUserId } from "../../../services";
 import { enqueueProfileReviewEmail } from "../../../lib/queue/enqueue";
 import { computeMatchScore } from "../../../services/recommendationService";
 import { startOfYear, endOfYear } from "date-fns";
+import { Types } from "mongoose";
 
 async function updateProfileApproval(
   profileIdOrUserId: string,
@@ -317,10 +317,24 @@ export async function toggleVerificationService(
   }
 }
 
-export async function getUserProfileDetailsService(userId: string) {
-  if (!userId) {
-    throw new Error("userId is required");
+function calculateAge(dateOfBirth: Date): number {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--;
   }
+
+  return age;
+}
+
+export async function getUserProfileDetailsService(userId: string) {
+  if (!userId) throw new Error("userId is required");
 
   try {
     const objectId = validateUserId(userId);
@@ -328,86 +342,98 @@ export async function getUserProfileDetailsService(userId: string) {
     const [profileDataArray, connectionRequests] = await Promise.all([
       User.aggregate([
         { $match: { _id: objectId } },
+
         {
           $lookup: {
             from: "profiles",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [
+              {
+                $project: {
+                  settings: 0,
+                  privacy: 0,
+                  __v: 0,
+                  updatedAt: 0
+                }
+              }
+            ],
             as: "profile"
           }
         },
-        { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } },
+
         {
           $lookup: {
             from: "userhealths",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [{ $limit: 1 }],
             as: "healthData"
           }
         },
-        { $unwind: { path: "$healthData", preserveNullAndEmptyArrays: true } },
+
         {
           $lookup: {
             from: "userprofessions",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [{ $limit: 1 }],
             as: "professionData"
           }
         },
-        {
-          $unwind: {
-            path: "$professionData",
-            preserveNullAndEmptyArrays: true
-          }
-        },
+
         {
           $lookup: {
             from: "userpersonals",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [{ $limit: 1 }],
             as: "personalData"
           }
         },
-        {
-          $unwind: { path: "$personalData", preserveNullAndEmptyArrays: true }
-        },
+
         {
           $lookup: {
             from: "userfamilies",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [{ $limit: 1 }],
             as: "familyData"
           }
         },
-        { $unwind: { path: "$familyData", preserveNullAndEmptyArrays: true } },
+
         {
           $lookup: {
             from: "usereducations",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [{ $limit: 1 }],
             as: "educationsData"
           }
         },
-        {
-          $unwind: {
-            path: "$educationsData",
-            preserveNullAndEmptyArrays: true
-          }
-        },
+
         {
           $lookup: {
             from: "userexpectations",
             localField: "_id",
             foreignField: "userId",
+            pipeline: [{ $limit: 1 }],
             as: "expectationsData"
           }
         },
+
         {
-          $unwind: {
-            path: "$expectationsData",
-            preserveNullAndEmptyArrays: true
+          $addFields: {
+            profile: { $arrayElemAt: ["$profile", 0] },
+            healthData: { $arrayElemAt: ["$healthData", 0] },
+            professionData: { $arrayElemAt: ["$professionData", 0] },
+            personalData: { $arrayElemAt: ["$personalData", 0] },
+            familyData: { $arrayElemAt: ["$familyData", 0] },
+            educationsData: { $arrayElemAt: ["$educationsData", 0] },
+            expectationsData: { $arrayElemAt: ["$expectationsData", 0] }
           }
         },
+
         {
           $project: {
             password: 0,
@@ -416,183 +442,202 @@ export async function getUserProfileDetailsService(userId: string) {
             welcomeSent: 0,
             isOnboardingCompleted: 0,
             completedSteps: 0,
-            termsAndConditionsAccepted: 0,
-            blockedUsers: 0,
-            "profile.visibility": 0,
-            "profile.verificationStatus": 0,
-            "profile.privacy": 0,
-            "profile.settings": 0,
-            "profile.favoriteProfiles": 0,
-            "profile.compareProfiles": 0,
-            "profile.photos.closerPhoto.visibility": 0,
-            "profile.photos.closerPhoto.uploadedAt": 0,
-            "profile.photos.familyPhoto.visibility": 0,
-            "profile.photos.familyPhoto.uploadedAt": 0,
-            "profile.photos.personalPhotos.visibility": 0,
-            "profile.photos.personalPhotos.uploadedAt": 0,
-            "profile.photos.otherPhotos.visibility": 0,
-            "profile.photos.otherPhotos.uploadedAt": 0
+            blockedUsers: 0
           }
         }
-      ] as any),
+      ]),
+
       ConnectionRequest.find({
         $or: [{ sender: objectId }, { receiver: objectId }]
       })
         .select("sender receiver status createdAt")
         .lean()
+        .exec()
     ]);
 
-    const profileDataResult: any = (profileDataArray as any[])[0];
+    const profileDataResult = profileDataArray[0];
+    if (!profileDataResult) throw new Error("User profile not found");
 
-    if (!profileDataResult) {
-      throw new Error("User profile not found");
+    const {
+      profile,
+      healthData,
+      professionData,
+      personalData,
+      familyData,
+      educationsData,
+      expectationsData,
+      ...user
+    } = profileDataResult;
+
+    if (connectionRequests.length === 0) {
+      return {
+        user,
+        profile,
+        healthData,
+        professionData,
+        personalData,
+        familyData,
+        educationsData,
+        expectationsData,
+        stats: {
+          requestsSent: 0,
+          requestsReceived: 0,
+          accepted: 0,
+          highMatch: 0
+        },
+        requestsSentDetails: [],
+        requestsReceivedDetails: []
+      };
     }
 
-    const profile = profileDataResult.profile || null;
-    const healthData = profileDataResult.healthData || null;
-    const professionData = profileDataResult.professionData || null;
-    const personalData = profileDataResult.personalData || null;
-    const familyData = profileDataResult.familyData || null;
-    const educationsData = profileDataResult.educationsData || null;
-    const expectationsData = profileDataResult.expectationsData || null;
-
-    const user = { ...profileDataResult };
-    delete user.profile;
-    delete user.healthData;
-    delete user.professionData;
-    delete user.personalData;
-    delete user.familyData;
-    delete user.educationsData;
-    delete user.expectationsData;
-
+    const userIdStr = objectId.toString();
     const requestsSent = connectionRequests.filter(
-      (req) => req.sender.toString() === objectId.toString()
+      (req) => req.sender.toString() === userIdStr
     );
     const requestsReceived = connectionRequests.filter(
-      (req) => req.receiver.toString() === objectId.toString()
+      (req) => req.receiver.toString() === userIdStr
     );
 
-    const sentToUserIds = requestsSent.map((req) => req.receiver);
-    const receivedFromUserIds = requestsReceived.map((req) => req.sender);
-    const allInvolvedUserIds = [
-      ...new Set([...sentToUserIds, ...receivedFromUserIds])
-    ].filter((id) => id);
+    const targetUserIds = new Set<string>();
+    requestsSent.forEach((req) => targetUserIds.add(req.receiver.toString()));
+    requestsReceived.forEach((req) => targetUserIds.add(req.sender.toString()));
 
-    let userDetailsMap = new Map();
+    const involvedIds = Array.from(targetUserIds);
 
-    if (allInvolvedUserIds.length > 0) {
-      const allUserDetails = await User.aggregate([
-        { $match: { _id: { $in: allInvolvedUserIds } } },
-        {
-          $lookup: {
-            from: "profiles",
-            localField: "_id",
-            foreignField: "userId",
-            as: "profile"
-          }
-        },
-        { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } },
-        {
-          $lookup: {
-            from: "userprofessions",
-            localField: "_id",
-            foreignField: "userId",
-            as: "professionData"
-          }
-        },
-        {
-          $unwind: {
-            path: "$professionData",
-            preserveNullAndEmptyArrays: true
-          }
-        },
-        {
-          $project: {
-            _id: 1,
-            firstName: 1,
-            lastName: 1,
-            dateOfBirth: 1,
-            closerPhoto: "$profile.photos.closerPhoto",
-            Occupation: "$professionData.Occupation"
-          }
-        }
-      ]);
+    const allUserDetails =
+      involvedIds.length > 0
+        ? await User.aggregate([
+            {
+              $match: {
+                _id: { $in: involvedIds.map((id) => new Types.ObjectId(id)) }
+              }
+            },
+            {
+              $lookup: {
+                from: "profiles",
+                localField: "_id",
+                foreignField: "userId",
+                pipeline: [
+                  {
+                    $project: {
+                      "photos.closerPhoto": 1
+                    }
+                  }
+                ],
+                as: "profile"
+              }
+            },
+            {
+              $lookup: {
+                from: "userprofessions",
+                localField: "_id",
+                foreignField: "userId",
+                pipeline: [{ $project: { Occupation: 1 } }, { $limit: 1 }],
+                as: "professionData"
+              }
+            },
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                dateOfBirth: 1,
+                gender: 1,
+                closerPhoto: {
+                  $arrayElemAt: ["$profile.photos.closerPhoto", 0]
+                },
+                Occupation: {
+                  $arrayElemAt: ["$professionData.Occupation", 0]
+                }
+              }
+            }
+          ])
+        : [];
 
-      allUserDetails.forEach((d) => userDetailsMap.set(d._id.toString(), d));
-    }
+    const userDetailsMap = new Map(
+      allUserDetails.map((d) => [d._id.toString(), d])
+    );
 
-    const seeker = user;
-    const seekerExpect = expectationsData;
+    const matchScorePromises = involvedIds.map(async (targetId: any) => {
+      const details = userDetailsMap.get(targetId);
 
-    const buildRequestDetails = async (request: any, targetUserId: any) => {
-      const userDetails = userDetailsMap.get(targetUserId.toString());
-
-      let matchScore = 0;
-      try {
-        const targetUser = await User.findById(targetUserId)
-          .select("firstName lastName dateOfBirth gender")
-          .lean();
-
-        if (targetUser && seekerExpect) {
-          const scoreDetail = await computeMatchScore(objectId, targetUserId, {
-            seeker: seeker,
-            seekerExpect: seekerExpect,
-            candidate: targetUser
-          });
-          matchScore = scoreDetail?.score || 0;
-        }
-      } catch (error) {
-        logger.warn(`Failed to compute match score for user ${targetUserId}`);
+      if (!details || !expectationsData) {
+        return { targetId, score: 0 };
       }
 
-      const closerPhotoData = userDetails?.closerPhoto;
-      const cleanedCloserPhoto = closerPhotoData
-        ? { url: closerPhotoData.url }
-        : null;
+      try {
+        const scoreDetail = await computeMatchScore(objectId, targetId, {
+          seeker: user,
+          seekerExpect: expectationsData,
+          candidate: details
+        });
+        return {
+          targetId,
+          score: Math.round(scoreDetail?.score || 0)
+        };
+      } catch (e) {
+        logger.warn(`Match score failed for ${targetId}`);
+        return { targetId, score: 0 };
+      }
+    });
+
+    const matchScores = await Promise.all(matchScorePromises);
+    const matchScoreMap = new Map(
+      matchScores.map((m) => [m.targetId, m.score])
+    );
+
+    const buildRequestDetail = (
+      targetId: string,
+      status: string,
+      createdAt: Date
+    ) => {
+      const details = userDetailsMap.get(targetId);
+      const matchPercentage = matchScoreMap.get(targetId) || 0;
 
       return {
-        userId: userDetails?._id || targetUserId || null,
-        name: userDetails
-          ? `${userDetails.firstName} ${userDetails.lastName}`
-          : "Unknown",
-        age: userDetails?.dateOfBirth
-          ? calculateAge(userDetails.dateOfBirth)
+        userId: targetId,
+        name: details ? `${details.firstName} ${details.lastName}` : "Unknown",
+        age: details?.dateOfBirth ? calculateAge(details.dateOfBirth) : null,
+        profession: details?.Occupation || null,
+        closerPhoto: details?.closerPhoto?.url
+          ? { url: details.closerPhoto.url }
           : null,
-        profession: userDetails?.Occupation || null,
-        closerPhoto: cleanedCloserPhoto,
-        matchPercentage: Math.round(matchScore),
-        status: request.status,
-        createdAt: request.createdAt
+        matchPercentage,
+        status,
+        createdAt
       };
     };
 
-    const requestsSentDetails = await Promise.all(
-      requestsSent.map((req) => buildRequestDetails(req, req.receiver))
+    const requestsSentDetails = requestsSent.map((req) =>
+      buildRequestDetail(req.receiver.toString(), req.status, req.createdAt)
     );
 
-    const requestsReceivedDetails = await Promise.all(
-      requestsReceived.map((req) => buildRequestDetails(req, req.sender))
+    const requestsReceivedDetails = requestsReceived.map((req) =>
+      buildRequestDetail(req.sender.toString(), req.status, req.createdAt)
     );
 
-    const stats = {
-      requestsSent: requestsSent.length,
-      requestsReceived: requestsReceived.length,
-      accepted: connectionRequests.filter((req) => req.status === "accepted")
-        .length,
-      highMatch: requestsSentDetails.filter((r) => r.matchPercentage > 70)
-        .length
-    };
+    const allDetails = [...requestsSentDetails, ...requestsReceivedDetails];
+    const acceptedCount = connectionRequests.filter(
+      (req) => req.status === "accepted"
+    ).length;
+    const highMatchCount = allDetails.filter(
+      (r) => r.matchPercentage > 70
+    ).length;
 
     return {
       user,
-      profile: profile || null,
-      healthData: healthData || null,
-      professionData: professionData || null,
-      personalData: personalData || null,
-      familyData: familyData || null,
-      educationsData: educationsData || null,
-      expectationsData: expectationsData || null,
-      stats,
+      profile,
+      healthData,
+      professionData,
+      personalData,
+      familyData,
+      educationsData,
+      expectationsData,
+      stats: {
+        requestsSent: requestsSentDetails.length,
+        requestsReceived: requestsReceivedDetails.length,
+        accepted: acceptedCount,
+        highMatch: highMatchCount
+      },
       requestsSentDetails,
       requestsReceivedDetails
     };
@@ -606,89 +651,100 @@ export async function getAllProfilesService(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
   try {
-    const totalCount = await Profile.countDocuments({});
-
-    const pendingProfiles = await Profile.find({})
-      .select("photos.closerPhoto userId")
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    if (!pendingProfiles || pendingProfiles.length === 0) {
-      return {
-        success: true,
-        data: [],
-        pagination: {
-          page,
-          limit,
-          total: totalCount,
-          totalPages: Math.ceil(totalCount / limit),
-          hasMore: false
+    const [stats, profiles] = await Promise.all([
+      User.aggregate([
+        { $match: { role: "user" } },
+        {
+          $group: {
+            _id: "$gender",
+            count: { $sum: 1 }
+          }
         }
-      };
-    }
+      ]),
 
-    const userIds = pendingProfiles.map((profile) => profile.userId);
+      Profile.aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user"
+          }
+        },
+        { $unwind: "$user" },
+        { $match: { "user.role": "user" } },
 
-    const [users, professions] = await Promise.all([
-      User.find({
-        _id: { $in: userIds }
-      })
-        .select(
-          "firstName lastName gender dateOfBirth phoneNumber email customId createdAt"
-        )
-        .lean(),
-      UserProfession.find({ userId: { $in: userIds } })
-        .select("Occupation userId")
-        .lean()
+        { $sort: { "user.createdAt": -1 } },
+        { $skip: skip },
+        { $limit: limit },
+
+        {
+          $lookup: {
+            from: "userprofessions",
+            localField: "userId",
+            foreignField: "userId",
+            as: "profession"
+          }
+        },
+
+        {
+          $project: {
+            _id: 0,
+            userId: "$user._id",
+            customId: "$user.customId",
+            firstName: "$user.firstName",
+            lastName: "$user.lastName",
+            gender: "$user.gender",
+            dateOfBirth: "$user.dateOfBirth",
+            phoneNumber: "$user.phoneNumber",
+            email: "$user.email",
+            accountType: 1,
+            occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
+            closerPhoto: "$photos.closerPhoto.url",
+            createdAt: "$user.createdAt",
+            status: "$user.profileReviewStatus"
+          }
+        }
+      ])
     ]);
 
-    const userMap = new Map();
-    users.forEach((user) => {
-      userMap.set(user._id.toString(), user);
+    const totalCount = await Profile.countDocuments();
+
+    const genderMap = { male: 0, female: 0 };
+    stats.forEach((stat) => {
+      const gender = stat._id?.toLowerCase();
+      if (gender === "male" || gender === "female") {
+        genderMap[gender] = stat.count;
+      }
     });
 
-    const professionMap = new Map();
-    professions.forEach((prof) => {
-      professionMap.set(prof.userId.toString(), prof);
-    });
-
-    const profilesWithUserData = pendingProfiles.map((profile) => {
-      const user = userMap.get(profile.userId.toString());
-      const profession = professionMap.get(profile.userId.toString());
-
-      return {
-        userId: user._id,
-        customId: user?.customId || null,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-        gender: user?.gender,
-        age: calculateAge(user?.dateOfBirth),
-        phoneNumber: user?.phoneNumber,
-        email: user?.email,
-        occupation: profession?.Occupation || null,
-        closerPhoto: profile?.photos?.closerPhoto?.url || null,
-        createdAt: user?.createdAt
-      };
-    });
-
-    const totalPages = Math.ceil(totalCount / limit);
-    const hasMore = page * limit < totalCount;
+    const usersWithAge = profiles.map((p) => ({
+      ...p,
+      age: calculateAge(p.dateOfBirth)
+    }));
 
     return {
       success: true,
-      data: profilesWithUserData,
+      data: {
+        maleUsersCount: genderMap.male,
+        femaleUsersCount: genderMap.female,
+        users: usersWithAge
+      },
       pagination: {
         page,
         limit,
         total: totalCount,
-        totalPages,
-        hasMore
+        totalPages: Math.ceil(totalCount / limit),
+        hasMore: page * limit < totalCount
       }
     };
   } catch (error) {
-    logger.error("Error fetching pending profiles:", error);
-    return { success: false, message: "Failed to fetch pending profiles" };
+    logger.error("Error fetching profiles:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to fetch profiles"
+    };
   }
 }
 
