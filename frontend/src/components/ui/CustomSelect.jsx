@@ -170,11 +170,12 @@ export default function CustomSelect({
     }
   }, [open]);
 
+  // Only show gold border on actual focus, not just when dropdown is open (especially for button-only mobile UI)
+  const [isFocused, setIsFocused] = useState(false);
   const themeBase = 'w-full rounded-md p-2.5 sm:p-3 text-sm transition box-border bg-white';
   const borderBase = 'border transition-colors duration-200';
-  const borderColor = 'border-[#D4A052] focus:border-[#D4A052] focus:ring-1 focus:ring-[#D4A052] focus:outline-none';
-  const openStyle = open ? 'ring-1 ring-[#D4A052]' : '';
-  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${openStyle} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`;
+  const borderColor = isFocused ? 'border-[#D4A052] ring-1 ring-[#D4A052] focus:border-[#D4A052] focus:ring-1 focus:ring-[#D4A052] focus:outline-none' : 'border-[#D4A052]';
+  const triggerClasses = `${themeBase} ${borderBase} ${borderColor} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : (suppressKeyboard ? 'cursor-pointer' : 'cursor-text')}`;
 
   const handleInputChange = (e) => {
     const newSearchTerm = e.target.value;
@@ -233,18 +234,15 @@ export default function CustomSelect({
               setSearchTerm('');
               setHighlightIndex(0);
               updatePosition();
+              setIsFocused(true);
             }
           }}
           onTouchStart={(e) => {
             e.preventDefault();
           }}
-          onFocus={(e) => {
-            e.preventDefault();
-          }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-          }}
-          className={`${themeBase} ${borderBase} ${borderColor} ${open ? 'ring-1 ring-[#D4A052]' : ''} ${className} pr-10 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} text-left`}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={triggerClasses + ' text-left'}
           aria-haspopup="listbox"
           aria-expanded={open}
         >
@@ -260,8 +258,12 @@ export default function CustomSelect({
           className={triggerClasses}
           value={displayValue}
           onChange={handleInputChange}
-          onFocus={() => {
-            // allow normal focus when keyboard is not suppressed (desktop/laptop)
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            setIsFocused(false);
+            setOpen(false);
+            setHighlightIndex(-1);
+            setSearchTerm('');
           }}
           onMouseDown={(e) => {
             if (suppressKeyboard && !disabled) {
@@ -270,12 +272,6 @@ export default function CustomSelect({
           }}
           onKeyDown={handleInputKeyDown}
           onClick={handleInputClick}
-          onBlur={() => {
-            // Close dropdown when focus leaves
-            setOpen(false);
-            setHighlightIndex(-1);
-            setSearchTerm('');
-          }}
           placeholder={placeholder}
           aria-haspopup="listbox"
           aria-expanded={open}
@@ -337,8 +333,7 @@ export default function CustomSelect({
                     setOpen(false);
                     setSearchTerm('');
                     setHighlightIndex(-1);
-                    // Keep focus on input after selection
-                    setTimeout(() => searchInputRef.current?.focus(), 0);
+                    setIsFocused(false); // Remove gold border after selection
                   }}
                 >
                   {opt}
@@ -352,19 +347,18 @@ export default function CustomSelect({
               aria-selected={false}
               className={`px-3 py-2 text-sm cursor-pointer ${highlightIndex === filteredOptions.length ? 'bg-gray-100' : 'text-gray-700 hover:bg-gray-50'}`}
               onMouseEnter={() => setHighlightIndex(filteredOptions.length)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                let sel = searchTerm.trim();
-                if (preserveCase) {
-                  sel = sel.charAt(0).toUpperCase() + sel.slice(1);
-                }
-                onChange && onChange({ target: { name, value: sel } });
-                setOpen(false);
-                setSearchTerm('');
-                setHighlightIndex(-1);
-                // Keep focus on input after selection
-                setTimeout(() => searchInputRef.current?.focus(), 0);
-              }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  let sel = searchTerm.trim();
+                  if (preserveCase) {
+                    sel = sel.charAt(0).toUpperCase() + sel.slice(1);
+                  }
+                  onChange && onChange({ target: { name, value: sel } });
+                  setOpen(false);
+                  setSearchTerm('');
+                  setHighlightIndex(-1);
+                  setIsFocused(false); // Remove gold border after selection
+                }}
             >
               Use "{searchTerm.trim()}"
             </li>
