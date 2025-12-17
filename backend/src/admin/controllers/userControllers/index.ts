@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { logger } from "../../../lib/common/logger";
 import * as adminService from "../../services/userServices";
+import { AuthenticatedRequest } from "../../../types";
 
 export async function approveUserProfileController(
   req: Request,
@@ -209,9 +210,13 @@ export async function getAllProfilesController(req: Request, res: Response) {
   const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
   let limit = parseInt((req.query.limit as string) || "20", 10);
   limit = Math.min(Math.max(1, limit), 100);
-
+  const isActive = req.query.isActive;
   try {
-    const result = await adminService.getAllProfilesService(page, limit);
+    const result = await adminService.getAllProfilesService(
+      page,
+      limit,
+      isActive
+    );
 
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {
@@ -261,6 +266,59 @@ export async function getAllRequestsController(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch all requests"
+    });
+  }
+}
+
+export async function getSuperProfiles(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  const viewerId = req.user.id;
+  const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
+  let limit = parseInt((req.query.limit as string) || "20", 10);
+  limit = Math.min(Math.max(1, limit), 100);
+
+  try {
+    const result = await adminService.getSuperProfilesService(
+      page,
+      limit,
+      viewerId
+    );
+
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error: any) {
+    logger.error("Error fetching all profiles:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch all profiles"
+    });
+  }
+}
+
+export async function changeUserPassword(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  const { newPassword, userId } = req.body;
+
+  const result = await adminService.changeUserPasswordService(
+    userId!,
+    newPassword
+  );
+
+  if (result.success) {
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: result.message
     });
   }
 }

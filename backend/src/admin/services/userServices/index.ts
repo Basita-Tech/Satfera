@@ -12,6 +12,8 @@ import { enqueueProfileReviewEmail } from "../../../lib/queue/enqueue";
 import { computeMatchScore } from "../../../services/recommendationService";
 import { startOfYear, endOfYear } from "date-fns";
 import { Types } from "mongoose";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 async function updateProfileApproval(
   profileIdOrUserId: string,
@@ -159,12 +161,10 @@ export async function getPendingProfilesService(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
   try {
-    const totalCount = await User.countDocuments({
-      profileReviewStatus: "pending"
-    });
+    const totalCount = await User.countDocuments({});
 
     const pendingUserIds = await User.find({
-      profileReviewStatus: "pending"
+      role: "user"
     })
       .select("_id")
       .skip(skip)
@@ -192,7 +192,7 @@ export async function getPendingProfilesService(page: number, limit: number) {
         _id: { $in: userIds }
       })
         .select(
-          "firstName lastName gender dateOfBirth phoneNumber email customId"
+          "firstName lastName gender dateOfBirth phoneNumber email customId profileReviewStatus"
         )
         .lean(),
       UserProfession.find({ userId: { $in: userIds } })
@@ -233,12 +233,12 @@ export async function getPendingProfilesService(page: number, limit: number) {
       const personal = personalMap.get(userId.toString());
 
       return {
-        profileId: profile?._id || null,
         userId: user._id,
         customId: user?.customId || null,
         firstName: user?.firstName,
         lastName: user?.lastName,
         gender: user?.gender,
+        status: user?.profileReviewStatus,
         age: calculateAge(user?.dateOfBirth),
         phoneNumber: user?.phoneNumber,
         email: user?.email,
@@ -647,13 +647,20 @@ export async function getUserProfileDetailsService(userId: string) {
   }
 }
 
-export async function getAllProfilesService(page: number, limit: number) {
+export async function getAllProfilesService(
+  page: number,
+  limit: number,
+  isActive
+) {
   const skip = (page - 1) * limit;
+
+  const isActiveFilter =
+    isActive === "false" || isActive === false ? false : true;
 
   try {
     const [stats, profiles] = await Promise.all([
       User.aggregate([
-        { $match: { role: "user" } },
+        { $match: { role: "user", isActive: isActiveFilter } },
         {
           $group: {
             _id: "$gender",
@@ -672,7 +679,7 @@ export async function getAllProfilesService(page: number, limit: number) {
           }
         },
         { $unwind: "$user" },
-        { $match: { "user.role": "user" } },
+        { $match: { "user.role": "user", "user.isActive": isActiveFilter } },
 
         { $sort: { "user.createdAt": -1 } },
         { $skip: skip },
@@ -708,7 +715,21 @@ export async function getAllProfilesService(page: number, limit: number) {
       ])
     ]);
 
-    const totalCount = await Profile.countDocuments();
+    const totalCount = await Profile.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+      { $match: { "user.role": "user", "user.isActive": isActiveFilter } },
+      { $count: "total" }
+    ]);
+
+    const total = totalCount[0]?.total ?? 0;
 
     const genderMap = { male: 0, female: 0 };
     stats.forEach((stat) => {
@@ -733,9 +754,9 @@ export async function getAllProfilesService(page: number, limit: number) {
       pagination: {
         page,
         limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        hasMore: page * limit < totalCount
+        total: total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total
       }
     };
   } catch (error) {
@@ -1042,5 +1063,191 @@ export async function getAllRequestsService(page: number, limit: number) {
   } catch (error) {
     logger.error("Error fetching all requests:", error);
     return { success: false, message: "Failed to fetch all requests" };
+  }
+}
+
+export async function getSuperProfilesService(
+  page: number,
+  limit: number,
+  viewerId: string
+) {
+  const skip = (page - 1) * limit;
+
+  try {
+    if (!viewerId || typeof viewerId !== "string") {
+      return { success: false, message: "Authentication required" };
+    }
+
+    const viewerObjectId = new mongoose.Types.ObjectId(viewerId);
+
+    const viewerProfile = await Profile.findOne(
+      { userId: viewerObjectId },
+      { favoriteProfiles: 1 }
+    ).lean();
+
+    const favoriteIds: mongoose.Types.ObjectId[] =
+      viewerProfile?.favoriteProfiles?.map(
+        (id: any) => new mongoose.Types.ObjectId(id)
+      ) || [];
+
+    if (!favoriteIds.length) {
+      return {
+        success: true,
+        data: {
+          users: []
+        },
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+          hasMore: false
+        }
+      };
+    }
+
+    const [stats, profiles, totalCount] = await Promise.all([
+      User.aggregate([{ $match: { _id: { $in: favoriteIds }, role: "user" } }]),
+
+      Profile.aggregate([
+        { $match: { userId: { $in: favoriteIds } } },
+
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user"
+          }
+        },
+        { $unwind: "$user" },
+
+        {
+          $match: {
+            "user.role": "user",
+            "user.blockedUsers": { $ne: viewerObjectId }
+          }
+        },
+
+        {
+          $lookup: {
+            from: "users",
+            let: { uid: "$userId" },
+            pipeline: [
+              {
+                $match: {
+                  _id: viewerObjectId,
+                  blockedUsers: { $ne: "$$uid" }
+                }
+              }
+            ],
+            as: "viewerBlockCheck"
+          }
+        },
+        { $match: { viewerBlockCheck: { $ne: [] } } },
+
+        { $sort: { "user.createdAt": -1 } },
+        { $skip: skip },
+        { $limit: limit },
+
+        {
+          $lookup: {
+            from: "userprofessions",
+            localField: "userId",
+            foreignField: "userId",
+            as: "profession"
+          }
+        },
+
+        {
+          $project: {
+            _id: 0,
+            userId: "$user._id",
+            customId: "$user.customId",
+            firstName: "$user.firstName",
+            lastName: "$user.lastName",
+            gender: "$user.gender",
+            dateOfBirth: "$user.dateOfBirth",
+            phoneNumber: "$user.phoneNumber",
+            email: "$user.email",
+            accountType: 1,
+            occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
+            closerPhoto: "$photos.closerPhoto.url",
+            createdAt: "$user.createdAt",
+            status: "$user.profileReviewStatus"
+          }
+        }
+      ]),
+
+      Profile.countDocuments({ userId: { $in: favoriteIds } })
+    ]);
+
+    const usersWithAge = profiles.map((p: any) => ({
+      ...p,
+      age: calculateAge(p.dateOfBirth)
+    }));
+
+    return {
+      success: true,
+      data: {
+        users: usersWithAge
+      },
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasMore: page * limit < totalCount
+      }
+    };
+  } catch (error) {
+    logger.error("Error fetching favorite profiles:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch favorite profiles"
+    };
+  }
+}
+
+export async function changeUserPasswordService(
+  userId: string,
+  newPassword: string
+) {
+  if (!userId) {
+    return {
+      success: false,
+      message: "Authentication required"
+    };
+  }
+
+  try {
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found"
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    return {
+      success: true,
+      message: "Password changed successfully"
+    };
+  } catch (error: any) {
+    logger.error("Error changing user password:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return {
+      success: false,
+      message: "Failed to change password"
+    };
   }
 }

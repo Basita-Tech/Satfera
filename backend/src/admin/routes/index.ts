@@ -115,4 +115,15 @@ adminRouter.get(
   adminController.getAllRequestsController
 );
 
+adminRouter.get(
+  "/super-profiles",
+  authenticate,
+  adminController.getSuperProfiles
+);
+
+adminRouter.post(
+  "/user/change-password",
+  authenticate,
+  adminController.changeUserPassword
+);
 export default adminRouter;

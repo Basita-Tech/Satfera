@@ -326,7 +326,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
       if (authHealth) {
         const isHIV = isAffirmative((authHealth as any).isHaveHIV);
         const trueValues = [true, "true", "yes", "1", 1];
-        const falseValues = [false, "false", "no", "0", 0];
+        const falseValues = [false, "false", "no", "0", 0, "", null];
 
         if (isHIV) {
           hivFilter = { $in: trueValues };
