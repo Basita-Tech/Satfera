@@ -322,3 +322,37 @@ export async function changeUserPassword(
     });
   }
 }
+
+export async function getReportsController(req: Request, res: Response) {
+  try {
+    const result = await adminService.getReportsService();
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error: any) {
+    logger.error("Error fetching reports:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch reports"
+    });
+  }
+}
+
+export async function updateReportStatusController(req: Request, res: Response) {
+  const { id, status } = req.body;
+
+  const result = await adminService.updateReportStatusService(id, status);
+
+  if (result.success) {
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: result.message
+    });
+  }
+}

@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { User, Profile, Notification } from "../../../models";
+import { User, Profile, Notification, UserProfession } from "../../../models";
 import { logger } from "../../../lib/common/logger";
 import {
   sendAccountActivationEmail,
@@ -10,7 +10,7 @@ import {
 import { APP_CONFIG } from "../../../utils/constants";
 import { NotificationSettings } from "../../../types";
 import { generateOtp, redisClient, safeRedisOperation } from "../../../lib";
-import { notifyAdminsOfUserBlocked } from "../../../admin/utils/notification";
+import { notifyAdminsOfProfileReported, notifyAdminsOfUserBlocked } from "../../../admin/utils/notification";
 import bcrypt from "bcryptjs";
 import {
   clearOtpData,
@@ -22,6 +22,7 @@ import {
   OTP_RESEND_LIMIT,
   setOtp
 } from "../../../lib/redis/otpRedis";
+import { Reports } from "../../../models/Reports";
 
 const ACCOUNT_STATUS_COOLDOWN_TTL = APP_CONFIG.ACCOUNT_STATUS_COOLDOWN_TTL;
 
@@ -748,8 +749,7 @@ export async function verifyAndChangeEmail(
     if (storedOtp && storedOtp !== otp) {
       const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
       throw new Error(
-        `Invalid OTP. You have ${remainingAttempts} attempt${
-          remainingAttempts !== 1 ? "s" : ""
+        `Invalid OTP. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? "s" : ""
         } remaining.`
       );
     }
@@ -900,42 +900,109 @@ export async function reportProfile(
   reporterId: string,
   reportedUserCustomId: string,
   reason: string,
-  description?: string
+  description?: string,
+  reportType: "spam" | "abuse" | "hate" | "other" = "other"
 ): Promise<{ success: true; message: string }> {
+
   const reporterObjectId = validateUserId(reporterId);
 
-  const reportedUser = await User.findOne({
-    customId: reportedUserCustomId
-  }).select("_id firstName lastName email customId");
 
-  if (!reportedUser) throw new Error("Reported user not found");
+  const reportedUser = await User.findOne({ customId: reportedUserCustomId })
+    .select("_id firstName lastName")
+    .lean();
 
-  if (String(reportedUser._id) === String(reporterObjectId)) {
-    throw new Error("Cannot report your own profile");
+  if (!reportedUser) {
+    throw new Error("Reported user not found");
   }
 
-  const reporter = await User.findById(reporterObjectId).select(
-    "firstName lastName email"
-  );
+  if (String(reportedUser._id) === String(reporterObjectId)) {
+    throw new Error("You cannot report your own profile");
+  }
 
-  if (!reporter) throw new Error("Reporter user not found");
+
+  const alreadyReported = await Reports.exists({
+    userId: reporterObjectId,
+    reportedToUserId: reportedUser._id
+  });
+
+  if (alreadyReported) {
+    throw new Error("You have already reported this user");
+  }
+
+
+  const [
+    reporterUser,
+    reporterProfile,
+    reporterProfession,
+    reportedProfile,
+    reportedProfession
+  ] = await Promise.all([
+    User.findById(reporterObjectId)
+      .select("firstName lastName")
+      .lean(),
+
+    Profile.findOne({ userId: reporterObjectId })
+      .select("photos.closerPhoto.url")
+      .lean(),
+
+    UserProfession.findOne({ userId: reporterObjectId })
+      .select("Occupation")
+      .lean(),
+
+    Profile.findOne({ userId: reportedUser._id })
+      .select("photos.closerPhoto.url")
+      .lean(),
+
+    UserProfession.findOne({ userId: reportedUser._id })
+      .select("Occupation")
+      .lean()
+  ]);
+
+  if (!reporterUser) {
+    throw new Error("Reporter user not found");
+  }
+
+
+  const reporterUserDetails = {
+    firstName: reporterUser.firstName,
+    lastName: reporterUser.lastName,
+    profilePicture: reporterProfile?.photos?.closerPhoto?.url || null,
+    occupation: reporterProfession?.Occupation || null
+  };
+
+  const reportedToUserDetails = {
+    firstName: reportedUser.firstName,
+    lastName: reportedUser.lastName,
+    profilePicture: reportedProfile?.photos?.closerPhoto?.url || null,
+    occupation: reportedProfession?.Occupation || null
+  };
 
   try {
-    const { notifyAdminsOfProfileReported } = await import(
-      "../../../admin/utils/notification"
-    );
+    await Reports.create({
+      userId: reporterObjectId,
+      reportedToUserId: reportedUser._id,
+      reporterUserDetails,
+      reportedToUserDetails,
+      reportType,
+      reportReason: reason,
+      reportDescription: description
+    });
+
     await notifyAdminsOfProfileReported(
-      reporter,
+      reporterUser,
       reportedUser,
       reason,
       description
     );
-  } catch (error) {
-    logger.error("Failed to notify admins of profile report:", error);
-  }
 
-  return {
-    success: true,
-    message: "Profile reported successfully. Our team will review it soon."
-  };
+    return {
+      success: true,
+      message: "Profile reported successfully. Our team will review it soon."
+    };
+
+  } catch (error) {
+    logger.error("Profile report failed", error);
+    throw error;
+  }
 }
+

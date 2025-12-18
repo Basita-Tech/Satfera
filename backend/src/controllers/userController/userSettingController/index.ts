@@ -706,7 +706,7 @@ export async function reportProfileController(
 ) {
   try {
     const userId = req.user?.id;
-    const { customId, reason, description } = req.body;
+    const { customId, reason, description, reportType } = req.body;
 
     if (!userId)
       return res
@@ -724,7 +724,7 @@ export async function reportProfileController(
         .json({ success: false, message: "reason is required" });
 
     try {
-      const result = await reportProfile(userId, customId, reason, description);
+      const result = await reportProfile(userId, customId, reason, description, reportType);
       return res.status(200).json({
         success: true,
         message: result.message

@@ -14,6 +14,7 @@ import { startOfYear, endOfYear } from "date-fns";
 import { Types } from "mongoose";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { Reports } from "../../../models/Reports";
 
 async function updateProfileApproval(
   profileIdOrUserId: string,
@@ -507,50 +508,50 @@ export async function getUserProfileDetailsService(userId: string) {
     const allUserDetails =
       involvedIds.length > 0
         ? await User.aggregate([
-            {
-              $match: {
-                _id: { $in: involvedIds.map((id) => new Types.ObjectId(id)) }
-              }
-            },
-            {
-              $lookup: {
-                from: "profiles",
-                localField: "_id",
-                foreignField: "userId",
-                pipeline: [
-                  {
-                    $project: {
-                      "photos.closerPhoto": 1
-                    }
+          {
+            $match: {
+              _id: { $in: involvedIds.map((id) => new Types.ObjectId(id)) }
+            }
+          },
+          {
+            $lookup: {
+              from: "profiles",
+              localField: "_id",
+              foreignField: "userId",
+              pipeline: [
+                {
+                  $project: {
+                    "photos.closerPhoto": 1
                   }
-                ],
-                as: "profile"
-              }
-            },
-            {
-              $lookup: {
-                from: "userprofessions",
-                localField: "_id",
-                foreignField: "userId",
-                pipeline: [{ $project: { Occupation: 1 } }, { $limit: 1 }],
-                as: "professionData"
-              }
-            },
-            {
-              $project: {
-                firstName: 1,
-                lastName: 1,
-                dateOfBirth: 1,
-                gender: 1,
-                closerPhoto: {
-                  $arrayElemAt: ["$profile.photos.closerPhoto", 0]
-                },
-                Occupation: {
-                  $arrayElemAt: ["$professionData.Occupation", 0]
                 }
+              ],
+              as: "profile"
+            }
+          },
+          {
+            $lookup: {
+              from: "userprofessions",
+              localField: "_id",
+              foreignField: "userId",
+              pipeline: [{ $project: { Occupation: 1 } }, { $limit: 1 }],
+              as: "professionData"
+            }
+          },
+          {
+            $project: {
+              firstName: 1,
+              lastName: 1,
+              dateOfBirth: 1,
+              gender: 1,
+              closerPhoto: {
+                $arrayElemAt: ["$profile.photos.closerPhoto", 0]
+              },
+              Occupation: {
+                $arrayElemAt: ["$professionData.Occupation", 0]
               }
             }
-          ])
+          }
+        ])
         : [];
 
     const userDetailsMap = new Map(
@@ -1248,6 +1249,51 @@ export async function changeUserPasswordService(
     return {
       success: false,
       message: "Failed to change password"
+    };
+  }
+}
+
+
+export async function getReportsService() {
+  try {
+    const reports = await Reports.find().select("-__v").lean();
+    return {
+      success: true,
+      data: reports
+    };
+  } catch (error) {
+    logger.error("Error fetching reports:", error);
+    return {
+      success: false,
+      message: "Failed to fetch reports"
+    };
+  }
+}
+
+export async function updateReportStatusService(id: string, status: string) {
+  try {
+    const report = await Reports.findById(id);
+
+    if (!report) {
+      return {
+        success: false,
+        message: "Report not found"
+      };
+    }
+
+    report.status = status;
+    await report.save();
+
+    return {
+      success: true,
+      message: "Report status updated successfully"
+    };
+
+  } catch (error) {
+    logger.error("Error updating report status:", error);
+    return {
+      success: false,
+      message: "Failed to update report status"
     };
   }
 }

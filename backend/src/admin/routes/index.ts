@@ -130,4 +130,8 @@ adminRouter.post(
 
 adminRouter.get("/system/health", authenticate, getSystemHealth);
 
+adminRouter.get("/reports", authenticate, adminController.getReportsController);
+
+adminRouter.put("/reports", authenticate, adminController.updateReportStatusController)
+
 export default adminRouter;
