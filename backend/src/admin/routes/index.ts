@@ -4,6 +4,7 @@ import authenticate from "../../middleware/authMiddleware";
 import * as adminController from "../controllers";
 import { commonControllers } from "../controllers/commonControllers";
 import { isAdmin } from "../../utils/utils";
+import { getSystemHealth } from "../controllers/systemControllers";
 
 const adminRouter = express();
 
@@ -126,4 +127,7 @@ adminRouter.post(
   authenticate,
   adminController.changeUserPassword
 );
+
+adminRouter.get("/system/health", authenticate, getSystemHealth);
+
 export default adminRouter;
