@@ -108,9 +108,26 @@ export async function getPendingProfilesController(
   const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
   let limit = parseInt((req.query.limit as string) || "20", 10);
   limit = Math.min(Math.max(1, limit), 100);
+  const ALLOWED_STATUSES = ["pending", "approved", "rejected", "rectification"];
+  const status =
+    (req.query.status as
+      | "pending"
+      | "approved"
+      | "rejected"
+      | "rectification") || "pending";
+  if (status && !ALLOWED_STATUSES.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid profile review status"
+    });
+  }
 
   try {
-    const result = await adminService.getPendingProfilesService(page, limit);
+    const result = await adminService.getPendingProfilesService(
+      page,
+      limit,
+      status
+    );
 
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {

@@ -158,23 +158,31 @@ export async function rectifyUserProfileService(
   }
 }
 
-export async function getPendingProfilesService(page: number, limit: number) {
+export async function getPendingProfilesService(
+  page: number,
+  limit: number,
+  status: "pending" | "approved" | "rejected" | "rectification"
+) {
   const skip = (page - 1) * limit;
 
   try {
-    const totalCount = await User.countDocuments({});
+    const userFilter = {
+      role: "user",
+      profileReviewStatus: status
+    };
 
-    const pendingUserIds = await User.find({
-      role: "user"
-    })
+    const totalCount = await User.countDocuments(userFilter);
+
+    const usersPage = await User.find(userFilter)
+      .sort({ createdAt: -1 })
       .select("_id")
       .skip(skip)
       .limit(limit)
       .lean();
 
-    const userIds = pendingUserIds.map((u: any) => u._id);
+    const userIds = usersPage.map((u: any) => u._id);
 
-    if (!userIds || userIds.length === 0) {
+    if (userIds.length === 0) {
       return {
         success: true,
         data: [],
@@ -189,64 +197,58 @@ export async function getPendingProfilesService(page: number, limit: number) {
     }
 
     const [users, professions, personalData, profiles] = await Promise.all([
-      User.find({
-        _id: { $in: userIds }
-      })
+      User.find({ _id: { $in: userIds } })
         .select(
-          "firstName lastName gender dateOfBirth phoneNumber email customId profileReviewStatus"
+          "firstName lastName gender dateOfBirth phoneNumber email customId profileReviewStatus createdAt"
         )
         .lean(),
+
       UserProfession.find({ userId: { $in: userIds } })
         .select("Occupation userId")
         .lean(),
+
       UserPersonal.find({ userId: { $in: userIds } })
         .select("full_address userId")
         .lean(),
+
       Profile.find({ userId: { $in: userIds } })
         .select("photos.closerPhoto userId")
         .lean()
     ]);
 
-    const userMap = new Map();
-    users.forEach((user) => {
-      userMap.set(user._id.toString(), user);
-    });
+    const userMap = new Map<string, any>();
+    users.forEach((u) => userMap.set(u._id.toString(), u));
 
-    const professionMap = new Map();
-    professions.forEach((prof) => {
-      professionMap.set(prof.userId.toString(), prof);
-    });
+    const professionMap = new Map<string, any>();
+    professions.forEach((p) => professionMap.set(p.userId.toString(), p));
 
-    const personalMap = new Map();
-    personalData.forEach((personal) => {
-      personalMap.set(personal.userId.toString(), personal);
-    });
+    const personalMap = new Map<string, any>();
+    personalData.forEach((p) => personalMap.set(p.userId.toString(), p));
 
-    const profileMap = new Map();
-    profiles.forEach((prof: any) => {
-      profileMap.set(prof.userId.toString(), prof);
-    });
+    const profileMap = new Map<string, any>();
+    profiles.forEach((p) => profileMap.set(p.userId.toString(), p));
 
     const profilesWithUserData = userIds.map((userId: any) => {
       const user = userMap.get(userId.toString());
-      const profile = profileMap.get(userId.toString());
       const profession = professionMap.get(userId.toString());
       const personal = personalMap.get(userId.toString());
+      const profile = profileMap.get(userId.toString());
 
       return {
-        userId: user._id,
+        userId: user?._id,
         customId: user?.customId || null,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-        gender: user?.gender,
-        status: user?.profileReviewStatus,
-        age: calculateAge(user?.dateOfBirth),
-        phoneNumber: user?.phoneNumber,
-        email: user?.email,
+        firstName: user?.firstName || null,
+        lastName: user?.lastName || null,
+        gender: user?.gender || null,
+        status: user?.profileReviewStatus || null,
+        age: user?.dateOfBirth ? calculateAge(user.dateOfBirth) : null,
+        phoneNumber: user?.phoneNumber || null,
+        email: user?.email || null,
         occupation: profession?.Occupation || null,
         city: personal?.full_address?.city || null,
         state: personal?.full_address?.state || null,
-        closerPhoto: profile?.photos?.closerPhoto?.url || null
+        closerPhoto: profile?.photos?.closerPhoto?.url || null,
+        createdAt: user?.createdAt || null
       };
     });
 
@@ -265,8 +267,11 @@ export async function getPendingProfilesService(page: number, limit: number) {
       }
     };
   } catch (error) {
-    logger.error("Error fetching pending profiles:", error);
-    return { success: false, message: "Failed to fetch pending profiles" };
+    logger.error("Error fetching profiles:", error);
+    return {
+      success: false,
+      message: "Failed to fetch profiles"
+    };
   }
 }
 
@@ -442,8 +447,7 @@ export async function getUserProfileDetailsService(userId: string) {
             updatedAt: 0,
             welcomeSent: 0,
             isOnboardingCompleted: 0,
-            completedSteps: 0,
-            blockedUsers: 0
+            completedSteps: 0
           }
         }
       ]),
@@ -467,50 +471,37 @@ export async function getUserProfileDetailsService(userId: string) {
       familyData,
       educationsData,
       expectationsData,
+      blockedUsers = [],
       ...user
     } = profileDataResult;
 
-    if (connectionRequests.length === 0) {
-      return {
-        user,
-        profile,
-        healthData,
-        professionData,
-        personalData,
-        familyData,
-        educationsData,
-        expectationsData,
-        stats: {
-          requestsSent: 0,
-          requestsReceived: 0,
-          accepted: 0,
-          highMatch: 0
-        },
-        requestsSentDetails: [],
-        requestsReceivedDetails: []
-      };
-    }
-
     const userIdStr = objectId.toString();
+
     const requestsSent = connectionRequests.filter(
-      (req) => req.sender.toString() === userIdStr
+      (r) => r.sender.toString() === userIdStr
     );
     const requestsReceived = connectionRequests.filter(
-      (req) => req.receiver.toString() === userIdStr
+      (r) => r.receiver.toString() === userIdStr
     );
 
-    const targetUserIds = new Set<string>();
-    requestsSent.forEach((req) => targetUserIds.add(req.receiver.toString()));
-    requestsReceived.forEach((req) => targetUserIds.add(req.sender.toString()));
+    const requestUserIds = new Set<string>();
+    requestsSent.forEach((r) => requestUserIds.add(r.receiver.toString()));
+    requestsReceived.forEach((r) => requestUserIds.add(r.sender.toString()));
 
-    const involvedIds = Array.from(targetUserIds);
+    const blockedUserIds = blockedUsers.map((id: any) => id.toString());
+
+    const allTargetIds = Array.from(
+      new Set([...requestUserIds, ...blockedUserIds])
+    );
 
     const allUserDetails =
-      involvedIds.length > 0
+      allTargetIds.length > 0
         ? await User.aggregate([
             {
               $match: {
-                _id: { $in: involvedIds.map((id) => new Types.ObjectId(id)) }
+                _id: {
+                  $in: allTargetIds.map((id) => new Types.ObjectId(id))
+                }
               }
             },
             {
@@ -542,7 +533,6 @@ export async function getUserProfileDetailsService(userId: string) {
                 firstName: 1,
                 lastName: 1,
                 dateOfBirth: 1,
-                gender: 1,
                 closerPhoto: {
                   $arrayElemAt: ["$profile.photos.closerPhoto", 0]
                 },
@@ -555,74 +545,62 @@ export async function getUserProfileDetailsService(userId: string) {
         : [];
 
     const userDetailsMap = new Map(
-      allUserDetails.map((d) => [d._id.toString(), d])
+      allUserDetails.map((u) => [u._id.toString(), u])
     );
 
-    const matchScorePromises = involvedIds.map(async (targetId: any) => {
-      const details = userDetailsMap.get(targetId);
+    const matchScores = await Promise.all(
+      allTargetIds.map(async (targetId) => {
+        try {
+          if (!expectationsData) return { targetId, score: 0 };
+          const details = userDetailsMap.get(targetId);
+          if (!details) return { targetId, score: 0 };
 
-      if (!details || !expectationsData) {
-        return { targetId, score: 0 };
-      }
+          const score = await computeMatchScore(objectId, targetId, {
+            seeker: user,
+            seekerExpect: expectationsData,
+            candidate: details
+          });
 
-      try {
-        const scoreDetail = await computeMatchScore(objectId, targetId, {
-          seeker: user,
-          seekerExpect: expectationsData,
-          candidate: details
-        });
-        return {
-          targetId,
-          score: Math.round(scoreDetail?.score || 0)
-        };
-      } catch (e) {
-        logger.warn(`Match score failed for ${targetId}`);
-        return { targetId, score: 0 };
-      }
-    });
+          return { targetId, score: Math.round(score?.score || 0) };
+        } catch {
+          return { targetId, score: 0 };
+        }
+      })
+    );
 
-    const matchScores = await Promise.all(matchScorePromises);
     const matchScoreMap = new Map(
       matchScores.map((m) => [m.targetId, m.score])
     );
 
-    const buildRequestDetail = (
+    const buildDetail = (
       targetId: string,
       status: string,
-      createdAt: Date
+      createdAt?: Date | null
     ) => {
-      const details = userDetailsMap.get(targetId);
-      const matchPercentage = matchScoreMap.get(targetId) || 0;
-
+      const d = userDetailsMap.get(targetId);
       return {
         userId: targetId,
-        name: details ? `${details.firstName} ${details.lastName}` : "Unknown",
-        age: details?.dateOfBirth ? calculateAge(details.dateOfBirth) : null,
-        profession: details?.Occupation || null,
-        closerPhoto: details?.closerPhoto?.url
-          ? { url: details.closerPhoto.url }
-          : null,
-        matchPercentage,
+        name: d ? `${d.firstName} ${d.lastName}` : "Unknown",
+        age: d?.dateOfBirth ? calculateAge(d.dateOfBirth) : null,
+        profession: d?.Occupation || null,
+        closerPhoto: d?.closerPhoto?.url ? { url: d.closerPhoto.url } : null,
+        matchPercentage: matchScoreMap.get(targetId) || 0,
         status,
-        createdAt
+        createdAt: createdAt || null
       };
     };
 
-    const requestsSentDetails = requestsSent.map((req) =>
-      buildRequestDetail(req.receiver.toString(), req.status, req.createdAt)
+    const requestsSentDetails = requestsSent.map((r) =>
+      buildDetail(r.receiver.toString(), r.status, r.createdAt)
     );
 
-    const requestsReceivedDetails = requestsReceived.map((req) =>
-      buildRequestDetail(req.sender.toString(), req.status, req.createdAt)
+    const requestsReceivedDetails = requestsReceived.map((r) =>
+      buildDetail(r.sender.toString(), r.status, r.createdAt)
     );
 
-    const allDetails = [...requestsSentDetails, ...requestsReceivedDetails];
-    const acceptedCount = connectionRequests.filter(
-      (req) => req.status === "accepted"
-    ).length;
-    const highMatchCount = allDetails.filter(
-      (r) => r.matchPercentage > 70
-    ).length;
+    const blockedUsersDetails = blockedUserIds.map((id) =>
+      buildDetail(id, "blocked", null)
+    );
 
     return {
       user,
@@ -636,11 +614,13 @@ export async function getUserProfileDetailsService(userId: string) {
       stats: {
         requestsSent: requestsSentDetails.length,
         requestsReceived: requestsReceivedDetails.length,
-        accepted: acceptedCount,
-        highMatch: highMatchCount
+        accepted: connectionRequests.filter((r) => r.status === "accepted")
+          .length,
+        blockedUsers: blockedUsersDetails.length
       },
       requestsSentDetails,
-      requestsReceivedDetails
+      requestsReceivedDetails,
+      blockedUsersDetails
     };
   } catch (error) {
     logger.error("Error fetching user profile details:", error);
@@ -1287,7 +1267,6 @@ export async function updateReportStatusService(id: string, status: string) {
       success: true,
       message: "Report status updated successfully"
     };
-
   } catch (error) {
     logger.error("Error updating report status:", error);
     return {
