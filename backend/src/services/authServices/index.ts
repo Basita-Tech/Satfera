@@ -106,7 +106,7 @@ export class AuthService {
           isEmailLoginEnabled: true,
           isDeleted: false
         }).select(
-          "isOnboardingCompleted completedSteps isEmailVerified password lastLoginAt _id"
+          "isOnboardingCompleted completedSteps isEmailVerified password lastLoginAt _id role"
         ),
       100
     );
