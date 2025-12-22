@@ -21,7 +21,7 @@ export const ipBlockingMiddleware = async (
 
     const blocked = await isIPBlocked(ip);
     if (blocked) {
-      logger.warn("Blocked IP attempted access", {
+      logger.debug("Blocked IP attempted access", {
         ip,
         path: req.path,
         method: req.method,

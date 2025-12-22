@@ -21,7 +21,7 @@ const swaggerDocument = YAML.load("./docs/swagger.yaml");
 
 app.set("trust proxy", 1);
 
-app.use(ipBlockingMiddleware);
+// app.use(ipBlockingMiddleware);
 
 app.use(
   helmet({

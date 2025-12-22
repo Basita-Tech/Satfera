@@ -13,10 +13,6 @@ import { User, Profile } from "../../models";
 import { redisClient } from "../../lib/redis";
 import { env } from "../../config";
 import { APP_CONFIG } from "../../utils/constants";
-import {
-  recordFailedAttempt,
-  resetLoginAttempts
-} from "../../middleware/bruteForceProtection";
 import { sanitizeError } from "../../middleware/securityMiddleware";
 import { logger } from "../../lib/common/logger";
 import {
@@ -53,9 +49,8 @@ function formatValidationErrors(req: Request) {
     message:
       e.msg && e.msg !== "Invalid value"
         ? e.msg
-        : `Invalid value provided${
-            typeof e.value !== "undefined" ? `: ${JSON.stringify(e.value)}` : ""
-          }`,
+        : `Invalid value provided${typeof e.value !== "undefined" ? `: ${JSON.stringify(e.value)}` : ""
+        }`,
     value: e.value
   }));
 }
@@ -177,13 +172,12 @@ export class AuthController {
           });
         }
 
-        const frontendLoginNoUser = `${
-          process.env.FRONTEND_URL
-        }/login?googleExists=false&email=${encodeURIComponent(
-          email
-        )}&name=${encodeURIComponent(
-          givenName || ""
-        )}&picture=${encodeURIComponent(picture || "")}`;
+        const frontendLoginNoUser = `${process.env.FRONTEND_URL
+          }/login?googleExists=false&email=${encodeURIComponent(
+            email
+          )}&name=${encodeURIComponent(
+            givenName || ""
+          )}&picture=${encodeURIComponent(picture || "")}`;
         return res.redirect(frontendLoginNoUser);
       }
 
@@ -283,9 +277,8 @@ export class AuthController {
       const csrfToken = generateCSRFToken();
       setCSRFTokenCookie(res, csrfToken);
 
-      const frontendLoginUrl = `${
-        process.env.FRONTEND_URL
-      }/login?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`;
+      const frontendLoginUrl = `${process.env.FRONTEND_URL
+        }/login?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`;
 
       logger.info("Google OAuth web login successful", {
         userId,
@@ -315,14 +308,12 @@ export class AuthController {
     try {
       const validation = formatValidationErrors(req);
       if (validation) {
-        await recordFailedAttempt(req);
         return res.status(400).json({ success: false, errors: validation });
       }
 
       const { email, phoneNumber, password }: LoginRequest = req.body;
 
       if (!password || (!email && !phoneNumber)) {
-        await recordFailedAttempt(req);
         return res.status(400).json({
           success: false,
           message: "Email or phone number and password are required"
@@ -341,7 +332,6 @@ export class AuthController {
           );
         }
       } catch (authError: any) {
-        await recordFailedAttempt(req);
 
         logger.warn("Login failed", {
           email: email || phoneNumber,
@@ -365,7 +355,6 @@ export class AuthController {
       }
 
       const identifier = email || phoneNumber!;
-      await resetLoginAttempts(identifier);
 
       const userObj = result.user.toObject
         ? result.user.toObject()
@@ -794,9 +783,8 @@ export class AuthController {
           .status(400)
           .json({ success: false, message: "Invalid token payload" });
 
-      const redisKey = `forgot-password-token:${
-        payload.id || payload.email || payload.sub || payload.hash
-      }`;
+      const redisKey = `forgot-password-token:${payload.id || payload.email || payload.sub || payload.hash
+        }`;
 
       const stored = await redisClient.get(
         `forgot-password-token:${payload.email ?? payload.id}`

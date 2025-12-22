@@ -151,7 +151,7 @@ export async function getSentRequests(
     const validResults = result.filter((r) => r !== null);
 
     logger.info(
-      `Sent requests fetched for user ${userId} - Total: ${validResults}`
+      `Sent requests fetched for user ${userId} - Total: ${validResults.length}`
     );
 
     res.status(200).json({
@@ -433,38 +433,63 @@ export async function acceptConnectionRequest(
   req: AuthenticatedRequest,
   res: Response
 ) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user!.id;
     const { requestId } = req.body;
 
-    const request = await ConnectionRequest.findOneAndUpdate(
-      { _id: requestId, receiver: userId, status: "pending" },
-      { status: "accepted", actionedBy: userId },
-      { new: true }
-    );
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Connection request not found or already handled."
-      });
-    }
-
     try {
-      const blocked = await isEitherBlocked(String(request.sender), userId);
+      const existingRequest = await ConnectionRequest.findOne({
+        _id: requestId,
+        receiver: userId,
+        status: "pending"
+      })
+        .session(session)
+        .lean();
+
+      if (!existingRequest) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: "Connection request not found or already handled."
+        });
+      }
+
+      const blocked = await isEitherBlocked(
+        String(existingRequest.sender),
+        userId
+      );
       if (blocked) {
+        await session.abortTransaction();
         return res.status(403).json({
           success: false,
           message: "Action not allowed: one of the users has blocked the other."
         });
       }
     } catch (e) {
+      await session.abortTransaction();
       return res
         .status(403)
         .json({ success: false, message: "Action not allowed." });
     }
 
-    const receiver = await User.findById(userId).lean();
+    const request = await ConnectionRequest.findOneAndUpdate(
+      { _id: requestId, receiver: userId, status: "pending" },
+      { status: "accepted", actionedBy: userId },
+      { new: true, session }
+    );
+
+    if (!request) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found or already handled."
+      });
+    }
+
+    const receiver = await User.findById(userId).session(session).lean();
 
     await createNotificationBatch([
       {
@@ -478,12 +503,16 @@ export async function acceptConnectionRequest(
       }
     ]);
 
+    await session.commitTransaction();
     res.status(200).json({ success: true, data: request });
   } catch (err) {
+    await session.abortTransaction();
     logger.error("Error accepting connection request:", err);
     res
       .status(500)
       .json({ success: false, message: "Error accepting connection request." });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -491,38 +520,63 @@ export async function rejectConnectionRequest(
   req: AuthenticatedRequest,
   res: Response
 ) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user!.id;
     const { requestId } = req.body;
 
-    const request = await ConnectionRequest.findOneAndUpdate(
-      { _id: requestId, receiver: userId, status: "pending" },
-      { status: "rejected", actionedBy: userId },
-      { new: true }
-    );
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Connection request not found or already processed."
-      });
-    }
-
     try {
-      const blocked = await isEitherBlocked(String(request.sender), userId);
+      const existingRequest = await ConnectionRequest.findOne({
+        _id: requestId,
+        receiver: userId,
+        status: "pending"
+      })
+        .session(session)
+        .lean();
+
+      if (!existingRequest) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: "Connection request not found or already processed."
+        });
+      }
+
+      const blocked = await isEitherBlocked(
+        String(existingRequest.sender),
+        userId
+      );
       if (blocked) {
+        await session.abortTransaction();
         return res.status(403).json({
           success: false,
           message: "Action not allowed: one of the users has blocked the other."
         });
       }
     } catch (e) {
+      await session.abortTransaction();
       return res
         .status(403)
         .json({ success: false, message: "Action not allowed." });
     }
 
-    const receiver = await User.findById(userId).lean();
+    const request = await ConnectionRequest.findOneAndUpdate(
+      { _id: requestId, receiver: userId, status: "pending" },
+      { status: "rejected", actionedBy: userId },
+      { new: true, session }
+    );
+
+    if (!request) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found or already processed."
+      });
+    }
+
+    const receiver = await User.findById(userId).session(session).lean();
 
     await createNotificationBatch([
       {
@@ -536,12 +590,16 @@ export async function rejectConnectionRequest(
       }
     ]);
 
+    await session.commitTransaction();
     res.status(200).json({ success: true, data: request });
   } catch (err) {
+    await session.abortTransaction();
     logger.error("Error rejecting connection request:", err);
     res
       .status(500)
       .json({ success: false, message: "Error rejecting connection request." });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -685,22 +743,27 @@ export async function withdrawConnection(
   req: AuthenticatedRequest,
   res: Response
 ) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user!.id;
     const { connectionId } = req.body;
 
-    const connection = await ConnectionRequest.findOneAndUpdate({
+    const connection = await ConnectionRequest.findOne({
       _id: connectionId,
       $or: [{ sender: userId }, { receiver: userId }]
-    });
+    }).session(session);
 
     if (!connection) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: "Connection request not found"
       });
     }
     if (connection.status === "accepted") {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: "Cannot withdraw an accepted connection."
@@ -708,19 +771,23 @@ export async function withdrawConnection(
     }
 
     if (connection.status === "pending") {
-      await connection.deleteOne();
+      await connection.deleteOne({ session });
     }
 
+    await session.commitTransaction();
     res.status(200).json({
       success: true,
       message: "Connection withdrawn successfully."
     });
   } catch (err) {
+    await session.abortTransaction();
     logger.error("Error withdrawing connection", err);
     res.status(500).json({
       success: false,
       message: "Failed to withdraw connection."
     });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -858,7 +925,7 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
 
     const target = await User.findOne({
       _id: profileId,
-      isActive: true,
+      isActive: true
       // isDeleted: false
     }).lean();
     if (!target) {

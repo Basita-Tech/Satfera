@@ -50,11 +50,10 @@ export const createUserPersonalController = async (
           message:
             e.msg && e.msg !== "Invalid value"
               ? e.msg
-              : `Invalid value provided${
-                  typeof e.value !== "undefined"
-                    ? `: ${JSON.stringify(e.value)}`
-                    : ""
-                }`,
+              : `Invalid value provided${typeof e.value !== "undefined"
+                ? `: ${JSON.stringify(e.value)}`
+                : ""
+              }`,
           value: e.value
         }))
       });
@@ -138,11 +137,10 @@ export const updateUserPersonalController = async (
           message:
             e.msg && e.msg !== "Invalid value"
               ? e.msg
-              : `Invalid value provided${
-                  typeof e.value !== "undefined"
-                    ? `: ${JSON.stringify(e.value)}`
-                    : ""
-                }`,
+              : `Invalid value provided${typeof e.value !== "undefined"
+                ? `: ${JSON.stringify(e.value)}`
+                : ""
+              }`,
           value: e.value
         }))
       });
@@ -911,22 +909,6 @@ export const submitProfileForReviewController = async (
       return res.status(404).json({
         success: false,
         message: "User not found"
-      });
-    }
-
-    const isFirstSubmission =
-      !user.profileReviewStatus ||
-      user.profileReviewStatus === undefined ||
-      user.profileReviewStatus === null;
-
-    if (!isFirstSubmission) {
-      return res.status(200).json({
-        success: true,
-        message: `Profile already ${user.profileReviewStatus}.`,
-        data: {
-          profileReviewStatus: user.profileReviewStatus,
-          submittedAt: user.createdAt || new Date()
-        }
       });
     }
 

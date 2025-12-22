@@ -11,7 +11,12 @@
     "clean:build": "rm -rf dist",
     "clean:all": "rm -rf dist node_modules",
     "seed:admin": "ts-node src/scripts/seedAdmin.ts",
-    "seed:users": "ts-node src/scripts/seedUsers.ts"
+    "seed:users": "ts-node src/scripts/seedUsers.ts",
+    "test:load:auth": "k6 run tests/k6/auth.test.js",
+    "test:load:matching": "k6 run tests/k6/matching.test.js",
+    "test:load": "k6 run tests/k6/auth.test.js && k6 run tests/k6/matching.test.js",
+    "test:security": "docker run --rm -v \"$(pwd):/zap/wrk/:rw\" -t zaproxy/zap-stable zap-api-scan.py -t http://host.docker.internal:8000/api-docs -f openapi -c tests/security/zap.yaml -r tests/security/reports/zap-report.html",
+    "test:security:baseline": "docker run --rm -v \"$(pwd):/zap/wrk/:rw\" -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:8000 -r tests/security/reports/baseline-report.html"
   },
   "keywords": [],
   "author": "",

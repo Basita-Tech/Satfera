@@ -34,6 +34,44 @@ export function getUserProfileCacheKey(
   return `user_profile:${userId.toString()}`;
 }
 
+/**
+ * Scan Redis keys matching a pattern using non-blocking SCAN command.
+ * This is preferred over KEYS which blocks the server.
+ */
+export async function scanKeys(pattern: string): Promise<string[]> {
+  const keys: string[] = [];
+  let cursor = 0;
+
+  do {
+    const result = await redisClient.scan(cursor, {
+      MATCH: pattern,
+      COUNT: 100
+    });
+    cursor = result.cursor;
+    keys.push(...result.keys);
+  } while (cursor !== 0);
+
+  return keys;
+}
+
+/**
+ * Delete keys in batches to avoid blocking Redis
+ */
+async function deleteKeysBatch(keys: string[]): Promise<number> {
+  if (keys.length === 0) return 0;
+
+  const BATCH_SIZE = 100;
+  let deletedCount = 0;
+
+  for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+    const batch = keys.slice(i, i + BATCH_SIZE);
+    await redisClient.del(batch);
+    deletedCount += batch.length;
+  }
+
+  return deletedCount;
+}
+
 export async function getCachedMatchScore(
   seekerId: mongoose.Types.ObjectId,
   candidateId: mongoose.Types.ObjectId
@@ -113,13 +151,13 @@ export async function invalidateUserMatchScores(
   const profilePattern = getUserProfileCacheKey(userId);
 
   await safeRedisOperation(async () => {
-    const matchKeys = await redisClient.keys(matchPattern);
+    const matchKeys = await scanKeys(matchPattern);
     const allKeys = [...matchKeys, profilePattern];
 
     if (allKeys.length > 0) {
-      await redisClient.del(allKeys);
+      const deletedCount = await deleteKeysBatch(allKeys);
       logger.info(
-        `Invalidated ${matchKeys.length} match score cache entries and user profile cache for user ${userId.toString()}`
+        `Invalidated ${deletedCount} cache entries (${matchKeys.length} match scores + profile) for user ${userId.toString()}`
       );
     }
   }, "Invalidate user match scores and profile cache");
@@ -140,10 +178,10 @@ export async function invalidateProfileViewCache(
 export async function clearAllMatchScoreCache(): Promise<void> {
   const pattern = "match_score:*";
   await safeRedisOperation(async () => {
-    const keys = await redisClient.keys(pattern);
+    const keys = await scanKeys(pattern);
     if (keys.length > 0) {
-      await redisClient.del(keys);
-      logger.warn(`Cleared ${keys.length} match score cache entries`);
+      const deletedCount = await deleteKeysBatch(keys);
+      logger.warn(`Cleared ${deletedCount} match score cache entries`);
     }
   }, "Clear all match score cache");
 }
@@ -190,14 +228,18 @@ export async function setCachedUserProfile(
 export async function getCacheStats(): Promise<{
   matchScores: number;
   profileViews: number;
+  userProfiles: number;
 }> {
-  const stats = { matchScores: 0, profileViews: 0 };
+  const stats = { matchScores: 0, profileViews: 0, userProfiles: 0 };
 
   await safeRedisOperation(async () => {
-    const matchScoreKeys = await redisClient.keys("match_score:*");
-    const profileViewKeys = await redisClient.keys("profile_view:*");
+    const matchScoreKeys = await scanKeys("match_score:*");
+    const profileViewKeys = await scanKeys("profile_view:*");
+    const userProfileKeys = await scanKeys("user_profile:*");
+
     stats.matchScores = matchScoreKeys.length;
     stats.profileViews = profileViewKeys.length;
+    stats.userProfiles = userProfileKeys.length;
   }, "Get cache stats");
 
   return stats;
