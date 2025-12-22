@@ -305,8 +305,22 @@ export async function changeUserPassword(
 ) {
   const { newPassword, userId } = req.body;
 
+  if (!newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "new password is required"
+    });
+  }
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: "User id is required"
+    });
+  }
+
   const result = await adminService.changeUserPasswordService(
-    userId!,
+    userId,
     newPassword
   );
 
@@ -339,7 +353,10 @@ export async function getReportsController(req: Request, res: Response) {
   }
 }
 
-export async function updateReportStatusController(req: Request, res: Response) {
+export async function updateReportStatusController(
+  req: Request,
+  res: Response
+) {
   const { id, status } = req.body;
 
   const result = await adminService.updateReportStatusService(id, status);

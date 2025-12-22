@@ -3501,3 +3501,293 @@ paths:
                   value:
                     success: false
                     message: "Access denied."
+
+  /api/v1/admin/request-sent:
+    get:
+      summary: Get all user requests sent data.
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Requests & Matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: string
+                        createdAt:
+                          type: Date
+                        sender:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                            gender:
+                              type: string
+                            closerPhoto:
+                              type: string
+                            age:
+                              type: string
+                        receiver:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                              format: date-time
+                            gender:
+                              type: string
+                            closerPhoto:
+                              type: string
+                              format: uri
+                            age:
+                              type: number
+                        match:
+                          type: number
+                    pagination:
+                      type: object
+                      properties:
+                        page:
+                          type: number
+                        limit:
+                          type: number
+                        total:
+                          type: number
+                        totalPages:
+                          type: number
+                        hasMore:
+                          type: boolean
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - status: pending
+                        createdAt: "2025-12-17T15:54:34.190Z"
+                        sender:
+                          userId: "6942ceac084804fa512c28ac"
+                          name: "Jalpesh Sarmar"
+                          dateOfBirth: "2004-12-12T00:00:00.000Z"
+                          gender: male
+                          closerPhoto: https://res.cloudinary.com/dpmdvt00f/image/upload/v1765986639/satfera/closer/6942ceac084804fa512c28ac/tzh6nqyxar2c3q4x2liv.jpg
+                          age: 21
+                        receiver:
+                          userId: "694248ce0a5af7decd952591"
+                          name: "Ushakiran Mallick"
+                          dateOfBirth: "2000-09-22T08:08:19.319Z"
+                          gender: "female"
+                          closerPhoto: "https://randomuser.me/api/portraits/women/44.jpg"
+                          age: 25
+                        match: 0
+                    pagination:
+                      =page: 1,
+                      limit: 20,
+                      total: 128,
+                      totalPages: 7,
+                      hasMore: true
+
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/super-profiles:
+    get:
+      summary: Get all super profiles data
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Super Profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            accountType:
+                              type: string
+                            userId:
+                              type: string
+                            customId:
+                              type: string
+                            firstName:
+                              type: string
+                            lastName:
+                              type: string
+                            gender:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                              format: date-time
+                            phoneNumber:
+                              type: string
+                            email:
+                              type: string
+                              format: email
+                            occupation:
+                              type: string
+                            closerPhoto:
+                              type: string
+                              format: uri
+                            createdAt:
+                              type: string
+                              format: date-time
+                            status:
+                              type: string
+                            age:
+                              type: number
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                      limit:
+                        type: number
+                      total:
+                        type: number
+                      totalPages:
+                        type: number
+                      hasMore:
+                        type: boolean
+              example:
+                success: true
+                data:
+                  users:
+                    - accountType: free
+                      userId: "694248ce0a5af7decd95268b"
+                      customId: "SF-2494"
+                      firstName: "Maheshi"
+                      lastName: "Deol"
+                      gender: "female"
+                      dateOfBirth: "1983-03-05T15:57:45.990Z"
+                      phoneNumber: "9000002494"
+                      email: "user2494@a.com"
+                      occupation: "Business Analyst"
+                      closerPhoto: "https://randomuser.me/api/portraits/women/94.jpg"
+                      createdAt: "2025-12-17T06:08:14.688Z"
+                      status: "approved"
+                      age: 42
+                pagination:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+                  hasMore: false
+
+        "403":
+          description: Access denied if role is not admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: false
+                message: "Access denied."
+
+  /api/v1/admin/user/change-password:
+    post:
+      summary: Change password for a user
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - newPassword
+              properties:
+                userId:
+                  type: string
+                  example: "694248c80a5af7decd94d2a3"
+                newPassword:
+                  type: string
+                  example: "Sanjay@11"
+
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+
+        "400":
+          description: Failed to change password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Failed to change password"
+
+        "403":
+          description: Access denied if role is not admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Access denied."

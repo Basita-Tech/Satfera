@@ -508,50 +508,50 @@ export async function getUserProfileDetailsService(userId: string) {
     const allUserDetails =
       involvedIds.length > 0
         ? await User.aggregate([
-          {
-            $match: {
-              _id: { $in: involvedIds.map((id) => new Types.ObjectId(id)) }
-            }
-          },
-          {
-            $lookup: {
-              from: "profiles",
-              localField: "_id",
-              foreignField: "userId",
-              pipeline: [
-                {
-                  $project: {
-                    "photos.closerPhoto": 1
+            {
+              $match: {
+                _id: { $in: involvedIds.map((id) => new Types.ObjectId(id)) }
+              }
+            },
+            {
+              $lookup: {
+                from: "profiles",
+                localField: "_id",
+                foreignField: "userId",
+                pipeline: [
+                  {
+                    $project: {
+                      "photos.closerPhoto": 1
+                    }
                   }
+                ],
+                as: "profile"
+              }
+            },
+            {
+              $lookup: {
+                from: "userprofessions",
+                localField: "_id",
+                foreignField: "userId",
+                pipeline: [{ $project: { Occupation: 1 } }, { $limit: 1 }],
+                as: "professionData"
+              }
+            },
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                dateOfBirth: 1,
+                gender: 1,
+                closerPhoto: {
+                  $arrayElemAt: ["$profile.photos.closerPhoto", 0]
+                },
+                Occupation: {
+                  $arrayElemAt: ["$professionData.Occupation", 0]
                 }
-              ],
-              as: "profile"
-            }
-          },
-          {
-            $lookup: {
-              from: "userprofessions",
-              localField: "_id",
-              foreignField: "userId",
-              pipeline: [{ $project: { Occupation: 1 } }, { $limit: 1 }],
-              as: "professionData"
-            }
-          },
-          {
-            $project: {
-              firstName: 1,
-              lastName: 1,
-              dateOfBirth: 1,
-              gender: 1,
-              closerPhoto: {
-                $arrayElemAt: ["$profile.photos.closerPhoto", 0]
-              },
-              Occupation: {
-                $arrayElemAt: ["$professionData.Occupation", 0]
               }
             }
-          }
-        ])
+          ])
         : [];
 
     const userDetailsMap = new Map(
@@ -1252,7 +1252,6 @@ export async function changeUserPasswordService(
     };
   }
 }
-
 
 export async function getReportsService() {
   try {
