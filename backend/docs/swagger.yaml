@@ -914,25 +914,6 @@ paths:
         "200":
           description: Matchings list
 
-  /api/v1/recommendations:
-    get:
-      summary: Get recommendations for authenticated user
-      security:
-        - bearerAuth: []
-        - cookieAuth: []
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-        - in: query
-          name: limit
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Recommendations
-
   /api/v1/matches:
     get:
       summary: Get matches for authenticated user

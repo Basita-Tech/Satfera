@@ -4,11 +4,6 @@ import authenticate from "../../../../middleware/authMiddleware";
 
 const recommendationRouter = express.Router();
 
-// Test Endpoints
-recommendationRouter.post("/test", recommendationController.testMatchScore);
-recommendationRouter.post("/matchings", recommendationController.getMatchings);
-
-// Recommendation Endpoints
 // recommendationRouter.get(
 //   "/recommendations",
 //   authenticate,

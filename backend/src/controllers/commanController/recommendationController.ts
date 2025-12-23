@@ -1,11 +1,7 @@
 import type { Request, Response } from "express";
 import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
-import {
-  computeMatchScore,
-  findMatchingUsers,
-  getDetailedProfile
-} from "../../services";
+import { findMatchingUsers, getDetailedProfile } from "../../services";
 import { formatListingProfile, logger } from "../../lib";
 import {
   UserPersonal,
@@ -17,61 +13,6 @@ import {
 import { AuthenticatedRequest } from "../../types";
 import { APP_CONFIG } from "../../utils/constants";
 import { isAffirmative } from "../../utils/utils";
-
-export const testMatchScore = async (req: Request, res: Response) => {
-  try {
-    const { userId1, userId2 } = req.body;
-
-    if (!userId1 || !userId2) {
-      return res.status(400).json({
-        success: false,
-        message: "userId1 and userId2 are required"
-      });
-    }
-
-    const result = await computeMatchScore(
-      new ObjectId(userId1),
-      new ObjectId(userId2)
-    );
-
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error("Error testing match score:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to test match score"
-    });
-  }
-};
-
-export const getMatchings = async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "userId is required"
-      });
-    }
-
-    const result = await findMatchingUsers(new ObjectId(userId));
-
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error("Error fetching matchings:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch matchings"
-    });
-  }
-};
 
 export const getRecommendations = async (req: Request, res: Response) => {
   try {
