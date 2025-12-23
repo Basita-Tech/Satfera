@@ -3989,6 +3989,194 @@ paths:
                     type: string
                     example: "Access denied."
 
+  /api/v1/admin/search:
+    get:
+      summary: Search user profiles with filters
+      tags:
+        - Admin Dashboard
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Search by first name, last name, or full name (case-insensitive)
+
+        - in: query
+          name: customId
+          schema:
+            type: string
+          description: Search by custom user ID (case-insensitive)
+
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: Search by email (case-insensitive)
+
+        - in: query
+          name: phoneNumber
+          schema:
+            type: string
+          description: Search by phone number (partial match)
+
+        - in: query
+          name: gender
+          schema:
+            type: string
+            enum: [male, female, other]
+          description: Filter by gender
+
+        - in: query
+          name: accountType
+          schema:
+            type: string
+            enum: [free, premium]
+          description: Filter by account type
+
+        - in: query
+          name: newProfile
+          schema:
+            type: string
+            enum: [all, last1week, last3week, last1month]
+          description: Filter by recently created profiles
+
+        - in: query
+          name: ageFrom
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 120
+          description: Minimum age filter
+
+        - in: query
+          name: ageTo
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 120
+          description: Maximum age filter
+
+        - in: query
+          name: religion
+          schema:
+            type: string
+          description: Filter by religion (case-insensitive partial match)
+
+        - in: query
+          name: profession
+          schema:
+            type: string
+          description: Filter by profession or organization name (case-insensitive partial match)
+
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, age]
+            default: createdAt
+          description: Sort field (createdAt = newest first)
+
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based)
+
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+          description: Number of results per page (max 100)
+
+      responses:
+        "200":
+          description: Search results with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                          example: "605c4f2b8b1e4b3b2c8f1a2d"
+                        customId:
+                          type: string
+                          example: "SF1023"
+                        firstName:
+                          type: string
+                          example: "Anita"
+                        lastName:
+                          type: string
+                          example: "Sharma"
+                        gender:
+                          type: string
+                          example: "female"
+                        age:
+                          type: integer
+                          example: 28
+                        phoneNumber:
+                          type: string
+                          example: "9876543210"
+                        email:
+                          type: string
+                          example: "anita@gmail.com"
+                        accountType:
+                          type: string
+                          example: "paid"
+                        occupation:
+                          type: string
+                          example: "Software Engineer"
+                        closerPhoto:
+                          type: string
+                          example: "https://cdn.example.com/photo.jpg"
+                        createdAt:
+                          type: string
+                          format: date-time
+                        isOnline:
+                          type: boolean
+                          example: true
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 25
+                      total:
+                        type: integer
+                        example: 124
+                      hasMore:
+                        type: boolean
+                        example: true
+
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/support/tickets:
     post:
       summary: Create a support ticket

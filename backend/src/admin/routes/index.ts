@@ -150,4 +150,6 @@ adminRouter.patch(
 
 adminRouter.post("/support/tickets/:id/messages", SupportController.addMessage);
 
+adminRouter.get("/search", adminController.adminSearchController);
+
 export default adminRouter;
