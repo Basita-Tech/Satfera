@@ -260,6 +260,9 @@ async function seed() {
         userId,
         isAlcoholic: "no",
         isTobaccoUser: "no",
+        isHaveHIV: "yes",
+        isPositiveInTB: "no",
+        isHaveMedicalHistory: "no",
         diet: randomItem(diet)
       });
 
@@ -270,8 +273,8 @@ async function seed() {
         isConsumeAlcoholic: "no",
         educationLevel: highestEducation,
         community: randomItem(CASTES),
-        livingInCountry: "India",
-        livingInState: "Gujarat",
+        livingInCountry: [],
+        livingInState: ["Gujarat"],
         profession: randomItem(professions),
         diet: randomItem(diet)
       });

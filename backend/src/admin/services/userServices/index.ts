@@ -631,7 +631,7 @@ export async function getUserProfileDetailsService(userId: string) {
 export async function getAllProfilesService(
   page: number,
   limit: number,
-  isActive
+  isActive: any
 ) {
   const skip = (page - 1) * limit;
 
@@ -639,64 +639,7 @@ export async function getAllProfilesService(
     isActive === "false" || isActive === false ? false : true;
 
   try {
-    const [stats, profiles] = await Promise.all([
-      User.aggregate([
-        { $match: { role: "user", isActive: isActiveFilter } },
-        {
-          $group: {
-            _id: "$gender",
-            count: { $sum: 1 }
-          }
-        }
-      ]),
-
-      Profile.aggregate([
-        {
-          $lookup: {
-            from: "users",
-            localField: "userId",
-            foreignField: "_id",
-            as: "user"
-          }
-        },
-        { $unwind: "$user" },
-        { $match: { "user.role": "user", "user.isActive": isActiveFilter } },
-
-        { $sort: { "user.createdAt": -1 } },
-        { $skip: skip },
-        { $limit: limit },
-
-        {
-          $lookup: {
-            from: "userprofessions",
-            localField: "userId",
-            foreignField: "userId",
-            as: "profession"
-          }
-        },
-
-        {
-          $project: {
-            _id: 0,
-            userId: "$user._id",
-            customId: "$user.customId",
-            firstName: "$user.firstName",
-            lastName: "$user.lastName",
-            gender: "$user.gender",
-            dateOfBirth: "$user.dateOfBirth",
-            phoneNumber: "$user.phoneNumber",
-            email: "$user.email",
-            accountType: 1,
-            occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
-            closerPhoto: "$photos.closerPhoto.url",
-            createdAt: "$user.createdAt",
-            status: "$user.profileReviewStatus"
-          }
-        }
-      ])
-    ]);
-
-    const totalCount = await Profile.aggregate([
+    const result = await Profile.aggregate([
       {
         $lookup: {
           from: "users",
@@ -706,23 +649,110 @@ export async function getAllProfilesService(
         }
       },
       { $unwind: "$user" },
-      { $match: { "user.role": "user", "user.isActive": isActiveFilter } },
-      { $count: "total" }
+
+      {
+        $match: {
+          "user.role": "user",
+          "user.isActive": isActiveFilter,
+          "user.profileReviewStatus": "approved"
+        }
+      },
+
+      {
+        $addFields: {
+          isOnline: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$user.lastLoginAt", null] },
+                  {
+                    $lte: [
+                      {
+                        $dateDiff: {
+                          startDate: "$user.lastLoginAt",
+                          endDate: "$$NOW",
+                          unit: "minute"
+                        }
+                      },
+                      3
+                    ]
+                  }
+                ]
+              },
+              then: true,
+              else: false
+            }
+          }
+        }
+      },
+
+      {
+        $facet: {
+          users: [
+            { $sort: { "user.createdAt": -1 } },
+            { $skip: skip },
+            { $limit: limit },
+
+            {
+              $lookup: {
+                from: "userprofessions",
+                localField: "userId",
+                foreignField: "userId",
+                as: "profession"
+              }
+            },
+
+            {
+              $project: {
+                _id: 0,
+                userId: "$user._id",
+                customId: "$user.customId",
+                firstName: "$user.firstName",
+                lastName: "$user.lastName",
+                gender: "$user.gender",
+                dateOfBirth: "$user.dateOfBirth",
+                phoneNumber: "$user.phoneNumber",
+                email: "$user.email",
+                accountType: 1,
+                occupation: {
+                  $arrayElemAt: ["$profession.Occupation", 0]
+                },
+                closerPhoto: "$photos.closerPhoto.url",
+                createdAt: "$user.createdAt",
+                isOnline: 1
+              }
+            }
+          ],
+
+          totalCount: [{ $count: "total" }],
+
+          genderStats: [
+            {
+              $group: {
+                _id: { $toLower: "$user.gender" },
+                count: { $sum: 1 }
+              }
+            }
+          ]
+        }
+      }
     ]);
 
-    const total = totalCount[0]?.total ?? 0;
+    const facet = result[0];
+
+    const users = facet.users ?? [];
+    const total = facet.totalCount[0]?.total ?? 0;
 
     const genderMap = { male: 0, female: 0 };
-    stats.forEach((stat) => {
-      const gender = stat._id?.toLowerCase();
-      if (gender === "male" || gender === "female") {
-        genderMap[gender] = stat.count;
+    facet.genderStats.forEach((g: any) => {
+      if (g._id === "male" || g._id === "female") {
+        genderMap[g._id] = g.count;
       }
     });
 
-    const usersWithAge = profiles.map((p) => ({
-      ...p,
-      age: calculateAge(p.dateOfBirth)
+    const usersWithAge = users.map((u: any) => ({
+      ...u,
+      age: calculateAge(u.dateOfBirth)
     }));
 
     return {
@@ -735,7 +765,7 @@ export async function getAllProfilesService(
       pagination: {
         page,
         limit,
-        total: total,
+        total,
         totalPages: Math.ceil(total / limit),
         hasMore: page * limit < total
       }

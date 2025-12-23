@@ -2866,7 +2866,7 @@ paths:
             default: 20
         - name: status
           in: query
-          description: status | "pending" | "approved" | "rejected" | "rectification";
+          description: status = "pending" | "approved" | "rejected" | "rectification";
           schema:
             type: string
             default: "pending"
@@ -2975,7 +2975,7 @@ paths:
                     success: false
                     message: "Access denied."
 
-  /api/v2/admin/approve/profile:
+  /api/v1/admin/approve/profile:
     post:
       summary: Approve a user profile.
       tags:
@@ -3054,7 +3054,7 @@ paths:
                     success: false
                     message: "Access denied."
 
-  /api/v2/admin/reject/profile:
+  /api/v1/admin/reject/profile:
     post:
       summary: Reject a user profile.
       tags:
@@ -3224,6 +3224,151 @@ paths:
                   value:
                     success: false
                     message: "Access denied."
+
+  /api/v1/admin/all/profiles:
+    get:
+      summary: Get all approved user profiles for admin management
+      tags:
+        - Admin Dashboard
+
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+          description: Page number (default is 1)
+
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+          description: Number of records per page (default is 10)
+
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+            default: true
+          description: Filter active users (default is true)
+
+      responses:
+        "200":
+          description: Approved user profiles fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+                  data:
+                    type: object
+                    properties:
+                      maleUsersCount:
+                        type: number
+                        description: Total approved active male users
+                      femaleUsersCount:
+                        type: number
+                        description: Total approved active female users
+
+                      users:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            customId:
+                              type: string
+                            accountType:
+                              type: string
+                            firstName:
+                              type: string
+                            lastName:
+                              type: string
+                            gender:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                              format: date-time
+                            age:
+                              type: number
+                            phoneNumber:
+                              type: string
+                            email:
+                              type: string
+                              format: email
+                            occupation:
+                              type: string
+                            closerPhoto:
+                              type: string
+                              format: uri
+                            createdAt:
+                              type: string
+                              format: date-time
+                            isOnline:
+                              type: boolean
+                              description: True if last login was within 3 minutes
+
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                      limit:
+                        type: number
+                      total:
+                        type: number
+                      totalPages:
+                        type: number
+                      hasMore:
+                        type: boolean
+
+              example:
+                success: true
+                data:
+                  maleUsersCount: 1230
+                  femaleUsersCount: 1270
+                  users:
+                    - userId: "694248ce0a5af7decd95268f"
+                      customId: "SF-2498"
+                      accountType: "free"
+                      firstName: "Krishna"
+                      lastName: "Deol"
+                      gender: "male"
+                      dateOfBirth: "1992-09-19T00:30:27.166Z"
+                      age: 33
+                      phoneNumber: "9000002498"
+                      email: "user2498@a.com"
+                      occupation: "DevOps Engineer"
+                      closerPhoto: "https://randomuser.me/api/portraits/men/98.jpg"
+                      createdAt: "2025-12-17T06:08:14.689Z"
+                      isOnline: false
+
+                pagination:
+                  page: 1
+                  limit: 10
+                  total: 2500
+                  totalPages: 250
+                  hasMore: true
+
+        "403":
+          description: Access denied (admin only)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: false
+                message: "Access denied."
 
   /api/v1/admin/profile/{userId}:
     get:
