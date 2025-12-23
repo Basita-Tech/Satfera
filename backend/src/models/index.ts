@@ -11,3 +11,5 @@ export * from "./User_family";
 export * from "./User_health";
 export * from "./User_personal";
 export * from "./User_professions";
+export * from "./Support";
+export * from "./SupportMessage";

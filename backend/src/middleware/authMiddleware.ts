@@ -141,7 +141,7 @@ export const authenticate = async (
       }
 
       user = await User.findById(userId)
-        .select("email role phoneNumber isDeleted isActive")
+        .select("email role phoneNumber isDeleted isActive firstName lastName")
         .lean();
 
       if (!user) {
@@ -187,7 +187,8 @@ export const authenticate = async (
       id: userIdFromUser,
       role: user.role || "user",
       email: emailFromToken || user.email,
-      phoneNumber: phoneFromToken || user.phoneNumber
+      phoneNumber: phoneFromToken || user.phoneNumber,
+      fullName: `${user.firstName}  ${user.lastName}`
     };
 
     return next();

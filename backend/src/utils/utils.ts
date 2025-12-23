@@ -1,4 +1,5 @@
 import { logger } from "../lib/common/logger";
+import { randomBytes } from "crypto";
 
 export function calculateAge(dateOfBirth?: Date): number | undefined {
   if (!dateOfBirth) return undefined;
@@ -118,4 +119,15 @@ export function isAffirmative(v: any): boolean {
 export function isAdmin(role: string | undefined): boolean {
   if (!role) return false;
   return role === "admin";
+}
+
+export function generateTicketId(): string {
+  const date = new Date();
+  const yy = date.getFullYear().toString().slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+
+  const random = randomBytes(2).toString("hex").toUpperCase();
+
+  return `TCK-${yy}${mm}${dd}-${random}`;
 }

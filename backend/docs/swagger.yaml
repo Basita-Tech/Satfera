@@ -228,7 +228,53 @@ components:
         success:
           type: boolean
         message:
-          type: strings
+          type: string
+    SupportTicket:
+      type: object
+      properties:
+        _id:
+          type: string
+        ticketId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        subject:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SupportMessage:
+      type: object
+      properties:
+        _id:
+          type: string
+        text:
+          type: string
+        sender:
+          type: string
+          enum: [user, admin]
+        createdAt:
+          type: string
+          format: date-time
+    SupportTicketWithHistory:
+      allOf:
+        - $ref: "#/components/schemas/SupportTicket"
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: "#/components/schemas/SupportMessage"
 
 paths:
   /health:
@@ -3942,3 +3988,222 @@ paths:
                   message:
                     type: string
                     example: "Access denied."
+
+  /api/v1/support/tickets:
+    post:
+      summary: Create a support ticket
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, category, message]
+              properties:
+                subject: { type: string }
+                category: { type: string }
+                message: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicket"
+    get:
+      summary: List user tickets
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportTicket"
+
+  /api/v1/support/tickets/{id}:
+    get:
+      summary: Get ticket details with history
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketWithHistory"
+
+  /api/v1/support/tickets/{id}/messages:
+    post:
+      summary: Add message to ticket
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+
+  /api/v1/admin/support/tickets:
+    get:
+      summary: List all tickets (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportTicket"
+
+  /api/v1/admin/support/tickets/{id}:
+    get:
+      summary: Get ticket details (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketWithHistory"
+
+  /api/v1/admin/support/tickets/{id}/status:
+    patch:
+      summary: Update ticket status (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - open
+                    - in_progress
+                    - resolved
+                    - closed
+      responses:
+        "200":
+          description: Ticket status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Ticket update successful"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidStatus:
+                  value:
+                    success: false
+                    message: "Invalid status"
+
+  /api/v1/admin/support/tickets/{id}/messages:
+    post:
+      summary: Add message to ticket (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"

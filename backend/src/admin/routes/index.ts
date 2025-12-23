@@ -5,6 +5,7 @@ import * as adminController from "../controllers";
 import { commonControllers } from "../controllers/commonControllers";
 import { isAdmin } from "../../utils/utils";
 import { getSystemHealth } from "../controllers/systemControllers";
+import { SupportController } from "../controllers/commonControllers/supportController";
 
 const adminRouter = express();
 
@@ -132,6 +133,21 @@ adminRouter.get("/system/health", authenticate, getSystemHealth);
 
 adminRouter.get("/reports", authenticate, adminController.getReportsController);
 
-adminRouter.put("/reports", authenticate, adminController.updateReportStatusController)
+adminRouter.put(
+  "/reports",
+  authenticate,
+  adminController.updateReportStatusController
+);
+
+adminRouter.get("/support/tickets", SupportController.getAllTickets);
+
+adminRouter.get("/support/tickets/:id", SupportController.getTicketDetails);
+
+adminRouter.patch(
+  "/support/tickets/:id/status",
+  SupportController.updateStatus
+);
+
+adminRouter.post("/support/tickets/:id/messages", SupportController.addMessage);
 
 export default adminRouter;
