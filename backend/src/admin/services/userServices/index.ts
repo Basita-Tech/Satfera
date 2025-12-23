@@ -27,7 +27,7 @@ async function updateProfileApproval(
 
   let user = await User.findById(objectId)
     .select(
-      "_id isProfileApproved profileReviewStatus firstName lastName email"
+      "_id isProfileApproved profileReviewStatus firstName lastName email isActive"
     )
     .lean();
 
@@ -44,6 +44,10 @@ async function updateProfileApproval(
       success: false,
       message: `Profile is already ${currentStatus}.`
     };
+  }
+
+  if (newStatus === "rejected" || newStatus === "rectification") {
+    updateData.isActive = false;
   }
 
   await User.findByIdAndUpdate(objectId, updateData, { new: false });
