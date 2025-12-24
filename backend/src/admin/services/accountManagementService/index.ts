@@ -246,3 +246,36 @@ export async function getDeletedAccounts(
     throw error;
   }
 }
+
+export async function deleteAccount(userId: string, deletionReason: string) {
+  try {
+    const userObjectId = validateUserId(userId);
+
+    const user = await User.findById(userObjectId).select("isDeleted");
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if ((user as any).isDeleted) {
+      throw new Error("Account already deleted");
+    }
+
+    await User.findByIdAndUpdate(userObjectId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      isActive: false,
+      deletionReason
+    });
+
+    logger.info(`Account soft deleted: ${userId}`);
+
+    return {
+      success: true,
+      message: "Account deleted successfully"
+    };
+  } catch (error: any) {
+    logger.error("Error in deleteAccount:", error.message);
+    throw error;
+  }
+}

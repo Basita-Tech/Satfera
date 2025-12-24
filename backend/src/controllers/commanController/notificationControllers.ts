@@ -10,35 +10,54 @@ const MAX_LIMIT = 100;
 export async function getAllUserNotifications(req: Request, res: Response) {
   try {
     const userId = String(req.user?.id);
+
     const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
     let limit = parseInt((req.query.limit as string) || `${DEFAULT_LIMIT}`, 10);
     limit = Math.min(Math.max(1, limit), MAX_LIMIT);
 
-    const cacheKey = notificationCache.listCacheKey(userId, page, limit);
+    const isRead = req.query.isRead as string | undefined;
+
+    const query: any = { user: userId };
+
+    if (isRead === "true") {
+      query.isRead = true;
+    } else if (isRead === "false") {
+      query.isRead = false;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const cacheKey = notificationCache.listCacheKey(
+      userId,
+      page,
+      limit,
+      isRead
+    );
 
     const cached = await safeRedisOperation(
       () => redisClient.get(cacheKey),
       "Get notifications list cache"
     );
+
     if (cached) {
       try {
         const payload = JSON.parse(cached);
         return res.status(200).json({ success: true, ...payload });
-      } catch (err) {
+      } catch {
         logger.warn("Failed to parse notifications cache, falling back to DB");
       }
     }
 
-    const skip = (page - 1) * limit;
-
     const [total, notifications, unreadCount] = await Promise.all([
-      Notification.countDocuments({ user: userId }),
-      Notification.find({ user: userId })
+      Notification.countDocuments(query),
+
+      Notification.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .select("type title message meta isRead createdAt")
         .lean(),
+
       Notification.countDocuments({ user: userId, isRead: false })
     ]);
 
@@ -79,9 +98,11 @@ export async function getAllUserNotifications(req: Request, res: Response) {
       error: error.message,
       stack: error.stack
     });
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch notifications" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch notifications"
+    });
   }
 }
 
@@ -153,7 +174,6 @@ export async function markAsRead(req: Request, res: Response) {
         .json({ success: false, message: "Notification not found" });
     }
 
-    // Invalidate caches for this user
     notificationCache
       .invalidateNotificationCaches(userId)
       .catch((e) => logger.warn("Failed to invalidate notification caches", e));
@@ -181,7 +201,6 @@ export async function markAllAsRead(req: Request, res: Response) {
       { $set: { isRead: true, updatedAt: new Date() } }
     );
 
-    // Invalidate caches for this user (best-effort)
     notificationCache
       .invalidateNotificationCaches(userId)
       .catch((e) => logger.warn("Failed to invalidate notification caches", e));

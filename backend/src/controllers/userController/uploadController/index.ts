@@ -84,11 +84,7 @@ export const uploadPhotoController = async (
       data: result.data
     };
 
-    res.status(201).json(response);
-
-    logger.info(
-      `Photo uploaded successfully for user ${user.id}: ${photoType}`
-    );
+    return res.status(201).json(response);
   } catch (error: any) {
     logger.error("Error uploading photo:", error);
 
@@ -179,9 +175,7 @@ export const updatePhotoController = async (
       data: result.data
     };
 
-    res.status(200).json(response);
-
-    logger.info(`Photo updated successfully for user ${user.id}: ${photoType}`);
+    return res.status(200).json(response);
   } catch (error: any) {
     logger.error("Error updating photo:", error);
 
@@ -239,9 +233,7 @@ export const deletePhotoController = async (
       data: result.data
     };
 
-    res.status(200).json(response);
-
-    logger.info(`Photo deleted successfully for user ${user.id}: ${photoType}`);
+    return res.status(200).json(response);
   } catch (error: any) {
     logger.error("Error deleting photo:", error);
 
@@ -311,9 +303,7 @@ export const uploadGovernmentIdController = async (
       data: result.data
     };
 
-    res.status(201).json(response);
-
-    logger.info(`Government ID uploaded successfully for user ${user.id}`);
+    return res.status(201).json(response);
   } catch (error: any) {
     logger.error("Error uploading government ID:", error);
 
@@ -383,9 +373,7 @@ export const updateGovernmentIdController = async (
       data: result.data
     };
 
-    res.status(200).json(response);
-
-    logger.info(`Government ID updated successfully for user ${user.id}`);
+    return res.status(200).json(response);
   } catch (error: any) {
     logger.error("Error updating government ID:", error);
 

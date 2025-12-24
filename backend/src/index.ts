@@ -43,7 +43,7 @@ app.use(cors(middleware.corsOptions));
 
 app.use(middleware.securityLogger);
 
-app.use(middleware.requestTimeoutProtection(30000));
+app.use(middleware.requestTimeoutProtection(60000));
 
 app.use(middleware.securityHeaders);
 

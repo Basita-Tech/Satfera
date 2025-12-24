@@ -4,8 +4,14 @@ import { logger } from "../common/logger";
 export const LIST_TTL = 60;
 export const COUNT_TTL = 30;
 
-export function listCacheKey(userId: string, page: number, limit: number) {
-  return `notifications:list:${userId}:p:${page}:l:${limit}`;
+export function listCacheKey(
+  userId: string,
+  page: number,
+  limit: number,
+  isRead?: string
+) {
+  const readFilter = isRead ? `:read:${isRead}` : "";
+  return `notifications:list:${userId}:p:${page}:l:${limit}${readFilter}`;
 }
 
 export function unreadCountCacheKey(userId: string) {
