@@ -48,6 +48,8 @@ async function updateProfileApproval(
 
   if (newStatus === "rejected" || newStatus === "rectification") {
     updateData.isActive = false;
+  } else {
+    updateData.isActive = true;
   }
 
   await User.findByIdAndUpdate(objectId, updateData, { new: false });
@@ -643,6 +645,15 @@ export async function getAllProfilesService(
     isActive === "false" || isActive === false ? false : true;
 
   try {
+    const matchCondition: any = {
+      "user.role": "user",
+      "user.isActive": isActiveFilter
+    };
+
+    if (isActiveFilter === true) {
+      matchCondition["user.profileReviewStatus"] = "approved";
+    }
+
     const result = await Profile.aggregate([
       {
         $lookup: {
@@ -655,11 +666,7 @@ export async function getAllProfilesService(
       { $unwind: "$user" },
 
       {
-        $match: {
-          "user.role": "user",
-          "user.isActive": isActiveFilter,
-          "user.profileReviewStatus": "approved"
-        }
+        $match: matchCondition
       },
 
       {

@@ -104,7 +104,12 @@ export const getRecommendations = async (req: Request, res: Response) => {
     const validResults = formattedResults.filter((r) => r !== null);
     const paginatedResults = validResults.slice(skip, skip + limitNum);
 
-    res.json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent in getRecommendations, cannot respond");
+      return;
+    }
+
+    const responseData = {
       success: true,
       data: paginatedResults,
       pagination: {
@@ -113,10 +118,32 @@ export const getRecommendations = async (req: Request, res: Response) => {
         total: validResults.length,
         hasMore: skip + limitNum < validResults.length
       }
-    });
+    };
+
+    try {
+      JSON.stringify(responseData);
+    } catch (serializationError) {
+      logger.error(
+        "JSON serialization error in getRecommendations:",
+        serializationError
+      );
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to serialize response data"
+        });
+      }
+      return;
+    }
+
+    return res.json(responseData);
   } catch (error) {
     logger.error("Error fetching recommendations:", error);
-    res.status(500).json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent in error handler, cannot respond");
+      return;
+    }
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch recommendations"
     });
@@ -146,6 +173,10 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (matches.length === 0) {
+      if (res.headersSent) {
+        logger.warn("Headers already sent, cannot respond");
+        return;
+      }
       return res.json({
         success: true,
         data: [],
@@ -160,7 +191,12 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
 
     const paginatedResults = matches.slice(skip, skip + limitNum);
 
-    res.json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent before final response, cannot respond");
+      return;
+    }
+
+    const responseData = {
       success: true,
       data: paginatedResults,
       pagination: {
@@ -169,10 +205,29 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
         total: matches.length,
         hasMore: skip + limitNum < matches.length
       }
-    });
+    };
+
+    try {
+      JSON.stringify(responseData);
+    } catch (serializationError) {
+      logger.error("JSON serialization error:", serializationError);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to serialize response data"
+        });
+      }
+      return;
+    }
+
+    return res.json(responseData);
   } catch (error) {
     logger.error("Error fetching matches:", error);
-    res.status(500).json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent in error handler, cannot respond");
+      return;
+    }
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch matches"
     });
@@ -207,13 +262,13 @@ export const getProfile = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: profile
     });
   } catch (error) {
     logger.error("Error fetching profile:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch profile"
     });

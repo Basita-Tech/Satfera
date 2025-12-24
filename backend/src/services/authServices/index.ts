@@ -102,7 +102,6 @@ export class AuthService {
       () =>
         User.findOne({
           email: email.toLowerCase(),
-          isActive: true,
           isEmailLoginEnabled: true,
           isDeleted: false
         }).select(
@@ -209,7 +208,6 @@ export class AuthService {
       () =>
         User.findOne({
           phoneNumber: phoneNumber,
-          isActive: true,
           isMobileLoginEnabled: true,
           isDeleted: false
         }).select(

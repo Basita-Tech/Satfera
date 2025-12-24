@@ -113,6 +113,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     ip: req.ip
   });
 
+  if (res.headersSent) {
+    logger.warn("Headers already sent, skipping error response");
+    return next(err);
+  }
+
   const sanitized = middleware.sanitizeError(err);
 
   res.status(sanitized.status).json({

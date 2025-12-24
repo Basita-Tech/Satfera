@@ -158,13 +158,6 @@ export const authenticate = async (
         });
       }
 
-      if (user.isActive === false) {
-        return res.status(403).json({
-          success: false,
-          message: "Account has been deactivated. Please contact support."
-        });
-      }
-
       const dataToCache: CachedAuthData = { user, jtiValid };
       await safeRedisOperation(
         () =>

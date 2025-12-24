@@ -78,21 +78,27 @@ export const uploadPhotoController = async (
       });
     }
 
-    logger.info(
-      `Photo uploaded successfully for user ${user.id}: ${photoType}`
-    );
-    return res.status(201).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    res.status(201).json(response);
+
+    logger.info(
+      `Photo uploaded successfully for user ${user.id}: ${photoType}`
+    );
   } catch (error: any) {
     logger.error("Error uploading photo:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to upload photo",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload photo",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -167,19 +173,25 @@ export const updatePhotoController = async (
       });
     }
 
-    logger.info(`Photo updated successfully for user ${user.id}: ${photoType}`);
-    return res.status(200).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    res.status(200).json(response);
+
+    logger.info(`Photo updated successfully for user ${user.id}: ${photoType}`);
   } catch (error: any) {
     logger.error("Error updating photo:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update photo",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update photo",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -221,19 +233,25 @@ export const deletePhotoController = async (
       });
     }
 
-    logger.info(`Photo deleted successfully for user ${user.id}: ${photoType}`);
-    return res.status(200).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    res.status(200).json(response);
+
+    logger.info(`Photo deleted successfully for user ${user.id}: ${photoType}`);
   } catch (error: any) {
     logger.error("Error deleting photo:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete photo",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete photo",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -287,19 +305,25 @@ export const uploadGovernmentIdController = async (
       });
     }
 
-    logger.info(`Government ID uploaded successfully for user ${user.id}`);
-    return res.status(201).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    res.status(201).json(response);
+
+    logger.info(`Government ID uploaded successfully for user ${user.id}`);
   } catch (error: any) {
     logger.error("Error uploading government ID:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to upload government ID",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload government ID",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -353,19 +377,25 @@ export const updateGovernmentIdController = async (
       });
     }
 
-    logger.info(`Government ID updated successfully for user ${user.id}`);
-    return res.status(200).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    res.status(200).json(response);
+
+    logger.info(`Government ID updated successfully for user ${user.id}`);
   } catch (error: any) {
     logger.error("Error updating government ID:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update government ID",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update government ID",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -401,11 +431,14 @@ export const getPhotosController = async (
     });
   } catch (error: any) {
     logger.error("Error fetching photos:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch photos",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch photos",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -442,10 +475,13 @@ export const getGovernmentIdController = async (
     });
   } catch (error: any) {
     logger.error("Error fetching government ID:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch government ID",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch government ID",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };

@@ -108,8 +108,11 @@ export const suspiciousActivityDetector = (
 
 export const requestTimeoutProtection = (timeoutMs: number = 30000) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    let timeoutHandled = false;
+
     const timeout = setTimeout(() => {
-      if (!res.headersSent) {
+      if (!res.headersSent && !timeoutHandled) {
+        timeoutHandled = true;
         logger.error("Request timeout", {
           path: req.path,
           method: req.method,
@@ -122,9 +125,13 @@ export const requestTimeoutProtection = (timeoutMs: number = 30000) => {
       }
     }, timeoutMs);
 
-    res.on("finish", () => {
+    const cleanup = () => {
+      timeoutHandled = true;
       clearTimeout(timeout);
-    });
+    };
+
+    res.on("finish", cleanup);
+    res.on("close", cleanup);
 
     next();
   };
