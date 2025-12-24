@@ -22,10 +22,10 @@ export function ProfileCard({
   profession = "",
   religion = null,
   caste = null,
-  image = "", // no fallback image; keep empty if none provided
+  image = "", 
   compatibility = 0,
   status = null,
-  variant = "browse", // browse | dashboard | sent | received
+  variant = "browse", 
   onSendRequest,
   onView,
   onWithdraw,
@@ -128,8 +128,8 @@ export function ProfileCard({
     switch (variant) {
       case "browse":
         return (
-          <div className="space-y-2 mt-2">
-            <div className="flex gap-3">
+          <div className="mt-3 space-y-3">
+            <div className="flex gap-2 w-full">
               <Button
                 onClick={() => {
                   const profileId = profile?.id || id;
@@ -140,35 +140,33 @@ export function ProfileCard({
                   }
                   navigate(`/dashboard/profile/${profileId}`);
                 }}
-                className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.5px] border-[#c8a227] rounded-full font-medium hover:bg-[#c8a227] hover:text-white transition-all duration-200 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.5px] border-[#c8a227] rounded-full font-medium hover:bg-[#c8a227] hover:text-white transition-all duration-200 flex items-center justify-center gap-1 h-10 text-sm"
               >
-                <Eye className="w-5 h-5" />
+                <Eye className="w-4 h-4" />
                 View
               </Button>
 
               <Button
-                className="flex-1 bg-[#c8a227] border-[1.5px] border-[#c8a227] text-white rounded-full font-medium hover:bg-[#c8a227] transition-all duration-200"
+                className="flex-1 bg-[#c8a227] border-[1.5px] border-[#c8a227] text-white rounded-full font-medium hover:bg-[#b49520] transition-all duration-200 h-10 text-sm"
                 onClick={handleSendRequestClick}
               >
                 Send Request
               </Button>
             </div>
 
-            <div className="flex gap-2">
+            <div className="w-full">
               {isUiInCompare ? (
                 <Button
-                  size="sm"
                   onClick={handleRemoveClick}
-                  className="flex-1 bg-[#c8a227] text-white rounded-[12px] hover:bg-[#c8a227]"
+                  className="w-full bg-[#c8a227] text-white rounded-full hover:bg-[#b49520] font-medium h-10 text-sm"
                 >
                   Remove Compare
                 </Button>
               ) : (
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={handleAddClick}
-                  className="flex-1 border-[1.5px] border-[#c8a227] text-[#c8a227] font-medium rounded-full py-2.5 bg-[#f9f5ed] hover:bg-[#c8a227] hover:text-white transition-all duration-200"
+                  className="w-full border-[1.5px] border-[#c8a227] text-[#c8a227] font-medium rounded-full bg-[#f9f5ed] hover:bg-[#c8a227] hover:text-white transition-all duration-200 h-10 text-sm"
                 >
                   Add to Compare
                 </Button>
@@ -508,7 +506,7 @@ export function ProfileCard({
               alt={name}
               loading="lazy"
               decoding="async"
-              className="w-full h-[220px] object-cover object-center"
+              className="w-full h-[220px]  object-center"
               onError={(e) => {
                 // Hide broken image and show fallback
                 e.currentTarget.style.display = 'none';
