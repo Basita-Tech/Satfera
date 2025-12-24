@@ -45,6 +45,12 @@ adminRouter.delete(
   adminController.hardDeleteAccountController
 );
 
+adminRouter.post(
+  "/account/delete",
+  authenticate,
+  adminController.softDeleteAccountController
+);
+
 adminRouter.get(
   "/accounts/deleted",
   authenticate,
