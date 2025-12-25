@@ -3,6 +3,7 @@ import { SupportService } from "../services/supportService";
 import { MessageSender } from "../models/SupportMessage";
 import { AuthenticatedRequest } from "../types";
 import { logger } from "../lib/common/logger";
+import { User } from "../models";
 
 export class SupportController {
   static async createTicket(req: AuthenticatedRequest, res: Response) {
@@ -14,12 +15,17 @@ export class SupportController {
     }
 
     try {
-      const { id, fullName, email, phoneNumber } = req.user!;
+      const { id, fullName } = req.user!;
+      const user = await User.findById(id)
+        .select("email phoneNumber customId")
+        .lean();
+
       const ticket = await SupportService.createTicket({
         userId: id,
+        userCustomId: user?.customId,
         name: fullName,
-        email,
-        phone: phoneNumber,
+        email: user?.email,
+        phone: user?.phoneNumber,
         subject,
         category,
         description,
