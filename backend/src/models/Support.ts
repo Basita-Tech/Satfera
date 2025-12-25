@@ -15,6 +15,7 @@ export interface ISupportTicket extends Document {
   email: string;
   phone?: string;
   subject: string;
+  description?: string;
   category: string;
   status: SupportTicketStatus;
   createdAt: Date;
@@ -30,6 +31,7 @@ const supportTicketSchema: Schema = new Schema(
     email: { type: String, required: true, lowercase: true, trim: true },
     phone: { type: String },
     subject: { type: String, required: true, maxlength: 200 },
+    description: { type: String, maxlength: 2000 },
     category: { type: String, required: true },
     status: {
       type: String,

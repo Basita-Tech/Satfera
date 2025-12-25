@@ -6,8 +6,8 @@ import { logger } from "../lib/common/logger";
 
 export class SupportController {
   static async createTicket(req: AuthenticatedRequest, res: Response) {
-    const { subject, category, message } = req.body;
-    if (!subject || !category || !message) {
+    const { subject, category, message, description } = req.body;
+    if (!subject || !category || !message || !description) {
       return res
         .status(400)
         .json({ success: false, message: "Required fields missing" });
@@ -22,6 +22,7 @@ export class SupportController {
         phone: phoneNumber,
         subject,
         category,
+        description,
         initialMessage: message
       });
 

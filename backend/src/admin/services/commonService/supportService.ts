@@ -87,18 +87,48 @@ export class SupportService {
   ) {
     const skip = (page - 1) * limit;
 
-    const [tickets, total] = await Promise.all([
-      SupportTicket.find(filters)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      SupportTicket.countDocuments(filters)
+    const result = await SupportTicket.aggregate([
+      { $match: filters },
+
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit }
+          ],
+
+          totalCount: [{ $count: "count" }],
+
+          statusCounts: [
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 }
+              }
+            }
+          ]
+        }
+      }
     ]);
 
+    const total = result[0].totalCount[0]?.count || 0;
+
+    const statusCounts = {
+      open: 0,
+      in_progress: 0,
+      resolved: 0,
+      closed: 0
+    };
+
+    result[0].statusCounts.forEach((item) => {
+      statusCounts[item._id] = item.count;
+    });
+
     return {
-      data: tickets,
-      meta: {
+      data: result[0].data,
+      statusCounts,
+      pagination: {
         total,
         page,
         limit,

@@ -720,7 +720,6 @@ export const updateEmailTemplateValidation = [
     .withMessage("isActive must be a boolean")
 ];
 
-// PricingConfig Validations
 export const createOrUpdatePricingConfigValidation = [
   body("monthName")
     .notEmpty()

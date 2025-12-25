@@ -16,6 +16,7 @@ export class SupportService {
     email: string;
     phone?: string;
     subject: string;
+    description: string;
     category: string;
     initialMessage: string;
   }): Promise<ISupportTicket> {
@@ -35,6 +36,7 @@ export class SupportService {
         email: data.email,
         phone: data.phone,
         subject: data.subject,
+        description: data.description,
         category: data.category,
         status: SupportTicketStatus.OPEN
       });
@@ -128,11 +130,11 @@ export class SupportService {
 
     const statusUpdatePromise =
       data.sender === MessageSender.ADMIN &&
-        ticket.status === SupportTicketStatus.OPEN
+      ticket.status === SupportTicketStatus.OPEN
         ? SupportTicket.updateOne(
-          { _id: ticket._id },
-          { status: SupportTicketStatus.IN_PROGRESS }
-        )
+            { _id: ticket._id },
+            { status: SupportTicketStatus.IN_PROGRESS }
+          )
         : Promise.resolve();
 
     const [savedMessage] = await Promise.all([
