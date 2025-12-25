@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import { validationResult } from "express-validator";
 import { getQueueStats, logger } from "../../lib";
 import authenticate from "../../middleware/authMiddleware";
 import * as adminController from "../controllers";
@@ -6,8 +7,28 @@ import { commonControllers } from "../controllers/commonControllers";
 import { isAdmin } from "../../utils/utils";
 import { getSystemHealth } from "../controllers/systemControllers";
 import { SupportController } from "../controllers/commonControllers/supportController";
+import {
+  createEmailTemplateValidation,
+  updateEmailTemplateValidation
+} from "../../validation";
 
 const adminRouter = express();
+
+const handleValidationErrors = (
+  req: Request,
+  res: Response,
+  next: Function
+) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: errors.array()
+    });
+  }
+  next();
+};
 
 // temp route
 adminRouter.get("/queue-stats", async (req: Request, res: Response) => {
@@ -157,5 +178,39 @@ adminRouter.patch(
 adminRouter.post("/support/tickets/:id/messages", SupportController.addMessage);
 
 adminRouter.get("/search", adminController.adminSearchController);
+
+adminRouter.get(
+  "/email-templates",
+  authenticate,
+  adminController.getEmailTemplatesController
+);
+
+adminRouter.get(
+  "/email-templates/:id",
+  authenticate,
+  adminController.getEmailTemplateByIdController
+);
+
+adminRouter.post(
+  "/email-templates",
+  authenticate,
+  createEmailTemplateValidation,
+  handleValidationErrors,
+  adminController.createEmailTemplateController
+);
+
+adminRouter.put(
+  "/email-templates/:id",
+  authenticate,
+  updateEmailTemplateValidation,
+  handleValidationErrors,
+  adminController.updateEmailTemplateController
+);
+
+adminRouter.delete(
+  "/email-templates/:id",
+  authenticate,
+  adminController.deleteEmailTemplateController
+);
 
 export default adminRouter;

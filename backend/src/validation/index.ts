@@ -637,3 +637,85 @@ export const verifyPhoneChangeValidation = [
     .isMobilePhone("any")
     .withMessage("Invalid phone number format")
 ];
+
+export const createEmailTemplateValidation = [
+  body("type")
+    .notEmpty()
+    .withMessage("Template type is required")
+    .bail()
+    .isString()
+    .withMessage("Template type must be a string")
+    .bail()
+    .isIn([
+      "FORGOT_PASSWORD",
+      "SIGNUP",
+      "RESET_PASSWORD",
+      "WELCOME_EMAIL",
+      "PROFILE_REVIEW",
+      "PROFILE_APPROVED",
+      "PROFILE_REJECTED",
+      "PROFILE_RECTIFICATION",
+      "ACCOUNT_DEACTIVATION",
+      "ACCOUNT_DELETION",
+      "ACCOUNT_ACTIVATION",
+      "SUBSCRIPTION_RENEWAL",
+      "SUBSCRIPTION_CANCELLATION",
+      "PAYMENT_FAILED",
+      "TRIAL_ENDING_SOON",
+      "PROMOTION_OFFER",
+      "SYSTEM_MAINTENANCE",
+      "ACCOUNT_SUSPENSION_WARNING",
+      "LEGAL_UPDATE",
+      "APP_UPDATE_NOTIFICATION",
+      "NEWSLETTER"
+    ])
+    .withMessage("Invalid template type"),
+
+  body("subject")
+    .notEmpty()
+    .withMessage("Subject is required")
+    .bail()
+    .isString()
+    .withMessage("Subject must be a string")
+    .bail()
+    .isLength({ min: 3, max: 200 })
+    .withMessage("Subject must be between 3 and 200 characters"),
+
+  body("body")
+    .notEmpty()
+    .withMessage("Body is required")
+    .bail()
+    .isString()
+    .withMessage("Body must be a string")
+    .bail()
+    .isLength({ min: 10 })
+    .withMessage("Body must be at least 10 characters long"),
+
+  body("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive must be a boolean")
+];
+
+export const updateEmailTemplateValidation = [
+  body("subject")
+    .optional()
+    .isString()
+    .withMessage("Subject must be a string")
+    .bail()
+    .isLength({ min: 3, max: 200 })
+    .withMessage("Subject must be between 3 and 200 characters"),
+
+  body("body")
+    .optional()
+    .isString()
+    .withMessage("Body must be a string")
+    .bail()
+    .isLength({ min: 10 })
+    .withMessage("Body must be at least 10 characters long"),
+
+  body("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive must be a boolean")
+];

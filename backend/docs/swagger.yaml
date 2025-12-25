@@ -275,6 +275,43 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/SupportMessage"
+    EmailTemplate:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          enum:
+            - SIGNUP
+            - FORGOT_PASSWORD
+            - RESET_PASSWORD
+            - WELCOME_EMAIL
+            - PROFILE_REVIEW
+            - PROFILE_APPROVED
+            - PROFILE_REJECTED
+            - PROFILE_RECTIFICATION
+            - ACCOUNT_DEACTIVATION
+            - ACCOUNT_DELETION
+            - ACCOUNT_ACTIVATION
+        subject:
+          type: string
+        body:
+          type: string
+          description: HTML email template content with {{variable}} placeholders
+        availableVariables:
+          type: array
+          items:
+            type: string
+          description: Auto-assigned based on template type
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
 paths:
   /health:
@@ -4635,3 +4672,219 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SupportMessage"
+
+  /api/v1/admin/email-templates:
+    get:
+      summary: Get all email templates
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - SIGNUP
+              - FORGOT_PASSWORD
+              - RESET_PASSWORD
+              - WELCOME_EMAIL
+              - PROFILE_REVIEW
+              - PROFILE_APPROVED
+              - PROFILE_REJECTED
+              - PROFILE_RECTIFICATION
+              - ACCOUNT_DEACTIVATION
+              - ACCOUNT_DELETION
+              - ACCOUNT_ACTIVATION
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Email templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EmailTemplate"
+                  count:
+                    type: integer
+    post:
+      summary: Create new email template
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, subject, body]
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - SIGNUP
+                    - FORGOT_PASSWORD
+                    - RESET_PASSWORD
+                    - WELCOME_EMAIL
+                    - PROFILE_REVIEW
+                    - PROFILE_APPROVED
+                    - PROFILE_REJECTED
+                    - PROFILE_RECTIFICATION
+                    - ACCOUNT_DEACTIVATION
+                    - ACCOUNT_DELETION
+                    - ACCOUNT_ACTIVATION
+                subject:
+                  type: string
+                  minLength: 3
+                body:
+                  type: string
+                  minLength: 10
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Email template created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/EmailTemplate"
+        "400":
+          description: Validation error or template already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/email-templates/{id}:
+    get:
+      summary: Get email template by ID
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email template retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/EmailTemplate"
+        "404":
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update email template
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                  minLength: 3
+                body:
+                  type: string
+                  minLength: 10
+                isActive:
+                  type: boolean
+      responses:
+        "200":
+          description: Email template updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/EmailTemplate"
+        "404":
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete email template
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email template deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "404":
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
