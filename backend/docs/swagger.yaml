@@ -313,6 +313,31 @@ components:
           type: string
           format: date-time
 
+    PricingConfig:
+      type: object
+      properties:
+        _id:
+          type: string
+        monthName:
+          type: string
+          enum:
+            - 1_month
+            - 3_months
+            - 6_months
+            - 12_months
+        features:
+          type: array
+          items:
+            type: string
+        price:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
 paths:
   /health:
     get:
@@ -4884,6 +4909,176 @@ paths:
                     type: string
         "404":
           description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/pricing-configs:
+    get:
+      summary: Get all pricing configurations
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: monthName
+          in: query
+          schema:
+            type: string
+            enum:
+              - 1_month
+              - 3_months
+              - 6_months
+              - 12_months
+          description: Filter by month name
+      responses:
+        "200":
+          description: Pricing configurations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PricingConfig"
+                  count:
+                    type: number
+    post:
+      summary: Create or update pricing configuration
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - monthName
+                - price
+              properties:
+                monthName:
+                  type: string
+                  enum:
+                    - 1_month
+                    - 3_months
+                    - 6_months
+                    - 12_months
+                features:
+                  type: array
+                  items:
+                    type: string
+                price:
+                  type: number
+              example:
+                monthName: "3_months"
+                features:
+                  - "Unlimited matches"
+                  - "Priority support"
+                  - "Profile boost"
+                price: 29.99
+      responses:
+        "200":
+          description: Pricing configuration updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/PricingConfig"
+        "201":
+          description: Pricing configuration created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/PricingConfig"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/pricing-configs/{id}:
+    get:
+      summary: Get pricing configuration by ID
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pricing configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/PricingConfig"
+        "404":
+          description: Pricing configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete pricing configuration
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pricing configuration deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "404":
+          description: Pricing configuration not found
           content:
             application/json:
               schema:

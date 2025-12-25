@@ -9,7 +9,8 @@ import { getSystemHealth } from "../controllers/systemControllers";
 import { SupportController } from "../controllers/commonControllers/supportController";
 import {
   createEmailTemplateValidation,
-  updateEmailTemplateValidation
+  updateEmailTemplateValidation,
+  createOrUpdatePricingConfigValidation
 } from "../../validation";
 
 const adminRouter = express();
@@ -211,6 +212,32 @@ adminRouter.delete(
   "/email-templates/:id",
   authenticate,
   adminController.deleteEmailTemplateController
+);
+
+adminRouter.get(
+  "/pricing-configs",
+  authenticate,
+  adminController.getPricingConfigsController
+);
+
+adminRouter.get(
+  "/pricing-configs/:id",
+  authenticate,
+  adminController.getPricingConfigByIdController
+);
+
+adminRouter.post(
+  "/pricing-configs",
+  authenticate,
+  createOrUpdatePricingConfigValidation,
+  handleValidationErrors,
+  adminController.createOrUpdatePricingConfigController
+);
+
+adminRouter.delete(
+  "/pricing-configs/:id",
+  authenticate,
+  adminController.deletePricingConfigController
 );
 
 export default adminRouter;

@@ -719,3 +719,41 @@ export const updateEmailTemplateValidation = [
     .isBoolean()
     .withMessage("isActive must be a boolean")
 ];
+
+// PricingConfig Validations
+export const createOrUpdatePricingConfigValidation = [
+  body("monthName")
+    .notEmpty()
+    .withMessage("Month name is required")
+    .bail()
+    .isIn(["1_month", "3_months", "6_months", "12_months"])
+    .withMessage(
+      "Month name must be one of: 1_month, 3_months, 6_months, 12_months"
+    ),
+
+  body("features")
+    .optional()
+    .isArray()
+    .withMessage("Features must be an array")
+    .bail()
+    .custom((value) => {
+      if (value && !value.every((item: any) => typeof item === "string")) {
+        throw new Error("All features must be strings");
+      }
+      return true;
+    }),
+
+  body("price")
+    .notEmpty()
+    .withMessage("Price is required")
+    .bail()
+    .isNumeric()
+    .withMessage("Price must be a number")
+    .bail()
+    .custom((value) => {
+      if (value < 0) {
+        throw new Error("Price must be a positive number");
+      }
+      return true;
+    })
+];
