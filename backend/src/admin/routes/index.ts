@@ -10,7 +10,8 @@ import { SupportController } from "../controllers/commonControllers/supportContr
 import {
   createEmailTemplateValidation,
   updateEmailTemplateValidation,
-  createOrUpdatePricingConfigValidation
+  createOrUpdatePricingConfigValidation,
+  updateUserProfileValidation
 } from "../../validation";
 
 const adminRouter = express();
@@ -131,6 +132,14 @@ adminRouter.get(
   "/profile/:userId",
   authenticate,
   adminController.getUserProfileDetailsController
+);
+
+adminRouter.put(
+  "/profile/:userId",
+  authenticate,
+  updateUserProfileValidation,
+  handleValidationErrors,
+  adminController.updateUserProfileDetailsController
 );
 
 adminRouter.get(

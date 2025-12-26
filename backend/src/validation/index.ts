@@ -756,3 +756,116 @@ export const createOrUpdatePricingConfigValidation = [
       return true;
     })
 ];
+
+export const updateUserProfileValidation = [
+  body("firstName")
+    .optional()
+    .isString()
+    .withMessage("First name must be a string")
+    .bail()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("First name must be between 2 and 50 characters"),
+
+  body("middleName")
+    .optional()
+    .isString()
+    .withMessage("Middle name must be a string")
+    .bail()
+    .isLength({ max: 50 })
+    .withMessage("Middle name must be less than 50 characters"),
+
+  body("lastName")
+    .optional()
+    .isString()
+    .withMessage("Last name must be a string")
+    .bail()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Last name must be between 2 and 50 characters"),
+
+  body("email").optional().isEmail().withMessage("Invalid email format"),
+
+  body("phoneNumber")
+    .optional()
+    .isMobilePhone("any")
+    .withMessage("Invalid phone number format"),
+
+  body("gender")
+    .optional()
+    .isIn(["male", "female", "other", "Male", "Female", "Other"])
+    .withMessage("Gender must be male, female, or other"),
+
+  body("dateOfBirth")
+    .optional()
+    .isISO8601()
+    .withMessage("Invalid date format for date of birth"),
+
+  body("for_Profile")
+    .optional()
+    .isString()
+    .withMessage("for_Profile must be a string"),
+
+  body("healthData")
+    .optional()
+    .isObject()
+    .withMessage("Health data must be an object"),
+
+  body("healthData.diet")
+    .optional()
+    .isString()
+    .withMessage("Diet must be a string"),
+
+  body("professionData")
+    .optional()
+    .isObject()
+    .withMessage("Profession data must be an object"),
+
+  body("professionData.AnnualIncome")
+    .optional()
+    .isNumeric()
+    .withMessage("Annual income must be a number"),
+
+  body("personalData")
+    .optional()
+    .isObject()
+    .withMessage("Personal data must be an object"),
+
+  body("personalData.height")
+    .optional()
+    .isNumeric()
+    .withMessage("Height must be a number"),
+
+  body("personalData.weight")
+    .optional()
+    .isNumeric()
+    .withMessage("Weight must be a number"),
+
+  body("personalData.religion")
+    .optional()
+    .isString()
+    .withMessage("Religion must be a string"),
+
+  body("familyData")
+    .optional()
+    .isObject()
+    .withMessage("Family data must be an object"),
+
+  body("familyData.howManySiblings")
+    .optional()
+    .isNumeric()
+    .withMessage("Number of siblings must be a number"),
+
+  body("educationsData")
+    .optional()
+    .isObject()
+    .withMessage("Education data must be an object"),
+
+  body("expectationsData")
+    .optional()
+    .isObject()
+    .withMessage("Expectations data must be an object"),
+
+  body("expectationsData.age")
+    .optional()
+    .isObject()
+    .withMessage("Age must be an object with from and to")
+];

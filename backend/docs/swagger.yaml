@@ -3493,37 +3493,27 @@ paths:
                         description: User profile information
                       healthData:
                         type: object
-                        description: Health information
                       professionData:
                         type: object
-                        description: Professional information
                       personalData:
                         type: object
-                        description: Personal information
                       familyData:
                         type: object
-                        description: Family information
                       educationsData:
                         type: object
-                        description: Education information
                       expectationsData:
                         type: object
-                        description: Expectations and preferences
                       stats:
                         type: object
                         properties:
                           requestsSent:
                             type: integer
-                            description: Number of connection requests sent
                           requestsReceived:
                             type: integer
-                            description: Number of connection requests received
                           accepted:
                             type: integer
-                            description: Number of accepted connections
                           highMatch:
                             type: integer
-                            description: Number of high match profiles (>70%)
                       requestsSentDetails:
                         type: array
                         items:
@@ -3546,7 +3536,6 @@ paths:
                             createdAt:
                               type: string
                               format: date-time
-                        description: Detailed list of sent connection requests
                       requestsReceivedDetails:
                         type: array
                         items:
@@ -3569,7 +3558,6 @@ paths:
                             createdAt:
                               type: string
                               format: date-time
-                        description: Detailed list of received connection requests
               examples:
                 success:
                   value:
@@ -3623,6 +3611,103 @@ paths:
           description: Access denied if role is not admin
         "400":
           description: Invalid userId or user not found
+
+    put:
+      summary: Update user profile details (Admin - can update specific non-sensitive fields)
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gender:
+                  type: string
+                  enum: ["male", "female", "other"]
+
+                healthData:
+                  type: object
+                  properties:
+                    isAlcoholic:
+                      type: string
+                      enum: ["yes", "no", "occasional", ""]
+                    diet:
+                      type: string
+                      enum:
+                        - vegetarian
+                        - non-vegetarian
+                        - eggetarian
+                        - jain
+                        - swaminarayan
+                        - "veg & non-veg"
+                        - ""
+
+                professionData:
+                  type: object
+                  properties:
+                    EmploymentStatus:
+                      type: string
+                      enum:
+                        - "private sector"
+                        - government
+                        - "self-employed"
+                        - unemployed
+                        - student
+                        - business
+
+                expectationsData:
+                  type: object
+                  properties:
+                    age:
+                      type: object
+                      properties:
+                        from:
+                          type: number
+                          minimum: 18
+                          maximum: 100
+                        to:
+                          type: number
+                          minimum: 18
+                          maximum: 100
+                    maritalStatus:
+                      type: string
+                      enum:
+                        - "Never Married"
+                        - "Divorced"
+                        - "Widowed"
+                        - "Separated"
+                        - "Awaiting Divorce"
+                        - "No Preference"
+                    isConsumeAlcoholic:
+                      type: string
+                      enum: ["yes", "no", "occasionally"]
+
+      responses:
+        "200":
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "400":
+          description: Validation error or update failed
+        "404":
+          description: User not found
+        "500":
+          description: Server error
 
   /api/v1/admin/analytics:
     get:

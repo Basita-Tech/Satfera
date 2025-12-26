@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { logger } from "../../../lib/common/logger";
 import * as adminService from "../../services/userServices";
 import { AuthenticatedRequest } from "../../../types";
+import { updateUserProfileDetailsService } from "../../services/userServices/updateUserProfileService";
 
 export async function approveUserProfileController(
   req: Request,
@@ -387,6 +388,37 @@ export async function updateReportStatusController(
     return res.status(400).json({
       success: false,
       message: result.message
+    });
+  }
+}
+
+export async function updateUserProfileDetailsController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const { userId } = req.params;
+    const profileData = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required"
+      });
+    }
+
+    const result = await updateUserProfileDetailsService(userId, profileData);
+
+    return res.status(result.success ? 200 : 400).json(result);
+  } catch (error: any) {
+    logger.error("Error updating user profile details:", {
+      error: error.message,
+      stack: error.stack,
+      userId: req.params.userId
+    });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update user profile"
     });
   }
 }
