@@ -294,6 +294,7 @@ components:
             - ACCOUNT_DEACTIVATION
             - ACCOUNT_DELETION
             - ACCOUNT_ACTIVATION
+            - CONNECTION_ACCEPTED
         subject:
           type: string
         body:
@@ -4723,6 +4724,7 @@ paths:
               - ACCOUNT_DEACTIVATION
               - ACCOUNT_DELETION
               - ACCOUNT_ACTIVATION
+              - CONNECTION_ACCEPTED
         - name: isActive
           in: query
           schema:
@@ -4772,6 +4774,7 @@ paths:
                     - ACCOUNT_DEACTIVATION
                     - ACCOUNT_DELETION
                     - ACCOUNT_ACTIVATION
+                    - CONNECTION_ACCEPTED
                 subject:
                   type: string
                   minLength: 3

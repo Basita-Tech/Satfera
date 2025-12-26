@@ -362,3 +362,52 @@ export async function sendProfileRectificationEmail(
     text: template.text
   });
 }
+
+export async function sendConnectionAcceptedEmail(
+  to: string,
+  userName: string,
+  accepterName: string,
+  accepterProfileLink: string
+) {
+  try {
+    const variables = {
+      userName,
+      accepterName,
+      accepterProfileLink,
+      brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+      logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
+    };
+
+    const template = await buildEmailFromTemplate(
+      EmailTemplateType.ConnectionAccepted,
+      variables
+    );
+
+    if (!template) {
+      throw new Error("Email template not found for ConnectionAccepted");
+    }
+
+    logger.debug("Sending connection accepted email", {
+      to,
+      userName,
+      accepterName,
+      subject: template.subject
+    });
+
+    return sendMail({
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+  } catch (error: any) {
+    logger.error("Error in sendConnectionAcceptedEmail:", {
+      error: error.message,
+      stack: error.stack,
+      to,
+      userName,
+      accepterName
+    });
+    throw error;
+  }
+}

@@ -6,12 +6,19 @@ export async function getEmailTemplateByType(
 ): Promise<{ html: string; text: string; subject: string } | null> {
   try {
     const template = await EmailTemplate.findOne({
-      type,
+      type: type,
       isActive: true
     }).lean();
 
     if (!template) {
-      logger.warn(`No active email template found for type: ${type}`);
+      const inactiveTemplate = await EmailTemplate.findOne({
+        type: type
+      }).lean();
+      if (inactiveTemplate) {
+        logger.warn(`Email template found for type: ${type} but it's inactive`);
+      } else {
+        logger.warn(`No email template found in database for type: ${type}`);
+      }
       return null;
     }
 

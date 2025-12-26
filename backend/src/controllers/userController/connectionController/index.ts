@@ -13,6 +13,8 @@ import { logger } from "../../../lib/common/logger";
 import { isEitherBlocked } from "../../../lib/common/blockUtils";
 import { computeMatchScore } from "../../../services";
 import { formatListingProfile } from "../../../lib/common/formatting";
+import { sendConnectionAcceptedEmail } from "../../../lib/emails";
+import { APP_CONFIG } from "../../../utils/constants";
 
 async function createNotificationBatch(
   notifications: Array<{
@@ -502,6 +504,32 @@ export async function acceptConnectionRequest(
         meta: { receiverId: userId }
       }
     ]);
+
+    const sender = await User.findById(request.sender).session(session).lean();
+    if (sender?.email) {
+      const accepterName = `${receiver?.firstName || ""} ${
+        receiver?.lastName || ""
+      }`.trim();
+      const accepterProfileLink = `${
+        APP_CONFIG.FRONTEND_URL || "https://satfera.vercel.app"
+      }/dashboard/profile/${userId}`;
+
+      sendConnectionAcceptedEmail(
+        sender.email,
+        sender.firstName || "User",
+        accepterName || "A user",
+        accepterProfileLink
+      ).catch((err) => {
+        logger.error("Failed to send connection accepted email:", {
+          error: err.message,
+          stack: err.stack,
+          senderEmail: sender.email,
+          senderId: sender._id,
+          accepterName,
+          accepterProfileLink
+        });
+      });
+    }
 
     await session.commitTransaction();
     res.status(200).json({ success: true, data: request });
