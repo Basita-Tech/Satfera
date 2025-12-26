@@ -3709,6 +3709,103 @@ paths:
         "500":
           description: Server error
 
+  /api/v1/admin/profiles/all/premiums:
+    get:
+      tags:
+        - Admin Dashboard
+      summary: Get all premium profiles
+      description: Retrieve a paginated list of all premium user profiles for admin use.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            example: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 20
+          description: Number of records per page
+      responses:
+        200:
+          description: Successfully retrieved premium profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                          example: 694a92fd1c6509113762e67b
+                        customId:
+                          type: string
+                          example: SF-0
+                        firstName:
+                          type: string
+                          example: Dharini
+                        lastName:
+                          type: string
+                          example: Balakrishna
+                        gender:
+                          type: string
+                          example: female
+                        status:
+                          type: string
+                          nullable: true
+                          example: null
+                        isActive:
+                          type: boolean
+                          example: true
+                        accountType:
+                          type: string
+                          example: premium
+                        age:
+                          type: integer
+                          example: 45
+                        phoneNumber:
+                          type: string
+                          example: "9000000000"
+                        email:
+                          type: string
+                          format: email
+                          example: user0@a.com
+                        closerPhoto:
+                          type: string
+                          format: uri
+                          example: https://randomuser.me/api/portraits/women/0.jpg
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: 2025-12-23T13:02:53.131Z
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 1
+                      totalPages:
+                        type: integer
+                        example: 1
+                      hasMore:
+                        type: boolean
+                        example: false
+
   /api/v1/admin/analytics:
     get:
       summary: Get Reports & Analytics for admin dashboard

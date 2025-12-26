@@ -105,6 +105,12 @@ adminRouter.post(
 );
 
 adminRouter.get(
+  "/profiles/all/premiums",
+  authenticate,
+  adminController.getAllPremiumsProfilesController
+);
+
+adminRouter.get(
   "/profiles/pending",
   authenticate,
   adminController.getPendingProfilesController

@@ -1316,3 +1316,99 @@ export async function updateReportStatusService(id: string, status: string) {
     };
   }
 }
+
+export async function getAllPremiumsProfilesService(
+  page: number,
+  limit: number
+) {
+  const skip = (page - 1) * limit;
+
+  try {
+    const totalCount = await Profile.countDocuments({
+      accountType: "premium"
+    });
+
+    const premiumProfiles = await Profile.find({ accountType: "premium" })
+      .sort({ createdAt: -1 })
+      .select("userId accountType")
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const userIds = premiumProfiles.map((p: any) => p.userId);
+
+    if (userIds.length === 0) {
+      return {
+        success: true,
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasMore: false
+        }
+      };
+    }
+
+    const [users, profiles] = await Promise.all([
+      User.find({ _id: { $in: userIds }, role: "user" })
+        .select(
+          "firstName lastName gender dateOfBirth phoneNumber email customId createdAt isActive"
+        )
+        .lean(),
+
+      Profile.find({ userId: { $in: userIds } })
+        .select("photos.closerPhoto accountType userId")
+        .lean()
+    ]);
+
+    const userMap = new Map<string, any>();
+    users.forEach((u) => userMap.set(u._id.toString(), u));
+
+    const profileMap = new Map<string, any>();
+    profiles.forEach((p) => profileMap.set(p.userId.toString(), p));
+
+    const profilesWithUserData = userIds.map((userId: any) => {
+      const user = userMap.get(userId.toString());
+      const profile = profileMap.get(userId.toString());
+
+      return {
+        userId: user?._id,
+        customId: user?.customId || null,
+        firstName: user?.firstName || null,
+        lastName: user?.lastName || null,
+        gender: user?.gender || null,
+        status: user?.profileReviewStatus || null,
+        isActive: user?.isActive || false,
+        accountType: profile?.accountType || "premium",
+        age: user?.dateOfBirth ? calculateAge(user.dateOfBirth) : null,
+        phoneNumber: user?.phoneNumber || null,
+        email: user?.email || null,
+        closerPhoto: profile?.photos?.closerPhoto?.url || null,
+        createdAt: user?.createdAt || null
+      };
+    });
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page * limit < totalCount;
+
+    return {
+      success: true,
+      data: profilesWithUserData,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+        hasMore
+      }
+    };
+  } catch (error) {
+    logger.error("Error fetching premium profiles:", error);
+    return {
+      success: false,
+      message: "Failed to fetch premium profiles"
+    };
+  }
+}
