@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "../../../types";
 import { logger } from "../../../lib/common/logger";
+import { recordAudit } from "../../../lib/common/auditLogger";
 import mongoose from "mongoose";
 import {
   restoreDeletedAccount,
@@ -41,6 +42,16 @@ export async function restoreAccountController(
     }
 
     const result = await restoreDeletedAccount(adminId, userId);
+    if (result && result.success) {
+      void recordAudit({
+        adminId: adminId,
+        adminName: req.user?.fullName || req.user?.email || "Admin",
+        action: "RestoreAccount",
+        targetType: "User",
+        targetId: userId,
+        details: { message: result.message }
+      });
+    }
     return res.status(200).json(result);
   } catch (err: any) {
     const errorMessage = err.message || "Failed to restore account";
@@ -114,6 +125,16 @@ export async function hardDeleteAccountController(
     }
 
     const result = await hardDeleteAccount(adminId, userId);
+    if (result && result.success) {
+      void recordAudit({
+        adminId: adminId,
+        adminName: req.user?.fullName || req.user?.email || "Admin",
+        action: "HardDeleteAccount",
+        targetType: "User",
+        targetId: userId,
+        details: { message: result.message }
+      });
+    }
     return res.status(200).json(result);
   } catch (err: any) {
     const errorMessage = err.message || "Failed to delete account permanently";
@@ -252,6 +273,16 @@ export async function softDeleteAccountController(
     }
 
     const result = await deleteAccount(userId, deletionReason.trim());
+    if (result && result.success) {
+      void recordAudit({
+        adminId: adminId,
+        adminName: req.user?.fullName || req.user?.email || "Admin",
+        action: "SoftDeleteAccount",
+        targetType: "User",
+        targetId: userId,
+        details: { reason: deletionReason }
+      });
+    }
     return res.status(200).json(result);
   } catch (error: any) {
     logger.error("Error in softDeleteAccountController:", {

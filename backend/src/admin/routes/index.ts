@@ -7,6 +7,7 @@ import { commonControllers } from "../controllers/commonControllers";
 import { isAdmin } from "../../utils/utils";
 import { getSystemHealth } from "../controllers/systemControllers";
 import { SupportController } from "../controllers/commonControllers/supportController";
+import adminAuditMiddleware from "../../middleware/adminAuditMiddleware";
 import {
   createEmailTemplateValidation,
   updateEmailTemplateValidation,
@@ -14,6 +15,7 @@ import {
   updateUserProfileValidation
 } from "../../validation";
 
+import { getAuditLogsController } from "../controllers/auditController";
 const adminRouter = express();
 
 const handleValidationErrors = (
@@ -55,6 +57,8 @@ adminRouter.use(authenticate, (req: Request, res: Response, next) => {
   }
   next();
 });
+
+adminRouter.use(adminAuditMiddleware);
 
 adminRouter.post(
   "/account/restore",
@@ -254,5 +258,7 @@ adminRouter.delete(
   authenticate,
   adminController.deletePricingConfigController
 );
+
+adminRouter.get("/audits", authenticate, getAuditLogsController);
 
 export default adminRouter;

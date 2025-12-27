@@ -7,6 +7,7 @@ import {
   deletePricingConfigService
 } from "../../services/pricingConfigService";
 import { MonthName } from "../../../models/PricingConfig";
+import { recordAudit } from "../../../lib/common/auditLogger";
 
 export async function getPricingConfigsController(req: Request, res: Response) {
   try {
@@ -79,6 +80,20 @@ export async function createOrUpdatePricingConfigController(
       price
     });
 
+    if (result && result.success) {
+      void recordAudit({
+        adminId: (req as any).user?.id,
+        adminName:
+          (req as any).user?.fullName || (req as any).user?.email || "Admin",
+        action: result.message.includes("created")
+          ? "CreatePricingConfig"
+          : "UpdatePricingConfig",
+        targetType: "PricingConfig",
+        targetId: result.data?.id || result.data?._id,
+        details: { monthName }
+      });
+    }
+
     return res
       .status(result.message.includes("created") ? 201 : 200)
       .json(result);
@@ -109,6 +124,15 @@ export async function deletePricingConfigController(
     if (!result.success) {
       return res.status(404).json(result);
     }
+
+    void recordAudit({
+      adminId: (req as any).user?.id,
+      adminName:
+        (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      action: "DeletePricingConfig",
+      targetType: "PricingConfig",
+      targetId: id
+    });
 
     return res.status(200).json(result);
   } catch (error: any) {

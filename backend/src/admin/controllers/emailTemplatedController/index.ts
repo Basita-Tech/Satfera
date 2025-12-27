@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { EmailTemplateType } from "../../../models";
 import * as emailTemplateService from "../../services/emailTemplatedService";
 import { logger } from "../../../lib";
+import { recordAudit } from "../../../lib/common/auditLogger";
 
 export async function getEmailTemplatesController(req: Request, res: Response) {
   try {
@@ -154,6 +155,17 @@ export async function createEmailTemplateController(
       return res.status(400).json(result);
     }
 
+    void recordAudit({
+      adminId: (req as any).user?.id,
+      adminName:
+        (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      action: "CreateEmailTemplate",
+      targetType: "EmailTemplate",
+      targetId: result.data?.id || result.data?._id,
+      targetDisplayName: subject.trim(),
+      details: { type }
+    });
+
     return res.status(201).json(result);
   } catch (error: any) {
     logger.error("Error in createEmailTemplateController:", {
@@ -230,6 +242,17 @@ export async function updateEmailTemplateController(
       return res.status(404).json(result);
     }
 
+    void recordAudit({
+      adminId: (req as any).user?.id,
+      adminName:
+        (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      action: "UpdateEmailTemplate",
+      targetType: "EmailTemplate",
+      targetId: id,
+      targetDisplayName: updateData.subject || undefined,
+      details: { updatedFields: Object.keys(updateData) }
+    });
+
     return res.status(200).json(result);
   } catch (error: any) {
     logger.error("Error in updateEmailTemplateController:", {
@@ -262,6 +285,15 @@ export async function deleteEmailTemplateController(
     if (!result.success) {
       return res.status(404).json(result);
     }
+
+    void recordAudit({
+      adminId: (req as any).user?.id,
+      adminName:
+        (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      action: "DeleteEmailTemplate",
+      targetType: "EmailTemplate",
+      targetId: id
+    });
 
     return res.status(200).json(result);
   } catch (error: any) {
@@ -296,6 +328,16 @@ export async function toggleEmailTemplateStatusController(
     if (!result.success) {
       return res.status(404).json(result);
     }
+
+    void recordAudit({
+      adminId: (req as any).user?.id,
+      adminName:
+        (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      action: "ToggleEmailTemplateStatus",
+      targetType: "EmailTemplate",
+      targetId: id,
+      details: { newStatus: result.data?.isActive }
+    });
 
     return res.status(200).json(result);
   } catch (error: any) {

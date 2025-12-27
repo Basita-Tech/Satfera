@@ -339,6 +339,63 @@ components:
           type: string
           format: date-time
 
+    AuditItem:
+      type: object
+      properties:
+        _id:
+          type: string
+        adminId:
+          type: string
+          nullable: true
+        adminName:
+          type: string
+          nullable: true
+        adminEmail:
+          type: string
+          nullable: true
+        action:
+          type: string
+          nullable: true
+        targetType:
+          type: string
+          nullable: true
+        targetId:
+          type: string
+          nullable: true
+        targetDisplayName:
+          type: string
+          nullable: true
+        details:
+          type: object
+          nullable: true
+        ip:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        display:
+          type: string
+          description: Human-friendly single-line description (e.g. "Admin Approved user profile • Priya Sharma")
+        timeAgo:
+          type: string
+          description: Short relative time (e.g. "2 mins ago")
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
 paths:
   /health:
     get:
@@ -4661,6 +4718,75 @@ paths:
                   message:
                     type: string
                     example: "Server error while fetching deleted accounts"
+
+  /api/v1/admin/audits:
+    get:
+      summary: Get admin audit logs (admin only)
+      description: Returns a paginated list of admin audit entries with human-friendly display and relative time.
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: adminId
+          in: query
+          schema:
+            type: string
+          description: Filter by admin id
+        - name: action
+          in: query
+          schema:
+            type: string
+          description: Filter by internal action code or HTTP verb+path
+        - name: targetType
+          in: query
+          schema:
+            type: string
+          description: Filter by target type (e.g., User, EmailTemplate)
+        - name: targetId
+          in: query
+          schema:
+            type: string
+          description: Filter by target id
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: ISO date to filter from (inclusive)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: ISO date to filter to (inclusive)
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessDeniedResponse"
 
   /api/v1/support/tickets:
     post:

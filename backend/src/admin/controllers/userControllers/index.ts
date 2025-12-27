@@ -3,9 +3,11 @@ import { logger } from "../../../lib/common/logger";
 import * as adminService from "../../services/userServices";
 import { AuthenticatedRequest } from "../../../types";
 import { updateUserProfileDetailsService } from "../../services/userServices/updateUserProfileService";
+import { recordAudit } from "../../../lib/common/auditLogger";
+import { User } from "../../../models";
 
 export async function approveUserProfileController(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ) {
   try {
@@ -20,6 +22,27 @@ export async function approveUserProfileController(
 
     const result = await adminService.approveUserProfileService(userId);
 
+    if (result.success) {
+      try {
+        const target = await User.findById(userId)
+          .select("firstName lastName")
+          .lean();
+        const targetDisplayName = target
+          ? `${target.firstName || ""} ${target.lastName || ""}`.trim()
+          : undefined;
+        void recordAudit({
+          adminId: req.user!.id,
+          adminName: req.user!.fullName || req.user!.email || "Admin",
+          action: "ApproveProfile",
+          targetType: "User",
+          targetId: userId,
+          targetDisplayName,
+          details: { message: result.message },
+          req: req as any
+        });
+      } catch (e) {}
+    }
+
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {
     logger.error("Error approving user profile:", {
@@ -33,7 +56,10 @@ export async function approveUserProfileController(
   }
 }
 
-export async function rejectUserProfileController(req: Request, res: Response) {
+export async function rejectUserProfileController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
   try {
     const { userId, reason } = req.body;
 
@@ -52,6 +78,27 @@ export async function rejectUserProfileController(req: Request, res: Response) {
     }
 
     const result = await adminService.rejectUserProfileService(userId, reason);
+
+    if (result.success) {
+      try {
+        const target = await User.findById(userId)
+          .select("firstName lastName")
+          .lean();
+        const targetDisplayName = target
+          ? `${target.firstName || ""} ${target.lastName || ""}`.trim()
+          : undefined;
+        void recordAudit({
+          adminId: req.user!.id,
+          adminName: req.user!.fullName || req.user!.email || "Admin",
+          action: "RejectProfile",
+          targetType: "User",
+          targetId: userId,
+          targetDisplayName,
+          details: { reason },
+          req: req as any
+        });
+      } catch (e) {}
+    }
 
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {
@@ -88,6 +135,25 @@ export async function rectifyUserProfileController(
 
   try {
     const result = await adminService.rectifyUserProfileService(userId, reason);
+
+    if (result.success) {
+      try {
+        const target = await User.findById(userId).select("firstName lastName").lean();
+        const targetDisplayName = target ? `${target.firstName || ""} ${target.lastName || ""}`.trim() : undefined;
+        void recordAudit({
+          adminId: (req as any).user?.id,
+          adminName: (req as any).user?.fullName || (req as any).user?.email || "Admin",
+          action: "RectifyProfile",
+          targetType: "User",
+          targetId: userId,
+          targetDisplayName,
+          details: { reason },
+          req: req as any
+        });
+      } catch (e) {
+        // swallow
+      }
+    }
 
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {
@@ -343,6 +409,15 @@ export async function changeUserPassword(
   );
 
   if (result.success) {
+    void recordAudit({
+      adminId: req.user?.id,
+      adminName: req.user?.fullName || req.user?.email || "Admin",
+      action: "ChangeUserPassword",
+      targetType: "User",
+      targetId: userId,
+      details: { message: result.message }
+    });
+
     return res.status(200).json({
       success: true,
       message: result.message
@@ -380,6 +455,15 @@ export async function updateReportStatusController(
   const result = await adminService.updateReportStatusService(id, status);
 
   if (result.success) {
+    void recordAudit({
+      adminId: (req as any).user?.id,
+      adminName: (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      action: "UpdateReportStatus",
+      targetType: "Report",
+      targetId: id,
+      details: { newStatus: status }
+    });
+
     return res.status(200).json({
       success: true,
       message: result.message
@@ -408,6 +492,16 @@ export async function updateUserProfileDetailsController(
     }
 
     const result = await updateUserProfileDetailsService(userId, profileData);
+    if (result.success) {
+      void recordAudit({
+        adminId: (req as any).user?.id,
+        adminName: (req as any).user?.fullName || (req as any).user?.email || "Admin",
+        action: "UpdateUserProfile",
+        targetType: "User",
+        targetId: userId,
+        details: { updatedFields: Object.keys(profileData) }
+      });
+    }
 
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {

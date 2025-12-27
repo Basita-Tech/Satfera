@@ -14,3 +14,4 @@ export * from "./User_professions";
 export * from "./Support";
 export * from "./SupportMessage";
 export * from "./EmailTemplate";
+export * from "./AuditLog";

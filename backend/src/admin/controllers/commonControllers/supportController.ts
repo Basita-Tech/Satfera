@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "../../../types";
 import { SupportService } from "../../services/commonService/supportService";
 import { logger } from "../../../lib";
 import { MessageSender, SupportTicketStatus } from "../../../models";
+import { recordAudit } from "../../../lib/common/auditLogger";
 
 export class SupportController {
   static async getAllTickets(req: AuthenticatedRequest, res: Response) {
@@ -62,6 +63,16 @@ export class SupportController {
         req.params.id,
         status
       );
+
+      void recordAudit({
+        adminId: req.user!.id,
+        adminName: req.user!.fullName || req.user!.email || "Admin",
+        action: "UpdateSupportTicketStatus",
+        targetType: "SupportTicket",
+        targetId: req.params.id,
+        details: { newStatus: status }
+      });
+
       return res.status(200).json({ success: true, message });
     } catch (error: any) {
       logger.error(`UpdateStatus Error: ${error.message}`);
@@ -85,6 +96,15 @@ export class SupportController {
         userId: req.user!.id,
         text,
         sender: MessageSender.ADMIN
+      });
+
+      void recordAudit({
+        adminId: req.user!.id,
+        adminName: req.user!.fullName || req.user!.email || "Admin",
+        action: "AddSupportMessage",
+        targetType: "SupportTicket",
+        targetId: req.params.id,
+        details: { messageSnippet: String(text).slice(0, 200) }
       });
 
       return res.status(201).json({ success: true, data: message });
