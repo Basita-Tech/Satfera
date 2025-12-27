@@ -15,3 +15,5 @@ export * from "./Support";
 export * from "./SupportMessage";
 export * from "./EmailTemplate";
 export * from "./AuditLog";
+export * from "./AppConfig";
+export * from "./Payment";

@@ -40,7 +40,6 @@ export interface IProfile extends Document {
   };
   favoriteProfiles: mongoose.Types.ObjectId[];
   compareProfiles: mongoose.Types.ObjectId[];
-  accountType: "free" | "premium" | "gold";
   ProfileViewed: number;
   reviewedAt?: Date;
   reviewNotes?: string;
@@ -121,19 +120,12 @@ const ProfileSchema = new Schema(
     },
     favoriteProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     compareProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    accountType: {
-      type: String,
-      enum: ["free", "premium"],
-      default: "free"
-    },
     ProfileViewed: { type: Number, default: 0 },
     reviewedAt: { type: Date },
     reviewNotes: { type: String }
   },
   { timestamps: true }
 );
-
-ProfileSchema.index({ accountType: 1 });
 
 export const Profile =
   (mongoose.models.Profile as mongoose.Model<IProfile>) ||

@@ -33,6 +33,9 @@ export interface IUser extends Document {
   profileReviewStatus: "pending" | "approved" | "rejected" | "rectification";
   customId?: string;
   blockedUsers?: mongoose.Types.ObjectId[];
+  accountType?: "free" | "premium";
+  planDurationMonths?: number;
+  planExpiry?: Date;
 }
 
 const sanitizeString = (value: string): string => {
@@ -190,6 +193,20 @@ const userSchema: Schema = new Schema(
       type: String,
       enum: ["pending", "approved", "rejected", "rectification"]
     },
+    accountType: {
+      type: String,
+      enum: {
+        values: ["free", "premium"],
+        message: "Account type must be free or premium"
+      },
+      default: "free"
+    },
+    planDurationMonths: {
+      type: Number,
+      enum: [0, 1, 3, 6, 12],
+      default: 0
+    },
+    planExpiry: { type: Date, default: null },
     customId: {
       type: String,
       unique: true,
@@ -236,6 +253,8 @@ userSchema.index({ email: 1, isEmailLoginEnabled: 1 });
 userSchema.index({ phoneNumber: 1, isMobileLoginEnabled: 1 });
 userSchema.index({ isDeleted: 1, isActive: 1 });
 userSchema.index({ isProfileApproved: 1, profileReviewStatus: 1 });
+userSchema.index({ planExpiry: 1 });
+userSchema.index({ planExpiry: 1, isActive: 1 });
 
 userSchema.pre("save", function (next) {
   try {

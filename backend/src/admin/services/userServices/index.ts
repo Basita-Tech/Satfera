@@ -7,6 +7,7 @@ import {
   UserProfession,
   UserSession
 } from "../../../models";
+import { Payment } from "../../../models";
 import { validateUserId } from "../../../services";
 import { enqueueProfileReviewEmail } from "../../../lib/queue/enqueue";
 import { computeMatchScore } from "../../../services/recommendationService";
@@ -724,7 +725,7 @@ export async function getAllProfilesService(
                 dateOfBirth: "$user.dateOfBirth",
                 phoneNumber: "$user.phoneNumber",
                 email: "$user.email",
-                accountType: 1,
+                accountType: "$user.accountType",
                 occupation: {
                   $arrayElemAt: ["$profession.Occupation", 0]
                 },
@@ -861,9 +862,7 @@ export async function getReportsAndAnalyticsService() {
         { $sort: { _id: 1 } }
       ]),
 
-      Profile.aggregate([
-        { $group: { _id: "$accountType", count: { $sum: 1 } } }
-      ]),
+      User.aggregate([{ $group: { _id: "$accountType", count: { $sum: 1 } } }]),
 
       ConnectionRequest.aggregate([
         { $group: { _id: "$status", count: { $sum: 1 } } }
@@ -1192,7 +1191,7 @@ export async function getSuperProfilesService(
             dateOfBirth: "$user.dateOfBirth",
             phoneNumber: "$user.phoneNumber",
             email: "$user.email",
-            accountType: 1,
+            accountType: "$user.accountType",
             occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
             closerPhoto: "$photos.closerPhoto.url",
             createdAt: "$user.createdAt",
@@ -1324,18 +1323,16 @@ export async function getAllPremiumsProfilesService(
   const skip = (page - 1) * limit;
 
   try {
-    const totalCount = await Profile.countDocuments({
-      accountType: "premium"
-    });
+    const totalCount = await User.countDocuments({ accountType: "premium" });
 
-    const premiumProfiles = await Profile.find({ accountType: "premium" })
+    const usersPage = await User.find({ accountType: "premium" })
       .sort({ createdAt: -1 })
-      .select("userId accountType")
+      .select("_id")
       .skip(skip)
       .limit(limit)
       .lean();
 
-    const userIds = premiumProfiles.map((p: any) => p.userId);
+    const userIds = usersPage.map((p: any) => p._id);
 
     if (userIds.length === 0) {
       return {
@@ -1351,7 +1348,7 @@ export async function getAllPremiumsProfilesService(
       };
     }
 
-    const [users, profiles] = await Promise.all([
+    const [users, profiles, payments] = await Promise.all([
       User.find({ _id: { $in: userIds }, role: "user" })
         .select(
           "firstName lastName gender dateOfBirth phoneNumber email customId createdAt isActive"
@@ -1359,7 +1356,11 @@ export async function getAllPremiumsProfilesService(
         .lean(),
 
       Profile.find({ userId: { $in: userIds } })
-        .select("photos.closerPhoto accountType userId")
+        .select("photos.closerPhoto userId")
+        .lean()
+      ,
+      Payment.find({ userId: { $in: userIds } })
+        .sort({ createdAt: -1 })
         .lean()
     ]);
 
@@ -1368,6 +1369,12 @@ export async function getAllPremiumsProfilesService(
 
     const profileMap = new Map<string, any>();
     profiles.forEach((p) => profileMap.set(p.userId.toString(), p));
+
+    const paymentMap = new Map<string, any>();
+    (payments || []).forEach((p: any) => {
+      const uid = p.userId?.toString?.() || p.userId;
+      if (!paymentMap.has(uid)) paymentMap.set(uid, p);
+    });
 
     const profilesWithUserData = userIds.map((userId: any) => {
       const user = userMap.get(userId.toString());
@@ -1381,12 +1388,16 @@ export async function getAllPremiumsProfilesService(
         gender: user?.gender || null,
         status: user?.profileReviewStatus || null,
         isActive: user?.isActive || false,
-        accountType: profile?.accountType || "premium",
+        accountType: user?.accountType || "premium",
         age: user?.dateOfBirth ? calculateAge(user.dateOfBirth) : null,
         phoneNumber: user?.phoneNumber || null,
         email: user?.email || null,
         closerPhoto: profile?.photos?.closerPhoto?.url || null,
-        createdAt: user?.createdAt || null
+        createdAt: user?.createdAt || null,
+        plan: user?.planDurationMonths || null,
+        amountPaid: paymentMap.get(userId.toString())?.amount || null,
+        paymentDate: paymentMap.get(userId.toString())?.createdAt || null,
+        expiryDate: user?.planExpiry || null
       };
     });
 

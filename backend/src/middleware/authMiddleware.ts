@@ -6,41 +6,48 @@ import { logger } from "../lib/common/logger";
 import { getClientIp } from "../utils/ipUtils";
 import { SessionService } from "../services/sessionService";
 import { redisClient, safeRedisOperation } from "../lib/redis";
+import { Types } from "mongoose";
 
 const AUTH_CACHE_TTL = 300;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("SERVER_CONFIG_ERROR: JWT_SECRET is not defined");
+}
+
+interface UserData {
+  _id: string | Types.ObjectId;
+  email: string;
+  role: "admin" | "user" | string;
+  phoneNumber?: string;
+  isDeleted: boolean;
+  isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
+  planExpiry?: Date | string;
+  accountType?: string;
+  deactivatedAt?: Date;
+}
 
 interface CachedAuthData {
-  user: {
-    id: string;
-    email: string;
-    role: string;
-    phoneNumber?: string;
-    isDeleted: boolean;
-    isActive?: boolean;
-  };
+  user: UserData;
   jtiValid: boolean;
 }
 
 export const verifyToken = (token: string): JWTPayload => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("SERVER_CONFIG_ERROR: JWT_SECRET is not defined");
-  }
   try {
-    return jwt.verify(token, secret) as JWTPayload;
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch (error) {
     throw new Error("Invalid or expired token");
   }
 };
 
 const extractToken = (req: AuthenticatedRequest): string | null => {
-  const authHeader = req.headers?.authorization;
-  const tokenFromHeader =
-    authHeader && authHeader.startsWith("Bearer ")
-      ? authHeader.split(" ")[1]
-      : authHeader;
-
-  return tokenFromHeader || req.cookies?.token || null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.substring(7);
+  }
+  return (authHeader as string) || req.cookies?.token || null;
 };
 
 export const authenticate = async (
@@ -48,15 +55,14 @@ export const authenticate = async (
   res: Response,
   next: NextFunction
 ) => {
+  const start = Date.now();
+
   try {
     const token = extractToken(req);
-
     if (!token) {
-      logger.warn("Authentication failed - no token", {
-        hasCookies: !!req.cookies,
-        hasAuthHeader: !!req.headers?.authorization,
-        ip: getClientIp(req)
-      });
+      if (req.headers.authorization) {
+        logger.warn("Auth failed: Malformed token", { ip: getClientIp(req) });
+      }
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
@@ -65,137 +71,142 @@ export const authenticate = async (
     let decoded: JWTPayload;
     try {
       decoded = verifyToken(token);
-    } catch (tokenError) {
-      logger.warn("Token verification failed", {
-        error: (tokenError as Error)?.message,
-        ip: getClientIp(req),
-        path: req.path
+    } catch (err: any) {
+      logger.warn("Auth failed: Invalid token", {
+        error: err.message,
+        ip: getClientIp(req)
       });
-      return res.status(401).json({
-        success: false,
-        message: (tokenError as Error)?.message || "Invalid token"
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid or expired token" });
     }
 
     const userId = decoded.id;
-    const jti = (decoded as any).jti as string | undefined;
+    const jti = (decoded as any).jti;
 
     if (!userId) {
       return res
         .status(401)
-        .json({ success: false, message: "Unauthorized Access: Missing ID" });
+        .json({ success: false, message: "Unauthorized access" });
     }
 
-    const cacheKey = `auth:${userId}:${jti || "no-jti"}`;
-    let cachedAuth: CachedAuthData | null = null;
+    const cacheKey = `auth:${userId}:${jti ?? "no-jti"}`;
 
     const cachedString = await safeRedisOperation(
       () => redisClient.get(cacheKey),
-      "Get cached auth"
+      "auth-cache-get"
     );
+
+    let user: UserData | null = null;
 
     if (cachedString) {
       try {
-        cachedAuth = JSON.parse(cachedString) as CachedAuthData;
-      } catch (parseError) {
-        logger.error("Failed to parse cached auth data", {
-          cacheKey,
-          error: (parseError as Error).message
-        });
-
-        await safeRedisOperation(
-          () => redisClient.del(cacheKey),
-          "Delete bad cache"
-        );
+        const cachedAuth: CachedAuthData = JSON.parse(cachedString);
+        user = cachedAuth.user;
+      } catch {
+        redisClient.del(cacheKey).catch(() => {});
       }
     }
 
-    let user: any;
-    let jtiValid = false;
+    if (!user) {
+      const [sessionValid, fetchedUser] = await Promise.all([
+        jti
+          ? SessionService.validateSession(userId, jti)
+          : Promise.resolve(true),
+        User.findById(userId)
+          .select(
+            "email role phoneNumber isDeleted isActive firstName lastName planExpiry accountType"
+          )
+          .lean<UserData>()
+      ]);
 
-    if (cachedAuth) {
-      user = cachedAuth.user;
-      jtiValid = cachedAuth.jtiValid;
-    } else {
-      if (jti) {
-        const session = await SessionService.validateSession(userId, jti);
-        jtiValid = !!session;
-
-        if (!jtiValid) {
-          logger.warn("Unauthorized Access: Invalid Session", {
-            userId,
-            jti,
-            ip: getClientIp(req)
-          });
-          return res.status(401).json({
-            success: false,
-            message: "Session is invalid or expired, please log in again."
-          });
-        }
-
-        SessionService.updateSessionActivity(String(session.id)).catch(
-          (err) => {
-            logger.warn(`Failed to update session activity: ${err.message}`);
-          }
-        );
-      }
-
-      user = await User.findById(userId)
-        .select("email role phoneNumber isDeleted isActive firstName lastName")
-        .lean();
-
-      if (!user) {
+      if (!fetchedUser) {
         return res
           .status(401)
           .json({ success: false, message: "User not found" });
       }
 
-      if (user.isDeleted) {
+      if (fetchedUser.isDeleted) {
         return res.status(403).json({
           success: false,
-          message:
-            "Account has been deleted. Please contact support or create a new account."
+          message: "Account deleted. Contact support."
         });
       }
 
-      const dataToCache: CachedAuthData = { user, jtiValid };
-      await safeRedisOperation(
+      if (jti && !sessionValid) {
+        logger.warn("Invalid session", { userId, jti });
+        return res.status(401).json({
+          success: false,
+          message: "Session expired. Please log in again."
+        });
+      }
+
+      if (jti) {
+        const sessionId = (sessionValid as any).id || (sessionValid as any)._id;
+        if (sessionId)
+          SessionService.updateSessionActivity(String(sessionId)).catch(
+            () => {}
+          );
+      }
+
+      user = fetchedUser;
+
+      safeRedisOperation(
         () =>
           redisClient.setEx(
             cacheKey,
             AUTH_CACHE_TTL,
-            JSON.stringify(dataToCache)
+            JSON.stringify({ user, jtiValid: true })
           ),
-        "Cache auth data"
-      ).catch((err) => {
-        logger.warn(`Failed to cache auth data: ${err.message}`);
-      });
+        "auth-cache-set"
+      ).catch(() => {});
     }
 
-    const emailFromToken = (decoded as any).email;
-    const phoneFromToken = (decoded as any).phoneNumber;
-    const userIdFromUser = String(user.id || decoded.id);
+    if (user.planExpiry && user.role !== "admin") {
+      const expiryDate = new Date(user.planExpiry);
+      const now = new Date();
+
+      if (expiryDate < now) {
+        if (user.isActive !== false) {
+          await User.findByIdAndUpdate(userId, {
+            isActive: false,
+            deactivatedAt: now,
+            deactivationReason: "plan_expired"
+          });
+
+          redisClient.del(cacheKey).catch(() => {});
+        }
+
+        return res.status(402).json({
+          success: false,
+          code: "PLAN_UPGRADE",
+          message: "Account validity expired. Please upgrade."
+        });
+      }
+    }
 
     req.user = {
-      id: userIdFromUser,
-      role: user.role || "user",
-      email: emailFromToken || user.email,
-      phoneNumber: phoneFromToken || user.phoneNumber,
-      fullName: `${user.firstName}  ${user.lastName}`
+      id: String(user._id),
+      role: user?.role as any,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      fullName:
+        user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : "User"
     };
 
     return next();
-  } catch (e: any) {
-    logger.error("Critical Authentication error", {
-      error: e?.message,
-      stack: e?.stack,
+  } catch (err: any) {
+    logger.error("Critical auth error", {
+      error: err.message,
+      stack: err.stack,
       ip: getClientIp(req)
     });
 
-    return res.status(500).json({
-      success: false,
-      message: "An internal authentication error occurred."
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal authentication error" });
   }
 };
 

@@ -263,7 +263,7 @@ export async function adminSearchService(filters: any = {}) {
       let: { uid: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$userId", "$$uid"] } } },
-        { $project: { accountType: 1, photos: { closerPhoto: 1 } } },
+        { $project: { photos: { closerPhoto: 1 } } },
         { $limit: 1 }
       ],
       as: "profileDoc"
@@ -276,10 +276,7 @@ export async function adminSearchService(filters: any = {}) {
   if (accountTypeLower) {
     pipeline.push({
       $match: {
-        "profileDoc.accountType": {
-          $regex: `^${accountTypeLower}$`,
-          $options: "i"
-        }
+        accountType: { $regex: `^${accountTypeLower}$`, $options: "i" }
       }
     });
   }
@@ -414,7 +411,7 @@ export async function adminSearchService(filters: any = {}) {
     age: 1,
     phoneNumber: 1,
     email: 1,
-    accountType: "$profileDoc.accountType",
+    accountType: "$accountType",
     occupation: {
       $ifNull: [{ $arrayElemAt: ["$professionDocs.Occupation", 0] }, "N/A"]
     },

@@ -1,8 +1,6 @@
 import { maskEmail, maskPhoneNumber } from "./dataMasking";
 import { MatchingStatus, ScoreDetail } from "../../types";
 import { calculateAge } from "../../utils/utils";
-import { Profile } from "../../models";
-import mongoose from "mongoose";
 
 export async function formatListingProfile(
   candidate: any,
@@ -188,107 +186,4 @@ export async function formatDetailedProfile(
       diet: health?.diet
     }
   };
-}
-
-interface ProfileListOptions {
-  page: number;
-  limit: number;
-  matchUserIds?: mongoose.Types.ObjectId[];
-  viewerId?: mongoose.Types.ObjectId;
-}
-
-export async function buildProfileList({
-  page,
-  limit,
-  matchUserIds,
-  viewerId
-}: ProfileListOptions) {
-  const skip = (page - 1) * limit;
-
-  const matchStage: any = { "user.role": "user" };
-
-  if (matchUserIds?.length) {
-    matchStage.userId = { $in: matchUserIds };
-  }
-
-  const pipeline: any[] = [
-    {
-      $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user"
-      }
-    },
-    { $unwind: "$user" },
-    { $match: matchStage }
-  ];
-
-  /** Blocked users filtering (optional) */
-  if (viewerId) {
-    pipeline.push(
-      {
-        $match: {
-          "user.blockedUsers": { $ne: viewerId }
-        }
-      },
-      {
-        $lookup: {
-          from: "users",
-          let: { uid: "$userId" },
-          pipeline: [
-            {
-              $match: {
-                _id: viewerId,
-                blockedUsers: { $ne: "$$uid" }
-              }
-            }
-          ],
-          as: "viewerBlockCheck"
-        }
-      },
-      { $match: { viewerBlockCheck: { $ne: [] } } }
-    );
-  }
-
-  pipeline.push(
-    { $sort: { "user.createdAt": -1 } },
-    { $skip: skip },
-    { $limit: limit },
-
-    {
-      $lookup: {
-        from: "userprofessions",
-        localField: "userId",
-        foreignField: "userId",
-        as: "profession"
-      }
-    },
-
-    {
-      $project: {
-        _id: 0,
-        userId: "$user._id",
-        customId: "$user.customId",
-        firstName: "$user.firstName",
-        lastName: "$user.lastName",
-        gender: "$user.gender",
-        dateOfBirth: "$user.dateOfBirth",
-        phoneNumber: "$user.phoneNumber",
-        email: "$user.email",
-        accountType: 1,
-        occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
-        closerPhoto: "$photos.closerPhoto.url",
-        createdAt: "$user.createdAt",
-        status: "$user.profileReviewStatus"
-      }
-    }
-  );
-
-  const profiles = await Profile.aggregate(pipeline);
-
-  return profiles.map((p: any) => ({
-    ...p,
-    age: calculateAge(p.dateOfBirth)
-  }));
 }

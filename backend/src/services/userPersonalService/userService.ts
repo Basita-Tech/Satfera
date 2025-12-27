@@ -41,8 +41,7 @@ export async function getUserDashboardService(userId: string) {
               "photos.closerPhoto.url": 1,
               favoriteProfiles: 1,
               isVerified: 1,
-              ProfileViewed: 1,
-              accountType: 1
+              ProfileViewed: 1
             }
           }
         ],
@@ -88,7 +87,7 @@ export async function getUserDashboardService(userId: string) {
         closerPhotoUrl: {
           $arrayElemAt: ["$profile.photos.closerPhoto.url", 0]
         },
-        accountType: { $arrayElemAt: ["$profile.accountType", 0] },
+        accountType: 1,
         isVerified: { $arrayElemAt: ["$profile.isVerified", 0] },
         profileViewsCount: { $arrayElemAt: ["$profile.ProfileViewed", 0] },
         favoriteProfiles: { $arrayElemAt: ["$profile.favoriteProfiles", 0] },

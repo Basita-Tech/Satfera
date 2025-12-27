@@ -260,7 +260,7 @@ async function seed() {
         userId,
         isAlcoholic: "no",
         isTobaccoUser: "no",
-        isHaveHIV: "yes",
+        isHaveHIV: "no",
         isPositiveInTB: "no",
         isHaveMedicalHistory: "no",
         diet: randomItem(diet)
@@ -282,7 +282,6 @@ async function seed() {
       profiles.push({
         userId,
         isVerified: true,
-        accountType: "free",
         ProfileViewed: Math.floor(Math.random() * 100),
         photos: {
           closerPhoto: {

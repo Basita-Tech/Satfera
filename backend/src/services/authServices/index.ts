@@ -1,4 +1,4 @@
-import { User, IUser, Profile } from "../../models";
+import { User, IUser, Profile, AppConfig } from "../../models";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request } from "express";
@@ -31,6 +31,7 @@ import { generateDeviceFingerprint } from "../../utils/secureToken";
 import { getClientIp } from "../../utils/ipUtils";
 import { APP_CONFIG } from "../../utils/constants";
 import { notifyAdminsOfNewUserRegistration } from "../../admin/utils/notification";
+import { addMonths } from "date-fns";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -533,6 +534,30 @@ export class AuthService {
 
     user.isEmailVerified = true;
     user.lastLoginAt = new Date();
+
+    try {
+      let freeMonths = Number(process.env.DEFAULT_FREE_VALIDITY_MONTHS || 6);
+      const cfg = await AppConfig.findOne({
+        key: "FREE_VALIDITY_MONTHS"
+      }).lean();
+      if (cfg && (cfg as any).value) {
+        const v = (cfg as any).value;
+        if (typeof v === "number") freeMonths = v;
+        else if (typeof v === "string")
+          freeMonths = parseInt(v, 10) || freeMonths;
+      }
+
+      user.accountType = "free";
+      user.planDurationMonths = freeMonths;
+      user.planExpiry = addMonths(new Date(), freeMonths);
+      user.isActive = true;
+    } catch (err) {
+      logger.warn("Failed to set plan expiry for user on signup", {
+        error: (err as any).message
+      });
+      user.isActive = true;
+    }
+
     await user.save();
 
     const userId = String(user._id);

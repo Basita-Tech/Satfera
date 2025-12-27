@@ -43,7 +43,6 @@ const supportTicketSchema: Schema = new Schema(
 );
 
 supportTicketSchema.index({ userId: 1, createdAt: -1 });
-supportTicketSchema.index({ ticketId: 1 }, { unique: true, sparse: true });
 supportTicketSchema.index({ status: 1 });
 supportTicketSchema.index({ createdAt: -1 });
 supportTicketSchema.index({ status: 1, createdAt: -1 });
