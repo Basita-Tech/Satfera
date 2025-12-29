@@ -1,4 +1,8 @@
-import { logger } from "../../../lib";
+import {
+  logger,
+  sendAccountActivationEmail,
+  sendAccountDeactivationEmail
+} from "../../../lib";
 import {
   ConnectionRequest,
   Profile,
@@ -1506,5 +1510,97 @@ export async function getAllPremiumsProfilesService(
       success: false,
       message: "Failed to fetch premium profiles"
     };
+  }
+}
+
+export async function deactivateAccount(
+  userId: string,
+  reason?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const userObjectId = validateUserId(userId);
+
+    const user = await User.findById(userObjectId).select(
+      "isActive isDeleted email firstName lastName"
+    );
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if ((user as any).isDeleted) {
+      throw new Error("Cannot deactivate a deleted account");
+    }
+
+    if (!(user as any).isActive) {
+      throw new Error("AlreadyDeactivated: Account is already deactivated");
+    }
+
+    await User.findByIdAndUpdate(userObjectId, {
+      isActive: false,
+      deactivatedAt: new Date(),
+      deactivationReason: reason || "User requested deactivation"
+    });
+
+    try {
+      const userName = `${(user as any).firstName} ${(user as any).lastName}`;
+      await sendAccountDeactivationEmail((user as any).email, userName);
+    } catch (err: any) {
+      logger.error("Failed to send deactivation email:", err.message);
+    }
+
+    logger.info(`Account deactivated: ${userId}`);
+    return {
+      success: true,
+      message:
+        "Account deactivated successfully. You can reactivate after 24 hours."
+    };
+  } catch (error: any) {
+    logger.error("Error in deactivateAccount:", error.message);
+    throw error;
+  }
+}
+
+export async function activateAccount(
+  userId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const userObjectId = validateUserId(userId);
+
+    const user = await User.findById(userObjectId).select(
+      "isActive isDeleted deactivatedAt email firstName lastName"
+    );
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if ((user as any).isDeleted) {
+      throw new Error("Cannot activate a deleted account");
+    }
+
+    if ((user as any).isActive) {
+      throw new Error("AlreadyActive: Account is already active");
+    }
+
+    await User.findByIdAndUpdate(userObjectId, {
+      isActive: true,
+      deactivatedAt: null,
+      deactivationReason: null
+    });
+
+    try {
+      const userName = `${(user as any).firstName} ${(user as any).lastName}`;
+      await sendAccountActivationEmail((user as any).email, userName);
+    } catch (err: any) {
+      logger.error("Failed to send activation email:", err.message);
+    }
+
+    logger.info(`Account activated: ${userId}`);
+    return {
+      success: true,
+      message: "Account activated successfully"
+    };
+  } catch (error: any) {
+    logger.error("Error in activateAccount:", error.message);
+    throw error;
   }
 }

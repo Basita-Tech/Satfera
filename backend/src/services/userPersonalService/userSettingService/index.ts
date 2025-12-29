@@ -10,7 +10,10 @@ import {
 import { APP_CONFIG } from "../../../utils/constants";
 import { NotificationSettings } from "../../../types";
 import { generateOtp, redisClient, safeRedisOperation } from "../../../lib";
-import { notifyAdminsOfProfileReported, notifyAdminsOfUserBlocked } from "../../../admin/utils/notification";
+import {
+  notifyAdminsOfProfileReported,
+  notifyAdminsOfUserBlocked
+} from "../../../admin/utils/notification";
 import bcrypt from "bcryptjs";
 import {
   clearOtpData,
@@ -214,11 +217,6 @@ export async function deleteAccount(
       isActive: false
     });
 
-    await Profile.findOneAndUpdate(
-      { userId: userObjectId },
-      { isVisible: false }
-    );
-
     try {
       await Notification.create({
         user: userObjectId,
@@ -374,7 +372,7 @@ export async function deactivateAccount(
     const userObjectId = validateUserId(userId);
 
     const user = await User.findById(userObjectId).select(
-      "isActive isDeleted email firstName lastName"
+      "isVisible isDeleted email firstName lastName"
     );
     if (!user) {
       throw new Error("User not found");
@@ -384,7 +382,7 @@ export async function deactivateAccount(
       throw new Error("Cannot deactivate a deleted account");
     }
 
-    if (!(user as any).isActive) {
+    if (!(user as any).isVisible) {
       throw new Error("AlreadyDeactivated: Account is already deactivated");
     }
 
@@ -401,7 +399,7 @@ export async function deactivateAccount(
     }
 
     await User.findByIdAndUpdate(userObjectId, {
-      isActive: false,
+      isVisible: false,
       deactivatedAt: new Date(),
       deactivationReason: reason || "User requested deactivation"
     });
@@ -438,7 +436,7 @@ export async function activateAccount(
     const userObjectId = validateUserId(userId);
 
     const user = await User.findById(userObjectId).select(
-      "isActive isDeleted deactivatedAt email firstName lastName"
+      "isVisible isDeleted deactivatedAt email firstName lastName"
     );
     if (!user) {
       throw new Error("User not found");
@@ -448,7 +446,7 @@ export async function activateAccount(
       throw new Error("Cannot activate a deleted account");
     }
 
-    if ((user as any).isActive) {
+    if ((user as any).isVisible) {
       throw new Error("AlreadyActive: Account is already active");
     }
 
@@ -470,7 +468,7 @@ export async function activateAccount(
     }
 
     await User.findByIdAndUpdate(userObjectId, {
-      isActive: true,
+      isVisible: true,
       deactivatedAt: null,
       deactivationReason: null
     });
@@ -511,7 +509,7 @@ export async function getAccountStatus(userId: string): Promise<{
     const userObjectId = validateUserId(userId);
 
     const user = await User.findById(userObjectId).select(
-      "isActive isDeleted deactivatedAt deactivationReason"
+      "isVisible isDeleted deactivatedAt deactivationReason"
     );
     if (!user) {
       throw new Error("User not found");
@@ -533,7 +531,7 @@ export async function getAccountStatus(userId: string): Promise<{
     }
 
     return {
-      isActive: (user as any).isActive,
+      isActive: (user as any).isVisible,
       isDeleted: (user as any).isDeleted,
       deactivatedAt: (user as any).deactivatedAt,
       deactivationReason: (user as any).deactivationReason,
@@ -749,7 +747,8 @@ export async function verifyAndChangeEmail(
     if (storedOtp && storedOtp !== otp) {
       const remainingAttempts = OTP_ATTEMPT_LIMIT - attemptCount;
       throw new Error(
-        `Invalid OTP. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? "s" : ""
+        `Invalid OTP. You have ${remainingAttempts} attempt${
+          remainingAttempts !== 1 ? "s" : ""
         } remaining.`
       );
     }
@@ -903,9 +902,7 @@ export async function reportProfile(
   description?: string,
   reportType: "spam" | "abuse" | "hate" | "other" = "other"
 ): Promise<{ success: true; message: string }> {
-
   const reporterObjectId = validateUserId(reporterId);
-
 
   const reportedUser = await User.findOne({ customId: reportedUserCustomId })
     .select("_id firstName lastName")
@@ -919,7 +916,6 @@ export async function reportProfile(
     throw new Error("You cannot report your own profile");
   }
 
-
   const alreadyReported = await Reports.exists({
     userId: reporterObjectId,
     reportedToUserId: reportedUser._id
@@ -929,7 +925,6 @@ export async function reportProfile(
     throw new Error("You have already reported this user");
   }
 
-
   const [
     reporterUser,
     reporterProfile,
@@ -937,9 +932,7 @@ export async function reportProfile(
     reportedProfile,
     reportedProfession
   ] = await Promise.all([
-    User.findById(reporterObjectId)
-      .select("firstName lastName")
-      .lean(),
+    User.findById(reporterObjectId).select("firstName lastName").lean(),
 
     Profile.findOne({ userId: reporterObjectId })
       .select("photos.closerPhoto.url")
@@ -961,7 +954,6 @@ export async function reportProfile(
   if (!reporterUser) {
     throw new Error("Reporter user not found");
   }
-
 
   const reporterUserDetails = {
     firstName: reporterUser.firstName,
@@ -999,10 +991,8 @@ export async function reportProfile(
       success: true,
       message: "Profile reported successfully. Our team will review it soon."
     };
-
   } catch (error) {
     logger.error("Profile report failed", error);
     throw error;
   }
 }
-

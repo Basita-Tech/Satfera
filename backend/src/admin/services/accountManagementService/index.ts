@@ -47,13 +47,9 @@ export async function restoreDeletedAccount(
       isDeleted: false,
       deletedAt: null,
       deletionReason: null,
-      isActive: true
+      isActive: true,
+      isVisible: true
     });
-
-    await Profile.findOneAndUpdate(
-      { userId: userObjectId },
-      { isVisible: true }
-    );
 
     try {
       await Notification.create({
@@ -265,7 +261,8 @@ export async function deleteAccount(userId: string, deletionReason: string) {
       isDeleted: true,
       deletedAt: new Date(),
       isActive: false,
-      deletionReason
+      deletionReason,
+      isVisible: false
     });
 
     logger.info(`Account soft deleted: ${userId}`);

@@ -267,4 +267,16 @@ adminRouter.delete(
 
 adminRouter.get("/audits", authenticate, getAuditLogsController);
 
+adminRouter.post(
+  "/account/deactivate",
+  authenticate,
+  adminController.deactivateAccountController
+);
+
+adminRouter.post(
+  "/account/activate",
+  authenticate,
+  adminController.activateAccountController
+);
+
 export default adminRouter;

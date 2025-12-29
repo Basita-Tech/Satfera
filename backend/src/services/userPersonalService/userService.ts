@@ -436,6 +436,7 @@ export async function searchService(
   const match: any = {
     isActive: true,
     isDeleted: false,
+    isVisible: true,
     isProfileApproved: true,
     profileReviewStatus: "approved"
   };

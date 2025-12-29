@@ -4114,7 +4114,7 @@ paths:
                     success: false
                     message: "Access denied."
 
-  /api/v1/admin/request-sent/{id}/remind:
+  /api/v1/admin/request-sent/{id}/reminder:
     post:
       summary: Send reminder email for a pending connection request (Admin only)
       description: Sends an email to the receiver of the connection request notifying them of a pending request with accept/reject links. Requires admin authentication.
@@ -4856,6 +4856,110 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessDeniedResponse"
+
+  /api/v1/admin/account/deactivate:
+    post:
+      summary: Deactivate user account
+      tags:
+        - Admin Dashboard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                reason:
+                  type: string
+
+      responses:
+        "200":
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account deactivated successfully."
+        "400":
+          description: Bad request (already deactivated, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyDeactivated:
+                  value:
+                    success: false
+                    message: "Account is already deactivated"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot deactivate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        
+  /api/v1/admin/account/activate:
+    post:
+      summary: Activate deactivated account
+      tags:
+        - Admin Dashboard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+
+      responses:
+        "200":
+          description: Account activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account activated successfully"
+        "400":
+          description: Bad request (already active, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyActive:
+                  value:
+                    success: false
+                    message: "Account is already active"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot activate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/support/tickets:
     post:

@@ -104,7 +104,8 @@ export class AuthService {
         User.findOne({
           email: email.toLowerCase(),
           isEmailLoginEnabled: true,
-          isDeleted: false
+          isDeleted: false,
+          isActive: true
         }).select(
           "isOnboardingCompleted completedSteps isEmailVerified password lastLoginAt _id role"
         ),
@@ -210,7 +211,8 @@ export class AuthService {
         User.findOne({
           phoneNumber: phoneNumber,
           isMobileLoginEnabled: true,
-          isDeleted: false
+          isDeleted: false,
+          isActive: true
         }).select(
           "isOnboardingCompleted completedSteps isPhoneVerified password lastLoginAt _id"
         ),

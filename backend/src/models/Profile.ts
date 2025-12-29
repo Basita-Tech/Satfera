@@ -27,7 +27,6 @@ export interface IProfile extends Document {
     uploadedAt: Date;
     verificationStatus: "pending" | "verified" | "rejected";
   };
-  isVisible: boolean;
   privacy: {
     allowProfileViewOnRequest: boolean;
     showPhotosToConnectionsOnly: boolean;
@@ -106,7 +105,6 @@ const ProfileSchema = new Schema(
       visibility: { type: String, enum: ["adminOnly"], default: "adminOnly" }
     },
 
-    isVisible: { type: Boolean, default: true },
     privacy: {
       allowProfileViewOnRequest: { type: Boolean, default: false },
       showPhotosToConnectionsOnly: { type: Boolean, default: true }

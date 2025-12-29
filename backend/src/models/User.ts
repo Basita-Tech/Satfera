@@ -33,6 +33,7 @@ export interface IUser extends Document {
   profileReviewStatus: "pending" | "approved" | "rejected" | "rectification";
   customId?: string;
   blockedUsers?: mongoose.Types.ObjectId[];
+  isVisible: boolean;
   accountType?: "free" | "premium";
   planDurationMonths?: number;
   planExpiry?: Date;
@@ -223,7 +224,8 @@ const userSchema: Schema = new Schema(
         },
         message: "Blocked users limit exceeded"
       }
-    }
+    },
+    isVisible: { type: Boolean, default: true }
   },
   {
     timestamps: true,
@@ -260,7 +262,8 @@ userSchema.index({
   isActive: 1,
   isDeleted: 1,
   isProfileApproved: 1,
-  profileReviewStatus: 1
+  profileReviewStatus: 1,
+  isVisible: 1
 });
 
 userSchema.pre("save", function (next) {

@@ -686,3 +686,124 @@ export async function getAllPremiumsProfilesController(
     });
   }
 }
+
+export async function activateAccountController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    try {
+      const result = await adminService.activateAccount(userId);
+      return res.status(200).json(result);
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to activate account";
+
+      if (errorMessage.startsWith("Cooldown:")) {
+        return res.status(429).json({
+          success: false,
+          message: errorMessage.replace("Cooldown: ", "")
+        });
+      }
+
+      if (errorMessage.startsWith("AlreadyActive:")) {
+        return res.status(400).json({
+          success: false,
+          message: errorMessage.replace("AlreadyActive: ", "")
+        });
+      }
+
+      if (errorMessage.includes("User not found")) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      if (errorMessage.includes("deleted account")) {
+        return res.status(400).json({
+          success: false,
+          message: errorMessage
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: errorMessage
+      });
+    }
+  } catch (error: any) {
+    logger.error("Error in activateAccountController", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while activating account"
+    });
+  }
+}
+
+export async function deactivateAccountController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const { reason, userId } = req.body;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+    }
+
+    try {
+      const result = await adminService.deactivateAccount(userId, reason);
+      return res.status(200).json(result);
+    } catch (err: any) {
+      const errorMessage = err.message || "Failed to deactivate account";
+
+      if (errorMessage.startsWith("Cooldown:")) {
+        return res.status(429).json({
+          success: false,
+          message: errorMessage.replace("Cooldown: ", "")
+        });
+      }
+
+      if (errorMessage.startsWith("AlreadyDeactivated:")) {
+        return res.status(400).json({
+          success: false,
+          message: errorMessage.replace("AlreadyDeactivated: ", "")
+        });
+      }
+
+      if (errorMessage.includes("User not found")) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      if (errorMessage.includes("deleted account")) {
+        return res.status(400).json({
+          success: false,
+          message: errorMessage
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: errorMessage
+      });
+    }
+  } catch (error: any) {
+    logger.error("Error in deactivateAccountController", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while deactivating account"
+    });
+  }
+}
