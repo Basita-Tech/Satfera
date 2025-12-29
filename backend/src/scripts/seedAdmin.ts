@@ -19,6 +19,7 @@ async function seedAdminUser() {
       password: hasedPassword,
       email: "admin@gmail.com",
       isEmailLoginEnabled: true,
+      isActive: true,
       isMobileLoginEnabled: false,
       for_Profile: "myself",
       isEmailVerified: true,

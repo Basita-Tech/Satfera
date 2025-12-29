@@ -82,6 +82,7 @@ export async function getUserDashboardService(userId: string) {
         firstName: 1,
         lastName: 1,
         dateOfBirth: 1,
+        planExpiry: 1,
         customId: 1,
         city: { $arrayElemAt: ["$personal.full_address.city", 0] },
         closerPhotoUrl: {
@@ -117,6 +118,9 @@ export async function getUserDashboardService(userId: string) {
     firstName: data.firstName || null,
     lastName: data.lastName || null,
     age: age,
+    planExpiry: data.planExpiry
+      ? new Date(data.planExpiry).toISOString()
+      : null,
     closerPhotoUrl: data.closerPhotoUrl || null,
     city: data.city || null,
     occupation: data.occupation || null,

@@ -44,7 +44,7 @@ export async function updateUserProfileDetailsService(
       };
     }
 
-    const userFields = [
+    const allowedFields = [
       "firstName",
       "middleName",
       "lastName",
@@ -52,20 +52,97 @@ export async function updateUserProfileDetailsService(
       "phoneNumber",
       "dateOfBirth",
       "gender",
-      "for_Profile"
+      "for_Profile",
+      "isAlcoholic",
+      "isTobaccoUser",
+      "isHaveTattoos",
+      "isHaveHIV",
+      "isPositiveInTB",
+      "isHaveMedicalHistory",
+      "medicalHistoryDetails",
+      "diet",
+      "EmploymentStatus",
+      "Occupation",
+      "AnnualIncome",
+      "OrganizationName",
+      "timeOfBirth",
+      "height",
+      "weight",
+      "astrologicalSign",
+      "birthPlace",
+      "birthState",
+      "religion",
+      "marriedStatus",
+      "dosh",
+      "subCaste",
+      "marryToOtherReligion",
+      "full_address",
+      "nationality",
+      "isResidentOfIndia",
+      "residingCountry",
+      "visaType",
+      "isHaveChildren",
+      "numberOfChildren",
+      "isChildrenLivingWithYou",
+      "isYouLegallySeparated",
+      "separatedSince",
+      "divorceStatus",
+      "fatherName",
+      "motherName",
+      "fatherOccupation",
+      "motherOccupation",
+      "fatherContact",
+      "motherContact",
+      "fatherNativePlace",
+      "doYouHaveChildren",
+      "grandFatherName",
+      "grandMotherName",
+      "naniName",
+      "nanaName",
+      "nanaNativePlace",
+      "familyType",
+      "haveSibling",
+      "howManySiblings",
+      "siblingDetails",
+      "SchoolName",
+      "HighestEducation",
+      "FieldOfStudy",
+      "University",
+      "CountryOfEducation",
+      "age",
+      "maritalStatus",
+      "isConsumeAlcoholic",
+      "educationLevel",
+      "community",
+      "livingInCountry",
+      "livingInState",
+      "profession",
+      "diet"
     ];
 
-    const userUpdate: any = {};
-    userFields.forEach((field) => {
-      if (profileData[field] !== undefined) {
-        userUpdate[field] = profileData[field];
-      }
-    });
+    const providedFields = Object.keys(profileData || {});
+    const invalidFields = providedFields.filter(
+      (f) => !allowedFields.includes(f)
+    );
+    if (invalidFields.length > 0) {
+      return {
+        success: false,
+        message: `Fields not allowed to be updated: ${invalidFields.join(", ")}`
+      };
+    }
 
-    if (Object.keys(userUpdate).length > 0) {
+    const clean = (obj: any) => {
+      const out: any = {};
+      Object.keys(obj || {}).forEach((k) => {
+        if (obj[k] !== undefined) out[k] = obj[k];
+      });
+      return out;
+    };
+
+    if (Object.keys(profileData).length > 0) {
       if (
-        userUpdate.email &&
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userUpdate.email)
+        profileData.email &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)
       ) {
         await session.abortTransaction();
         return {
@@ -75,8 +152,8 @@ export async function updateUserProfileDetailsService(
       }
 
       if (
-        userUpdate.phoneNumber &&
-        !/^[\d\s+\-()]+$/.test(userUpdate.phoneNumber)
+        profileData.phoneNumber &&
+        !/^[\d\s+\-()]+$/.test(profileData.phoneNumber)
       ) {
         await session.abortTransaction();
         return {
@@ -86,8 +163,8 @@ export async function updateUserProfileDetailsService(
       }
 
       if (
-        userUpdate.gender &&
-        !["male", "female", "other"].includes(userUpdate.gender.toLowerCase())
+        profileData.gender &&
+        !["male", "female", "other"].includes(profileData.gender.toLowerCase())
       ) {
         await session.abortTransaction();
         return {
@@ -96,256 +173,268 @@ export async function updateUserProfileDetailsService(
         };
       }
 
-      await User.findByIdAndUpdate(objectId, userUpdate, {
+      const userUpdate: any = {};
+      [
+        "gender",
+        "firstName",
+        "middleName",
+        "lastName",
+        "email",
+        "phoneNumber",
+        "dateOfBirth"
+      ].forEach((k) => {
+        if (Object.prototype.hasOwnProperty.call(profileData, k))
+          userUpdate[k] = profileData[k];
+      });
+
+      const cleanedUser = clean(userUpdate);
+      if (Object.keys(cleanedUser).length > 0) {
+        await User.findByIdAndUpdate(objectId, cleanedUser, {
+          new: true,
+          session
+        });
+      }
+    }
+
+    if (
+      profileData.isAlcoholic &&
+      !["yes", "no", "occasional", ""].includes(profileData.isAlcoholic)
+    ) {
+      await session.abortTransaction();
+      return {
+        success: false,
+        message: "isAlcoholic must be yes, no, occasional, or empty string"
+      };
+    }
+
+    if (
+      profileData.diet &&
+      ![
+        "vegetarian",
+        "non-vegetarian",
+        "eggetarian",
+        "jain",
+        "swaminarayan",
+        "veg & non-veg",
+        ""
+      ].includes(profileData.diet)
+    ) {
+      await session.abortTransaction();
+      return {
+        success: false,
+        message:
+          "diet must be vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg, or empty string"
+      };
+    }
+
+    const healthUpdate: any = {};
+    [
+      "isAlcoholic",
+      "isTobaccoUser",
+      "isHaveTattoos",
+      "isHaveHIV",
+      "isPositiveInTB",
+      "isHaveMedicalHistory",
+      "medicalHistoryDetails",
+      "diet"
+    ].forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(profileData, k)) {
+        healthUpdate[k] = profileData[k];
+      }
+    });
+
+    
+    const cleanedHealth = clean(healthUpdate);
+    if (Object.keys(cleanedHealth).length > 0) {
+      await UserHealth.findOneAndUpdate({ userId: objectId }, cleanedHealth, {
         new: true,
         session
       });
     }
 
-    if (profileData.healthData) {
-      const healthUpdate: any = {};
-      const allowedHealthFields = [
-        "isAlcoholic",
-        "isTobaccoUser",
-        "isHaveTattoos",
-        "isHaveHIV",
-        "isPositiveInTB",
-        "isHaveMedicalHistory",
-        "medicalHistoryDetails",
-        "diet"
-      ];
-
-      allowedHealthFields.forEach((field) => {
-        if (profileData.healthData[field] !== undefined) {
-          healthUpdate[field] = profileData.healthData[field];
-        }
-      });
-
-      if (
-        healthUpdate.isAlcoholic &&
-        !["yes", "no", "occasional", ""].includes(healthUpdate.isAlcoholic)
-      ) {
-        await session.abortTransaction();
-        return {
-          success: false,
-          message: "isAlcoholic must be yes, no, occasional, or empty string"
-        };
-      }
-
-      if (
-        healthUpdate.diet &&
-        ![
-          "vegetarian",
-          "non-vegetarian",
-          "eggetarian",
-          "jain",
-          "swaminarayan",
-          "veg & non-veg",
-          ""
-        ].includes(healthUpdate.diet)
-      ) {
-        await session.abortTransaction();
-        return {
-          success: false,
-          message:
-            "diet must be vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg, or empty string"
-        };
-      }
-
-      if (Object.keys(healthUpdate).length > 0) {
-        await UserHealth.findOneAndUpdate({ userId: objectId }, healthUpdate, {
-          new: true,
-          session
-        });
-      }
+    if (
+      profileData.EmploymentStatus &&
+      ![
+        "private sector",
+        "government",
+        "self-employed",
+        "unemployed",
+        "student",
+        "business"
+      ].includes(profileData.EmploymentStatus)
+    ) {
+      await session.abortTransaction();
+      return {
+        success: false,
+        message:
+          "Employment status must be one of: private sector, government, self-employed, unemployed, student, business"
+      };
     }
 
-    if (profileData.professionData) {
-      const professionUpdate: any = {};
-      const allowedProfessionFields = [
-        "EmploymentStatus",
-        "Occupation",
-        "AnnualIncome",
-        "OrganizationName"
-      ];
+    const professionUpdate: any = {};
+    [
+      "EmploymentStatus",
+      "Occupation",
+      "AnnualIncome",
+      "OrganizationName"
+    ].forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(profileData, k))
+        professionUpdate[k] = profileData[k];
+    });
 
-      allowedProfessionFields.forEach((field) => {
-        if (profileData.professionData[field] !== undefined) {
-          professionUpdate[field] = profileData.professionData[field];
-        }
-      });
-
-      if (
-        professionUpdate.EmploymentStatus &&
-        ![
-          "private sector",
-          "government",
-          "self-employed",
-          "unemployed",
-          "student",
-          "business"
-        ].includes(professionUpdate.EmploymentStatus)
-      ) {
-        await session.abortTransaction();
-        return {
-          success: false,
-          message:
-            "Employment status must be one of: private sector, government, self-employed, unemployed, student, business"
-        };
-      }
-
-      if (Object.keys(professionUpdate).length > 0) {
-        await UserProfession.findOneAndUpdate(
-          { userId: objectId },
-          professionUpdate,
-          { new: true, session }
-        );
-      }
+    const cleanedProfession = clean(professionUpdate);
+    if (Object.keys(cleanedProfession).length > 0) {
+      await UserProfession.findOneAndUpdate(
+        { userId: objectId },
+        cleanedProfession,
+        { new: true, session }
+      );
     }
 
-    if (profileData.personalData) {
-      const personalUpdate: any = {};
-      const allowedPersonalFields = [
-        "timeOfBirth",
-        "height",
-        "weight",
-        "astrologicalSign",
-        "birthPlace",
-        "birthState",
-        "religion",
-        "marriedStatus",
-        "dosh",
-        "subCaste",
-        "marryToOtherReligion",
-        "full_address",
-        "nationality",
-        "isResidentOfIndia",
-        "residingCountry",
-        "visaType",
-        "isHaveChildren",
-        "numberOfChildren",
-        "isChildrenLivingWithYou",
-        "isYouLegallySeparated",
-        "separatedSince",
-        "divorceStatus"
-      ];
+    const personalUpdate: any = {};
+    [
+      "timeOfBirth",
+      "height",
+      "weight",
+      "astrologicalSign",
+      "birthPlace",
+      "birthState",
+      "religion",
+      "marriedStatus",
+      "dosh",
+      "subCaste",
+      "marryToOtherReligion",
+      "nationality",
+      "isResidentOfIndia",
+      "residingCountry",
+      "visaType",
+      "isHaveChildren",
+      "numberOfChildren",
+      "isChildrenLivingWithYou",
+      "isYouLegallySeparated",
+      "separatedSince",
+      "divorceStatus"
+    ].forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(profileData, k))
+        personalUpdate[k] = profileData[k];
+    });
 
-      allowedPersonalFields.forEach((field) => {
-        if (profileData.personalData[field] !== undefined) {
-          personalUpdate[field] = profileData.personalData[field];
-        }
-      });
-
-      if (Object.keys(personalUpdate).length > 0) {
-        await UserPersonal.findOneAndUpdate(
-          { userId: objectId },
-          personalUpdate,
-          { new: true, session }
-        );
-      }
+    if (
+      profileData.full_address &&
+      typeof profileData.full_address === "object"
+    ) {
+      personalUpdate.full_address = {
+        street1: profileData.full_address.street1,
+        street2: profileData.full_address.street2,
+        city: profileData.full_address.city,
+        state: profileData.full_address.state,
+        zipCode: profileData.full_address.zipCode,
+        isYourHome: profileData.full_address.isYourHome
+      };
     }
 
-    if (profileData.familyData) {
-      const familyUpdate: any = {};
-      const allowedFamilyFields = [
-        "fatherName",
-        "motherName",
-        "fatherOccupation",
-        "motherOccupation",
-        "fatherContact",
-        "motherContact",
-        "fatherNativePlace",
-        "doYouHaveChildren",
-        "grandFatherName",
-        "grandMotherName",
-        "naniName",
-        "nanaName",
-        "nanaNativePlace",
-        "familyType",
-        "haveSibling",
-        "howManySiblings",
-        "siblingDetails"
-      ];
-
-      allowedFamilyFields.forEach((field) => {
-        if (profileData.familyData[field] !== undefined) {
-          familyUpdate[field] = profileData.familyData[field];
-        }
-      });
-
-      if (Object.keys(familyUpdate).length > 0) {
-        await UserFamily.findOneAndUpdate({ userId: objectId }, familyUpdate, {
-          new: true,
-          session
-        });
-      }
+    const cleanedPersonal = clean(personalUpdate);
+    if (Object.keys(cleanedPersonal).length > 0) {
+      await UserPersonal.findOneAndUpdate(
+        { userId: objectId },
+        cleanedPersonal,
+        { new: true, session }
+      );
     }
 
-    if (profileData.educationsData) {
-      const educationUpdate: any = {};
-      const allowedEducationFields = [
-        "SchoolName",
-        "HighestEducation",
-        "FieldOfStudy",
-        "University",
-        "CountryOfEducation"
-      ];
+    const familyUpdate: any = {};
+    [
+      "fatherName",
+      "motherName",
+      "fatherOccupation",
+      "motherOccupation",
+      "fatherContact",
+      "motherContact",
+      "fatherNativePlace",
+      "doYouHaveChildren",
+      "grandFatherName",
+      "grandMotherName",
+      "naniName",
+      "nanaName",
+      "nanaNativePlace",
+      "familyType",
+      "haveSibling",
+      "howManySiblings",
+      "siblingDetails"
+    ].forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(profileData, k))
+        familyUpdate[k] = profileData[k];
+    });
 
-      allowedEducationFields.forEach((field) => {
-        if (profileData.educationsData[field] !== undefined) {
-          educationUpdate[field] = profileData.educationsData[field];
-        }
+    const cleanedFamily = clean(familyUpdate);
+    if (Object.keys(cleanedFamily).length > 0) {
+      await UserFamily.findOneAndUpdate({ userId: objectId }, cleanedFamily, {
+        new: true,
+        session
       });
-
-      if (Object.keys(educationUpdate).length > 0) {
-        await UserEducation.findOneAndUpdate(
-          { userId: objectId },
-          educationUpdate,
-          { new: true, session }
-        );
-      }
     }
 
-    if (profileData.expectationsData) {
-      const expectationsUpdate: any = {};
-      const allowedExpectationsFields = [
-        "age",
-        "maritalStatus",
-        "isConsumeAlcoholic",
-        "educationLevel",
-        "community",
-        "livingInCountry",
-        "livingInState",
-        "profession",
-        "diet"
-      ];
+    const educationUpdate: any = {};
+    [
+      "SchoolName",
+      "HighestEducation",
+      "FieldOfStudy",
+      "University",
+      "CountryOfEducation"
+    ].forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(profileData, k))
+        educationUpdate[k] = profileData[k];
+    });
 
-      allowedExpectationsFields.forEach((field) => {
-        if (profileData.expectationsData[field] !== undefined) {
-          expectationsUpdate[field] = profileData.expectationsData[field];
-        }
-      });
+    const cleanedEducation = clean(educationUpdate);
+    if (Object.keys(cleanedEducation).length > 0) {
+      await UserEducation.findOneAndUpdate(
+        { userId: objectId },
+        cleanedEducation,
+        { new: true, session }
+      );
+    }
 
-      if (
-        expectationsUpdate.isConsumeAlcoholic &&
-        !["yes", "no", "occasionally"].includes(
-          expectationsUpdate.isConsumeAlcoholic
-        )
-      ) {
-        await session.abortTransaction();
-        return {
-          success: false,
-          message: "isConsumeAlcoholic must be yes, no, or occasionally"
-        };
-      }
+    const expectationsUpdate: any = {};
+    [
+      "age",
+      "maritalStatus",
+      "isConsumeAlcoholic",
+      "educationLevel",
+      "community",
+      "livingInCountry",
+      "livingInState",
+      "profession",
+      "diet"
+    ].forEach((k) => {
+      if (Object.prototype.hasOwnProperty.call(profileData, k))
+        expectationsUpdate[k] = profileData[k];
+    });
 
-      if (Object.keys(expectationsUpdate).length > 0) {
-        await UserExpectations.findOneAndUpdate(
-          { userId: objectId },
-          expectationsUpdate,
-          { new: true, session }
-        );
-      }
+    if (
+      Object.prototype.hasOwnProperty.call(
+        expectationsUpdate,
+        "isConsumeAlcoholic"
+      ) &&
+      expectationsUpdate.isConsumeAlcoholic &&
+      !["yes", "no", "occasionally"].includes(
+        expectationsUpdate.isConsumeAlcoholic
+      )
+    ) {
+      await session.abortTransaction();
+      return {
+        success: false,
+        message: "isConsumeAlcoholic must be yes, no, or occasionally"
+      };
+    }
+
+    const cleanedExpectations = clean(expectationsUpdate);
+    if (Object.keys(cleanedExpectations).length > 0) {
+      await UserExpectations.findOneAndUpdate(
+        { userId: objectId },
+        cleanedExpectations,
+        { new: true, session }
+      );
     }
 
     await session.commitTransaction();
