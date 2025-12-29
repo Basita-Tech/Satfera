@@ -4,7 +4,11 @@ import * as adminService from "../../services/userServices";
 import { AuthenticatedRequest } from "../../../types";
 import { updateUserProfileDetailsService } from "../../services/userServices/updateUserProfileService";
 import { recordAudit } from "../../../lib/common/auditLogger";
-import { User } from "../../../models";
+import { User, ConnectionRequest, Profile } from "../../../models";
+import { APP_CONFIG } from "../../../utils/constants";
+import { buildEmailFromTemplate } from "../../../lib/emails/templateService";
+import { sendMail } from "../../../lib/emails";
+import { EmailTemplateType } from "../../../models";
 
 export async function approveUserProfileController(
   req: AuthenticatedRequest,
@@ -138,11 +142,16 @@ export async function rectifyUserProfileController(
 
     if (result.success) {
       try {
-        const target = await User.findById(userId).select("firstName lastName").lean();
-        const targetDisplayName = target ? `${target.firstName || ""} ${target.lastName || ""}`.trim() : undefined;
+        const target = await User.findById(userId)
+          .select("firstName lastName")
+          .lean();
+        const targetDisplayName = target
+          ? `${target.firstName || ""} ${target.lastName || ""}`.trim()
+          : undefined;
         void recordAudit({
           adminId: (req as any).user?.id,
-          adminName: (req as any).user?.fullName || (req as any).user?.email || "Admin",
+          adminName:
+            (req as any).user?.fullName || (req as any).user?.email || "Admin",
           action: "RectifyProfile",
           targetType: "User",
           targetId: userId,
@@ -339,8 +348,14 @@ export async function getAllRequestsController(req: Request, res: Response) {
   let limit = parseInt((req.query.limit as string) || "20", 10);
   limit = Math.min(Math.max(1, limit), 100);
 
+  const userId = (req.query.userId as string) || undefined;
+  const username = (req.query.username as string) || undefined;
+
   try {
-    const result = await adminService.getAllRequestsService(page, limit);
+    const result = await adminService.getAllRequestsService(page, limit, {
+      userId,
+      username
+    });
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {
     logger.error("Error fetching all requests:", {
@@ -350,6 +365,132 @@ export async function getAllRequestsController(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch all requests"
+    });
+  }
+}
+
+export async function sendRequestReminder(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const { id } = req.params as { id?: string };
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "request id is required" });
+    }
+
+    const conn = await ConnectionRequest.findById(id)
+      .populate("sender")
+      .populate("receiver")
+      .lean();
+
+    if (!conn) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Connection request not found" });
+    }
+
+    if (conn.status && conn.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending requests can be reminded"
+      });
+    }
+
+    const sender: any = (conn as any).sender;
+    const receiver: any = (conn as any).receiver;
+
+    if (!receiver || !receiver.email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Target user has no email" });
+    }
+
+    const senderProfile = await Profile.findOne({ userId: sender._id }).lean();
+
+    const requesterName =
+      `${sender.firstName || ""} ${sender.lastName || ""}`.trim();
+    const requesterProfileName = requesterName;
+    const profileUrl = `${APP_CONFIG.FRONTEND_URL}/profile/${sender._id}`;
+    const photoUrl =
+      senderProfile?.photos?.closerPhoto?.url ||
+      senderProfile?.photos?.personalPhotos?.[0]?.url ||
+      APP_CONFIG.BRAND_LOGO_URL;
+
+    const acceptUrl = `${APP_CONFIG.FRONTEND_URL}/request/${id}/accept`;
+    const rejectUrl = `${APP_CONFIG.FRONTEND_URL}/request/${id}/reject`;
+
+    const variables: Record<string, string> = {
+      brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+      logoUrl: APP_CONFIG.BRAND_LOGO_URL || "",
+      userName: `${receiver.firstName || ""} ${receiver.lastName || ""}`.trim(),
+      requesterName,
+      requesterProfileName,
+      profileUrl,
+      photoUrl,
+      acceptUrl,
+      rejectUrl,
+      requestDate: conn.createdAt
+        ? new Date(conn.createdAt).toLocaleString()
+        : "",
+      matchScore: (conn as any).matchScore
+        ? String((conn as any).matchScore)
+        : "",
+      supportContact: "support@satfera.in",
+      dashboardLink: APP_CONFIG.FRONTEND_URL
+    };
+
+    const built = await buildEmailFromTemplate(
+      EmailTemplateType.NewConnectionRequest as any,
+      variables
+    );
+
+    if (!built) {
+      return res.status(500).json({
+        success: false,
+        message: "Email template not found or inactive"
+      });
+    }
+
+    void sendMail({
+      to: receiver.email,
+      subject: built.subject,
+      html: built.html,
+      text: built.text
+    }).catch((err) => {
+      logger.error("Error sending reminder email (async):", {
+        error: err?.message || err,
+        requestId: id,
+        to: receiver.email
+      });
+    });
+
+    void recordAudit({
+      adminId: req.user?.id,
+      adminName: req.user?.fullName || req.user?.email || "Admin",
+      action: "SendRequestReminder",
+      targetType: "ConnectionRequest",
+      targetId: id,
+      targetDisplayName: requesterName,
+      details: { message: "Reminder email queued for delivery" },
+      req: req as any
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Reminder email queued for delivery"
+    });
+  } catch (error: any) {
+    logger.error("Error sending request reminder:", {
+      error: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to send reminder"
     });
   }
 }
@@ -457,7 +598,8 @@ export async function updateReportStatusController(
   if (result.success) {
     void recordAudit({
       adminId: (req as any).user?.id,
-      adminName: (req as any).user?.fullName || (req as any).user?.email || "Admin",
+      adminName:
+        (req as any).user?.fullName || (req as any).user?.email || "Admin",
       action: "UpdateReportStatus",
       targetType: "Report",
       targetId: id,
@@ -495,7 +637,8 @@ export async function updateUserProfileDetailsController(
     if (result.success) {
       void recordAudit({
         adminId: (req as any).user?.id,
-        adminName: (req as any).user?.fullName || (req as any).user?.email || "Admin",
+        adminName:
+          (req as any).user?.fullName || (req as any).user?.email || "Admin",
         action: "UpdateUserProfile",
         targetType: "User",
         targetId: userId,

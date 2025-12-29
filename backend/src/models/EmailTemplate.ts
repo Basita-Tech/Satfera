@@ -13,6 +13,7 @@ export enum EmailTemplateType {
   AccountDeletion = "ACCOUNT_DELETION",
   AccountActivation = "ACCOUNT_ACTIVATION",
   ConnectionAccepted = "CONNECTION_ACCEPTED",
+  NewConnectionRequest = "NEW_CONNECTION_REQUEST",
   SubscriptionRenewal = "SUBSCRIPTION_RENEWAL",
   SubscriptionCancellation = "SUBSCRIPTION_CANCELLATION",
   PaymentFailed = "PAYMENT_FAILED",
@@ -48,6 +49,21 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, string[]> = {
     "accepterName",
     "accepterProfileLink",
     "brandName"
+  ],
+  [EmailTemplateType.NewConnectionRequest]: [
+    "brandName",
+    "logoUrl",
+    "userName",
+    "requesterName",
+    "requesterProfileName",
+    "profileUrl",
+    "photoUrl",
+    "acceptUrl",
+    "rejectUrl",
+    "requestDate",
+    "matchScore",
+    "supportContact",
+    "dashboardLink"
   ],
   [EmailTemplateType.SubscriptionRenewal]: [
     "userName",

@@ -164,6 +164,12 @@ adminRouter.get(
   adminController.getAllRequestsController
 );
 
+adminRouter.post(
+  "/request-sent/:id/reminder",
+  authenticate,
+  adminController.sendRequestReminder
+);
+
 adminRouter.get(
   "/super-profiles",
   authenticate,

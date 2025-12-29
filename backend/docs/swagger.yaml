@@ -295,6 +295,7 @@ components:
             - ACCOUNT_DELETION
             - ACCOUNT_ACTIVATION
             - CONNECTION_ACCEPTED
+            - NEW_CONNECTION_REQUEST
         subject:
           type: string
         body:
@@ -3987,6 +3988,17 @@ paths:
       summary: Get all user requests sent data.
       tags:
         - Admin Dashboard
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter requests where sender or receiver matches the provided user id (MongoDB ObjectId). If provided, only requests involving this user are returned.
+        - name: username
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive match against user's first or last name. Used when `userId` is not provided.
       responses:
         "200":
           description: Requests & Matches
@@ -4002,6 +4014,8 @@ paths:
                     items:
                       type: object
                       properties:
+                        connectionId:
+                          type: string
                         status:
                           type: string
                         createdAt:
@@ -4058,7 +4072,8 @@ paths:
                   value:
                     success: true
                     data:
-                      - status: pending
+                      - connectionId: "6942ceac084804fa512c28af"
+                        status: pending
                         createdAt: "2025-12-17T15:54:34.190Z"
                         sender:
                           userId: "6942ceac084804fa512c28ac"
@@ -4098,6 +4113,60 @@ paths:
                   value:
                     success: false
                     message: "Access denied."
+
+  /api/v1/admin/request-sent/{id}/remind:
+    post:
+      summary: Send reminder email for a pending connection request (Admin only)
+      description: Sends an email to the receiver of the connection request notifying them of a pending request with accept/reject links. Requires admin authentication.
+      tags:
+        - Admin Dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ConnectionRequest id (MongoDB ObjectId)
+      responses:
+        "200":
+          description: Reminder email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                Success:
+                  value:
+                    success: true
+                    message: "Reminder email sent"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+        "404":
+          description: Connection request not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/admin/super-profiles:
     get:

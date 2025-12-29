@@ -17,6 +17,10 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { Reports } from "../../../models/Reports";
 
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function updateProfileApproval(
   profileIdOrUserId: string,
   updateData: Record<string, any>,
@@ -947,16 +951,94 @@ export async function getReportsAndAnalyticsService() {
   }
 }
 
-export async function getAllRequestsService(page: number, limit: number) {
+export async function getAllRequestsService(
+  page: number,
+  limit: number,
+  filters?: { userId?: string; username?: string }
+) {
   const skip = (page - 1) * limit;
 
   try {
-    const totalCount = await ConnectionRequest.countDocuments({});
+    let matchQuery: any = {};
 
-    const requests = await ConnectionRequest.aggregate([
-      { $skip: skip },
-      { $limit: limit },
+    if (filters?.userId) {
+      const raw = (filters.userId || "").toString().trim();
+      let userObjId: any = null;
 
+      if (Types.ObjectId.isValid(raw)) {
+        const found = await User.findById(raw).select("_id").lean();
+        if (found) userObjId = found._id;
+      }
+
+      if (!userObjId) {
+        const foundByCustom = await User.findOne({ customId: raw })
+          .select("_id")
+          .lean();
+        if (foundByCustom) userObjId = foundByCustom._id;
+      }
+
+      if (!userObjId) {
+        return {
+          success: false,
+          message: "User not found for provided userId/customId"
+        };
+      }
+
+      matchQuery = { $or: [{ sender: userObjId }, { receiver: userObjId }] };
+    } else if (filters?.username) {
+      const raw = filters.username.trim();
+      const parts = raw.split(/\s+/);
+      let matchedUsers: any[] = [];
+
+      if (parts.length >= 2) {
+        const firstRegex = new RegExp(`^${escapeRegExp(parts[0])}$`, "i");
+        const lastRegex = new RegExp(
+          `^${escapeRegExp(parts.slice(1).join(" "))}$`,
+          "i"
+        );
+        matchedUsers = await User.find(
+          { firstName: firstRegex, lastName: lastRegex },
+          { _id: 1 }
+        ).lean();
+      }
+
+      if (!matchedUsers.length) {
+        const nameRegex = new RegExp(escapeRegExp(raw), "i");
+        matchedUsers = await User.find(
+          { $or: [{ firstName: nameRegex }, { lastName: nameRegex }] },
+          { _id: 1 }
+        ).lean();
+      }
+
+      const ids = (matchedUsers || []).map((u: any) => u._id);
+      if (!ids.length) {
+        return {
+          success: true,
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasMore: false
+          }
+        };
+      }
+
+      matchQuery = {
+        $or: [{ sender: { $in: ids } }, { receiver: { $in: ids } }]
+      };
+    }
+
+    const totalCount = await ConnectionRequest.countDocuments(matchQuery);
+
+    const pipeline: any[] = [];
+
+    if (Object.keys(matchQuery).length) {
+      pipeline.push({ $match: matchQuery });
+    }
+
+    pipeline.push(
       {
         $lookup: {
           from: "users",
@@ -965,9 +1047,7 @@ export async function getAllRequestsService(page: number, limit: number) {
           as: "senderUser"
         }
       },
-
       { $unwind: { path: "$senderUser", preserveNullAndEmptyArrays: true } },
-
       {
         $lookup: {
           from: "users",
@@ -976,9 +1056,7 @@ export async function getAllRequestsService(page: number, limit: number) {
           as: "receiverUser"
         }
       },
-
       { $unwind: { path: "$receiverUser", preserveNullAndEmptyArrays: true } },
-
       {
         $lookup: {
           from: "profiles",
@@ -987,9 +1065,7 @@ export async function getAllRequestsService(page: number, limit: number) {
           as: "senderProfile"
         }
       },
-
       { $unwind: { path: "$senderProfile", preserveNullAndEmptyArrays: true } },
-
       {
         $lookup: {
           from: "profiles",
@@ -998,13 +1074,12 @@ export async function getAllRequestsService(page: number, limit: number) {
           as: "receiverProfile"
         }
       },
-
       {
         $unwind: { path: "$receiverProfile", preserveNullAndEmptyArrays: true }
       },
-
       {
         $project: {
+          connectionId: "$_id",
           _id: 0,
           status: "$status",
           createdAt: "$createdAt",
@@ -1032,7 +1107,15 @@ export async function getAllRequestsService(page: number, limit: number) {
           }
         }
       }
-    ]);
+    );
+
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    );
+
+    const requests = await ConnectionRequest.aggregate(pipeline);
 
     const requestsWithUserData = await Promise.all(
       requests.map(async (request) => {
@@ -1046,6 +1129,9 @@ export async function getAllRequestsService(page: number, limit: number) {
             : senderToReceiverResp?.score || 0;
 
         return {
+          connectionId: request.connectionId
+            ? String(request.connectionId)
+            : undefined,
           status: request.status,
           createdAt: request.createdAt,
           sender: {
@@ -1357,8 +1443,7 @@ export async function getAllPremiumsProfilesService(
 
       Profile.find({ userId: { $in: userIds } })
         .select("photos.closerPhoto userId")
-        .lean()
-      ,
+        .lean(),
       Payment.find({ userId: { $in: userIds } })
         .sort({ createdAt: -1 })
         .lean()
