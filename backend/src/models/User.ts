@@ -255,6 +255,13 @@ userSchema.index({ isDeleted: 1, isActive: 1 });
 userSchema.index({ isProfileApproved: 1, profileReviewStatus: 1 });
 userSchema.index({ planExpiry: 1 });
 userSchema.index({ planExpiry: 1, isActive: 1 });
+userSchema.index({
+  gender: 1,
+  isActive: 1,
+  isDeleted: 1,
+  isProfileApproved: 1,
+  profileReviewStatus: 1
+});
 
 userSchema.pre("save", function (next) {
   try {

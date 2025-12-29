@@ -587,6 +587,18 @@ export async function searchService(
 
   const postMatch: any = {};
 
+  if (authUserId) {
+    if (authUserHasHIV) {
+      postMatch["health.isHaveHIV"] = { $in: ["yes", "Yes", "YES", true] };
+    } else {
+      postMatch.$or = [
+        { "health.isHaveHIV": { $exists: false } },
+        { "health.isHaveHIV": null },
+        { "health.isHaveHIV": { $nin: ["yes", "Yes", "YES", true] } }
+      ];
+    }
+  }
+
   if (
     typeof filters.heightFrom === "number" ||
     typeof filters.heightTo === "number"
@@ -804,18 +816,6 @@ export async function searchService(
       res[0].totalCount[0] &&
       res[0].totalCount[0].count) ||
     0;
-
-  if (authUserHasHIV) {
-    results = results.filter((r: any) => {
-      const health = r.health;
-      return health && isAffirmative(health.isHaveHIV);
-    });
-  } else if (authUserId) {
-    results = results.filter((r: any) => {
-      const health = r.health;
-      return !health || !isAffirmative(health.isHaveHIV);
-    });
-  }
 
   const listings = await Promise.all(
     results.map(async (r: any) => {
