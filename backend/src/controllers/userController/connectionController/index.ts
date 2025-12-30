@@ -913,7 +913,8 @@ export const getFavorites = async (
           candidateProfile,
           profession,
           score || { score: 0, reasons: [] },
-          null
+          null,
+          true
         );
       })
     );

@@ -223,6 +223,8 @@ async function seed() {
         nationality: "Indian",
         isResidentOfIndia: true,
         residingCountry: "India",
+        height: `4'10" / 147 cm`,
+        weight: "42 kg / 93 lbs",
         full_address: {
           city: "Ahmedabad",
           state: "Gujarat",

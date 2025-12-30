@@ -480,13 +480,13 @@ export async function findMatchingUsers(
     const oppositeGender = genderValue === "male" ? "female" : "male";
 
     const excludedIds: any[] = (seekerUser as any)?.blockedUsers || [];
-
     const allExcludedIds = [seekerUserId, ...excludedIds];
     const baseQuery: any = {
       _id: { $nin: allExcludedIds },
       gender: oppositeGender,
       isActive: true,
       isDeleted: false,
+      isVisible: true,
       isProfileApproved: true,
       profileReviewStatus: "approved",
       blockedUsers: { $ne: seekerUserId }

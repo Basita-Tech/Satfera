@@ -8,15 +8,12 @@ export async function formatListingProfile(
   profile: any,
   profession: any,
   scoreDetail?: ScoreDetail,
-  status: MatchingStatus = null
+  status: MatchingStatus = null,
+  isFavorite?: boolean
 ): Promise<any> {
   const age = calculateAge(candidate?.dateOfBirth);
-  const candidateId = candidate?._id?.toString() || "";
 
-  const isFavorite =
-    profile?.favoriteProfiles?.some(
-      (favId: any) => favId.toString() === candidateId
-    ) || false;
+  const candidateId = candidate?._id?.toString();
 
   const closerPhotoUrl = profile?.photos?.closerPhoto?.url || null;
   return {

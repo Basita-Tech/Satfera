@@ -8,7 +8,8 @@ import {
   User,
   Profile,
   UserHealth,
-  UserProfession
+  UserProfession,
+  ConnectionRequest
 } from "../../models";
 import { AuthenticatedRequest } from "../../types";
 import { APP_CONFIG } from "../../utils/constants";
@@ -289,34 +290,64 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const matchCriteria: any = {
       isActive: true,
       isDeleted: false,
+      isVisible: true,
       isProfileApproved: true,
       profileReviewStatus: "approved"
     };
 
     let hivFilter: any = null;
+    const excludedUserIds: any[] = [];
 
     if (requesterId && mongoose.Types.ObjectId.isValid(requesterId)) {
       authObjId = new mongoose.Types.ObjectId(requesterId);
 
-      matchCriteria._id = { $ne: authObjId };
-
-      const [authUser, authHealth] = await Promise.all([
+      const [
+        authUser,
+        authHealth,
+        authUserFavoritesProfiles,
+        authUserSentRequests,
+        authUserReceivedRequests
+      ] = await Promise.all([
         User.findById(authObjId, "gender blockedUsers").lean(),
-        UserHealth.findOne({ userId: authObjId }, "isHaveHIV").lean()
+        UserHealth.findOne({ userId: authObjId }, "isHaveHIV").lean(),
+        Profile.findOne({ userId: authObjId }, "favoriteProfiles").lean(),
+        ConnectionRequest.find({ sender: authObjId }).lean(),
+        ConnectionRequest.find({ receiver: authObjId }).lean()
       ]);
 
       if (authUser) {
         const blockedByMe = (authUser as any).blockedUsers || [];
-
-        if (blockedByMe.length > 0) {
-          matchCriteria._id = { ...matchCriteria._id, $nin: blockedByMe };
-        }
+        excludedUserIds.push(...blockedByMe);
 
         matchCriteria.blockedUsers = { $ne: authObjId };
 
         const gender = String(authUser.gender).toLowerCase();
         if (gender === "male") matchCriteria.gender = "female";
         else if (gender === "female") matchCriteria.gender = "male";
+      }
+
+      if (authUserFavoritesProfiles) {
+        const favoriteIds =
+          (authUserFavoritesProfiles as any).favoriteProfiles || [];
+        excludedUserIds.push(...favoriteIds);
+      }
+
+      if (authUserSentRequests && authUserSentRequests.length > 0) {
+        const sentRequestIds = authUserSentRequests.map((req) => req.receiver);
+        excludedUserIds.push(...sentRequestIds);
+      }
+
+      if (authUserReceivedRequests && authUserReceivedRequests.length > 0) {
+        const receivedRequestIds = authUserReceivedRequests.map(
+          (req) => req.sender
+        );
+        excludedUserIds.push(...receivedRequestIds);
+      }
+
+      if (excludedUserIds.length > 0) {
+        matchCriteria._id = { $ne: authObjId, $nin: excludedUserIds };
+      } else {
+        matchCriteria._id = { $ne: authObjId };
       }
 
       if (authHealth) {
@@ -413,8 +444,9 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
     const result = await User.aggregate(pipeline);
 
-    const metadata = result[0].metadata[0] || { total: 0 };
-    const usersData = result[0].data || [];
+    const metadata = result[0]?.metadata?.[0] || { total: 0 };
+    const usersData = result[0]?.data || [];
+    const total = metadata.total || 0;
 
     const formattedResults = await Promise.all(
       usersData.map((user: any) => {
@@ -437,8 +469,8 @@ export const getAllProfiles = async (req: Request, res: Response) => {
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: metadata.total,
-        hasMore: skip + limitNum < metadata.total
+        total: total,
+        hasMore: skip + limitNum < total
       }
     });
   } catch (error) {

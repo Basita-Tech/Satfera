@@ -449,22 +449,57 @@ export async function searchService(
 
   let authUserGender: string | null = null;
   let authUserHasHIV = false;
+  const excludedUserIds: string[] = [];
+
   if (authUserId) {
-    const [authUser, authHealth] = await Promise.all([
+    const [
+      authUser,
+      authUserFavoritesProfiles,
+      authHealth,
+      authUserSentRequests,
+      authUserReceivedRequests
+    ] = await Promise.all([
       User.findById(authUserId, "gender blockedUsers").lean(),
-      UserHealth.findOne({ userId: authUserId }, "isHaveHIV").lean()
+      Profile.findOne({ userId: authUserId }, "favoriteProfiles").lean(),
+      UserHealth.findOne({ userId: authUserId }, "isHaveHIV").lean(),
+      ConnectionRequest.find({ sender: authUserId }).lean(),
+      ConnectionRequest.find({ receiver: authUserId }).lean()
     ]);
+
     if (authUser) {
       authUserGender = String(authUser.gender);
       authUserHasHIV =
         authHealth && isAffirmative((authHealth as any).isHaveHIV);
 
-      const blockedUsers = (authUser as any)?.blockedUsers || [];
-      if (blockedUsers.length > 0) {
-        match._id = { $nin: blockedUsers };
+      const excludedFavoriteIds = (
+        (authUserFavoritesProfiles as any)?.favoriteProfiles || []
+      ).map((id: any) => String(id));
+      excludedUserIds.push(...excludedFavoriteIds);
+
+      const excludedSentRequestIds = (authUserSentRequests || []).map((req) =>
+        String(req.receiver)
+      );
+      excludedUserIds.push(...excludedSentRequestIds);
+
+      const excludedReceivedRequestIds = (authUserReceivedRequests || []).map(
+        (req) => String(req.sender)
+      );
+      excludedUserIds.push(...excludedReceivedRequestIds);
+
+      const blockedUsers = ((authUser as any)?.blockedUsers || []).map(
+        (id: any) => String(id)
+      );
+      excludedUserIds.push(...blockedUsers);
+
+      const uniqueExcludedIds = [...new Set(excludedUserIds)];
+      if (uniqueExcludedIds.length > 0) {
+        match._id = match._id || {};
+        match._id.$nin = uniqueExcludedIds.map(
+          (id: string) => new mongoose.Types.ObjectId(id)
+        );
       }
 
-      match.blockedUsers = { $ne: authUserId };
+      match.blockedUsers = { $ne: new mongoose.Types.ObjectId(authUserId) };
     }
   }
 
@@ -521,26 +556,13 @@ export async function searchService(
     match.dateOfBirth = { $gte: fromDate, $lte: toDate };
   }
 
-  const pipeline: any[] = [{ $match: match }];
-
   if (authUserId && mongoose.Types.ObjectId.isValid(authUserId)) {
     const authObjId = new mongoose.Types.ObjectId(authUserId);
-    try {
-      const [authUser] = await Promise.all([
-        User.findById(authObjId).select("blockedUsers").lean()
-      ]);
-      const blockedIds: any[] = (authUser as any)?.blockedUsers || [];
-
-      match._id = match._id || {};
-      match._id.$ne = authObjId;
-
-      if (blockedIds.length > 0) {
-        match._id.$nin = blockedIds;
-      }
-
-      match.blockedUsers = { $ne: authObjId };
-    } catch (e) {}
+    match._id = match._id || {};
+    match._id.$ne = authObjId;
   }
+
+  const pipeline: any[] = [{ $match: match }];
 
   pipeline.push(
     {
@@ -814,13 +836,8 @@ export async function searchService(
   const agg = User.aggregate(pipeline);
   const res = (await agg.exec()) as any[];
 
-  let results = (res[0] && res[0].results) || [];
-  const total =
-    (res[0] &&
-      res[0].totalCount &&
-      res[0].totalCount[0] &&
-      res[0].totalCount[0].count) ||
-    0;
+  let results = res[0]?.results || [];
+  const total = res[0]?.totalCount?.[0]?.count || 0;
 
   const listings = await Promise.all(
     results.map(async (r: any) => {
