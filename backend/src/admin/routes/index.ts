@@ -4,7 +4,7 @@ import { getQueueStats, logger } from "../../lib";
 import authenticate from "../../middleware/authMiddleware";
 import * as adminController from "../controllers";
 import { commonControllers } from "../controllers/commonControllers";
-import { isAdmin } from "../../utils/utils";
+import { asyncHandler, isAdmin } from "../../utils/utils";
 import { getSystemHealth } from "../controllers/systemControllers";
 import { SupportController } from "../controllers/commonControllers/supportController";
 import adminAuditMiddleware from "../../middleware/adminAuditMiddleware";
@@ -63,85 +63,85 @@ adminRouter.use(adminAuditMiddleware);
 adminRouter.post(
   "/account/restore",
   authenticate,
-  adminController.restoreAccountController
+  asyncHandler(adminController.restoreAccountController)
 );
 
 adminRouter.delete(
   "/account/hard-delete",
   authenticate,
-  adminController.hardDeleteAccountController
+  asyncHandler(adminController.hardDeleteAccountController)
 );
 
 adminRouter.post(
   "/account/delete",
   authenticate,
-  adminController.softDeleteAccountController
+  asyncHandler(adminController.softDeleteAccountController)
 );
 
 adminRouter.get(
   "/accounts/deleted",
   authenticate,
-  adminController.getDeletedAccountsController
+  asyncHandler(adminController.getDeletedAccountsController)
 );
 
 adminRouter.get(
   "/dashboard/stats",
   authenticate,
-  commonControllers.getDashboardStatsController
+  asyncHandler(commonControllers.getDashboardStatsController)
 );
 
 adminRouter.post(
   "/approve/profile",
   authenticate,
-  adminController.approveUserProfileController
+  asyncHandler(adminController.approveUserProfileController)
 );
 
 adminRouter.post(
   "/reject/profile",
   authenticate,
-  adminController.rejectUserProfileController
+  asyncHandler(adminController.rejectUserProfileController)
 );
 
 adminRouter.post(
   "/rectify/profile",
   authenticate,
-  adminController.rectifyUserProfileController
+  asyncHandler(adminController.rectifyUserProfileController)
 );
 
 adminRouter.get(
   "/profiles/all/premiums",
   authenticate,
-  adminController.getAllPremiumsProfilesController
+  asyncHandler(adminController.getAllPremiumsProfilesController)
 );
 
 adminRouter.get(
   "/profiles/pending",
   authenticate,
-  adminController.getPendingProfilesController
+  asyncHandler(adminController.getPendingProfilesController)
 );
 
 adminRouter.get(
   "/profile/verify/:userId",
   authenticate,
-  adminController.verifiedProfilesController
+  asyncHandler(adminController.verifiedProfilesController)
 );
 
 adminRouter.get(
   "/profile/unverify/:userId",
   authenticate,
-  adminController.unVerifiedProfilesController
+  asyncHandler(adminController.unVerifiedProfilesController)
 );
 
 adminRouter.get(
   "/all/profiles",
   authenticate,
-  adminController.getAllProfilesController
+  asyncHandler(adminController.getAllProfilesController)
 );
 
 adminRouter.get(
   "/profile/:userId",
   authenticate,
-  adminController.getUserProfileDetailsController
+  asyncHandler(adminController.getUserProfileDetailsController)
 );
 
 adminRouter.put(
@@ -149,72 +149,85 @@ adminRouter.put(
   authenticate,
   updateUserProfileValidation,
   handleValidationErrors,
-  adminController.updateUserProfileDetailsController
+  asyncHandler(adminController.updateUserProfileDetailsController)
 );
 
 adminRouter.get(
   "/analytics",
   authenticate,
-  adminController.getReportsAndAnalyticsController
+  asyncHandler(adminController.getReportsAndAnalyticsController)
 );
 
 adminRouter.get(
   "/request-sent",
   authenticate,
-  adminController.getAllRequestsController
+  asyncHandler(adminController.getAllRequestsController)
 );
 
 adminRouter.post(
   "/request-sent/:id/reminder",
   authenticate,
-  adminController.sendRequestReminder
+  asyncHandler(adminController.sendRequestReminder)
 );
 
 adminRouter.get(
   "/super-profiles",
   authenticate,
-  adminController.getSuperProfiles
+  asyncHandler(adminController.getSuperProfiles)
 );
 
 adminRouter.post(
   "/user/change-password",
   authenticate,
-  adminController.changeUserPassword
+  asyncHandler(adminController.changeUserPassword)
 );
 
-adminRouter.get("/system/health", authenticate, getSystemHealth);
+adminRouter.get("/system/health", authenticate, asyncHandler(getSystemHealth));
 
-adminRouter.get("/reports", authenticate, adminController.getReportsController);
+adminRouter.get(
+  "/reports",
+  authenticate,
+  asyncHandler(adminController.getReportsController)
+);
 
 adminRouter.put(
   "/reports",
   authenticate,
-  adminController.updateReportStatusController
+  asyncHandler(adminController.updateReportStatusController)
 );
 
-adminRouter.get("/support/tickets", SupportController.getAllTickets);
+adminRouter.get(
+  "/support/tickets",
+  asyncHandler(SupportController.getAllTickets)
+);
 
-adminRouter.get("/support/tickets/:id", SupportController.getTicketDetails);
+adminRouter.get(
+  "/support/tickets/:id",
+  asyncHandler(SupportController.getTicketDetails)
+);
 
 adminRouter.patch(
   "/support/tickets/:id/status",
-  SupportController.updateStatus
+  asyncHandler(SupportController.updateStatus)
 );
 
-adminRouter.post("/support/tickets/:id/messages", SupportController.addMessage);
+adminRouter.post(
+  "/support/tickets/:id/messages",
+  asyncHandler(SupportController.addMessage)
+);
 
-adminRouter.get("/search", adminController.adminSearchController);
+adminRouter.get("/search", asyncHandler(adminController.adminSearchController));
 
 adminRouter.get(
   "/email-templates",
   authenticate,
-  adminController.getEmailTemplatesController
+  asyncHandler(adminController.getEmailTemplatesController)
 );
 
 adminRouter.get(
   "/email-templates/:id",
   authenticate,
-  adminController.getEmailTemplateByIdController
+  asyncHandler(adminController.getEmailTemplateByIdController)
 );
 
 adminRouter.post(
@@ -222,7 +235,7 @@ adminRouter.post(
   authenticate,
   createEmailTemplateValidation,
   handleValidationErrors,
-  adminController.createEmailTemplateController
+  asyncHandler(adminController.createEmailTemplateController)
 );
 
 adminRouter.put(
@@ -230,25 +243,25 @@ adminRouter.put(
   authenticate,
   updateEmailTemplateValidation,
   handleValidationErrors,
-  adminController.updateEmailTemplateController
+  asyncHandler(adminController.updateEmailTemplateController)
 );
 
 adminRouter.delete(
   "/email-templates/:id",
   authenticate,
-  adminController.deleteEmailTemplateController
+  asyncHandler(adminController.deleteEmailTemplateController)
 );
 
 adminRouter.get(
   "/pricing-configs",
   authenticate,
-  adminController.getPricingConfigsController
+  asyncHandler(adminController.getPricingConfigsController)
 );
 
 adminRouter.get(
   "/pricing-configs/:id",
   authenticate,
-  adminController.getPricingConfigByIdController
+  asyncHandler(adminController.getPricingConfigByIdController)
 );
 
 adminRouter.post(
@@ -256,27 +269,27 @@ adminRouter.post(
   authenticate,
   createOrUpdatePricingConfigValidation,
   handleValidationErrors,
-  adminController.createOrUpdatePricingConfigController
+  asyncHandler(adminController.createOrUpdatePricingConfigController)
 );
 
 adminRouter.delete(
   "/pricing-configs/:id",
   authenticate,
-  adminController.deletePricingConfigController
+  asyncHandler(adminController.deletePricingConfigController)
 );
 
-adminRouter.get("/audits", authenticate, getAuditLogsController);
+adminRouter.get("/audits", authenticate, asyncHandler(getAuditLogsController));
 
 adminRouter.post(
   "/account/deactivate",
   authenticate,
-  adminController.deactivateAccountController
+  asyncHandler(adminController.deactivateAccountController)
 );
 
 adminRouter.post(
   "/account/activate",
   authenticate,
-  adminController.activateAccountController
+  asyncHandler(adminController.activateAccountController)
 );
 
 export default adminRouter;

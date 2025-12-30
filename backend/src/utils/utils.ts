@@ -1,5 +1,6 @@
 import { logger } from "../lib/common/logger";
 import { randomBytes } from "crypto";
+import { Request, Response, NextFunction } from "express";
 
 export function calculateAge(dateOfBirth?: Date): number | undefined {
   if (!dateOfBirth) return undefined;
@@ -131,3 +132,9 @@ export function generateTicketId(): string {
 
   return `TCK-${yy}${mm}${dd}-${random}`;
 }
+
+export const asyncHandler = (fn: Function) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
