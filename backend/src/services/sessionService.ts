@@ -1,6 +1,7 @@
 import { Request } from "express";
 import { UserSession, IUserSession } from "../models/UserSession";
 import { getDeviceInfo, formatDeviceInfo } from "../utils/deviceParser";
+import { generateDeviceFingerprint } from "../utils/secureToken";
 import { logger } from "../lib/common/logger";
 import mongoose from "mongoose";
 import { APP_CONFIG } from "../utils/constants";
@@ -17,10 +18,15 @@ export class SessionService {
     try {
       const deviceInfo = getDeviceInfo(req);
 
+      const fingerprint = generateDeviceFingerprint(
+        req.get("user-agent") || "",
+        ipAddress
+      );
+
       const session = await UserSession.findOne({
         userId: new mongoose.Types.ObjectId(userId),
         isActive: true,
-        ipAddress,
+        $or: [{ ipAddress }, { fingerprint }],
         "deviceInfo.browser": deviceInfo.browser,
         "deviceInfo.os": deviceInfo.os,
         expiresAt: { $gt: new Date() }
