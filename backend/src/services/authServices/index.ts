@@ -166,7 +166,7 @@ export class AuthService {
         },
         this.jwtSecret(),
         {
-          expiresIn: "7d"
+          expiresIn: "30d"
         }
       );
 
@@ -264,7 +264,7 @@ export class AuthService {
         },
         this.jwtSecret(),
         {
-          expiresIn: "7d"
+          expiresIn: "30d"
         }
       );
 
@@ -575,7 +575,7 @@ export class AuthService {
       },
       this.jwtSecret(),
       {
-        expiresIn: "7d"
+        expiresIn: "30d"
       }
     );
 

@@ -216,7 +216,7 @@ export class AuthController {
             iat: Math.floor(Date.now() / 1000)
           },
           process.env.JWT_SECRET as string,
-          { expiresIn: "7d" }
+          { expiresIn: "30d" }
         );
 
         const fingerprint = generateDeviceFingerprint(
