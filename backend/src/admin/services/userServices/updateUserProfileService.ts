@@ -117,7 +117,8 @@ export async function updateUserProfileDetailsService(
       "livingInCountry",
       "livingInState",
       "profession",
-      "diet"
+      "diet",
+      "expectations"
     ];
 
     const providedFields = Object.keys(profileData || {});
@@ -243,7 +244,6 @@ export async function updateUserProfileDetailsService(
       }
     });
 
-    
     const cleanedHealth = clean(healthUpdate);
     if (Object.keys(cleanedHealth).length > 0) {
       await UserHealth.findOneAndUpdate({ userId: objectId }, cleanedHealth, {
@@ -395,46 +395,50 @@ export async function updateUserProfileDetailsService(
       );
     }
 
-    const expectationsUpdate: any = {};
-    [
-      "age",
-      "maritalStatus",
-      "isConsumeAlcoholic",
-      "educationLevel",
-      "community",
-      "livingInCountry",
-      "livingInState",
-      "profession",
-      "diet"
-    ].forEach((k) => {
-      if (Object.prototype.hasOwnProperty.call(profileData, k))
-        expectationsUpdate[k] = profileData[k];
-    });
+    if (profileData.expectations) {
+      const expectationFields = [
+        "age",
+        "maritalStatus",
+        "isConsumeAlcoholic",
+        "educationLevel",
+        "community",
+        "livingInCountry",
+        "livingInState",
+        "profession",
+        "diet"
+      ];
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        expectationsUpdate,
-        "isConsumeAlcoholic"
-      ) &&
-      expectationsUpdate.isConsumeAlcoholic &&
-      !["yes", "no", "occasionally"].includes(
-        expectationsUpdate.isConsumeAlcoholic
-      )
-    ) {
-      await session.abortTransaction();
-      return {
-        success: false,
-        message: "isConsumeAlcoholic must be yes, no, or occasionally"
-      };
-    }
+      const expectationsUpdate: any = {};
+      expectationFields.forEach((k) => {
+        if (Object.prototype.hasOwnProperty.call(profileData.expectations, k))
+          expectationsUpdate[k] = profileData.expectations[k];
+      });
 
-    const cleanedExpectations = clean(expectationsUpdate);
-    if (Object.keys(cleanedExpectations).length > 0) {
-      await UserExpectations.findOneAndUpdate(
-        { userId: objectId },
-        cleanedExpectations,
-        { new: true, session }
-      );
+      if (Object.keys(expectationsUpdate).length > 0) {
+        if (
+          expectationsUpdate.isConsumeAlcoholic &&
+          !["yes", "no", "occasionally"].includes(
+            expectationsUpdate.isConsumeAlcoholic
+          )
+        ) {
+          await session.abortTransaction();
+          return {
+            success: false,
+            message: "isConsumeAlcoholic must be yes, no, or occasionally"
+          };
+        }
+
+        await UserExpectations.findOneAndUpdate(
+          { userId: objectId },
+          expectationsUpdate,
+          {
+            new: true,
+            runValidators: true,
+            session,
+            upsert: true
+          }
+        );
+      }
     }
 
     await session.commitTransaction();
