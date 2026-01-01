@@ -114,6 +114,18 @@ export class SupportService {
     const ticket = await SupportTicket.findById(data.ticketId);
     if (!ticket) throw new Error("Ticket not found");
 
+    if (ticket.status === "resolved") {
+      throw new Error(
+        "Ticket is resolved. Create a new ticket if your issue is not resolved"
+      );
+    }
+
+    if (ticket.status === "closed") {
+      throw new Error(
+        "Ticket is closed. Create a new ticket if your issue is not resolved"
+      );
+    }
+
     if (
       data.sender === MessageSender.USER &&
       String(ticket.userId) !== data.userId
