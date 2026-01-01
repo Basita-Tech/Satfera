@@ -181,7 +181,9 @@ export async function getUserProfileViewsService(
       UserProfession.find({ userId: { $in: viewerIds } })
         .select("userId Occupation")
         .lean(),
-      Profile.findOne({ userId }).select("ProfileViewed favoriteProfiles").lean()
+      Profile.findOne({ userId })
+        .select("ProfileViewed favoriteProfiles")
+        .lean()
     ]);
 
   const userMap = new Map(users.map((u: any) => [String(u._id), u]));
@@ -240,11 +242,16 @@ export async function compareProfilesService(
   profilesIds: string[],
   authUserId: string | null
 ) {
-  const [authUser, authPersonal, authProfession] = await Promise.all([
+  const [authUser, authPersonal, authProfession, profile] = await Promise.all([
     User.findById(authUserId).lean(),
     UserPersonal.findOne({ userId: authUserId }).lean(),
-    UserProfession.findOne({ userId: authUserId }).lean()
+    UserProfession.findOne({ userId: authUserId }).lean(),
+    Profile.findOne({ userId: authUserId }).select("favoriteProfiles").lean()
   ]);
+
+  const favoriteSet = new Set(
+    (profile?.favoriteProfiles || []).map((id: any) => id.toString())
+  );
 
   const [
     users,
@@ -353,6 +360,7 @@ export async function compareProfilesService(
         smoking: h?.isTobaccoUser || null,
         drinking: h?.isAlcoholic || null,
         familyType: f?.familyType || null,
+        isFavorite: favoriteSet.has(id),
         closerPhoto: {
           url: pr?.photos?.closerPhoto?.url || null
         },
