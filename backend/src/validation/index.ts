@@ -809,10 +809,26 @@ export const updateUserProfileValidation = [
     .isObject()
     .withMessage("Health data must be an object"),
 
-  body("healthData.diet")
+  body("diet")
     .optional()
-    .isString()
-    .withMessage("Diet must be a string"),
+    .customSanitizer((value) => {
+      if (typeof value === "string") {
+        return value.replace(/&amp;/g, "&");
+      }
+      return value;
+    })
+    .isIn([
+      "vegetarian",
+      "non-vegetarian",
+      "eggetarian",
+      "jain",
+      "swaminarayan",
+      "veg & non-veg",
+      ""
+    ])
+    .withMessage(
+      "diet must be one of: vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg"
+    ),
 
   body("professionData")
     .optional()

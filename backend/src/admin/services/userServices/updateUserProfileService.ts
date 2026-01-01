@@ -117,7 +117,6 @@ export async function updateUserProfileDetailsService(
       "livingInCountry",
       "livingInState",
       "profession",
-      "diet",
       "expectations"
     ];
 
@@ -216,15 +215,14 @@ export async function updateUserProfileDetailsService(
         "eggetarian",
         "jain",
         "swaminarayan",
-        "veg & non-veg",
-        ""
+        "veg & non-veg"
       ].includes(profileData.diet)
     ) {
       await session.abortTransaction();
       return {
         success: false,
         message:
-          "diet must be vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg, or empty string"
+          "diet must be vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg"
       };
     }
 
