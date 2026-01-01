@@ -52,7 +52,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
       (r: any) => new mongoose.Types.ObjectId(r.user.userId)
     );
 
-    const [users, personals, profiles, professions] = await Promise.all([
+    const [users, personals, profiles, professions, authUserProfile] = await Promise.all([
       User.find(
         { _id: { $in: candidateIds } },
         "firstName lastName dateOfBirth createdAt"
@@ -67,8 +67,15 @@ export const getRecommendations = async (req: Request, res: Response) => {
         .lean(),
       UserProfession.find({ userId: { $in: candidateIds } })
         .select("userId Occupation")
-        .lean()
+        .lean(),
+      Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
     ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
@@ -97,8 +104,10 @@ export const getRecommendations = async (req: Request, res: Response) => {
           profile,
           profession,
           rec.scoreDetail || { score: 0, reasons: [] },
-          null
+          null,
+          favoriteSet.has(candidateId)
         );
+
       })
     );
 

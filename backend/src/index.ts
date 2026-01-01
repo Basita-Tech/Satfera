@@ -12,6 +12,7 @@ import { logger, morganStream } from "./lib/common/logger";
 import { redisClient, connectRedis } from "./lib/redis";
 import { startAllWorkers, closeAllWorkers } from "./workers";
 import apiV1 from "./routes/v1";
+import apiV2 from "./routes/v2";
 import * as middleware from "./middleware/securityMiddleware";
 import { ipBlockingMiddleware } from "./middleware/ipBlocking";
 import { csrfProtection } from "./middleware/csrfProtection";
@@ -95,6 +96,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/", apiV1);
+app.use("/api/v2/", apiV2);
 
 app.use((req: Request, res: Response) => {
   res.status(404).json({

@@ -181,7 +181,7 @@ export async function getUserProfileViewsService(
       UserProfession.find({ userId: { $in: viewerIds } })
         .select("userId Occupation")
         .lean(),
-      Profile.findOne({ userId }).select("ProfileViewed").lean()
+      Profile.findOne({ userId }).select("ProfileViewed favoriteProfiles").lean()
     ]);
 
   const userMap = new Map(users.map((u: any) => [String(u._id), u]));
@@ -193,6 +193,12 @@ export async function getUserProfileViewsService(
   );
   const professionMap = new Map(
     (professions || []).map((p: any) => [String(p.userId), p])
+  );
+
+  const favoriteSet = new Set(
+    ((profileViewDoc as any)?.favoriteProfiles || []).map((id: any) =>
+      String(id)
+    )
   );
 
   const listings = results.map((r: any) => {
@@ -208,7 +214,8 @@ export async function getUserProfileViewsService(
       profile,
       profession,
       { score: 0, reasons: [] },
-      null
+      null,
+      favoriteSet.has(vid)
     );
   });
 

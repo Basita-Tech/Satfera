@@ -13,7 +13,10 @@ import {
 } from "../../../models";
 import { Payment } from "../../../models";
 import { validateUserId } from "../../../services";
-import { enqueueProfileReviewEmail } from "../../../lib/queue/enqueue";
+import {
+  enqueueProfileReviewEmail,
+  enqueueMatchProcessing
+} from "../../../lib/queue/enqueue";
 import { computeMatchScore } from "../../../services/recommendationService";
 import { startOfYear, endOfYear } from "date-fns";
 import { Types } from "mongoose";
@@ -107,7 +110,7 @@ async function updateProfileApproval(
 
 export async function approveUserProfileService(userId: string) {
   try {
-    return await updateProfileApproval(
+    const result = await updateProfileApproval(
       userId,
       {
         profileReviewStatus: "approved",
@@ -117,6 +120,17 @@ export async function approveUserProfileService(userId: string) {
       "Profile approved successfully",
       true
     );
+
+    if (result.success) {
+      void enqueueMatchProcessing(userId).catch((err) => {
+        logger.error("Failed to enqueue match processing:", {
+          userId,
+          error: err.message
+        });
+      });
+    }
+
+    return result;
   } catch (error: any) {
     logger.error("Error approving profile:", error);
     throw error;

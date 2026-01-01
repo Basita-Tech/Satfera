@@ -12,6 +12,7 @@ import {
 import { logger } from "../../../lib/common/logger";
 import { isEitherBlocked } from "../../../lib/common/blockUtils";
 import { computeMatchScore } from "../../../services";
+import { MatchService } from "../../../services/matchService";
 import { formatListingProfile } from "../../../lib/common/formatting";
 import { sendConnectionAcceptedEmail } from "../../../lib/emails";
 import { APP_CONFIG } from "../../../utils/constants";
@@ -77,7 +78,7 @@ export async function getSentRequests(
       (r: any) => r.receiver._id || r.receiver
     );
 
-    const [personals, profiles, users, professions, authUser] =
+    const [personals, profiles, users, professions, authUser, authUserProfile] =
       await Promise.all([
         UserPersonal.find({ userId: { $in: receiverIds } })
           .select(
@@ -94,8 +95,15 @@ export async function getSentRequests(
         UserProfession.find({ userId: { $in: receiverIds } })
           .select("userId Occupation")
           .lean(),
-        User.findById(userObjectId).select("blockedUsers").lean()
+        User.findById(userObjectId).select("blockedUsers").lean(),
+        Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
       ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
@@ -125,7 +133,7 @@ export async function getSentRequests(
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (!receiverUser) return null;
 
@@ -138,7 +146,8 @@ export async function getSentRequests(
           receiverProfile,
           receiverProfession,
           scoreDetail || { score: 0, reasons: [] },
-          connReq.status
+          connReq.status,
+          favoriteSet.has(receiverIdStr)
         );
 
         if (connReq.status && connReq._id) {
@@ -198,7 +207,7 @@ export async function getReceivedRequests(
       (r: any) => r.sender._id || r.sender
     );
 
-    const [personals, profiles, users, professions, authUser] =
+    const [personals, profiles, users, professions, authUser, authUserProfile] =
       await Promise.all([
         UserPersonal.find({ userId: { $in: senderIds } })
           .select(
@@ -215,8 +224,15 @@ export async function getReceivedRequests(
         UserProfession.find({ userId: { $in: senderIds } })
           .select("userId Occupation")
           .lean(),
-        User.findById(userObjectId).select("blockedUsers").lean()
+        User.findById(userObjectId).select("blockedUsers").lean(),
+        Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
       ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
@@ -246,7 +262,7 @@ export async function getReceivedRequests(
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (!senderUser) return null;
 
@@ -259,7 +275,8 @@ export async function getReceivedRequests(
           senderProfile,
           senderProfession,
           scoreDetail || { score: 0, reasons: [] },
-          connReq.status
+          connReq.status,
+          favoriteSet.has(senderIdStr)
         );
 
         if (connReq.status && connReq._id) {
@@ -401,9 +418,8 @@ export async function sendConnectionRequest(
         user: receiverId,
         type: "request_received",
         title: "New connection request",
-        message: `${
-          sender?.firstName || "Someone"
-        } sent you a connection request.`,
+        message: `${sender?.firstName || "Someone"
+          } sent you a connection request.`,
         meta: { senderId }
       },
       {
@@ -414,6 +430,14 @@ export async function sendConnectionRequest(
         meta: { receiverId }
       }
     ]);
+
+    void MatchService.hideMatchForRequest(senderId, receiverId).catch((err) => {
+      logger.warn("Failed to hide match for request:", {
+        senderId,
+        receiverId,
+        error: err.message
+      });
+    });
 
     await session.commitTransaction();
     res.status(201).json({
@@ -498,21 +522,18 @@ export async function acceptConnectionRequest(
         user: request.sender,
         type: "request_accepted",
         title: "Request accepted",
-        message: `${
-          receiver?.firstName || "User"
-        } accepted your connection request.`,
+        message: `${receiver?.firstName || "User"
+          } accepted your connection request.`,
         meta: { receiverId: userId }
       }
     ]);
 
     const sender = await User.findById(request.sender).session(session).lean();
     if (sender?.email) {
-      const accepterName = `${receiver?.firstName || ""} ${
-        receiver?.lastName || ""
-      }`.trim();
-      const accepterProfileLink = `${
-        APP_CONFIG.FRONTEND_URL || "https://satfera.vercel.app"
-      }/dashboard/profile/${userId}`;
+      const accepterName = `${receiver?.firstName || ""} ${receiver?.lastName || ""
+        }`.trim();
+      const accepterProfileLink = `${APP_CONFIG.FRONTEND_URL || "https://satfera.vercel.app"
+        }/dashboard/profile/${userId}`;
 
       sendConnectionAcceptedEmail(
         sender.email,
@@ -611,9 +632,8 @@ export async function rejectConnectionRequest(
         user: request.sender,
         type: "request_rejected",
         title: "Request rejected",
-        message: `${
-          receiver?.firstName || "User"
-        } rejected your connection request.`,
+        message: `${receiver?.firstName || "User"
+          } rejected your connection request.`,
         meta: { receiverId: userId }
       }
     ]);
@@ -675,7 +695,7 @@ export async function getApprovedConnections(
       return senderId === userId ? receiverId : senderId;
     });
 
-    const [users, personals, profiles, professions, authUser] =
+    const [users, personals, profiles, professions, authUser, authUserProfile] =
       await Promise.all([
         User.find(
           {
@@ -696,8 +716,15 @@ export async function getApprovedConnections(
         UserProfession.find({ userId: { $in: otherUserIds } })
           .select("userId Occupation")
           .lean(),
-        User.findById(userObjectId).select("blockedUsers").lean()
+        User.findById(userObjectId).select("blockedUsers").lean(),
+        Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
       ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
@@ -728,7 +755,7 @@ export async function getApprovedConnections(
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
         if (!otherUser) return null;
 
         const personal = personalMap.get(otherUserId);
@@ -746,7 +773,8 @@ export async function getApprovedConnections(
           profile,
           profession,
           scoreDetail || { score: 0, reasons: [] },
-          conn.status
+          conn.status,
+          favoriteSet.has(otherUserId)
         );
       })
     );
@@ -802,6 +830,19 @@ export async function withdrawConnection(
       await connection.deleteOne({ session });
     }
 
+    const otherUserId =
+      connection.sender.toString() === userId
+        ? connection.receiver.toString()
+        : connection.sender.toString();
+
+    void MatchService.showMatchForWithdraw(userId, otherUserId).catch((err) => {
+      logger.warn("Failed to show match after withdraw:", {
+        userId,
+        otherUserId,
+        error: err.message
+      });
+    });
+
     await session.commitTransaction();
     res.status(200).json({
       success: true,
@@ -839,8 +880,8 @@ export const getFavorites = async (
     const favoriteIds =
       viewerProfile && Array.isArray(viewerProfile.favoriteProfiles)
         ? (viewerProfile.favoriteProfiles as any[]).map(
-            (f: any) => new mongoose.Types.ObjectId(f)
-          )
+          (f: any) => new mongoose.Types.ObjectId(f)
+        )
         : [];
 
     if (!favoriteIds.length) {
@@ -903,7 +944,7 @@ export const getFavorites = async (
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
         if (!user) return null;
         const score = await computeMatchScore(viewerObjectId, fid);
         const profession = professionMap.get(cid);
@@ -1005,6 +1046,16 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
     const favoriteProfiles =
       (updatedDoc && (updatedDoc as any).favoriteProfiles) || [];
 
+    void MatchService.hideMatchForFavorite(authUser.id, profileId).catch(
+      (err) => {
+        logger.warn("Failed to hide match for favorite:", {
+          userId: authUser.id,
+          profileId,
+          error: err.message
+        });
+      }
+    );
+
     return res.status(200).json({
       success: true,
       message: "Added to favorites"
@@ -1049,6 +1100,16 @@ export async function removeFromFavorites(
     const updatedDoc = Array.isArray(updated) ? updated[0] : updated;
     const favoriteProfiles =
       (updatedDoc && (updatedDoc as any).favoriteProfiles) || [];
+
+    void MatchService.showMatchForUnfavorite(authUser.id, profileId).catch(
+      (err) => {
+        logger.warn("Failed to show match after unfavorite:", {
+          userId: authUser.id,
+          profileId,
+          error: err.message
+        });
+      }
+    );
 
     return res.status(200).json({
       success: true,
@@ -1123,9 +1184,8 @@ export async function rejectAcceptedConnection(
         user: request.sender,
         type: "request_rejected",
         title: "Connection status changed",
-        message: `${
-          receiver?.firstName + " " + receiver?.lastName || "User"
-        } changed the connection status to rejected.`,
+        message: `${receiver?.firstName + " " + receiver?.lastName || "User"
+          } changed the connection status to rejected.`,
         meta: { receiverId: userId, newStatus: "rejected" }
       }
     ]);
@@ -1203,9 +1263,8 @@ export async function acceptRejectedConnection(
         user: request.sender,
         type: "request_accepted",
         title: "Connection status changed",
-        message: `${
-          receiver?.firstName + " " + receiver?.lastName || "User"
-        } changed the connection status to accepted.`,
+        message: `${receiver?.firstName + " " + receiver?.lastName || "User"
+          } changed the connection status to accepted.`,
         meta: { receiverId: userId, newStatus: "accepted" }
       }
     ]);

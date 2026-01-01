@@ -13,6 +13,7 @@ import { invalidateUserMatchScores } from "../../../lib/redis/cacheUtils";
 import mongoose from "mongoose";
 import { logger } from "../../../lib/common/logger";
 import { sendProfileReviewSubmissionEmail } from "../../../lib/emails";
+import { enqueueMatchRecalculation } from "../../../lib/queue/enqueue";
 
 const handleCastError = (res: Response, error: any) => {
   if (error?.name === "CastError") {
@@ -50,10 +51,11 @@ export const createUserPersonalController = async (
           message:
             e.msg && e.msg !== "Invalid value"
               ? e.msg
-              : `Invalid value provided${typeof e.value !== "undefined"
-                ? `: ${JSON.stringify(e.value)}`
-                : ""
-              }`,
+              : `Invalid value provided${
+                  typeof e.value !== "undefined"
+                    ? `: ${JSON.stringify(e.value)}`
+                    : ""
+                }`,
           value: e.value
         }))
       });
@@ -137,10 +139,11 @@ export const updateUserPersonalController = async (
           message:
             e.msg && e.msg !== "Invalid value"
               ? e.msg
-              : `Invalid value provided${typeof e.value !== "undefined"
-                ? `: ${JSON.stringify(e.value)}`
-                : ""
-              }`,
+              : `Invalid value provided${
+                  typeof e.value !== "undefined"
+                    ? `: ${JSON.stringify(e.value)}`
+                    : ""
+                }`,
           value: e.value
         }))
       });
@@ -182,6 +185,25 @@ export const updateUserPersonalController = async (
         `Failed to invalidate cache for user ${authUser.id}:`,
         cacheErr.message
       );
+    }
+    const relevantFields = [
+      "religion",
+      "subCaste",
+      "full_address",
+      "residingCountry",
+      "marriedStatus"
+    ];
+    const shouldRecalculate = relevantFields.some(
+      (field) => body[field] !== undefined
+    );
+
+    if (shouldRecalculate) {
+      void enqueueMatchRecalculation(authUser.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: authUser.id,
+          error: err.message
+        });
+      });
     }
 
     return res.status(200).json({
@@ -273,18 +295,6 @@ export const updateUserFamilyDetails = async (
       return res
         .status(404)
         .json({ success: false, message: "Family details not found" });
-    }
-
-    try {
-      await invalidateUserMatchScores(new mongoose.Types.ObjectId(authUser.id));
-      logger.info(
-        `Cache invalidated for user ${authUser.id} after family details update`
-      );
-    } catch (cacheErr: any) {
-      logger.warn(
-        `Failed to invalidate cache for user ${authUser.id}:`,
-        cacheErr.message
-      );
     }
 
     return res.status(200).json({
@@ -393,6 +403,14 @@ export const updateUserEducationDetails = async (
         `Failed to invalidate cache for user ${authUser.id}:`,
         cacheErr.message
       );
+    }
+    if (req.body.HighestEducation) {
+      void enqueueMatchRecalculation(authUser.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: authUser.id,
+          error: err.message
+        });
+      });
     }
 
     return res.status(200).json({ success: true, data });
@@ -521,6 +539,14 @@ export const updateUserHealthController = async (
         cacheErr.message
       );
     }
+    if (req.body.diet || req.body.isAlcoholic) {
+      void enqueueMatchRecalculation(user.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: user.id,
+          error: err.message
+        });
+      });
+    }
 
     return res.status(200).json({ success: true, data: health });
   } catch (err: any) {
@@ -615,6 +641,12 @@ export const updateUserExpectations = async (
         cacheErr.message
       );
     }
+    void enqueueMatchRecalculation(userId).catch((err) => {
+      logger.error("Failed to enqueue match recalculation:", {
+        userId,
+        error: err.message
+      });
+    });
 
     return res.status(200).json({ success: true, data: expectations });
   } catch (error: any) {
@@ -725,6 +757,14 @@ export const updateUserProfessionController = async (
         `Failed to invalidate cache for user ${user.id}:`,
         cacheErr.message
       );
+    }
+    if (req.body.Occupation) {
+      void enqueueMatchRecalculation(user.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: user.id,
+          error: err.message
+        });
+      });
     }
 
     return res.status(200).json({ success: true, data: updated });

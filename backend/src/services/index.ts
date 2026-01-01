@@ -3,3 +3,4 @@ export * from "./recommendationService";
 export * from "./userPersonalService";
 export * from "./sessionService";
 export * from "./paymentService";
+export * from "./matchService";

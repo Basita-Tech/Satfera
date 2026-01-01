@@ -18,6 +18,7 @@ import {
   ReviewEmailJobData,
   ProfileReviewJobData
 } from "../types";
+import { MatchService } from "../services/matchService";
 
 // Notification delivery helpers (adapted from previous worker files)
 async function isDeliveryCompleted(
@@ -252,7 +253,8 @@ async function processProfileReviewEmail(
         await sendProfileRectificationEmail(
           data.email,
           data.userName,
-          data.reason || "Your profile requires updates to meet our community standards"
+          data.reason ||
+            "Your profile requires updates to meet our community standards"
         );
         break;
       default:
@@ -314,7 +316,8 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
       case "rectification":
         notificationTitle = "⚠ Action Required";
         notificationMessage = `Your profile requires updates. Reason: ${
-          data.reason || "Please update your profile to meet our community standards"
+          data.reason ||
+          "Please update your profile to meet our community standards"
         }`;
         break;
     }
@@ -378,7 +381,10 @@ export const mainWorker = new Worker(
   "main-queue",
   async (job: Job) => {
     try {
-      logger.info(`▶ Processing main job: ${job.id}`, { jobName: job.name, data: job.data });
+      logger.info(`▶ Processing main job: ${job.id}`, {
+        jobName: job.name,
+        data: job.data
+      });
 
       switch (job.name) {
         case "deliver-notification": {
@@ -452,6 +458,17 @@ export const mainWorker = new Worker(
           await processProfileReview(job.data as ProfileReviewJobData);
           break;
 
+        case "process-new-user-matches": {
+          const { userId } = job.data as { userId: string };
+          if (!mongoose.Types.ObjectId.isValid(userId)) {
+            logger.error(`Invalid user ID for match processing: ${userId}`);
+            throw new Error(`Invalid user ID: ${userId}`);
+          }
+          const result = await MatchService.processNewUserMatches(userId);
+          logger.info(`Match processing completed for user ${userId}:`, result);
+          return { success: true, ...result };
+        }
+
         default:
           logger.warn(`Unknown main job type: ${job.name}`);
           throw new Error(`Unknown job type: ${job.name}`);
@@ -466,9 +483,6 @@ export const mainWorker = new Worker(
     } catch (error: any) {
       logger.error(`Main worker error for job ${job.id}:`, error);
 
-      // Prevent pointless retries for expected/non-retryable errors such as
-      // invalid IDs or missing recipient data. These should be logged and
-      // dropped rather than retried multiple times.
       const msg = String(error?.message || "").toLowerCase();
       const nonRetryablePhrases = [
         "invalid notification id",

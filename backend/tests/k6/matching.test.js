@@ -65,7 +65,7 @@ export function setup() {
   const loginRes = http.post(
     `${BASE_URL}/api/v1/auth/login`,
     JSON.stringify({
-      email: "user0@a.com",
+      email: "tech.basita@gmail.com",
       password: "Sanjay@1"
     }),
     { headers: { "Content-Type": "application/json" } }
@@ -109,7 +109,7 @@ export function matchingTest(data) {
   group("Get Matching Users", function () {
     const startTime = Date.now();
 
-    const matchRes = http.get(`${data.baseUrl}/api/v1/matches`, { headers });
+    const matchRes = http.get(`${data.baseUrl}/api/v2/matches`, { headers });
 
     matchingLatency.add(Date.now() - startTime);
 
