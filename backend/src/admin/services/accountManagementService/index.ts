@@ -9,7 +9,7 @@ import {
   UserExpectations,
   ProfileView,
   ConnectionRequest,
-  Matches,
+  Match,
   UserEducation,
   UserProfession
 } from "../../../models";
@@ -151,8 +151,8 @@ export async function hardDeleteAccount(
         (connectionResult1.deletedCount || 0) +
         (connectionResult2.deletedCount || 0);
 
-      const matchesResult = await Matches.deleteMany({
-        $or: [{ userId1: userObjectId }, { userId2: userObjectId }]
+      const matchesResult = await Match.deleteMany({
+        $or: [{ userId: userObjectId }, { candidateId: userObjectId }]
       });
       deletedRecords.matches = matchesResult.deletedCount || 0;
 
