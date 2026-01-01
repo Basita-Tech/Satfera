@@ -4,12 +4,13 @@ import {
   getGovernmentId,
   submitProfileForReview,
   updateOnboardingStatus,
+  getOnboardingStatus,
 } from "../../api/auth";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import usePhotoUpload from "../../hooks/usePhotoUpload";
 
-const UploadPhotos = ({ onNext, onPrevious }) => {
+const UploadPhotos = ({ onPrevious }) => {
   const navigate = useNavigate();
 
   const {
@@ -43,7 +44,7 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
   const [uploading, setUploading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [initialHadRequired, setInitialHadRequired] = useState(false);
-
+  const [onBoardingStatus, setOnBoardingStatus] = useState(false);
   const requiredKeys = [
     "compulsory1",
     "compulsory2",
@@ -71,7 +72,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
     return map;
   }, [photos]);
 
-  // Whether the user has selected any new files in this step
   const hasNewFiles = Object.keys(photos).some(
     (k) => photos[k] instanceof File
   );
@@ -85,13 +85,17 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
   useEffect(() => {
     const loadExistingPhotos = async () => {
       try {
-        const [photoRes, idRes] = await Promise.all([
+        const [photoRes, idRes, onboarding] = await Promise.all([
           getUserPhotos(),
           getGovernmentId(),
+          getOnboardingStatus(),
         ]);
-
         const photosData = photoRes?.data?.photos || {};
         const idData = idRes?.data || {};
+
+        const onBoardingStep =
+          onboarding.data.data.completedSteps.includes("photos");
+        setOnBoardingStatus(onBoardingStep);
 
         const urls = {
           compulsory1: photosData?.personalPhotos?.[0]?.url || null,
@@ -105,13 +109,11 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
         setUploadedUrls(urls);
 
         setInitialHadRequired(requiredKeys.every((k) => Boolean(urls[k])));
-      } catch (err) {
-        console.error("❌ Error loading photos:", err);
-      }
+      } catch (err) {}
     };
 
     loadExistingPhotos();
-  }, []);
+  }, [showReviewModal]);
 
   const handlePhotoChange = useCallback(async (e, type) => {
     const file = e.target.files[0];
@@ -172,10 +174,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
         photoType: key === "governmentId" ? "governmentId" : typeMap[key],
       }));
 
-    // Safety: if this is the first time completing required photos, ensure the
-    // upload includes ALL missing required photos so the server receives a
-    // complete set. Calculate which required keys are still missing on the
-    // client (neither already uploaded nor selected now) and block submission.
     const missingRequired = requiredKeys.filter(
       (k) => !uploadedUrls[k] && !(photos[k] instanceof File)
     );
@@ -210,9 +208,9 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
           if (updateRes && updateRes.success) {
             toast.success("🎉 Profile marked complete.");
             setShowReviewModal(true);
-            // Clear selected files since onboarding completed
+
             setPhotos(initialPhotosState);
-            // Reset native file inputs
+
             Object.keys(initialPhotosState).forEach((k) => {
               const el = document.getElementById(k);
               if (el && el.value) el.value = "";
@@ -223,7 +221,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             );
           }
         } catch (err) {
-          console.error("⚠️ Failed to update onboarding steps:", err);
           toast.error("Failed to update onboarding status. Please try again.");
         } finally {
           setUploading(false);
@@ -256,7 +253,7 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             newUrls[result.photoKey] = result.url;
           });
           setUploadedUrls((prev) => ({ ...prev, ...newUrls }));
-          // Clear only the photos that uploaded successfully from selection
+
           const succeededKeys = uploadResult.results.map((r) => r.photoKey);
           if (succeededKeys.length > 0) {
             setPhotos((prev) => {
@@ -323,16 +320,11 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
               if (el && el.value) el.value = "";
             });
           } else {
-            console.error(
-              "⚠️ updateOnboardingStatus returned error:",
-              updateRes
-            );
             toast.error(
               "Failed to update onboarding status. Please try again."
             );
           }
         } catch (err) {
-          console.error("⚠️ Failed to update onboarding steps:", err);
           toast.error("Failed to update onboarding status. Please try again.");
         }
       } else {
@@ -364,7 +356,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
 
       resetUpload();
     } catch (err) {
-      console.error("❌ Upload Error:", err);
       toast.error(err.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
@@ -384,7 +375,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
         }, 1000);
       }
     } catch (err) {
-      console.error("❌ Error submitting for review:", err);
       toast.error("Failed to submit for review. Please try again.");
     } finally {
       setUploading(false);
@@ -393,7 +383,6 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
 
   const handleNotNow = () => {
     setShowReviewModal(false);
-    navigate("/userdashboard");
   };
 
   return (
@@ -696,34 +685,42 @@ const UploadPhotos = ({ onNext, onPrevious }) => {
             </button>
           )}
 
-          <button
-            type="submit"
-            disabled={uploading || !hasNewFiles}
-            className="w-full py-3 rounded-lg font-semibold transition text-white hover:brightness-90 disabled:opacity-60"
-            style={{
-              backgroundColor: hasNewFiles ? "#D4AF37" : "#E0C97A",
-              cursor: uploading || !hasNewFiles ? "not-allowed" : "pointer",
-            }}
-            title={
-              !hasNewFiles
-                ? "Select or update at least one photo to enable submission"
-                : uploading
-                ? "Uploading..."
-                : "Submit"
-            }
-            aria-disabled={uploading || !hasNewFiles}
-          >
-            {uploading ? "Uploading..." : "Submit"}
-          </button>
-
-          {/* Navigation Buttons */}
           <div className="flex justify-between mt-6">
+            {onBoardingStatus ? (
+              <button
+                type="button"
+                onClick={() => setShowReviewModal(true)}
+                className="px-4 py-2 rounded-lg border border-gray-400 hover:bg-gray-100"
+              >
+                Submit For review
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onPrevious}
+                className="px-4 py-2 rounded-lg border border-gray-400 hover:bg-gray-100"
+              >
+                ← Previous
+              </button>
+            )}
             <button
-              type="button"
-              onClick={onPrevious}
-              className="px-4 py-2 rounded-lg border border-gray-400 hover:bg-gray-100"
+              type="submit"
+              disabled={uploading || !hasNewFiles}
+              className=" rounded-lg font-semibold transition text-white hover:brightness-90 disabled:opacity-60"
+              style={{
+                backgroundColor: hasNewFiles ? "#D4AF37" : "#E0C97A",
+                cursor: uploading || !hasNewFiles ? "not-allowed" : "pointer",
+              }}
+              title={
+                !hasNewFiles
+                  ? "Select or update at least one photo to enable submission"
+                  : uploading
+                  ? "Uploading..."
+                  : "Submit"
+              }
+              aria-disabled={uploading || !hasNewFiles}
             >
-              ← Previous
+              {uploading ? "Uploading..." : "Submit"}
             </button>
           </div>
         </form>

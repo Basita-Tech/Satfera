@@ -804,7 +804,8 @@ export const getUserOnboardingStatus = async (
       "education",
       "profession",
       "health",
-      "expectation"
+      "expectation",
+      "photos"
     ];
 
     const nextStep = stepsOrder.find((step) => !completedSteps.includes(step));
