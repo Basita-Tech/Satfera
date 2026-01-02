@@ -318,15 +318,22 @@ export async function downloadMyPdfDataController(
   res: Response
 ) {
   try {
-    const userId = req.user?.id;
+    const authUserId = req.user?.id;
+    let { userId } = req.query;
 
     if (!userId) {
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
     }
+    let self = false;
 
-    const data = await downloadMyPdfData(userId);
+    if (userId === authUserId) {
+      self = true;
+      userId = authUserId;
+    }
+
+    const data = await downloadMyPdfData(userId, self, authUserId);
 
     return res.status(200).json({
       success: true,
@@ -339,7 +346,7 @@ export async function downloadMyPdfDataController(
     });
     return res.status(500).json({
       success: false,
-      message: "Failed to download PDF data"
+      message: error.message
     });
   }
 }

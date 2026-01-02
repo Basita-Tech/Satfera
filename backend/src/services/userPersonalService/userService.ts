@@ -14,6 +14,9 @@ import {
 import { calculateAge, isAffirmative } from "../../utils/utils";
 import { computeMatchScore } from "../recommendationService";
 import { validateUserId } from "./userSettingService";
+import { generatePDF } from "pdf-node";
+import fs from "fs";
+import path from "path";
 
 export async function getUserDashboardService(userId: string) {
   const userObjectId = new mongoose.Types.ObjectId(userId);
@@ -893,33 +896,114 @@ export async function searchService(
   };
 }
 
-export async function downloadMyPdfData(userId: string) {
+export async function downloadMyPdfData(
+  userId: any,
+  self: boolean,
+  authUserId: string
+) {
   try {
     const userObjectId = validateUserId(userId);
 
-    const [user, userPersonal, userFamily, educations, profession, profile] =
-      await Promise.all([
-        User.findById(userObjectId)
-          .select(
-            "firstName middleName lastName gender phoneNumber email dateOfBirth customId"
-          )
-          .lean(),
-        UserPersonal.findOne({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        UserFamily.findOne({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        UserEducation.find({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        UserProfession.findOne({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        Profile.findOne({ userId: userObjectId })
-          .select("photos.closerPhoto.url ")
-          .lean()
-      ]);
+    const [
+      user,
+      userPersonal,
+      userFamily,
+      educations,
+      profession,
+      profile,
+      connectionrequests
+    ] = await Promise.all([
+      User.findById(userObjectId)
+        .select(
+          "firstName middleName lastName gender phoneNumber email dateOfBirth customId"
+        )
+        .lean(),
+      UserPersonal.findOne({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean(),
+      UserFamily.findOne({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean(),
+      UserEducation.find({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean<any>(),
+      UserProfession.findOne({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean(),
+      Profile.findOne({ userId: userObjectId })
+        .select("photos.closerPhoto.url ")
+        .lean(),
+      ConnectionRequest.find({
+        $and: [
+          { sender: authUserId },
+          { receiver: userObjectId },
+          { status: "accepted" }
+        ]
+      }).lean()
+    ]);
+
+    const isProfileApproved = connectionrequests.map((req) => req.receiver);
+
+    if (!self && isProfileApproved.toString() !== userObjectId.toString()) {
+      throw new Error(
+        "Your profile is not accpeted, try again after accepting profile"
+      );
+    }
+
+    const options = { format: "A4", orientation: "portrait", type: "pdf" };
+
+    const html = fs.readFileSync(
+      path.join(__dirname, "../../pdf-templete/index.html"),
+      "utf8"
+    );
+    const data = {
+      photo_url: profile.photos.closerPhoto.url,
+      name: `${user.firstName} ${user.lastName}`,
+      date_of_birth: user.dateOfBirth.toDateString() || "-",
+      time_of_birth: userPersonal.timeOfBirth || "-",
+      // place_of_birth: "Jammu",
+      height: userPersonal.height || "-",
+      weight: userPersonal.weight || "-",
+      rashi: userPersonal.astrologicalSign || "-",
+      caste: userPersonal.religion || "-",
+      native_place: userFamily.fatherNativePlace || "-",
+      occupation: profession?.Occupation || "-",
+      qualification: educations?.HighestEducation || "-",
+      father_name: userFamily.fatherName || "-",
+      mother_name: userFamily.motherName || "-",
+      family_type: userFamily.familyType || "-",
+      father_occupation: userFamily.fatherOccupation || "-",
+      mother_occupation: userFamily.motherOccupation || "-",
+      father_contact: userFamily.fatherContact.number || "-",
+      grandfather_name: userFamily.grandFatherName || "-",
+      grandmother_name: userFamily.grandMotherName || "-",
+      nana_name: userFamily.naniName || "-",
+      nani_name: userFamily.nanaName || "-",
+      current_address:
+        `${userPersonal.full_address.street1} ${userPersonal.full_address.street2} ${userPersonal.full_address.city} ${userPersonal.full_address.state}, ${userPersonal.full_address.zipCode} ` ||
+        "-",
+      profile_url: `https://satfera.in/dashboard/profile/${userPersonal.userId}`
+    };
+
+    try {
+      const result = await generatePDF({
+        html: html,
+        data: data,
+        buffer: true,
+        pdfOptions: options
+      });
+
+      if ("buffer" in result) {
+        fs.writeFileSync("./user-report-buffer.pdf", result.buffer);
+        console.log("PDF generated from buffer");
+      }
+
+      if ("filename" in result) {
+        console.log("PDF generated at:", result.filename);
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
 
     return {
       user: user || null,
