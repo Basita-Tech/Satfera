@@ -52,12 +52,12 @@ const HealthLifestyle = ({
       return;
     }
     const payload = {
-      isAlcoholic: String(formData.alcohol || ""),
-      isTobaccoUser: String(formData.tobacco || ""),
-      isHaveTattoos: String(formData.tattoos || ""),
-      isHaveHIV: String(formData.hiv || ""),
-      isPositiveInTB: String(formData.tb || ""),
-      isHaveMedicalHistory: String(formData.medicalHistory || ""),
+      isAlcoholic: String(formData.alcohol || "").toLowerCase(),
+      isTobaccoUser: String(formData.tobacco || "").toLowerCase(),
+      isHaveTattoos: String(formData.tattoos || "").toLowerCase(),
+      isHaveHIV: String(formData.hiv || "").toLowerCase(),
+      isPositiveInTB: String(formData.tb || "").toLowerCase(),
+      isHaveMedicalHistory: String(formData.medicalHistory || "").toLowerCase(),
       medicalHistoryDetails: formData.medicalHistoryDetails?.trim() || "",
       diet: String(formData.diet || "")
     };
