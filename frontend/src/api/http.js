@@ -1,38 +1,39 @@
 import axios from "axios";
 import { getCSRFToken } from "../utils/csrfProtection";
-
-// Ensure cookies are sent with every request
-axios.defaults.withCredentials = true;
-
-// Request interceptor: set headers and CSRF token
-axios.interceptors.request.use(
-  (config) => {
-    try {
-      config.headers = config.headers || {};
-
-      // Only set Content-Type for non-FormData payloads
-      const isFormData =
-        typeof FormData !== "undefined" && config.data instanceof FormData;
-      if (!isFormData && !config.headers["Content-Type"]) {
-        config.headers["Content-Type"] = "application/json";
-      }
-
-      // Add CSRF token for mutating methods
-      const method = (config.method || "get").toLowerCase();
-      if (["post", "put", "patch", "delete"].includes(method)) {
-        const csrfToken = getCSRFToken();
-        if (csrfToken) {
-          config.headers["X-CSRF-Token"] = csrfToken;
-        }
-      }
-
-      // No Authorization header needed; authentication via HttpOnly cookie
-    } catch (e) {
-      // no-op
+const API = import.meta.env.VITE_API_URL;
+const client = axios.create({
+  baseURL: API,
+  withCredentials: true,
+  timeout: 10000
+});
+client.interceptors.request.use(config => {
+  try {
+    config.headers = config.headers || {};
+    const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
+    if (!isFormData && !config.headers["Content-Type"]) {
+      config.headers["Content-Type"] = "application/json";
     }
-    return config;
-  },
-  (err) => Promise.reject(err)
-);
-
-export default axios;
+    const method = (config.method || "get").toLowerCase();
+    if (["post", "put", "patch", "delete"].includes(method)) {
+      const csrfToken = getCSRFToken();
+      if (csrfToken) {
+        config.headers["X-CSRF-Token"] = csrfToken;
+      }
+    }
+  } catch (e) {}
+  return config;
+}, err => Promise.reject(err));
+client.interceptors.response.use(response => response, async error => {
+  const config = error?.config;
+  const status = error?.response?.status;
+  const method = (config?.method || "get").toLowerCase();
+  const isTransient = !error.response || [429, 502, 503, 504].includes(status);
+  if (config && method === "get" && !config.__retried && isTransient) {
+    config.__retried = true;
+    const delay = 200 + Math.random() * 150;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return client(config);
+  }
+  return Promise.reject(error);
+});
+export default client;

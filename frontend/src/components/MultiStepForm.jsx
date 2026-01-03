@@ -7,46 +7,49 @@ import ProfessionDetails from "./forms/ProfessionalDetails";
 import HealthLifestyle from "./forms/HealthLifestyle";
 import ExpectationDetails from "./forms/ExpectationDetails";
 import UploadPhotos from "./forms/UploadPhotos";
-import {
-  getOnboardingStatus,
-  getProfileReviewStatus,
-  updateOnboardingStatus,
-} from "../api/auth";
+import { getOnboardingStatus, getProfileReviewStatus, updateOnboardingStatus } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { AuthContextr } from "./context/AuthContext";
-
-const steps = [
-  { id: "personal", label: "Personal Details" },
-  { id: "family", label: "Family Details" },
-  { id: "education", label: "Educational Details" },
-  { id: "profession", label: "Professional Details" },
-  { id: "health", label: "Health & Lifestyle" },
-  { id: "expectation", label: "Expectation Details" },
-  { id: "photos", label: "Upload Photos" },
-];
-
+const steps = [{
+  id: "personal",
+  label: "Personal Details"
+}, {
+  id: "family",
+  label: "Family Details"
+}, {
+  id: "education",
+  label: "Educational Details"
+}, {
+  id: "profession",
+  label: "Professional Details"
+}, {
+  id: "health",
+  label: "Health & Lifestyle"
+}, {
+  id: "expectation",
+  label: "Expectation Details"
+}, {
+  id: "photos",
+  label: "Upload Photos"
+}];
 const MultiStepForm = () => {
   const [currentStep, setCurrentStep] = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
   const [maxAllowedStep, setMaxAllowedStep] = useState("personal");
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
-  const { token, user } = useContext(AuthContextr);
-
+  const {
+    token,
+    user
+  } = useContext(AuthContextr);
   useEffect(() => {
-    // ✅ Authentication verified via API call (cookie sent automatically)
     const fetchProgress = async () => {
       try {
         setLoading(true);
         const res = await getOnboardingStatus();
-        
-        // If API call fails with 401, user will be redirected to login automatically
-        // by axios interceptor
         const savedSteps = res?.data?.data?.completedSteps || [];
         setCompletedSteps(savedSteps);
-
         let nextStep = "personal";
         for (const s of steps) {
           if (!savedSteps.includes(s.id)) {
@@ -54,19 +57,13 @@ const MultiStepForm = () => {
             break;
           }
         }
-
-        const lastCompletedIndex =
-          savedSteps.length > 0
-            ? steps.findIndex((s) => s.id === savedSteps[savedSteps.length - 1])
-            : 0;
-
-        const maxAllowedIndex = Math.min(
-          lastCompletedIndex + 1,
-          steps.length - 1
-        );
+        const lastCompletedIndex = savedSteps.length > 0 ? steps.findIndex(s => s.id === savedSteps[savedSteps.length - 1]) : 0;
+        const maxAllowedIndex = Math.min(lastCompletedIndex + 1, steps.length - 1);
         setMaxAllowedStep(steps[maxAllowedIndex].id);
         setCurrentStep(nextStep);
-        navigate(`/onboarding/user?step=${nextStep}`, { replace: true });
+        navigate(`/onboarding/user?step=${nextStep}`, {
+          replace: true
+        });
       } catch (err) {
         console.error("❌ Failed to fetch onboarding progress:", err);
       } finally {
@@ -75,150 +72,100 @@ const MultiStepForm = () => {
     };
     fetchProgress();
   }, []);
-
-  const handleNext = async (stepId) => {
+  const handleNext = async stepId => {
     const updatedSteps = [...new Set([...completedSteps, stepId])];
     setCompletedSteps(updatedSteps);
-
     try {
       const isLastStep = stepId === "photos";
-
       await updateOnboardingStatus({
         completedSteps: updatedSteps,
-        isOnboardingCompleted: isLastStep,
+        isOnboardingCompleted: isLastStep
       });
-
       if (isLastStep) {
         toast.success("🎉 Onboarding completed successfully!");
       } else {
-        const nextIndex = steps.findIndex((s) => s.id === stepId) + 1;
+        const nextIndex = steps.findIndex(s => s.id === stepId) + 1;
         if (nextIndex < steps.length) {
           const nextStep = steps[nextIndex].id;
           setCurrentStep(nextStep);
-          navigate(`/onboarding/user?step=${nextStep}`, { replace: true });
+          navigate(`/onboarding/user?step=${nextStep}`, {
+            replace: true
+          });
         }
       }
     } catch (err) {
       console.error("❌ Failed to update onboarding status:", err);
     }
   };
-
-  const handlePrevious = (stepId) => {
-    const prevIndex = steps.findIndex((s) => s.id === stepId) - 1;
+  const handlePrevious = stepId => {
+    const prevIndex = steps.findIndex(s => s.id === stepId) - 1;
     if (prevIndex >= 0) {
       const prevStep = steps[prevIndex].id;
       setCurrentStep(prevStep);
-      navigate(`/onboarding/user?step=${prevStep}`, { replace: true });
+      navigate(`/onboarding/user?step=${prevStep}`, {
+        replace: true
+      });
     }
   };
-
-  const handleStepClick = (id) => {
-    const clickedIndex = steps.findIndex((s) => s.id === id);
-    const maxAllowedIndex = steps.findIndex((s) => s.id === maxAllowedStep);
+  const handleStepClick = id => {
+    const clickedIndex = steps.findIndex(s => s.id === id);
+    const maxAllowedIndex = steps.findIndex(s => s.id === maxAllowedStep);
     if (clickedIndex <= maxAllowedIndex) {
       setCurrentStep(id);
-      navigate(`/onboarding/user?step=${id}`, { replace: true });
+      navigate(`/onboarding/user?step=${id}`, {
+        replace: true
+      });
     } else {
       toast.error("Please complete the previous steps first.");
     }
   };
-
   useEffect(() => {
     async function checkUserReview() {
       const res = await getProfileReviewStatus();
-
       if (res.data.profileReviewStatus === "pending") {
-        toast.error(
-          "Your profile is under review. You cannot edit your details at this time."
-        );
-        navigate("/onboarding/review", { replace: true });
+        toast.error("Your profile is under review. You cannot edit your details at this time.");
+        navigate("/onboarding/review", {
+          replace: true
+        });
       } else if (res.data.profileReviewStatus === "approved") {
-        toast.success(
-          "Your profile has been approved! Redirecting to your dashboard."
-        );
-        navigate("/dashboard", { replace: true });
+        toast.success("Your profile has been approved! Redirecting to your dashboard.");
+        navigate("/dashboard", {
+          replace: true
+        });
       }
     }
     checkUserReview();
   }, [currentStep]);
-
   const renderStep = () => {
     switch (currentStep) {
       case "personal":
-        return (
-          <PersonalDetails
-            onNext={() => handleNext("personal")}
-            isCompleted={completedSteps.includes("personal")}
-          />
-        );
+        return <PersonalDetails onNext={() => handleNext("personal")} isCompleted={completedSteps.includes("personal")} />;
       case "family":
-        return (
-          <FamilyDetails
-            onNext={() => handleNext("family")}
-            onPrevious={() => handlePrevious("family")}
-          />
-        );
+        return <FamilyDetails onNext={() => handleNext("family")} onPrevious={() => handlePrevious("family")} />;
       case "education":
-        return (
-          <EducationDetails
-            onNext={() => handleNext("education")}
-            onPrevious={() => handlePrevious("education")}
-          />
-        );
+        return <EducationDetails onNext={() => handleNext("education")} onPrevious={() => handlePrevious("education")} />;
       case "profession":
-        return (
-          <ProfessionDetails
-            onNext={() => handleNext("profession")}
-            onPrevious={() => handlePrevious("profession")}
-          />
-        );
+        return <ProfessionDetails onNext={() => handleNext("profession")} onPrevious={() => handlePrevious("profession")} />;
       case "health":
-        return (
-          <HealthLifestyle
-            onNext={() => handleNext("health")}
-            onPrevious={() => handlePrevious("health")}
-          />
-        );
+        return <HealthLifestyle onNext={() => handleNext("health")} onPrevious={() => handlePrevious("health")} />;
       case "expectation":
-        return (
-          <ExpectationDetails
-            onNext={() => handleNext("expectation")}
-            onPrevious={() => handlePrevious("expectation")}
-          />
-        );
+        return <ExpectationDetails onNext={() => handleNext("expectation")} onPrevious={() => handlePrevious("expectation")} />;
       case "photos":
-        return (
-          <UploadPhotos
-            onNext={() => handleNext("photos")}
-            onPrevious={() => handlePrevious("photos")}
-          />
-        );
+        return <UploadPhotos onNext={() => handleNext("photos")} onPrevious={() => handlePrevious("photos")} />;
       default:
         return null;
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600 text-lg">
+    return <div className="min-h-screen flex items-center justify-center text-gray-600 text-lg">
         Loading your progress...
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen flex flex-col items-center bg-[hsl(30,33%,97%)] px-2 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 gap-6 sm:gap-8 md:gap-10">
-      <StepIndicator
-        steps={steps}
-        completedSteps={completedSteps}
-        currentStep={currentStep}
-        onStepClick={handleStepClick}
-      />
+  return <div className="min-h-screen flex flex-col items-center bg-[hsl(30,33%,97%)] px-2 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 gap-6 sm:gap-8 md:gap-10">
+      <StepIndicator steps={steps} completedSteps={completedSteps} currentStep={currentStep} onStepClick={handleStepClick} />
       <div className="w-full max-w-4xl bg-transparent pt-3 sm:p-5 md:p-8 transition-all duration-300">
         {renderStep()}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default MultiStepForm;

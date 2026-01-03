@@ -1,18 +1,15 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { HeartFill, ArrowLeft } from 'react-bootstrap-icons'
-import LoginForm from '../auth/LoginForm'
-
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { HeartFill, ArrowLeft } from 'react-bootstrap-icons';
+import LoginForm from '../auth/LoginForm';
 const LoginPage = () => {
-  return (
-    <div className="min-vh-100 bg-matrimony-gradient d-flex align-items-center justify-content-center p-4">
-      <div className="w-100" style={{ maxWidth: '400px' }}>
-        {/* Header */}
+  return <div className="min-vh-100 bg-matrimony-gradient d-flex align-items-center justify-content-center p-4">
+      <div className="w-100" style={{
+      maxWidth: '400px'
+    }}>
+        {}
         <div className="text-center mb-5">
-          <Link 
-            to="/" 
-            className="d-inline-flex align-items-center text-secondary text-decoration-none mb-4"
-          >
+          <Link to="/" className="d-inline-flex align-items-center text-secondary text-decoration-none mb-4">
             <ArrowLeft size={20} className="me-2" />
             Back to Home
           </Link>
@@ -24,8 +21,6 @@ const LoginPage = () => {
 
         <LoginForm />
       </div>
-    </div>
-  )
-}
-
-export default LoginPage
+    </div>;
+};
+export default LoginPage;
