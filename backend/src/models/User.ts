@@ -1,10 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+type Gender = "male" | "female" | "other";
+
 export interface IUser extends Document {
   firstName: string;
   middleName?: string;
   lastName: string;
-  gender: { type: string; enum: ["male", "female", "other"] };
+  gender: Gender;
   role: { type: string; enum: ["user", "admin"] };
   phoneNumber?: string;
   password: string;
@@ -27,8 +29,14 @@ export interface IUser extends Document {
   isOnboardingCompleted: boolean;
   completedSteps?: string[];
   termsAndConditionsAccepted: boolean;
+  isProfileApproved: boolean;
+  profileReviewStatus: "pending" | "approved" | "rejected" | "rectification";
   customId?: string;
   blockedUsers?: mongoose.Types.ObjectId[];
+  isVisible: boolean;
+  accountType?: "free" | "premium";
+  planDurationMonths?: number;
+  planExpiry?: Date;
 }
 
 const sanitizeString = (value: string): string => {
@@ -111,7 +119,7 @@ const userSchema: Schema = new Schema(
       minlength: [6, "Password must be at least 6 characters"],
       maxlength: [255, "Password hash too long"]
     },
-    isActive: { type: Boolean, default: true },
+    isActive: { type: Boolean, default: false },
     deactivatedAt: { type: Date },
     deactivationReason: {
       type: String,
@@ -181,6 +189,25 @@ const userSchema: Schema = new Schema(
       }
     },
     termsAndConditionsAccepted: { type: Boolean, default: false },
+    isProfileApproved: { type: Boolean, default: false },
+    profileReviewStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "rectification"]
+    },
+    accountType: {
+      type: String,
+      enum: {
+        values: ["free", "premium"],
+        message: "Account type must be free or premium"
+      },
+      default: "free"
+    },
+    planDurationMonths: {
+      type: Number,
+      enum: [0, 1, 3, 6, 12],
+      default: 0
+    },
+    planExpiry: { type: Date, default: null },
     customId: {
       type: String,
       unique: true,
@@ -197,7 +224,8 @@ const userSchema: Schema = new Schema(
         },
         message: "Blocked users limit exceeded"
       }
-    }
+    },
+    isVisible: { type: Boolean, default: true }
   },
   {
     timestamps: true,
@@ -221,8 +249,22 @@ userSchema.index(
 
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ phoneNumber: 1, isActive: 1 });
+userSchema.index({ role: 1, gender: 1 });
+userSchema.index({ role: 1, createdAt: 1 });
 userSchema.index({ email: 1, isEmailLoginEnabled: 1 });
 userSchema.index({ phoneNumber: 1, isMobileLoginEnabled: 1 });
+userSchema.index({ isDeleted: 1, isActive: 1 });
+userSchema.index({ isProfileApproved: 1, profileReviewStatus: 1 });
+userSchema.index({ planExpiry: 1 });
+userSchema.index({ planExpiry: 1, isActive: 1 });
+userSchema.index({
+  gender: 1,
+  isActive: 1,
+  isDeleted: 1,
+  isProfileApproved: 1,
+  profileReviewStatus: 1,
+  isVisible: 1
+});
 
 userSchema.pre("save", function (next) {
   try {

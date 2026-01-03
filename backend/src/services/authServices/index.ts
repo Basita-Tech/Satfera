@@ -1,8 +1,9 @@
-import { User, IUser, Profile } from "../../models";
+import { User, IUser, Profile, AppConfig } from "../../models";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request } from "express";
 import {
+  clearAllMatchScoreCache,
   logger,
   parseDDMMYYYYToDate,
   redisClient,
@@ -29,6 +30,8 @@ import { SessionService } from "../sessionService";
 import { generateDeviceFingerprint } from "../../utils/secureToken";
 import { getClientIp } from "../../utils/ipUtils";
 import { APP_CONFIG } from "../../utils/constants";
+import { notifyAdminsOfNewUserRegistration } from "../../admin/utils/notification";
+import { addMonths } from "date-fns";
 
 async function sendWelcomeEmailOnce(user: any): Promise<boolean> {
   try {
@@ -100,11 +103,11 @@ export class AuthService {
       () =>
         User.findOne({
           email: email.toLowerCase(),
-          isActive: true,
           isEmailLoginEnabled: true,
-          isDeleted: false
+          isDeleted: false,
+          isActive: true
         }).select(
-          "isOnboardingCompleted completedSteps isEmailVerified password lastLoginAt _id"
+          "isOnboardingCompleted completedSteps isEmailVerified password lastLoginAt _id role"
         ),
       100
     );
@@ -163,7 +166,7 @@ export class AuthService {
         },
         this.jwtSecret(),
         {
-          expiresIn: "7d"
+          expiresIn: "30d"
         }
       );
 
@@ -207,9 +210,9 @@ export class AuthService {
       () =>
         User.findOne({
           phoneNumber: phoneNumber,
-          isActive: true,
           isMobileLoginEnabled: true,
-          isDeleted: false
+          isDeleted: false,
+          isActive: true
         }).select(
           "isOnboardingCompleted completedSteps isPhoneVerified password lastLoginAt _id"
         ),
@@ -261,7 +264,7 @@ export class AuthService {
         },
         this.jwtSecret(),
         {
-          expiresIn: "7d"
+          expiresIn: "30d"
         }
       );
 
@@ -295,53 +298,83 @@ export class AuthService {
       phoneNumber: string;
     }
   ) {
-    const email = data.email ? data.email.toLowerCase().trim() : undefined;
-    const phoneNumber = data.phoneNumber
-      ? data.phoneNumber.toString().trim()
-      : undefined;
-
     if (!data.termsAndConditionsAccepted) {
       throw new Error("You must accept the terms and conditions");
     }
 
-    const [byEmail, byPhone] = await Promise.all([
-      email ? User.findOne({ email, isDeleted: false }) : Promise.resolve(null),
-      phoneNumber
-        ? User.findOne({ phoneNumber, isDeleted: false })
-        : Promise.resolve(null)
-    ]);
+    const email = data.email?.toLowerCase().trim();
+    const phoneNumber = data.phoneNumber?.toString().trim();
 
-    if (byEmail) throw new Error("Email already in use");
-    if (byPhone) throw new Error("Phone number already in use");
+    const dobPromise = data.dateOfBirth
+      ? Promise.resolve(
+          parseDDMMYYYYToDate(data.dateOfBirth as unknown as string)
+        )
+      : Promise.resolve(undefined);
 
-    const dob = parseDDMMYYYYToDate((data as any).dateOfBirth as string);
-    if (dob) (data as any).dateOfBirth = dob;
+    const passwordHashPromise = bcrypt.hash(data.password, 10);
+    const customIdPromise = generateCustomId((data as any).gender);
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const existingUser = await User.findOne({
+      isDeleted: false,
+      $or: [
+        email ? { email } : null,
+        phoneNumber ? { phoneNumber } : null
+      ].filter(Boolean)
+    }).lean();
 
-    const customId = await generateCustomId((data as any).gender);
-
-    const newUser = new User({
-      ...(data as any),
-      email,
-      phoneNumber,
-      password: hashedPassword,
-      customId
-    });
-
-    const userProfile = await Profile.create({
-      userId: newUser._id
-    });
-
-    if (!userProfile) {
-      throw new Error("Failed to create user profile");
+    if (existingUser?.email === email) {
+      throw new Error("Email already in use");
     }
 
-    await newUser.save();
+    if (existingUser?.phoneNumber === phoneNumber) {
+      throw new Error("Phone number already in use");
+    }
 
-    await sendWelcomeEmailOnce(newUser);
+    const [dateOfBirth, hashedPassword, customId] = await Promise.all([
+      dobPromise,
+      passwordHashPromise,
+      customIdPromise
+    ]);
 
-    return newUser.toObject ? newUser.toObject() : newUser;
+    const session = await User.startSession();
+    session.startTransaction();
+
+    try {
+      const newUser = await User.create(
+        [
+          {
+            ...(data as any),
+            email,
+            phoneNumber,
+            dateOfBirth,
+            password: hashedPassword,
+            customId
+          }
+        ],
+        { session }
+      );
+
+      await Profile.create(
+        [
+          {
+            userId: newUser[0]._id
+          }
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      void clearAllMatchScoreCache();
+      void sendWelcomeEmailOnce(newUser[0]);
+
+      return newUser[0].toObject();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   }
 
   async generateAndStoreOtp(email: string, type: "signup" | "forgot-password") {
@@ -503,6 +536,30 @@ export class AuthService {
 
     user.isEmailVerified = true;
     user.lastLoginAt = new Date();
+
+    try {
+      let freeMonths = Number(process.env.DEFAULT_FREE_VALIDITY_MONTHS || 6);
+      const cfg = await AppConfig.findOne({
+        key: "FREE_VALIDITY_MONTHS"
+      }).lean();
+      if (cfg && (cfg as any).value) {
+        const v = (cfg as any).value;
+        if (typeof v === "number") freeMonths = v;
+        else if (typeof v === "string")
+          freeMonths = parseInt(v, 10) || freeMonths;
+      }
+
+      user.accountType = "free";
+      user.planDurationMonths = freeMonths;
+      user.planExpiry = addMonths(new Date(), freeMonths);
+      user.isActive = true;
+    } catch (err) {
+      logger.warn("Failed to set plan expiry for user on signup", {
+        error: (err as any).message
+      });
+      user.isActive = true;
+    }
+
     await user.save();
 
     const userId = String(user._id);
@@ -518,7 +575,7 @@ export class AuthService {
       },
       this.jwtSecret(),
       {
-        expiresIn: "7d"
+        expiresIn: "30d"
       }
     );
 
@@ -542,6 +599,12 @@ export class AuthService {
     );
 
     await sendWelcomeEmailOnce(user);
+
+    try {
+      await notifyAdminsOfNewUserRegistration(user);
+    } catch (error) {
+      logger.error("Failed to notify admins of new user registration:", error);
+    }
 
     return await timingSafe.complete({
       token,

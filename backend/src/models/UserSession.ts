@@ -89,7 +89,7 @@ const UserSessionSchema = new Schema<IUserSession>(
 
 UserSessionSchema.index({ userId: 1, isActive: 1 });
 
-UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 2592000 });
 
 export const UserSession = mongoose.model<IUserSession>(
   "UserSession",

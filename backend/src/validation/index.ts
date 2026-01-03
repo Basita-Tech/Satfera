@@ -637,3 +637,251 @@ export const verifyPhoneChangeValidation = [
     .isMobilePhone("any")
     .withMessage("Invalid phone number format")
 ];
+
+export const createEmailTemplateValidation = [
+  body("type")
+    .notEmpty()
+    .withMessage("Template type is required")
+    .bail()
+    .isString()
+    .withMessage("Template type must be a string")
+    .bail()
+    .isIn([
+      "FORGOT_PASSWORD",
+      "SIGNUP",
+      "RESET_PASSWORD",
+      "WELCOME_EMAIL",
+      "PROFILE_REVIEW",
+      "PROFILE_APPROVED",
+      "PROFILE_REJECTED",
+      "PROFILE_RECTIFICATION",
+      "ACCOUNT_DEACTIVATION",
+      "ACCOUNT_DELETION",
+      "ACCOUNT_ACTIVATION",
+      "SUBSCRIPTION_RENEWAL",
+      "SUBSCRIPTION_CANCELLATION",
+      "PAYMENT_FAILED",
+      "TRIAL_ENDING_SOON",
+      "PROMOTION_OFFER",
+      "SYSTEM_MAINTENANCE",
+      "ACCOUNT_SUSPENSION_WARNING",
+      "LEGAL_UPDATE",
+      "APP_UPDATE_NOTIFICATION",
+      "NEWSLETTER"
+    ])
+    .withMessage("Invalid template type"),
+
+  body("subject")
+    .notEmpty()
+    .withMessage("Subject is required")
+    .bail()
+    .isString()
+    .withMessage("Subject must be a string")
+    .bail()
+    .isLength({ min: 3, max: 200 })
+    .withMessage("Subject must be between 3 and 200 characters"),
+
+  body("body")
+    .notEmpty()
+    .withMessage("Body is required")
+    .bail()
+    .isString()
+    .withMessage("Body must be a string")
+    .bail()
+    .isLength({ min: 10 })
+    .withMessage("Body must be at least 10 characters long"),
+
+  body("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive must be a boolean")
+];
+
+export const updateEmailTemplateValidation = [
+  body("subject")
+    .optional()
+    .isString()
+    .withMessage("Subject must be a string")
+    .bail()
+    .isLength({ min: 3, max: 200 })
+    .withMessage("Subject must be between 3 and 200 characters"),
+
+  body("body")
+    .optional()
+    .isString()
+    .withMessage("Body must be a string")
+    .bail()
+    .isLength({ min: 10 })
+    .withMessage("Body must be at least 10 characters long"),
+
+  body("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive must be a boolean")
+];
+
+export const createOrUpdatePricingConfigValidation = [
+  body("monthName")
+    .notEmpty()
+    .withMessage("Month name is required")
+    .bail()
+    .isIn(["1_month", "3_months", "6_months", "12_months"])
+    .withMessage(
+      "Month name must be one of: 1_month, 3_months, 6_months, 12_months"
+    ),
+
+  body("features")
+    .optional()
+    .isArray()
+    .withMessage("Features must be an array")
+    .bail()
+    .custom((value) => {
+      if (value && !value.every((item: any) => typeof item === "string")) {
+        throw new Error("All features must be strings");
+      }
+      return true;
+    }),
+
+  body("price")
+    .notEmpty()
+    .withMessage("Price is required")
+    .bail()
+    .isNumeric()
+    .withMessage("Price must be a number")
+    .bail()
+    .custom((value) => {
+      if (value < 0) {
+        throw new Error("Price must be a positive number");
+      }
+      return true;
+    })
+];
+
+export const updateUserProfileValidation = [
+  body("firstName")
+    .optional()
+    .isString()
+    .withMessage("First name must be a string")
+    .bail()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("First name must be between 2 and 50 characters"),
+
+  body("middleName")
+    .optional()
+    .isString()
+    .withMessage("Middle name must be a string")
+    .bail()
+    .isLength({ max: 50 })
+    .withMessage("Middle name must be less than 50 characters"),
+
+  body("lastName")
+    .optional()
+    .isString()
+    .withMessage("Last name must be a string")
+    .bail()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("Last name must be between 2 and 50 characters"),
+
+  body("email").optional().isEmail().withMessage("Invalid email format"),
+
+  body("phoneNumber")
+    .optional()
+    .isMobilePhone("any")
+    .withMessage("Invalid phone number format"),
+
+  body("gender")
+    .optional()
+    .isIn(["male", "female", "other", "Male", "Female", "Other"])
+    .withMessage("Gender must be male, female, or other"),
+
+  body("dateOfBirth")
+    .optional()
+    .isISO8601()
+    .withMessage("Invalid date format for date of birth"),
+
+  body("for_Profile")
+    .optional()
+    .isString()
+    .withMessage("for_Profile must be a string"),
+
+  body("healthData")
+    .optional()
+    .isObject()
+    .withMessage("Health data must be an object"),
+
+  body("diet")
+    .optional()
+    .customSanitizer((value) => {
+      if (typeof value === "string") {
+        return value.replace(/&amp;/g, "&");
+      }
+      return value;
+    })
+    .isIn([
+      "vegetarian",
+      "non-vegetarian",
+      "eggetarian",
+      "jain",
+      "swaminarayan",
+      "veg & non-veg",
+      ""
+    ])
+    .withMessage(
+      "diet must be one of: vegetarian, non-vegetarian, eggetarian, jain, swaminarayan, veg & non-veg"
+    ),
+
+  body("professionData")
+    .optional()
+    .isObject()
+    .withMessage("Profession data must be an object"),
+
+  body("professionData.AnnualIncome")
+    .optional()
+    .isNumeric()
+    .withMessage("Annual income must be a number"),
+
+  body("personalData")
+    .optional()
+    .isObject()
+    .withMessage("Personal data must be an object"),
+
+  body("personalData.height")
+    .optional()
+    .isNumeric()
+    .withMessage("Height must be a number"),
+
+  body("personalData.weight")
+    .optional()
+    .isNumeric()
+    .withMessage("Weight must be a number"),
+
+  body("personalData.religion")
+    .optional()
+    .isString()
+    .withMessage("Religion must be a string"),
+
+  body("familyData")
+    .optional()
+    .isObject()
+    .withMessage("Family data must be an object"),
+
+  body("familyData.howManySiblings")
+    .optional()
+    .isNumeric()
+    .withMessage("Number of siblings must be a number"),
+
+  body("educationsData")
+    .optional()
+    .isObject()
+    .withMessage("Education data must be an object"),
+
+  body("expectationsData")
+    .optional()
+    .isObject()
+    .withMessage("Expectations data must be an object"),
+
+  body("expectationsData.age")
+    .optional()
+    .isObject()
+    .withMessage("Age must be an object with from and to")
+];

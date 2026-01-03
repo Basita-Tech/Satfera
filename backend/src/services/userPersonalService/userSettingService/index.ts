@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { User, Profile, Notification } from "../../../models";
+import { User, Profile, Notification, UserProfession } from "../../../models";
 import { logger } from "../../../lib/common/logger";
 import {
   sendAccountActivationEmail,
@@ -10,6 +10,10 @@ import {
 import { APP_CONFIG } from "../../../utils/constants";
 import { NotificationSettings } from "../../../types";
 import { generateOtp, redisClient, safeRedisOperation } from "../../../lib";
+import {
+  notifyAdminsOfProfileReported,
+  notifyAdminsOfUserBlocked
+} from "../../../admin/utils/notification";
 import bcrypt from "bcryptjs";
 import {
   clearOtpData,
@@ -21,6 +25,7 @@ import {
   OTP_RESEND_LIMIT,
   setOtp
 } from "../../../lib/redis/otpRedis";
+import { Reports } from "../../../models/Reports";
 
 const ACCOUNT_STATUS_COOLDOWN_TTL = APP_CONFIG.ACCOUNT_STATUS_COOLDOWN_TTL;
 
@@ -93,6 +98,17 @@ export async function blockUser(
 
   const name =
     `${(target as any).firstName || ""} ${(target as any).lastName || ""}`.trim();
+
+  try {
+    const blocker = await User.findById(blockerObjectId).select(
+      "firstName lastName email"
+    );
+    if (blocker) {
+      await notifyAdminsOfUserBlocked(blocker, target);
+    }
+  } catch (error) {
+    logger.error("Failed to notify admins of user block:", error);
+  }
 
   return {
     success: true,
@@ -200,11 +216,6 @@ export async function deleteAccount(
       deletionReason: reason.trim(),
       isActive: false
     });
-
-    await Profile.findOneAndUpdate(
-      { userId: userObjectId },
-      { isVisible: false }
-    );
 
     try {
       await Notification.create({
@@ -361,7 +372,7 @@ export async function deactivateAccount(
     const userObjectId = validateUserId(userId);
 
     const user = await User.findById(userObjectId).select(
-      "isActive isDeleted email firstName lastName"
+      "isVisible isDeleted email firstName lastName"
     );
     if (!user) {
       throw new Error("User not found");
@@ -371,7 +382,7 @@ export async function deactivateAccount(
       throw new Error("Cannot deactivate a deleted account");
     }
 
-    if (!(user as any).isActive) {
+    if (!(user as any).isVisible) {
       throw new Error("AlreadyDeactivated: Account is already deactivated");
     }
 
@@ -388,7 +399,7 @@ export async function deactivateAccount(
     }
 
     await User.findByIdAndUpdate(userObjectId, {
-      isActive: false,
+      isVisible: false,
       deactivatedAt: new Date(),
       deactivationReason: reason || "User requested deactivation"
     });
@@ -425,7 +436,7 @@ export async function activateAccount(
     const userObjectId = validateUserId(userId);
 
     const user = await User.findById(userObjectId).select(
-      "isActive isDeleted deactivatedAt email firstName lastName"
+      "isVisible isDeleted deactivatedAt email firstName lastName"
     );
     if (!user) {
       throw new Error("User not found");
@@ -435,7 +446,7 @@ export async function activateAccount(
       throw new Error("Cannot activate a deleted account");
     }
 
-    if ((user as any).isActive) {
+    if ((user as any).isVisible) {
       throw new Error("AlreadyActive: Account is already active");
     }
 
@@ -457,7 +468,7 @@ export async function activateAccount(
     }
 
     await User.findByIdAndUpdate(userObjectId, {
-      isActive: true,
+      isVisible: true,
       deactivatedAt: null,
       deactivationReason: null
     });
@@ -498,7 +509,7 @@ export async function getAccountStatus(userId: string): Promise<{
     const userObjectId = validateUserId(userId);
 
     const user = await User.findById(userObjectId).select(
-      "isActive isDeleted deactivatedAt deactivationReason"
+      "isVisible isDeleted deactivatedAt deactivationReason"
     );
     if (!user) {
       throw new Error("User not found");
@@ -520,7 +531,7 @@ export async function getAccountStatus(userId: string): Promise<{
     }
 
     return {
-      isActive: (user as any).isActive,
+      isActive: (user as any).isVisible,
       isDeleted: (user as any).isDeleted,
       deactivatedAt: (user as any).deactivatedAt,
       deactivationReason: (user as any).deactivationReason,
@@ -880,6 +891,108 @@ export async function verifyAndChangePhone(
     };
   } catch (error: any) {
     logger.error("Error in verifyAndChangePhone:", error.message);
+    throw error;
+  }
+}
+
+export async function reportProfile(
+  reporterId: string,
+  reportedUserCustomId: string,
+  reason: string,
+  description?: string,
+  reportType: "spam" | "abuse" | "hate" | "other" = "other"
+): Promise<{ success: true; message: string }> {
+  const reporterObjectId = validateUserId(reporterId);
+
+  const reportedUser = await User.findOne({ customId: reportedUserCustomId })
+    .select("_id firstName lastName")
+    .lean();
+
+  if (!reportedUser) {
+    throw new Error("Reported user not found");
+  }
+
+  if (String(reportedUser._id) === String(reporterObjectId)) {
+    throw new Error("You cannot report your own profile");
+  }
+
+  const alreadyReported = await Reports.exists({
+    userId: reporterObjectId,
+    reportedToUserId: reportedUser._id
+  });
+
+  if (alreadyReported) {
+    throw new Error("You have already reported this user");
+  }
+
+  const [
+    reporterUser,
+    reporterProfile,
+    reporterProfession,
+    reportedProfile,
+    reportedProfession
+  ] = await Promise.all([
+    User.findById(reporterObjectId).select("firstName lastName").lean(),
+
+    Profile.findOne({ userId: reporterObjectId })
+      .select("photos.closerPhoto.url")
+      .lean(),
+
+    UserProfession.findOne({ userId: reporterObjectId })
+      .select("Occupation")
+      .lean(),
+
+    Profile.findOne({ userId: reportedUser._id })
+      .select("photos.closerPhoto.url")
+      .lean(),
+
+    UserProfession.findOne({ userId: reportedUser._id })
+      .select("Occupation")
+      .lean()
+  ]);
+
+  if (!reporterUser) {
+    throw new Error("Reporter user not found");
+  }
+
+  const reporterUserDetails = {
+    firstName: reporterUser.firstName,
+    lastName: reporterUser.lastName,
+    profilePicture: reporterProfile?.photos?.closerPhoto?.url || null,
+    occupation: reporterProfession?.Occupation || null
+  };
+
+  const reportedToUserDetails = {
+    firstName: reportedUser.firstName,
+    lastName: reportedUser.lastName,
+    profilePicture: reportedProfile?.photos?.closerPhoto?.url || null,
+    occupation: reportedProfession?.Occupation || null
+  };
+
+  try {
+    await Reports.create({
+      userId: reporterObjectId,
+      reportedToUserId: reportedUser._id,
+      reporterUserDetails,
+      reportedToUserDetails,
+      reportType,
+      reportReason: reason,
+      reportDescription: description
+    });
+
+    await notifyAdminsOfProfileReported(
+      reporterUser,
+      reportedUser,
+      reason,
+      description
+    );
+
+    return {
+      success: true,
+      message: "Profile reported successfully. Our team will review it soon."
+    };
+  } catch (error) {
+    logger.error("Profile report failed", error);
     throw error;
   }
 }

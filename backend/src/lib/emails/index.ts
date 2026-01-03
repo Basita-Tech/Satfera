@@ -1,16 +1,8 @@
 import nodemailer from "nodemailer";
-import {
-  buildOtpHtml,
-  buildResetPasswordHtml,
-  buildWelcomeHtml,
-  buildProfileReviewSubmissionHtml,
-  buildProfileApprovedHtml,
-  buildProfileRejectedHtml,
-  buildAccountDeactivationHtml,
-  buildAccountDeletionHtml,
-  buildAccountActivationHtml
-} from "./email-templates";
+import { buildEmailFromTemplate } from "./templateService";
+import { EmailTemplateType } from "../../models";
 import { APP_CONFIG } from "../../utils/constants";
+import { logger } from "../common/logger";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -22,6 +14,15 @@ const transporter = nodemailer.createTransport({
   }
 } as nodemailer.TransportOptions);
 
+// Verify transporter connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    logger.error("SMTP connection error:", error);
+  } else {
+    logger.info("SMTP connection verified successfully");
+  }
+});
+
 export interface SendMailOptions {
   to: string;
   subject: string;
@@ -31,15 +32,40 @@ export interface SendMailOptions {
 
 export async function sendMail(options: SendMailOptions): Promise<any> {
   try {
-    const info = await transporter.sendMail({
+    if (!options.to || !options.subject || !options.html) {
+      throw new Error("Missing required email fields: to, subject, or html");
+    }
+
+    const mailOptions = {
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      ...options
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text || ""
+    };
+
+    logger.debug("Sending email", {
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      from: mailOptions.from
+    });
+
+    const info = await transporter.sendMail(mailOptions);
+
+    logger.info("Email sent successfully", {
+      to: options.to,
+      subject: options.subject,
+      messageId: info.messageId
     });
 
     return info;
-  } catch (error) {
-    console.error("Email send error:", error);
-    throw new Error("Failed to send email");
+  } catch (error: any) {
+    logger.error("Email send error:", {
+      error: error.message,
+      to: options.to,
+      subject: options.subject
+    });
+    throw error;
   }
 }
 
@@ -48,37 +74,53 @@ export async function sendOtpEmail(
   otp: string,
   context: "signup" | "forgot-password"
 ) {
-  const options = {
-    brandName: APP_CONFIG.BRAND_NAME,
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+  const templateType =
+    context === "signup"
+      ? EmailTemplateType.Signup
+      : EmailTemplateType.ForgotPassword;
+
+  const variables = {
+    otp,
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
   };
 
-  const { html, text } = buildOtpHtml(
-    context,
-    otp,
-    options?.brandName,
-    options?.logoUrl
-  );
-  const subject =
-    context === "signup"
-      ? "Your Satfera Signup OTP"
-      : "Your Satfera Password Reset OTP";
+  const template = await buildEmailFromTemplate(templateType, variables);
 
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error(`Email template not found for type: ${templateType}`);
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendResetPasswordEmail(to: string, resetLink: string) {
-  const options = {
-    brandName: APP_CONFIG.BRAND_NAME,
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
-  };
-  const { html, text } = buildResetPasswordHtml(
+  const variables = {
     resetLink,
-    options?.brandName,
-    options?.logoUrl
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
+  };
+
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.ResetPassword,
+    variables
   );
-  const subject = "Reset Your Satfera Password";
-  return sendMail({ to, subject, html, text });
+
+  if (!template) {
+    throw new Error("Email template not found for ResetPassword");
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendWelcomeEmail(
@@ -88,41 +130,57 @@ export async function sendWelcomeEmail(
   loginLink: string,
   supportContact?: string
 ) {
-  const options = {
-    brandName: APP_CONFIG.BRAND_NAME || "SATFERA",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
-  };
-
-  const { html, text } = buildWelcomeHtml(
+  const variables = {
     userName,
     username,
     loginLink,
-    supportContact,
-    options.brandName,
-    options.logoUrl
+    supportContact: supportContact || "support@satfera.in",
+    brandName: APP_CONFIG.BRAND_NAME || "SATFERA",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
+  };
+
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.WelcomeEmail,
+    variables
   );
 
-  const subject = `Welcome to ${options.brandName} – Your Matrimony Journey Begins`;
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for WelcomeEmail");
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendProfileReviewSubmissionEmail(
   to: string,
   userName: string
 ) {
-  const options = {
+  const variables = {
+    userName,
     brandName: APP_CONFIG.BRAND_NAME || "Satfera",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
   };
 
-  const { html, text } = buildProfileReviewSubmissionHtml(
-    userName,
-    options.brandName,
-    options.logoUrl
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.ProfileReview,
+    variables
   );
 
-  const subject = "Your Profile Submitted for Review - Satfera";
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for ProfileReview");
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendProfileApprovedEmail(
@@ -130,20 +188,34 @@ export async function sendProfileApprovedEmail(
   userName: string,
   dashboardLink: string
 ) {
-  const options = {
+  const variables = {
+    userName,
+    loginLink: dashboardLink,
     brandName: APP_CONFIG.BRAND_NAME || "Satfera",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
   };
 
-  const { html, text } = buildProfileApprovedHtml(
-    userName,
-    dashboardLink,
-    options.brandName,
-    options.logoUrl
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.ProfileApproved,
+    variables
   );
 
-  const subject = "🎉 Your Satfera Profile Has Been Approved!";
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for ProfileApproved");
+  }
+
+  logger.debug("Sending profile approved email", {
+    to,
+    userName,
+    subject: template.subject
+  });
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendProfileRejectedEmail(
@@ -151,69 +223,191 @@ export async function sendProfileRejectedEmail(
   userName: string,
   reason: string
 ) {
-  const options = {
-    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
-  };
-
-  const { html, text } = buildProfileRejectedHtml(
+  const variables = {
     userName,
     reason,
-    options.brandName,
-    options.logoUrl
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
+  };
+
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.ProfileRejected,
+    variables
   );
 
-  const subject = "Satfera Profile Review - Action Required";
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for ProfileRejected");
+  }
+
+  logger.debug("Sending profile rejected email", {
+    to,
+    userName,
+    subject: template.subject
+  });
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendAccountDeactivationEmail(
   to: string,
   userName: string
 ) {
-  const options = {
+  const variables = {
+    userName,
     brandName: APP_CONFIG.BRAND_NAME || "Satfera",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
   };
 
-  const { html, text } = buildAccountDeactivationHtml(
-    userName,
-    options.brandName,
-    options.logoUrl
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.AccountDeactivation,
+    variables
   );
 
-  const subject = "Account Deactivated - Satfera";
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for AccountDeactivation");
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendAccountDeletionEmail(to: string, userName: string) {
-  const options = {
+  const variables = {
+    userName,
     brandName: APP_CONFIG.BRAND_NAME || "Satfera",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
   };
 
-  const { html, text } = buildAccountDeletionHtml(
-    userName,
-    options.brandName,
-    options.logoUrl
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.AccountDeletion,
+    variables
   );
 
-  const subject = "Account Deleted - Satfera";
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for AccountDeletion");
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
 }
 
 export async function sendAccountActivationEmail(to: string, userName: string) {
-  const options = {
+  const variables = {
+    userName,
     brandName: APP_CONFIG.BRAND_NAME || "Satfera",
-    logoUrl: APP_CONFIG.BRAND_LOGO_URL
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
   };
 
-  const { html, text } = buildAccountActivationHtml(
-    userName,
-    options.brandName,
-    options.logoUrl
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.AccountActivation,
+    variables
   );
 
-  const subject = "Account Activated - Satfera";
-  return sendMail({ to, subject, html, text });
+  if (!template) {
+    throw new Error("Email template not found for AccountActivation");
+  }
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
+}
+
+export async function sendProfileRectificationEmail(
+  to: string,
+  userName: string,
+  reason: string
+) {
+  const variables = {
+    userName,
+    reason,
+    brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+    logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
+  };
+
+  const template = await buildEmailFromTemplate(
+    EmailTemplateType.ProfileRectification,
+    variables
+  );
+
+  if (!template) {
+    throw new Error("Email template not found for ProfileRectification");
+  }
+
+  logger.debug("Sending profile rectification email", {
+    to,
+    userName,
+    subject: template.subject
+  });
+
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text
+  });
+}
+
+export async function sendConnectionAcceptedEmail(
+  to: string,
+  userName: string,
+  accepterName: string,
+  accepterProfileLink: string
+) {
+  try {
+    const variables = {
+      userName,
+      accepterName,
+      accepterProfileLink,
+      brandName: APP_CONFIG.BRAND_NAME || "Satfera",
+      logoUrl: APP_CONFIG.BRAND_LOGO_URL || ""
+    };
+
+    const template = await buildEmailFromTemplate(
+      EmailTemplateType.ConnectionAccepted,
+      variables
+    );
+
+    if (!template) {
+      throw new Error("Email template not found for ConnectionAccepted");
+    }
+
+    logger.debug("Sending connection accepted email", {
+      to,
+      userName,
+      accepterName,
+      subject: template.subject
+    });
+
+    return sendMail({
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text
+    });
+  } catch (error: any) {
+    logger.error("Error in sendConnectionAcceptedEmail:", {
+      error: error.message,
+      stack: error.stack,
+      to,
+      userName,
+      accepterName
+    });
+    throw error;
+  }
 }

@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { SessionController } from "../../../controllers/sessionController";
 import { authenticate } from "../../../middleware/authMiddleware";
+import { apiGatewayLimiter } from "../../../middleware/redisRateLimiter";
 
 const router = Router();
+
+// router.use(apiGatewayLimiter);
 
 /**
  * @route GET /api/v1/sessions

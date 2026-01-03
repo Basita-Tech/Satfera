@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authenticate from "../../../../middleware/authMiddleware";
-
+import { searchGatewayLimiter } from "../../../../middleware/redisRateLimiter";
 import {
   changePasswordValidation,
   deleteAccountValidation,
@@ -41,7 +41,7 @@ user.get("/user/notifications/count", authenticate, getUnreadCount);
 user.patch("/user/notifications/:id/read", authenticate, markAsRead);
 user.patch("/user/notifications/mark-all-read", authenticate, markAllAsRead);
 
-user.get("/user/search", authenticate, userController.searchController);
+user.get("/user/search", authenticate, searchGatewayLimiter, userController.searchController);
 user.post("/user/block", authenticate, userController.blockController);
 user.post("/user/unblock", authenticate, userController.unblockController);
 user.get("/user/blocked", authenticate, userController.listBlockedController);

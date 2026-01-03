@@ -1,0 +1,68 @@
+---
+env:
+  contexts:
+    - name: "Satfera API"
+      urls:
+        - "http://localhost:8000/api/v1"
+      includePaths:
+        - "http://localhost:8000/api/v1/.*"
+      excludePaths:
+        - ".*\\.js$"
+        - ".*\\.css$"
+        - ".*\\.png$"
+        - ".*\\.jpg$"
+        - ".*\\.webp$"
+        - ".*\\.svg$"
+        - ".*\\.woff2?$"
+      authentication:
+        method: "json"
+        parameters:
+          loginUrl: "http://localhost:8000/api/v1/auth/login"
+          loginRequestData: '{"email":"{%username%}","password":"{%password%}"}'
+      sessionManagement:
+        method: "cookie"
+        parameters: {}
+      users:
+        - name: "test-user"
+          credentials:
+            username: "${TEST_USER_EMAIL}"
+            password: "${TEST_USER_PASSWORD}"
+
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: spider
+    parameters:
+      context: "Satfera API"
+      maxDuration: 5
+      maxDepth: 5
+      maxChildren: 10
+
+  - type: spiderAjax
+    parameters:
+      context: "Satfera API"
+      maxDuration: 2
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 10
+  - type: activeScan
+    parameters:
+      context: "Satfera API"
+      maxRuleDurationInMins: 3
+      maxScanDurationInMins: 30
+      policy: ""
+
+  - type: report
+    parameters:
+      template: "traditional-html"
+      reportDir: "./tests/security/reports"
+      reportFile: "zap-report"
+    risks:
+      - high
+      - medium
+      - low
+      - informational

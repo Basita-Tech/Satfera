@@ -22,7 +22,6 @@ const userExpectationsSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
       index: true
     },
     age: {

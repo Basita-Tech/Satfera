@@ -13,6 +13,7 @@ import { invalidateUserMatchScores } from "../../../lib/redis/cacheUtils";
 import mongoose from "mongoose";
 import { logger } from "../../../lib/common/logger";
 import { sendProfileReviewSubmissionEmail } from "../../../lib/emails";
+import { enqueueMatchRecalculation } from "../../../lib/queue/enqueue";
 
 const handleCastError = (res: Response, error: any) => {
   if (error?.name === "CastError") {
@@ -149,6 +150,7 @@ export const updateUserPersonalController = async (
     }
 
     const authUser = req.user;
+    console.log(authUser, "authUser");
     if (!authUser) {
       return res
         .status(401)
@@ -158,7 +160,7 @@ export const updateUserPersonalController = async (
     const canUserDetailsExist = await UserPersonal.findOne({
       userId: authUser.id
     }).lean();
-
+    console.log(canUserDetailsExist, "_----------____");
     if (!canUserDetailsExist) {
       return res
         .status(404)
@@ -183,6 +185,25 @@ export const updateUserPersonalController = async (
         `Failed to invalidate cache for user ${authUser.id}:`,
         cacheErr.message
       );
+    }
+    const relevantFields = [
+      "religion",
+      "subCaste",
+      "full_address",
+      "residingCountry",
+      "marriedStatus"
+    ];
+    const shouldRecalculate = relevantFields.some(
+      (field) => body[field] !== undefined
+    );
+
+    if (shouldRecalculate) {
+      void enqueueMatchRecalculation(authUser.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: authUser.id,
+          error: err.message
+        });
+      });
     }
 
     return res.status(200).json({
@@ -274,18 +295,6 @@ export const updateUserFamilyDetails = async (
       return res
         .status(404)
         .json({ success: false, message: "Family details not found" });
-    }
-
-    try {
-      await invalidateUserMatchScores(new mongoose.Types.ObjectId(authUser.id));
-      logger.info(
-        `Cache invalidated for user ${authUser.id} after family details update`
-      );
-    } catch (cacheErr: any) {
-      logger.warn(
-        `Failed to invalidate cache for user ${authUser.id}:`,
-        cacheErr.message
-      );
     }
 
     return res.status(200).json({
@@ -394,6 +403,14 @@ export const updateUserEducationDetails = async (
         `Failed to invalidate cache for user ${authUser.id}:`,
         cacheErr.message
       );
+    }
+    if (req.body.HighestEducation) {
+      void enqueueMatchRecalculation(authUser.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: authUser.id,
+          error: err.message
+        });
+      });
     }
 
     return res.status(200).json({ success: true, data });
@@ -522,6 +539,14 @@ export const updateUserHealthController = async (
         cacheErr.message
       );
     }
+    if (req.body.diet || req.body.isAlcoholic) {
+      void enqueueMatchRecalculation(user.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: user.id,
+          error: err.message
+        });
+      });
+    }
 
     return res.status(200).json({ success: true, data: health });
   } catch (err: any) {
@@ -616,6 +641,12 @@ export const updateUserExpectations = async (
         cacheErr.message
       );
     }
+    void enqueueMatchRecalculation(userId).catch((err) => {
+      logger.error("Failed to enqueue match recalculation:", {
+        userId,
+        error: err.message
+      });
+    });
 
     return res.status(200).json({ success: true, data: expectations });
   } catch (error: any) {
@@ -727,6 +758,14 @@ export const updateUserProfessionController = async (
         cacheErr.message
       );
     }
+    if (req.body.Occupation) {
+      void enqueueMatchRecalculation(user.id).catch((err) => {
+        logger.error("Failed to enqueue match recalculation:", {
+          userId: user.id,
+          error: err.message
+        });
+      });
+    }
 
     return res.status(200).json({ success: true, data: updated });
   } catch (err: any) {
@@ -751,8 +790,9 @@ export const getUserOnboardingStatus = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const { user, profile } =
-      await userPersonalService.getUserOnboardingStatusService(authUser.id);
+    const { user } = await userPersonalService.getUserOnboardingStatusService(
+      authUser.id
+    );
 
     const completedSteps = Array.isArray(user?.completedSteps)
       ? user!.completedSteps
@@ -764,7 +804,8 @@ export const getUserOnboardingStatus = async (
       "education",
       "profession",
       "health",
-      "expectation"
+      "expectation",
+      "photos"
     ];
 
     const nextStep = stepsOrder.find((step) => !completedSteps.includes(step));
@@ -772,7 +813,7 @@ export const getUserOnboardingStatus = async (
     const data = {
       completedSteps,
       nextStep,
-      profileReviewStatus: profile?.profileReviewStatus || null
+      profileReviewStatus: user?.profileReviewStatus || null
     };
 
     if (!user?.isOnboardingCompleted) {
@@ -864,27 +905,24 @@ export const getProfileReviewStatusController = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const profile = await Profile.findOne({ userId: authUser.id }).select(
-      "profileReviewStatus reviewedAt reviewNotes"
+    const user = await User.findById(authUser.id).select(
+      "firstName email profileReviewStatus isProfileApproved"
     );
 
-    if (!profile) {
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Profile not found"
+        message: "User not found"
       });
     }
-
-    const user = await User.findById(authUser.id).select("firstName email");
 
     return res.status(200).json({
       success: true,
       data: {
-        profileReviewStatus: profile.profileReviewStatus,
-        reviewedAt: profile.reviewedAt || null,
-        reviewNotes: profile.reviewNotes || null,
-        userName: user?.firstName || "User",
-        email: user?.email || null
+        profileReviewStatus: user.profileReviewStatus,
+        isProfileApproved: user.isProfileApproved,
+        userName: user.firstName || "User",
+        email: user.email || null
       }
     });
   } catch (error: any) {
@@ -915,29 +953,9 @@ export const submitProfileForReviewController = async (
       });
     }
 
-    let profile = await Profile.findOne({ userId: authUser.id });
-    if (!profile) {
-      profile = new Profile({ userId: authUser.id });
-    }
-
-    const isFirstSubmission =
-      !profile.profileReviewStatus ||
-      profile.profileReviewStatus === undefined ||
-      profile.profileReviewStatus === null;
-
-    if (!isFirstSubmission) {
-      return res.status(200).json({
-        success: true,
-        message: `Profile already ${profile.profileReviewStatus}.`,
-        data: {
-          profileReviewStatus: profile.profileReviewStatus,
-          submittedAt: profile.createdAt || new Date()
-        }
-      });
-    }
-
-    profile.profileReviewStatus = "pending";
-    await profile.save();
+    await User.findByIdAndUpdate(authUser.id, {
+      profileReviewStatus: "pending"
+    });
 
     try {
       await sendProfileReviewSubmissionEmail(user.email, user.firstName);
@@ -954,7 +972,7 @@ export const submitProfileForReviewController = async (
       success: true,
       message: "Profile submitted for review successfully",
       data: {
-        profileReviewStatus: profile.profileReviewStatus,
+        profileReviewStatus: "pending",
         submittedAt: new Date()
       }
     });

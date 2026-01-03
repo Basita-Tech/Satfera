@@ -1,21 +1,19 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const MatchEntrySchema = new Schema(
-  {
-    candidateId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
-    score: { type: Number, required: true },
-    reasons: [{ type: String }],
-    scoreDetail: { type: Schema.Types.Mixed },
-    createdAt: { type: Date, default: Date.now }
-  },
-  { _id: false }
-);
+export interface IMatch extends Document {
+  userId: mongoose.Types.ObjectId;
+  candidateId: mongoose.Types.ObjectId;
+  score: number;
+  reasons: string[];
+  scoreBreakdown?: Record<string, number>;
+  isVisible: boolean;
+  hiddenReason: "request" | "favorite" | null;
+  lastCalculatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-const MatchesSchema = new Schema(
+const MatchSchema = new Schema<IMatch>(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,11 +21,43 @@ const MatchesSchema = new Schema(
       required: true,
       index: true
     },
-    matches: [MatchEntrySchema]
+    candidateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true
+    },
+    score: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100,
+      index: true
+    },
+    reasons: [{ type: String }],
+    scoreBreakdown: { type: Schema.Types.Mixed },
+    isVisible: {
+      type: Boolean,
+      default: true,
+      index: true
+    },
+    hiddenReason: {
+      type: String,
+      enum: ["request", "favorite", null],
+      default: null
+    },
+    lastCalculatedAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   { timestamps: true }
 );
 
-export const Matches =
-  (mongoose.models.Matches as mongoose.Model<any>) ||
-  mongoose.model("Matches", MatchesSchema);
+MatchSchema.index({ userId: 1, isVisible: 1, score: -1 });
+MatchSchema.index({ userId: 1, candidateId: 1 }, { unique: true });
+MatchSchema.index({ candidateId: 1, isVisible: 1 });
+
+export const Match =
+  (mongoose.models.Match as mongoose.Model<IMatch>) ||
+  mongoose.model<IMatch>("Match", MatchSchema);

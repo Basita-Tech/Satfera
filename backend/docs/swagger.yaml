@@ -222,6 +222,180 @@ components:
           minLength: 10
           maxLength: 500
       required: [reason]
+    AccessDeniedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+    SupportTicket:
+      type: object
+      properties:
+        _id:
+          type: string
+        ticketId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        subject:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SupportMessage:
+      type: object
+      properties:
+        _id:
+          type: string
+        text:
+          type: string
+        sender:
+          type: string
+          enum: [user, admin]
+        createdAt:
+          type: string
+          format: date-time
+    SupportTicketWithHistory:
+      allOf:
+        - $ref: "#/components/schemas/SupportTicket"
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: "#/components/schemas/SupportMessage"
+    EmailTemplate:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          enum:
+            - SIGNUP
+            - FORGOT_PASSWORD
+            - RESET_PASSWORD
+            - WELCOME_EMAIL
+            - PROFILE_REVIEW
+            - PROFILE_APPROVED
+            - PROFILE_REJECTED
+            - PROFILE_RECTIFICATION
+            - ACCOUNT_DEACTIVATION
+            - ACCOUNT_DELETION
+            - ACCOUNT_ACTIVATION
+            - CONNECTION_ACCEPTED
+            - NEW_CONNECTION_REQUEST
+        subject:
+          type: string
+        body:
+          type: string
+          description: HTML email template content with {{variable}} placeholders
+        availableVariables:
+          type: array
+          items:
+            type: string
+          description: Auto-assigned based on template type
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PricingConfig:
+      type: object
+      properties:
+        _id:
+          type: string
+        monthName:
+          type: string
+          enum:
+            - 1_month
+            - 3_months
+            - 6_months
+            - 12_months
+        features:
+          type: array
+          items:
+            type: string
+        price:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuditItem:
+      type: object
+      properties:
+        _id:
+          type: string
+        adminId:
+          type: string
+          nullable: true
+        adminName:
+          type: string
+          nullable: true
+        adminEmail:
+          type: string
+          nullable: true
+        action:
+          type: string
+          nullable: true
+        targetType:
+          type: string
+          nullable: true
+        targetId:
+          type: string
+          nullable: true
+        targetDisplayName:
+          type: string
+          nullable: true
+        details:
+          type: object
+          nullable: true
+        ip:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        display:
+          type: string
+          description: Human-friendly single-line description (e.g. "Admin Approved user profile • Priya Sharma")
+        timeAgo:
+          type: string
+          description: Short relative time (e.g. "2 mins ago")
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
 
 paths:
   /health:
@@ -860,25 +1034,6 @@ paths:
       responses:
         "200":
           description: Matchings list
-
-  /api/v1/recommendations:
-    get:
-      summary: Get recommendations for authenticated user
-      security:
-        - bearerAuth: []
-        - cookieAuth: []
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-        - in: query
-          name: limit
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Recommendations
 
   /api/v1/matches:
     get:
@@ -2737,6 +2892,2677 @@ paths:
           $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/dashboard/stats:
+    get:
+      summary: Get Admin Dashboard Stats Number for cards.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Dashboard stats numbers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalUsers:
+                        type: integer
+                      activeUsers:
+                        type: integer
+                      inactiveUsers:
+                        type: integer
+                      inactiveFemale:
+                        type: integer
+                      inactiveMale:
+                        type: integer
+                      rejectedUsers:
+                        type: integer
+                      approvedUsers:
+                        type: integer
+                      receivedUsers:
+                        type: integer
+                      receivedFemale:
+                        type: integer
+                      receivedMale:
+                        type: integer
+                      approvedFemale:
+                        type: integer
+                      approvedMale:
+                        type: integer
+                      premiumSubscribers:
+                        type: integer
+                      monthlyRevenue:
+                        type: number
+                        format: float
+                      femaleToMaleRequests:
+                        type: integer
+                      maleToFemaleRequests:
+                        type: integer
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      totalUsers: 10
+                      activeUsers: 10
+                      inactiveUsers: 0
+                      inactiveFemale: 0
+                      inactiveMale: 0
+                      rejectedUsers: 1
+                      approvedUsers: 2
+                      receivedUsers: 0
+                      receivedFemale: 0
+                      receivedMale: 0
+                      approvedFemale: 1
+                      approvedMale: 1
+                      premiumSubscribers: 0
+                      monthlyRevenue: 0
+                      femaleToMaleRequests: 0
+                      maleToFemaleRequests: 0
+        "403":
+          description: If user role is "user" then access is denied. It only Allow to "admin" role.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Forbidden:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      message:
+                        type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/profiles/pending:
+    get:
+      summary: Get all pending profiles for admin review with pagination.
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination (default 1)
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page (default 20, max 100)
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          description: status = "pending" | "approved" | "rejected" | "rectification";
+          schema:
+            type: string
+            default: "pending"
+      responses:
+        "200":
+          description: List of pending profiles for review with pagination metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        profileId:
+                          type: string
+                        customId:
+                          type: string
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                        gender:
+                          type: string
+                        age:
+                          type: integer
+                        phoneNumber:
+                          type: string
+                        email:
+                          type: string
+                        occupation:
+                          type: string
+                        city:
+                          type: string
+                        state:
+                          type: string
+                        closerPhoto:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      totalPages:
+                        type: integer
+                      hasMore:
+                        type: boolean
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - profileId: "693a522edc8bbe4457f9bae4"
+                        customId: "SAT-12345"
+                        firstName: "Sddshjdshjds"
+                        lastName: "Dsds"
+                        gender: "male"
+                        age: 21
+                        phoneNumber: "+918743764362"
+                        email: "roshanbiyosi@gmiail.com"
+                        closerPhoto: "https://res.cloudinary.com/dpmdvt00f/image/upload/v1765430284/satfera/closer/693a522edc8bbe4457f9bae3/a7wh1liovdl8viqp8iw2.jpg"
+                        occupation: "Software Engineer"
+                        city: "New York"
+                        state: "NY"
+                      - profileId: "693a522edc8bbe4457f9baf0"
+                        customId: "SAT-12346"
+                        firstName: "John"
+                        lastName: "Doe"
+                        gender: "male"
+                        age: 28
+                        phoneNumber: "+11234567890"
+                        email: "john.doe@example.com"
+                        closerPhoto: "https://res.cloudinary.com/sample.jpg"
+                        occupation: "Doctor"
+                        city: "Los Angeles"
+                        state: "CA"
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 45
+                      totalPages: 3
+                      hasMore: true
+
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/approve/profile:
+    post:
+      summary: Approve a user profile.
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user whose profile is to be approved
+              example:
+                userId: "693bb79cf6104a6d4e736838"
+      responses:
+        "200":
+          description: Profile approved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Profile approved successfully
+        "400":
+          description: Profile is already approved or invalid userId.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidUserId:
+                  value:
+                    success: false
+                    message: "Invalid userId"
+                alreadyApproved:
+                  value:
+                    success: false
+                    message: "Profile is already approved."
+                userIdRequired:
+                  value:
+                    success: false
+                    message: "userId is required"
+                other:
+                  value:
+                    success: false
+                    message: "Cannot destructure property 'userId' of 'req.body' as it is undefined."
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/reject/profile:
+    post:
+      summary: Reject a user profile.
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user whose profile is to be rejected
+                reason:
+                  type: string
+                  description: Reason for rejecting the profile
+              example:
+                userId: "693bb79cf6104a6d4e736838"
+                reason: "Inappropriate content in profile photos"
+      responses:
+        "200":
+          description: Profile rejected successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Profile rejected successfully
+        "400":
+          description: Profile is already rejected or invalid userId or reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidUserId:
+                  value:
+                    success: false
+                    message: "Invalid userId"
+                alreadyApproved:
+                  value:
+                    success: false
+                    message: "Profile is already rejected."
+                userIdRequired:
+                  value:
+                    success: false
+                    message: "userId is required"
+                reasonRequired:
+                  value:
+                    success: false
+                    message: "reason is required"
+                other:
+                  value:
+                    success: false
+                    message: "Cannot destructure property 'userId' of 'req.body' as it is undefined."
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/rectify/profile:
+    post:
+      summary: Send a profile to rectification (request updates from user).
+      description: Changes profile status to "rectification" and sends rejection email asking user to update their profile with provided reason
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user whose profile requires updates
+                reason:
+                  type: string
+                  description: Reason for rejecting the profile and requesting updates
+              example:
+                userId: "693bb79cf6104a6d4e736838"
+                reason: "Please provide more recent photos and complete your family details"
+      responses:
+        "200":
+          description: Profile sent to rectification successfully. User receives rejection email with reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Profile sent for rectification and email queued successfully
+        "400":
+          description: Profile is already in rectification state or invalid userId or reason.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidUserId:
+                  value:
+                    success: false
+                    message: "Invalid userId"
+                alreadyRectified:
+                  value:
+                    success: false
+                    message: "Profile is already rectification."
+                userIdRequired:
+                  value:
+                    success: false
+                    message: "userId is required"
+                reasonRequired:
+                  value:
+                    success: false
+                    message: "reason is required"
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/all/profiles:
+    get:
+      summary: Get all approved user profiles for admin management
+      tags:
+        - Admin Dashboard
+
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            default: 1
+          description: Page number (default is 1)
+
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+          description: Number of records per page (default is 10)
+
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+            default: true
+          description: Filter active users (default is true)
+
+      responses:
+        "200":
+          description: Approved user profiles fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+                  data:
+                    type: object
+                    properties:
+                      maleUsersCount:
+                        type: number
+                        description: Total approved active male users
+                      femaleUsersCount:
+                        type: number
+                        description: Total approved active female users
+
+                      users:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            customId:
+                              type: string
+                            accountType:
+                              type: string
+                            firstName:
+                              type: string
+                            lastName:
+                              type: string
+                            gender:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                              format: date-time
+                            age:
+                              type: number
+                            phoneNumber:
+                              type: string
+                            email:
+                              type: string
+                              format: email
+                            occupation:
+                              type: string
+                            closerPhoto:
+                              type: string
+                              format: uri
+                            createdAt:
+                              type: string
+                              format: date-time
+                            isOnline:
+                              type: boolean
+                              description: True if last login was within 3 minutes
+
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                      limit:
+                        type: number
+                      total:
+                        type: number
+                      totalPages:
+                        type: number
+                      hasMore:
+                        type: boolean
+
+              example:
+                success: true
+                data:
+                  maleUsersCount: 1230
+                  femaleUsersCount: 1270
+                  users:
+                    - userId: "694248ce0a5af7decd95268f"
+                      customId: "SF-2498"
+                      accountType: "free"
+                      firstName: "Krishna"
+                      lastName: "Deol"
+                      gender: "male"
+                      dateOfBirth: "1992-09-19T00:30:27.166Z"
+                      age: 33
+                      phoneNumber: "9000002498"
+                      email: "user2498@a.com"
+                      occupation: "DevOps Engineer"
+                      closerPhoto: "https://randomuser.me/api/portraits/men/98.jpg"
+                      createdAt: "2025-12-17T06:08:14.689Z"
+                      isOnline: false
+
+                pagination:
+                  page: 1
+                  limit: 10
+                  total: 2500
+                  totalPages: 250
+                  hasMore: true
+
+        "403":
+          description: Access denied (admin only)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: false
+                message: "Access denied."
+
+  /api/v1/admin/profile/{userId}:
+    get:
+      summary: Get complete user profile details for admin with all connections and statistics
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        "200":
+          description: Complete user profile details with statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        description: User basic information
+                      profile:
+                        type: object
+                        description: User profile information
+                      healthData:
+                        type: object
+                      professionData:
+                        type: object
+                      personalData:
+                        type: object
+                      familyData:
+                        type: object
+                      educationsData:
+                        type: object
+                      expectationsData:
+                        type: object
+                      stats:
+                        type: object
+                        properties:
+                          requestsSent:
+                            type: integer
+                          requestsReceived:
+                            type: integer
+                          accepted:
+                            type: integer
+                          highMatch:
+                            type: integer
+                      requestsSentDetails:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            age:
+                              type: integer
+                            profession:
+                              type: string
+                            closerPhoto:
+                              type: string
+                            matchPercentage:
+                              type: number
+                            status:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+                      requestsReceivedDetails:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            age:
+                              type: integer
+                            profession:
+                              type: string
+                            closerPhoto:
+                              type: string
+                            matchPercentage:
+                              type: number
+                            status:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      user:
+                        _id: "693bb79cf6104a6d4e736838"
+                        firstName: "Rahul"
+                        lastName: "Verma"
+                        email: "rahul@example.com"
+                      profile:
+                        _id: "693bb79cf6104a6d4e736837"
+                        isProfileApproved: true
+                        profileReviewStatus: "approved"
+                      stats:
+                        requestsSent: 2
+                        requestsReceived: 2
+                        accepted: 2
+                        highMatch: 4
+                      requestsSentDetails:
+                        - userId: "693bb79cf6104a6d4e736839"
+                          name: "Priya Singh"
+                          age: 28
+                          profession: "Doctor"
+                          matchPercentage: 85
+                          status: "accepted"
+                          createdAt: "2024-11-15T10:30:00Z"
+                        - userId: "693bb79cf6104a6d4e73683a"
+                          name: "Anjali Patel"
+                          age: 26
+                          profession: "Engineer"
+                          matchPercentage: 78
+                          status: "pending"
+                          createdAt: "2024-11-14T15:45:00Z"
+                      requestsReceivedDetails:
+                        - userId: "693bb79cf6104a6d4e73683b"
+                          name: "Neha Sharma"
+                          age: 27
+                          profession: "Architect"
+                          matchPercentage: 92
+                          status: "accepted"
+                          createdAt: "2024-11-13T12:00:00Z"
+                        - userId: "693bb79cf6104a6d4e73683c"
+                          name: "Sneha Gupta"
+                          age: 25
+                          profession: "Lawyer"
+                          matchPercentage: 75
+                          status: "rejected"
+                          createdAt: "2024-11-12T09:20:00Z"
+        "403":
+          description: Access denied if role is not admin
+        "400":
+          description: Invalid userId or user not found
+
+    put:
+      summary: Update user profile details (Admin - can update specific non-sensitive fields)
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gender:
+                  type: string
+                  enum: ["male", "female", "other"]
+
+                healthData:
+                  type: object
+                  properties:
+                    isAlcoholic:
+                      type: string
+                      enum: ["yes", "no", "occasional", ""]
+                    diet:
+                      type: string
+                      enum:
+                        - vegetarian
+                        - non-vegetarian
+                        - eggetarian
+                        - jain
+                        - swaminarayan
+                        - "veg & non-veg"
+                        - ""
+
+                professionData:
+                  type: object
+                  properties:
+                    EmploymentStatus:
+                      type: string
+                      enum:
+                        - "private sector"
+                        - government
+                        - "self-employed"
+                        - unemployed
+                        - student
+                        - business
+
+                expectationsData:
+                  type: object
+                  properties:
+                    age:
+                      type: object
+                      properties:
+                        from:
+                          type: number
+                          minimum: 18
+                          maximum: 100
+                        to:
+                          type: number
+                          minimum: 18
+                          maximum: 100
+                    maritalStatus:
+                      type: string
+                      enum:
+                        - "Never Married"
+                        - "Divorced"
+                        - "Widowed"
+                        - "Separated"
+                        - "Awaiting Divorce"
+                        - "No Preference"
+                    isConsumeAlcoholic:
+                      type: string
+                      enum: ["yes", "no", "occasionally"]
+
+      responses:
+        "200":
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "400":
+          description: Validation error or update failed
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+  /api/v1/admin/profiles/all/premiums:
+    get:
+      tags:
+        - Admin Dashboard
+      summary: Get all premium profiles
+      description: Retrieve a paginated list of all premium user profiles for admin use.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            example: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 20
+          description: Number of records per page
+      responses:
+        200:
+          description: Successfully retrieved premium profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                          example: 694a92fd1c6509113762e67b
+                        customId:
+                          type: string
+                          example: SF-0
+                        firstName:
+                          type: string
+                          example: Dharini
+                        lastName:
+                          type: string
+                          example: Balakrishna
+                        gender:
+                          type: string
+                          example: female
+                        status:
+                          type: string
+                          nullable: true
+                          example: null
+                        isActive:
+                          type: boolean
+                          example: true
+                        accountType:
+                          type: string
+                          example: premium
+                        age:
+                          type: integer
+                          example: 45
+                        phoneNumber:
+                          type: string
+                          example: "9000000000"
+                        email:
+                          type: string
+                          format: email
+                          example: user0@a.com
+                        closerPhoto:
+                          type: string
+                          format: uri
+                          example: https://randomuser.me/api/portraits/women/0.jpg
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: 2025-12-23T13:02:53.131Z
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 1
+                      totalPages:
+                        type: integer
+                        example: 1
+                      hasMore:
+                        type: boolean
+                        example: false
+
+  /api/v1/admin/analytics:
+    get:
+      summary: Get Reports & Analytics for admin dashboard
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Reports & Analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalUsers:
+                        type: integer
+                      activeUsers:
+                        type: integer
+                      premiumUsersPercentage:
+                        type: number
+                      pendingRequests:
+                        type: integer
+                      acceptedRequests:
+                        type: integer
+                      deviceTraffic:
+                        type: object
+                        properties:
+                          desktop:
+                            type: integer
+                          mobile:
+                            type: integer
+                      usersByGender:
+                        type: object
+                        properties:
+                          female:
+                            type: integer
+                          male:
+                            type: integer
+                      usersByReligion:
+                        type: object
+                        properties:
+                          hindu:
+                            type: integer
+                          jain:
+                            type: integer
+                      usersByAge:
+                        type: object
+                        properties:
+                          "20s":
+                            type: integer
+                          "30s":
+                            type: integer
+                      usersByPlan:
+                        type: object
+                        properties:
+                          free:
+                            type: integer
+                          premium:
+                            type: integer
+                      userRegistrationTrend:
+                        type: object
+                        properties:
+                          month:
+                            type: integer
+                          count:
+                            type: integer
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      totalUsers: 1000
+                      activeUsers: 850
+                      premiumUsersPercentage: 35.5
+                      pendingRequests: 150
+                      acceptedRequests: 700
+                      deviceTraffic:
+                        desktop: 600
+                        mobile: 400
+                      usersByGender:
+                        female: 450
+                        male: 550
+                      usersByReligion:
+                        hindu: 800
+                        jain: 200
+                      usersByAge:
+                        "20s": 400
+                        "30s": 350
+                      usersByPlan:
+                        free: 650
+                        premium: 350
+                      userRegistrationTrend:
+                        - month: 1
+                          count: 80
+                        - month: 2
+                          count: 90
+                        - month: 3
+                          count: 100
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/request-sent:
+    get:
+      summary: Get all user requests sent data.
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter requests where sender or receiver matches the provided user id (MongoDB ObjectId). If provided, only requests involving this user are returned.
+        - name: username
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive match against user's first or last name. Used when `userId` is not provided.
+      responses:
+        "200":
+          description: Requests & Matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        connectionId:
+                          type: string
+                        status:
+                          type: string
+                        createdAt:
+                          type: Date
+                        sender:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                            gender:
+                              type: string
+                            closerPhoto:
+                              type: string
+                            age:
+                              type: string
+                        receiver:
+                          type: object
+                          properties:
+                            userId:
+                              type: string
+                            name:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                              format: date-time
+                            gender:
+                              type: string
+                            closerPhoto:
+                              type: string
+                              format: uri
+                            age:
+                              type: number
+                        match:
+                          type: number
+                    pagination:
+                      type: object
+                      properties:
+                        page:
+                          type: number
+                        limit:
+                          type: number
+                        total:
+                          type: number
+                        totalPages:
+                          type: number
+                        hasMore:
+                          type: boolean
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - connectionId: "6942ceac084804fa512c28af"
+                        status: pending
+                        createdAt: "2025-12-17T15:54:34.190Z"
+                        sender:
+                          userId: "6942ceac084804fa512c28ac"
+                          name: "Jalpesh Sarmar"
+                          dateOfBirth: "2004-12-12T00:00:00.000Z"
+                          gender: male
+                          closerPhoto: https://res.cloudinary.com/dpmdvt00f/image/upload/v1765986639/satfera/closer/6942ceac084804fa512c28ac/tzh6nqyxar2c3q4x2liv.jpg
+                          age: 21
+                        receiver:
+                          userId: "694248ce0a5af7decd952591"
+                          name: "Ushakiran Mallick"
+                          dateOfBirth: "2000-09-22T08:08:19.319Z"
+                          gender: "female"
+                          closerPhoto: "https://randomuser.me/api/portraits/women/44.jpg"
+                          age: 25
+                        match: 0
+                    pagination:
+                      =page: 1,
+                      limit: 20,
+                      total: 128,
+                      totalPages: 7,
+                      hasMore: true
+
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+
+  /api/v1/admin/request-sent/{id}/reminder:
+    post:
+      summary: Send reminder email for a pending connection request (Admin only)
+      description: Sends an email to the receiver of the connection request notifying them of a pending request with accept/reject links. Requires admin authentication.
+      tags:
+        - Admin Dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ConnectionRequest id (MongoDB ObjectId)
+      responses:
+        "200":
+          description: Reminder email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardResponse"
+              examples:
+                Success:
+                  value:
+                    success: true
+                    message: "Reminder email sent"
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied if role is not admin.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                Forbidden:
+                  value:
+                    success: false
+                    message: "Access denied."
+        "404":
+          description: Connection request not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/super-profiles:
+    get:
+      summary: Get all super profiles data
+      tags:
+        - Admin Dashboard
+      responses:
+        "200":
+          description: Super Profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            accountType:
+                              type: string
+                            userId:
+                              type: string
+                            customId:
+                              type: string
+                            firstName:
+                              type: string
+                            lastName:
+                              type: string
+                            gender:
+                              type: string
+                            dateOfBirth:
+                              type: string
+                              format: date-time
+                            phoneNumber:
+                              type: string
+                            email:
+                              type: string
+                              format: email
+                            occupation:
+                              type: string
+                            closerPhoto:
+                              type: string
+                              format: uri
+                            createdAt:
+                              type: string
+                              format: date-time
+                            status:
+                              type: string
+                            age:
+                              type: number
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                      limit:
+                        type: number
+                      total:
+                        type: number
+                      totalPages:
+                        type: number
+                      hasMore:
+                        type: boolean
+              example:
+                success: true
+                data:
+                  users:
+                    - accountType: free
+                      userId: "694248ce0a5af7decd95268b"
+                      customId: "SF-2494"
+                      firstName: "Maheshi"
+                      lastName: "Deol"
+                      gender: "female"
+                      dateOfBirth: "1983-03-05T15:57:45.990Z"
+                      phoneNumber: "9000002494"
+                      email: "user2494@a.com"
+                      occupation: "Business Analyst"
+                      closerPhoto: "https://randomuser.me/api/portraits/women/94.jpg"
+                      createdAt: "2025-12-17T06:08:14.688Z"
+                      status: "approved"
+                      age: 42
+                pagination:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  totalPages: 1
+                  hasMore: false
+
+        "403":
+          description: Access denied if role is not admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: false
+                message: "Access denied."
+
+  /api/v1/admin/user/change-password:
+    post:
+      summary: Change password for a user
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - newPassword
+              properties:
+                userId:
+                  type: string
+                  example: "694248c80a5af7decd94d2a3"
+                newPassword:
+                  type: string
+                  example: "Sanjay@11"
+
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+
+        "400":
+          description: Failed to change password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Failed to change password"
+
+        "403":
+          description: Access denied if role is not admin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Access denied."
+
+  /api/v1/admin/search:
+    get:
+      summary: Search user profiles with filters
+      tags:
+        - Admin Dashboard
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Search by first name, last name, or full name (case-insensitive)
+
+        - in: query
+          name: customId
+          schema:
+            type: string
+          description: Search by custom user ID (case-insensitive)
+
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: Search by email (case-insensitive)
+
+        - in: query
+          name: phoneNumber
+          schema:
+            type: string
+          description: Search by phone number (partial match)
+
+        - in: query
+          name: gender
+          schema:
+            type: string
+            enum: [male, female, other]
+          description: Filter by gender
+
+        - in: query
+          name: accountType
+          schema:
+            type: string
+            enum: [free, premium]
+          description: Filter by account type
+
+        - in: query
+          name: newProfile
+          schema:
+            type: string
+            enum: [all, last1week, last3week, last1month]
+          description: Filter by recently created profiles
+
+        - in: query
+          name: ageFrom
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 120
+          description: Minimum age filter
+
+        - in: query
+          name: ageTo
+          schema:
+            type: integer
+            minimum: 18
+            maximum: 120
+          description: Maximum age filter
+
+        - in: query
+          name: religion
+          schema:
+            type: string
+          description: Filter by religion (case-insensitive partial match)
+
+        - in: query
+          name: profession
+          schema:
+            type: string
+          description: Filter by profession or organization name (case-insensitive partial match)
+
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [createdAt, age]
+            default: createdAt
+          description: Sort field (createdAt = newest first)
+
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based)
+
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+          description: Number of results per page (max 100)
+
+      responses:
+        "200":
+          description: Search results with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                          example: "605c4f2b8b1e4b3b2c8f1a2d"
+                        customId:
+                          type: string
+                          example: "SF1023"
+                        firstName:
+                          type: string
+                          example: "Anita"
+                        lastName:
+                          type: string
+                          example: "Sharma"
+                        gender:
+                          type: string
+                          example: "female"
+                        age:
+                          type: integer
+                          example: 28
+                        phoneNumber:
+                          type: string
+                          example: "9876543210"
+                        email:
+                          type: string
+                          example: "anita@gmail.com"
+                        accountType:
+                          type: string
+                          example: "paid"
+                        occupation:
+                          type: string
+                          example: "Software Engineer"
+                        closerPhoto:
+                          type: string
+                          example: "https://cdn.example.com/photo.jpg"
+                        createdAt:
+                          type: string
+                          format: date-time
+                        isOnline:
+                          type: boolean
+                          example: true
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 25
+                      total:
+                        type: integer
+                        example: 124
+                      hasMore:
+                        type: boolean
+                        example: true
+
+        "400":
+          $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/account/restore:
+    post:
+      summary: Restore deleted user account - Admin Only
+      description: Restore a soft-deleted user account. Requires admin authentication.
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: MongoDB ObjectId of the user to restore
+                  example: "694248c80a5af7decd94d2a3"
+            examples:
+              validRequest:
+                value:
+                  userId: "694248c80a5af7decd94d2a3"
+      responses:
+        "200":
+          description: Account restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Account restored successfully"
+        "400":
+          description: Validation error or account not deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingUserId:
+                  value:
+                    success: false
+                    message: "userId is required"
+                notDeleted:
+                  value:
+                    success: false
+                    message: "Account is not deleted"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Forbidden: Admin access required"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Server error while restoring account"
+
+  /api/v1/admin/account/hard-delete:
+    delete:
+      summary: Permanently delete user account - Admin Only
+      description: Permanently delete a user account and all associated data. This action cannot be undone. Requires admin authentication.
+      tags:
+        - Admin Dashboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: MongoDB ObjectId of the user to permanently delete
+                  example: "694248c80a5af7decd94d2a3"
+            examples:
+              validRequest:
+                value:
+                  userId: "694248c80a5af7decd94d2a3"
+      responses:
+        "200":
+          description: Account permanently deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Account permanently deleted"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingUserId:
+                  value:
+                    success: false
+                    message: "userId is required"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Forbidden: Admin access required"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Server error while permanently deleting account"
+
+  /api/v1/admin/accounts/deleted:
+    get:
+      summary: Get list of deleted accounts - Admin Only
+      description: Retrieve paginated list of soft-deleted user accounts. Requires admin authentication.
+      tags:
+        - Admin Dashboard
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of items per page
+      responses:
+        "200":
+          description: List of deleted accounts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        email:
+                          type: string
+                        firstName:
+                          type: string
+                        lastName:
+                          type: string
+                        deletedAt:
+                          type: string
+                          format: date-time
+                        deletionReason:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      pages:
+                        type: integer
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Forbidden: Admin access required"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Server error while fetching deleted accounts"
+
+  /api/v1/admin/audits:
+    get:
+      summary: Get admin audit logs (admin only)
+      description: Returns a paginated list of admin audit entries with human-friendly display and relative time.
+      tags:
+        - Admin Dashboard
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: adminId
+          in: query
+          schema:
+            type: string
+          description: Filter by admin id
+        - name: action
+          in: query
+          schema:
+            type: string
+          description: Filter by internal action code or HTTP verb+path
+        - name: targetType
+          in: query
+          schema:
+            type: string
+          description: Filter by target type (e.g., User, EmailTemplate)
+        - name: targetId
+          in: query
+          schema:
+            type: string
+          description: Filter by target id
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: ISO date to filter from (inclusive)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: ISO date to filter to (inclusive)
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden - admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessDeniedResponse"
+
+  /api/v1/admin/account/deactivate:
+    post:
+      summary: Deactivate user account
+      tags:
+        - Admin Dashboard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                reason:
+                  type: string
+
+      responses:
+        "200":
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account deactivated successfully."
+        "400":
+          description: Bad request (already deactivated, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyDeactivated:
+                  value:
+                    success: false
+                    message: "Account is already deactivated"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot deactivate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        
+  /api/v1/admin/account/activate:
+    post:
+      summary: Activate deactivated account
+      tags:
+        - Admin Dashboard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+
+      responses:
+        "200":
+          description: Account activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Account activated successfully"
+        "400":
+          description: Bad request (already active, deleted account, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                alreadyActive:
+                  value:
+                    success: false
+                    message: "Account is already active"
+                deletedAccount:
+                  value:
+                    success: false
+                    message: "Cannot activate a deleted account"
+        "401":
+          $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/support/tickets:
+    post:
+      summary: Create a support ticket
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, category, message]
+              properties:
+                subject: { type: string }
+                category: { type: string }
+                message: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicket"
+    get:
+      summary: List user tickets
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportTicket"
+
+  /api/v1/support/tickets/{id}:
+    get:
+      summary: Get ticket details with history
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketWithHistory"
+
+  /api/v1/support/tickets/{id}/messages:
+    post:
+      summary: Add message to ticket
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+
+  /api/v1/admin/support/tickets:
+    get:
+      summary: List all tickets (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportTicket"
+
+  /api/v1/admin/support/tickets/{id}:
+    get:
+      summary: Get ticket details (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportTicketWithHistory"
+
+  /api/v1/admin/support/tickets/{id}/status:
+    patch:
+      summary: Update ticket status (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - open
+                    - in_progress
+                    - resolved
+                    - closed
+      responses:
+        "200":
+          description: Ticket status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Ticket update successful"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              examples:
+                invalidStatus:
+                  value:
+                    success: false
+                    message: "Invalid status"
+
+  /api/v1/admin/support/tickets/{id}/messages:
+    post:
+      summary: Add message to ticket (Admin)
+      tags:
+        - Help & Support
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+
+  /api/v1/admin/email-templates:
+    get:
+      summary: Get all email templates
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - SIGNUP
+              - FORGOT_PASSWORD
+              - RESET_PASSWORD
+              - WELCOME_EMAIL
+              - PROFILE_REVIEW
+              - PROFILE_APPROVED
+              - PROFILE_REJECTED
+              - PROFILE_RECTIFICATION
+              - ACCOUNT_DEACTIVATION
+              - ACCOUNT_DELETION
+              - ACCOUNT_ACTIVATION
+              - CONNECTION_ACCEPTED
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Email templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EmailTemplate"
+                  count:
+                    type: integer
+    post:
+      summary: Create new email template
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, subject, body]
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - SIGNUP
+                    - FORGOT_PASSWORD
+                    - RESET_PASSWORD
+                    - WELCOME_EMAIL
+                    - PROFILE_REVIEW
+                    - PROFILE_APPROVED
+                    - PROFILE_REJECTED
+                    - PROFILE_RECTIFICATION
+                    - ACCOUNT_DEACTIVATION
+                    - ACCOUNT_DELETION
+                    - ACCOUNT_ACTIVATION
+                    - CONNECTION_ACCEPTED
+                subject:
+                  type: string
+                  minLength: 3
+                body:
+                  type: string
+                  minLength: 10
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Email template created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/EmailTemplate"
+        "400":
+          description: Validation error or template already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/email-templates/{id}:
+    get:
+      summary: Get email template by ID
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email template retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/EmailTemplate"
+        "404":
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update email template
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                  minLength: 3
+                body:
+                  type: string
+                  minLength: 10
+                isActive:
+                  type: boolean
+      responses:
+        "200":
+          description: Email template updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/EmailTemplate"
+        "404":
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete email template
+      tags:
+        - Email Templates
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email template deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "404":
+          description: Email template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/pricing-configs:
+    get:
+      summary: Get all pricing configurations
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: monthName
+          in: query
+          schema:
+            type: string
+            enum:
+              - 1_month
+              - 3_months
+              - 6_months
+              - 12_months
+          description: Filter by month name
+      responses:
+        "200":
+          description: Pricing configurations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PricingConfig"
+                  count:
+                    type: number
+    post:
+      summary: Create or update pricing configuration
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - monthName
+                - price
+              properties:
+                monthName:
+                  type: string
+                  enum:
+                    - 1_month
+                    - 3_months
+                    - 6_months
+                    - 12_months
+                features:
+                  type: array
+                  items:
+                    type: string
+                price:
+                  type: number
+              example:
+                monthName: "3_months"
+                features:
+                  - "Unlimited matches"
+                  - "Priority support"
+                  - "Profile boost"
+                price: 29.99
+      responses:
+        "200":
+          description: Pricing configuration updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/PricingConfig"
+        "201":
+          description: Pricing configuration created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/PricingConfig"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/pricing-configs/{id}:
+    get:
+      summary: Get pricing configuration by ID
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pricing configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/PricingConfig"
+        "404":
+          description: Pricing configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete pricing configuration
+      tags:
+        - Pricing Configurations
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pricing configuration deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "404":
+          description: Pricing configuration not found
           content:
             application/json:
               schema:

@@ -11,7 +11,7 @@ export interface JWTPayload {
   email?: string;
   phoneNumber?: string;
   role: "user" | "admin";
-  firstName?: string;
+  fullName?: string;
 }
 
 declare global {
@@ -112,7 +112,7 @@ export interface ReviewEmailJobData {
   userId: string;
   email: string;
   userName: string;
-  type: "submission" | "approved" | "rejected";
+  type: "submission" | "approved" | "rejected" | "rectification";
   reason?: string;
   dashboardLink?: string;
 }
@@ -122,7 +122,7 @@ export interface ProfileReviewJobData {
   userId: string;
   email: string;
   userName: string;
-  type: "submitted" | "approved" | "rejected";
+  type: "submitted" | "approved" | "rejected" | "rectification";
   reason?: string;
 }
 

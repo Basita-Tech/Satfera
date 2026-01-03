@@ -110,20 +110,84 @@ export async function computeMatchScore(
       return null;
     }
 
-    const cachedScore = await getCachedMatchScore(
-      seekerUserId,
-      candidateUserId
-    );
-    if (cachedScore) {
+    const cachedData = await getCachedMatchScore(seekerUserId, candidateUserId);
+    if (cachedData) {
       logger.debug(
         `Using cached match score for ${seekerUserId} -> ${candidateUserId}`
       );
-      return cachedScore;
+      return cachedData.scoreDetail;
     }
 
     let seeker = preloadedData?.seeker;
     let seekerExpectRaw = preloadedData?.seekerExpect;
     let candidate = preloadedData?.candidate;
+
+    if (!preloadedData) {
+      const [seekerUser, candidateUser] = await Promise.all([
+        User.findById(
+          seekerUserId,
+          "gender isActive isDeleted isProfileApproved profileReviewStatus"
+        ).lean(),
+        User.findById(
+          candidateUserId,
+          "gender isActive isDeleted isProfileApproved profileReviewStatus"
+        ).lean()
+      ]);
+
+      if (!seekerUser || !seekerUser.isActive || seekerUser.isDeleted) {
+        logger.debug(
+          `computeScore: Seeker ${seekerUserId} failed status check`
+        );
+        return { score: 0, reasons: ["Seeker account not active"] };
+      }
+      if (
+        !seekerUser.isProfileApproved ||
+        seekerUser.profileReviewStatus !== "approved"
+      ) {
+        logger.debug(
+          `computeScore: Seeker ${seekerUserId} profile not approved`
+        );
+        return { score: 0, reasons: ["Seeker profile not approved"] };
+      }
+
+      if (
+        !candidateUser ||
+        !candidateUser.isActive ||
+        candidateUser.isDeleted
+      ) {
+        logger.debug(
+          `computeScore: Candidate ${candidateUserId} failed status check`
+        );
+        return { score: 0, reasons: ["Candidate account not active"] };
+      }
+      if (
+        !candidateUser.isProfileApproved ||
+        candidateUser.profileReviewStatus !== "approved"
+      ) {
+        logger.debug(
+          `computeScore: Candidate ${candidateUserId} profile not approved`
+        );
+        return { score: 0, reasons: ["Candidate profile not approved"] };
+      }
+
+      const seekerGender = String(seekerUser.gender);
+      const candidateGender = String(candidateUser.gender);
+      if (seekerGender === candidateGender) {
+        logger.debug(
+          `computeScore: Same gender - seeker: ${seekerGender}, candidate: ${candidateGender}`
+        );
+        return { score: 0, reasons: ["Same gender"] };
+      }
+      if (
+        !(
+          (seekerGender === "male" && candidateGender === "female") ||
+          (seekerGender === "female" && candidateGender === "male")
+        )
+      ) {
+        logger.debug(`computeScore: Invalid gender pairing`);
+        return { score: 0, reasons: ["Invalid gender pairing"] };
+      }
+    }
     let candidatePersonalData = preloadedData?.candidatePersonal;
     let candidateHealthData = preloadedData?.candidateHealth;
     let candidateEducationData = preloadedData?.candidateEducation;
@@ -132,15 +196,15 @@ export async function computeMatchScore(
     if (!seeker || !seekerExpectRaw || !candidate) {
       const [s, se, c] = await Promise.all([
         seeker ||
-          User.findById(seekerUserId, "firstName lastName dateOfBirth").lean(),
+        User.findById(seekerUserId, "firstName lastName dateOfBirth").lean(),
         seekerExpectRaw ||
-          UserExpectations.findOne({ userId: seekerUserId }).lean(),
+        UserExpectations.findOne({ userId: seekerUserId }).lean(),
 
         candidate ||
-          User.findById(
-            candidateUserId,
-            "firstName lastName dateOfBirth gender isActive createdAt"
-          ).lean()
+        User.findById(
+          candidateUserId,
+          "firstName lastName dateOfBirth gender isActive createdAt"
+        ).lean()
       ]);
       seeker = s;
       seekerExpectRaw = se;
@@ -158,25 +222,25 @@ export async function computeMatchScore(
       // Only fetch the fields needed for scoring to reduce payload
       const [cp, ch, ce, cpf] = await Promise.all([
         candidatePersonalData ||
-          UserPersonal.findOne(
-            { userId: candidateUserId },
-            "userId religion subCaste full_address.state marriedStatus residingCountry"
-          ).lean(),
+        UserPersonal.findOne(
+          { userId: candidateUserId },
+          "userId religion subCaste full_address.state marriedStatus residingCountry"
+        ).lean(),
         candidateHealthData ||
-          UserHealth.findOne(
-            { userId: candidateUserId },
-            "userId isAlcoholic diet"
-          ).lean(),
+        UserHealth.findOne(
+          { userId: candidateUserId },
+          "userId isAlcoholic diet"
+        ).lean(),
         candidateEducationData ||
-          UserEducation.findOne(
-            { userId: candidateUserId },
-            "userId HighestEducation"
-          ).lean(),
+        UserEducation.findOne(
+          { userId: candidateUserId },
+          "userId HighestEducation"
+        ).lean(),
         candidateProfessionData ||
-          UserProfession.findOne(
-            { userId: candidateUserId },
-            "userId Occupation"
-          ).lean()
+        UserProfession.findOne(
+          { userId: candidateUserId },
+          "userId Occupation"
+        ).lean()
       ]);
       candidatePersonalData = cp;
       candidateHealthData = ch;
@@ -200,8 +264,8 @@ export async function computeMatchScore(
 
     const candidateCommunityArray = candidatePersonalData?.religion
       ? [candidatePersonalData.religion, candidatePersonalData.subCaste].filter(
-          Boolean
-        )
+        Boolean
+      )
       : [];
     const communityScoreRaw = communityScore(
       seekerExpect.community,
@@ -392,6 +456,10 @@ async function getConnectionStatus(
   }
 }
 
+/**
+ * @deprecated Use MatchService.getUserMatches() instead.
+ * This method computes scores on-demand and is replaced by the bidirectional Match collection.
+ */
 export async function findMatchingUsers(
   seekerUserId: mongoose.Types.ObjectId,
   minScore: number = SCORE_THRESHOLDS.MIN_MATCH
@@ -416,20 +484,21 @@ export async function findMatchingUsers(
     const oppositeGender = genderValue === "male" ? "female" : "male";
 
     const excludedIds: any[] = (seekerUser as any)?.blockedUsers || [];
+    const allExcludedIds = [seekerUserId, ...excludedIds];
     const baseQuery: any = {
-      _id: { $ne: seekerUserId },
+      _id: { $nin: allExcludedIds },
       gender: oppositeGender,
-      // isActive: true,
-      // isDeleted: false,
+      isActive: true,
+      isDeleted: false,
+      isVisible: true,
+      isProfileApproved: true,
+      profileReviewStatus: "approved",
       blockedUsers: { $ne: seekerUserId }
     };
-    if (excludedIds.length > 0) {
-      baseQuery._id.$nin = excludedIds;
-    }
 
     let candidates = (await User.find(
       baseQuery,
-      "firstName lastName dateOfBirth gender createdAt"
+      "firstName lastName dateOfBirth gender createdAt isProfileApproved profileReviewStatus"
     ).lean()) as any[];
 
     const favoriteIds = new Set(
@@ -563,8 +632,18 @@ export async function findMatchingUsers(
     const scoredCandidates = await Promise.all(
       candidates.map(async (candidate) => {
         const candidateIdStr = candidate._id.toString();
-
         const candidateId = candidate._id as unknown as mongoose.Types.ObjectId;
+
+        const cachedData = await getCachedMatchScore(seekerUserId, candidateId);
+
+        if (cachedData && cachedData.userData) {
+          return {
+            candidate,
+            candidateIdStr,
+            scoreDetail: cachedData.scoreDetail,
+            cachedUserData: cachedData.userData
+          };
+        }
 
         const scoreDetail = await computeMatchScore(seekerUserId, candidateId, {
           seeker: seekerUser,
@@ -576,7 +655,7 @@ export async function findMatchingUsers(
           candidateHealth: healthMap.get(candidateIdStr)
         });
 
-        return { candidate, candidateIdStr, scoreDetail };
+        return { candidate, candidateIdStr, scoreDetail, cachedUserData: null };
       })
     );
 
@@ -591,19 +670,37 @@ export async function findMatchingUsers(
       const item = qualifiedCandidates[i];
       if (!item || !item.scoreDetail) continue;
 
-      const { candidate, candidateIdStr, scoreDetail } = item;
-      const personal = personalMap.get(candidateIdStr);
-      const profile = profileMap.get(candidateIdStr);
-      const profession = professionMap.get(candidateIdStr);
+      const { candidate, candidateIdStr, scoreDetail, cachedUserData } = item;
 
-      const listingProfile = await formatListingProfile(
-        candidate,
-        personal,
-        profile,
-        profession,
-        scoreDetail,
-        null
-      );
+      let listingProfile;
+
+      if (cachedUserData) {
+        listingProfile = {
+          user: cachedUserData,
+          scoreDetail: scoreDetail
+        };
+      } else {
+        const personal = personalMap.get(candidateIdStr);
+        const profile = profileMap.get(candidateIdStr);
+        const profession = professionMap.get(candidateIdStr);
+
+        listingProfile = await formatListingProfile(
+          candidate,
+          personal,
+          profile,
+          profession,
+          scoreDetail,
+          null
+        );
+
+        const candidateId = candidate._id as unknown as mongoose.Types.ObjectId;
+        await setCachedMatchScore(
+          seekerUserId,
+          candidateId,
+          scoreDetail,
+          listingProfile.user
+        );
+      }
 
       matchingUsers.push(listingProfile);
     }
@@ -822,7 +919,7 @@ export async function getDetailedProfile(
       otherPhotos: Array.isArray(filteredPhotos?.otherPhotos)
         ? filteredPhotos!.otherPhotos.slice(0, 2)
         : [],
-      requestId : connectionRequest?._id || null
+      requestId: connectionRequest?._id || null
     };
   } catch (error: any) {
     logger.error("Error in getDetailedProfile:", {

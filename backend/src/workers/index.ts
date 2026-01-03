@@ -12,11 +12,24 @@ export async function startAllWorkers() {
 
     logger.info("Starting all BullMQ workers...");
     for (const worker of workers) {
+      logger.info(`⏳ Initializing ${worker.name} worker...`);
       await worker.waitUntilReady();
-      logger.info(`✓ ${worker.name} worker ready`);
+
+      if (worker.isPaused()) {
+        logger.info(`⏸ ${worker.name} is paused, resuming...`);
+        worker.resume();
+      }
+
+      logger.info(`${worker.name} worker ready and listening for jobs`, {
+        workerId: worker.id,
+        concurrency: worker.opts.concurrency,
+        isPaused: worker.isPaused()
+      });
     }
 
-    logger.info(`✓ All ${workers.length} workers started successfully`);
+    logger.info(
+      `All ${workers.length} workers started successfully and ready to process jobs`
+    );
     return true;
   } catch (error) {
     logger.error("Failed to start workers:", error);

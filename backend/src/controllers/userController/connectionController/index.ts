@@ -12,7 +12,10 @@ import {
 import { logger } from "../../../lib/common/logger";
 import { isEitherBlocked } from "../../../lib/common/blockUtils";
 import { computeMatchScore } from "../../../services";
+import { MatchService } from "../../../services/matchService";
 import { formatListingProfile } from "../../../lib/common/formatting";
+import { sendConnectionAcceptedEmail } from "../../../lib/emails";
+import { APP_CONFIG } from "../../../utils/constants";
 
 async function createNotificationBatch(
   notifications: Array<{
@@ -75,7 +78,7 @@ export async function getSentRequests(
       (r: any) => r.receiver._id || r.receiver
     );
 
-    const [personals, profiles, users, professions, authUser] =
+    const [personals, profiles, users, professions, authUser, authUserProfile] =
       await Promise.all([
         UserPersonal.find({ userId: { $in: receiverIds } })
           .select(
@@ -92,8 +95,15 @@ export async function getSentRequests(
         UserProfession.find({ userId: { $in: receiverIds } })
           .select("userId Occupation")
           .lean(),
-        User.findById(userObjectId).select("blockedUsers").lean()
+        User.findById(userObjectId).select("blockedUsers").lean(),
+        Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
       ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
@@ -123,7 +133,7 @@ export async function getSentRequests(
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (!receiverUser) return null;
 
@@ -136,10 +146,11 @@ export async function getSentRequests(
           receiverProfile,
           receiverProfession,
           scoreDetail || { score: 0, reasons: [] },
-          connReq.status
+          connReq.status,
+          favoriteSet.has(receiverIdStr)
         );
 
-        if (connReq.status === "pending" && connReq._id) {
+        if (connReq.status && connReq._id) {
           formatted.user = formatted.user || {};
           formatted.user.connectionId = connReq._id.toString();
         }
@@ -151,7 +162,7 @@ export async function getSentRequests(
     const validResults = result.filter((r) => r !== null);
 
     logger.info(
-      `Sent requests fetched for user ${userId} - Total: ${validResults}`
+      `Sent requests fetched for user ${userId} - Total: ${validResults.length}`
     );
 
     res.status(200).json({
@@ -196,7 +207,7 @@ export async function getReceivedRequests(
       (r: any) => r.sender._id || r.sender
     );
 
-    const [personals, profiles, users, professions, authUser] =
+    const [personals, profiles, users, professions, authUser, authUserProfile] =
       await Promise.all([
         UserPersonal.find({ userId: { $in: senderIds } })
           .select(
@@ -213,8 +224,15 @@ export async function getReceivedRequests(
         UserProfession.find({ userId: { $in: senderIds } })
           .select("userId Occupation")
           .lean(),
-        User.findById(userObjectId).select("blockedUsers").lean()
+        User.findById(userObjectId).select("blockedUsers").lean(),
+        Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
       ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const personalMap = new Map(
       personals.map((p: any) => [p.userId.toString(), p])
@@ -244,7 +262,7 @@ export async function getReceivedRequests(
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (!senderUser) return null;
 
@@ -257,7 +275,8 @@ export async function getReceivedRequests(
           senderProfile,
           senderProfession,
           scoreDetail || { score: 0, reasons: [] },
-          connReq.status
+          connReq.status,
+          favoriteSet.has(senderIdStr)
         );
 
         if (connReq.status && connReq._id) {
@@ -399,9 +418,8 @@ export async function sendConnectionRequest(
         user: receiverId,
         type: "request_received",
         title: "New connection request",
-        message: `${
-          sender?.firstName || "Someone"
-        } sent you a connection request.`,
+        message: `${sender?.firstName || "Someone"
+          } sent you a connection request.`,
         meta: { senderId }
       },
       {
@@ -412,6 +430,14 @@ export async function sendConnectionRequest(
         meta: { receiverId }
       }
     ]);
+
+    void MatchService.hideMatchForRequest(senderId, receiverId).catch((err) => {
+      logger.warn("Failed to hide match for request:", {
+        senderId,
+        receiverId,
+        error: err.message
+      });
+    });
 
     await session.commitTransaction();
     res.status(201).json({
@@ -433,57 +459,109 @@ export async function acceptConnectionRequest(
   req: AuthenticatedRequest,
   res: Response
 ) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user!.id;
     const { requestId } = req.body;
 
-    const request = await ConnectionRequest.findOneAndUpdate(
-      { _id: requestId, receiver: userId, status: "pending" },
-      { status: "accepted", actionedBy: userId },
-      { new: true }
-    );
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Connection request not found or already handled."
-      });
-    }
-
     try {
-      const blocked = await isEitherBlocked(String(request.sender), userId);
+      const existingRequest = await ConnectionRequest.findOne({
+        _id: requestId,
+        receiver: userId,
+        status: "pending"
+      })
+        .session(session)
+        .lean();
+
+      if (!existingRequest) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: "Connection request not found or already handled."
+        });
+      }
+
+      const blocked = await isEitherBlocked(
+        String(existingRequest.sender),
+        userId
+      );
       if (blocked) {
+        await session.abortTransaction();
         return res.status(403).json({
           success: false,
           message: "Action not allowed: one of the users has blocked the other."
         });
       }
     } catch (e) {
+      await session.abortTransaction();
       return res
         .status(403)
         .json({ success: false, message: "Action not allowed." });
     }
 
-    const receiver = await User.findById(userId).lean();
+    const request = await ConnectionRequest.findOneAndUpdate(
+      { _id: requestId, receiver: userId, status: "pending" },
+      { status: "accepted", actionedBy: userId },
+      { new: true, session }
+    );
+
+    if (!request) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found or already handled."
+      });
+    }
+
+    const receiver = await User.findById(userId).session(session).lean();
 
     await createNotificationBatch([
       {
         user: request.sender,
         type: "request_accepted",
         title: "Request accepted",
-        message: `${
-          receiver?.firstName || "User"
-        } accepted your connection request.`,
+        message: `${receiver?.firstName || "User"
+          } accepted your connection request.`,
         meta: { receiverId: userId }
       }
     ]);
 
+    const sender = await User.findById(request.sender).session(session).lean();
+    if (sender?.email) {
+      const accepterName = `${receiver?.firstName || ""} ${receiver?.lastName || ""
+        }`.trim();
+      const accepterProfileLink = `${APP_CONFIG.FRONTEND_URL || "https://satfera.vercel.app"
+        }/dashboard/profile/${userId}`;
+
+      sendConnectionAcceptedEmail(
+        sender.email,
+        sender.firstName || "User",
+        accepterName || "A user",
+        accepterProfileLink
+      ).catch((err) => {
+        logger.error("Failed to send connection accepted email:", {
+          error: err.message,
+          stack: err.stack,
+          senderEmail: sender.email,
+          senderId: sender._id,
+          accepterName,
+          accepterProfileLink
+        });
+      });
+    }
+
+    await session.commitTransaction();
     res.status(200).json({ success: true, data: request });
   } catch (err) {
+    await session.abortTransaction();
     logger.error("Error accepting connection request:", err);
     res
       .status(500)
       .json({ success: false, message: "Error accepting connection request." });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -491,57 +569,85 @@ export async function rejectConnectionRequest(
   req: AuthenticatedRequest,
   res: Response
 ) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user!.id;
     const { requestId } = req.body;
 
-    const request = await ConnectionRequest.findOneAndUpdate(
-      { _id: requestId, receiver: userId, status: "pending" },
-      { status: "rejected", actionedBy: userId },
-      { new: true }
-    );
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Connection request not found or already processed."
-      });
-    }
-
     try {
-      const blocked = await isEitherBlocked(String(request.sender), userId);
+      const existingRequest = await ConnectionRequest.findOne({
+        _id: requestId,
+        receiver: userId,
+        status: "pending"
+      })
+        .session(session)
+        .lean();
+
+      if (!existingRequest) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: "Connection request not found or already processed."
+        });
+      }
+
+      const blocked = await isEitherBlocked(
+        String(existingRequest.sender),
+        userId
+      );
       if (blocked) {
+        await session.abortTransaction();
         return res.status(403).json({
           success: false,
           message: "Action not allowed: one of the users has blocked the other."
         });
       }
     } catch (e) {
+      await session.abortTransaction();
       return res
         .status(403)
         .json({ success: false, message: "Action not allowed." });
     }
 
-    const receiver = await User.findById(userId).lean();
+    const request = await ConnectionRequest.findOneAndUpdate(
+      { _id: requestId, receiver: userId, status: "pending" },
+      { status: "rejected", actionedBy: userId },
+      { new: true, session }
+    );
+
+    if (!request) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Connection request not found or already processed."
+      });
+    }
+
+    const receiver = await User.findById(userId).session(session).lean();
 
     await createNotificationBatch([
       {
         user: request.sender,
         type: "request_rejected",
         title: "Request rejected",
-        message: `${
-          receiver?.firstName || "User"
-        } rejected your connection request.`,
+        message: `${receiver?.firstName || "User"
+          } rejected your connection request.`,
         meta: { receiverId: userId }
       }
     ]);
 
+    await session.commitTransaction();
     res.status(200).json({ success: true, data: request });
   } catch (err) {
+    await session.abortTransaction();
     logger.error("Error rejecting connection request:", err);
     res
       .status(500)
       .json({ success: false, message: "Error rejecting connection request." });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -589,7 +695,7 @@ export async function getApprovedConnections(
       return senderId === userId ? receiverId : senderId;
     });
 
-    const [users, personals, profiles, professions, authUser] =
+    const [users, personals, profiles, professions, authUser, authUserProfile] =
       await Promise.all([
         User.find(
           {
@@ -610,8 +716,15 @@ export async function getApprovedConnections(
         UserProfession.find({ userId: { $in: otherUserIds } })
           .select("userId Occupation")
           .lean(),
-        User.findById(userObjectId).select("blockedUsers").lean()
+        User.findById(userObjectId).select("blockedUsers").lean(),
+        Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
       ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
@@ -642,7 +755,7 @@ export async function getApprovedConnections(
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
         if (!otherUser) return null;
 
         const personal = personalMap.get(otherUserId);
@@ -660,7 +773,8 @@ export async function getApprovedConnections(
           profile,
           profession,
           scoreDetail || { score: 0, reasons: [] },
-          conn.status
+          conn.status,
+          favoriteSet.has(otherUserId)
         );
       })
     );
@@ -685,22 +799,27 @@ export async function withdrawConnection(
   req: AuthenticatedRequest,
   res: Response
 ) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user!.id;
     const { connectionId } = req.body;
 
-    const connection = await ConnectionRequest.findOneAndUpdate({
+    const connection = await ConnectionRequest.findOne({
       _id: connectionId,
       $or: [{ sender: userId }, { receiver: userId }]
-    });
+    }).session(session);
 
     if (!connection) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: "Connection request not found"
       });
     }
     if (connection.status === "accepted") {
+      await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: "Cannot withdraw an accepted connection."
@@ -708,19 +827,36 @@ export async function withdrawConnection(
     }
 
     if (connection.status === "pending") {
-      await connection.deleteOne();
+      await connection.deleteOne({ session });
     }
 
+    const otherUserId =
+      connection.sender.toString() === userId
+        ? connection.receiver.toString()
+        : connection.sender.toString();
+
+    void MatchService.showMatchForWithdraw(userId, otherUserId).catch((err) => {
+      logger.warn("Failed to show match after withdraw:", {
+        userId,
+        otherUserId,
+        error: err.message
+      });
+    });
+
+    await session.commitTransaction();
     res.status(200).json({
       success: true,
       message: "Connection withdrawn successfully."
     });
   } catch (err) {
+    await session.abortTransaction();
     logger.error("Error withdrawing connection", err);
     res.status(500).json({
       success: false,
       message: "Failed to withdraw connection."
     });
+  } finally {
+    session.endSession();
   }
 }
 
@@ -744,8 +880,8 @@ export const getFavorites = async (
     const favoriteIds =
       viewerProfile && Array.isArray(viewerProfile.favoriteProfiles)
         ? (viewerProfile.favoriteProfiles as any[]).map(
-            (f: any) => new mongoose.Types.ObjectId(f)
-          )
+          (f: any) => new mongoose.Types.ObjectId(f)
+        )
         : [];
 
     if (!favoriteIds.length) {
@@ -808,7 +944,7 @@ export const getFavorites = async (
           ) {
             return null;
           }
-        } catch (e) {}
+        } catch (e) { }
         if (!user) return null;
         const score = await computeMatchScore(viewerObjectId, fid);
         const profession = professionMap.get(cid);
@@ -818,7 +954,8 @@ export const getFavorites = async (
           candidateProfile,
           profession,
           score || { score: 0, reasons: [] },
-          null
+          null,
+          true
         );
       })
     );
@@ -858,7 +995,7 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
 
     const target = await User.findOne({
       _id: profileId,
-      isActive: true,
+      isActive: true
       // isDeleted: false
     }).lean();
     if (!target) {
@@ -909,6 +1046,16 @@ export async function addToFavorites(req: AuthenticatedRequest, res: Response) {
     const favoriteProfiles =
       (updatedDoc && (updatedDoc as any).favoriteProfiles) || [];
 
+    void MatchService.hideMatchForFavorite(authUser.id, profileId).catch(
+      (err) => {
+        logger.warn("Failed to hide match for favorite:", {
+          userId: authUser.id,
+          profileId,
+          error: err.message
+        });
+      }
+    );
+
     return res.status(200).json({
       success: true,
       message: "Added to favorites"
@@ -953,6 +1100,16 @@ export async function removeFromFavorites(
     const updatedDoc = Array.isArray(updated) ? updated[0] : updated;
     const favoriteProfiles =
       (updatedDoc && (updatedDoc as any).favoriteProfiles) || [];
+
+    void MatchService.showMatchForUnfavorite(authUser.id, profileId).catch(
+      (err) => {
+        logger.warn("Failed to show match after unfavorite:", {
+          userId: authUser.id,
+          profileId,
+          error: err.message
+        });
+      }
+    );
 
     return res.status(200).json({
       success: true,
@@ -1027,9 +1184,8 @@ export async function rejectAcceptedConnection(
         user: request.sender,
         type: "request_rejected",
         title: "Connection status changed",
-        message: `${
-          receiver?.firstName + " " + receiver?.lastName || "User"
-        } changed the connection status to rejected.`,
+        message: `${receiver?.firstName + " " + receiver?.lastName || "User"
+          } changed the connection status to rejected.`,
         meta: { receiverId: userId, newStatus: "rejected" }
       }
     ]);
@@ -1107,9 +1263,8 @@ export async function acceptRejectedConnection(
         user: request.sender,
         type: "request_accepted",
         title: "Connection status changed",
-        message: `${
-          receiver?.firstName + " " + receiver?.lastName || "User"
-        } changed the connection status to accepted.`,
+        message: `${receiver?.firstName + " " + receiver?.lastName || "User"
+          } changed the connection status to accepted.`,
         meta: { receiverId: userId, newStatus: "accepted" }
       }
     ]);

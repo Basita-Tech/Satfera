@@ -7,6 +7,7 @@ import {
   createProfilePhotoUpload,
   createGovernmentIdUpload
 } from "../../../../lib/fileValidation/fileValidationMiddleware";
+import { photoUploadGatewayLimiter } from "../../../../middleware/redisRateLimiter";
 
 const userPersonalRouter = Router();
 const profilePhotoUpload = createProfilePhotoUpload();
@@ -133,6 +134,7 @@ userPersonalRouter.put(
 userPersonalRouter.post(
   "/upload/photos",
   authenticate,
+  photoUploadGatewayLimiter,
   profilePhotoUpload.single("file"),
   uploadController.uploadPhotoController
 );
@@ -144,6 +146,7 @@ userPersonalRouter.get(
 userPersonalRouter.put(
   "/upload/photos",
   authenticate,
+  photoUploadGatewayLimiter,
   profilePhotoUpload.single("file"),
   uploadController.updatePhotoController
 );
@@ -157,6 +160,7 @@ userPersonalRouter.delete(
 userPersonalRouter.post(
   "/upload/government-id",
   authenticate,
+  photoUploadGatewayLimiter,
   governmentIdUpload.single("file"),
   uploadController.uploadGovernmentIdController
 );
@@ -170,6 +174,7 @@ userPersonalRouter.get(
 userPersonalRouter.put(
   "/upload/government-id",
   authenticate,
+  photoUploadGatewayLimiter,
   governmentIdUpload.single("file"),
   uploadController.updateGovernmentIdController
 );

@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>satfera Biodata</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      body {
+        font-family: sans-serif;
+        background: #fff;
+        color: #000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .biodata-container {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 auto;
+        background: linear-gradient(135deg, #fff 0%, #fbfaf7 100%);
+        position: relative;
+        overflow: hidden;
+        page-break-after: always;
+      }
+
+      .biodata-container::before,
+      .biodata-container::after {
+        content: "";
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #ddb84e 0%, #e4c48a 100%);
+        opacity: 0.1;
+      }
+
+      .biodata-container::before {
+        top: 0;
+        left: 0;
+        clip-path: polygon(0 0, 100% 0, 0 100%);
+      }
+
+      .biodata-container::after {
+        bottom: 0;
+        right: 0;
+        clip-path: polygon(100% 0, 100% 100%, 0 100%);
+      }
+
+      .header {
+        background: linear-gradient(135deg, #ddb84e 0%, #e4c48a 100%);
+        padding: 15px 0;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .header-text {
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 3px;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      .logo-section {
+        text-align: center;
+        padding: 18px 0 12px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .logo {
+        width: 180px;
+        height: auto;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+
+      .photo-section {
+        text-align: center;
+        padding: 15px 0;
+        position: relative;
+        z-index: 1;
+      }
+
+      .photo-frame {
+        display: inline-block;
+        padding: 2px;
+        background: linear-gradient(135deg, #ddb84e 0%, #e4c48a 100%);
+        border-radius: 50%;
+        box-shadow: 0 4px 12px rgba(221, 184, 78, 0.3);
+      }
+
+      .profile-photo {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        object-fit: cover;
+        display: block;
+      }
+
+      .content {
+        padding: 0 30mm 15px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .section {
+        margin-bottom: 18px;
+        page-break-inside: avoid;
+      }
+
+      .section-title {
+        color: #ddb84e;
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid #e4c48a;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+      }
+
+      .info-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .info-row {
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .info-row:last-child {
+        border-bottom: none;
+      }
+
+      .info-label {
+        padding: 7px 0;
+        font-weight: 600;
+        color: #666;
+        width: 42%;
+        font-size: 12.5px;
+      }
+
+      .info-separator {
+        padding: 7px 6px;
+        color: #ddb84e;
+        font-weight: bold;
+        width: 3%;
+      }
+
+      .info-value {
+        padding: 7px 0;
+        color: #333;
+        font-size: 12.5px;
+        width: 55%;
+      }
+
+      .footer {
+        padding: 15px 30mm 30px;
+        background: linear-gradient(to top, #fef9f3 0%, transparent 100%);
+        position: relative;
+        z-index: 1;
+        page-break-inside: avoid;
+        margin-top: auto;
+      }
+
+      .footer-title {
+        font-weight: 600;
+        color: #ddb84e;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+
+      .footer-content {
+        color: #555;
+        line-height: 1.6;
+        font-size: 11.5px;
+        margin-bottom: 10px;
+      }
+
+      .profile-link {
+        display: inline-block;
+        color: #ddb84e;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 7px 18px;
+        border: 2px solid #ddb84e;
+        border-radius: 20px;
+        font-size: 11px;
+        transition: all 0.3s ease;
+        margin-top: 4px;
+      }
+
+      .profile-link:hover {
+        background: #ddb84e;
+        color: #fff;
+      }
+
+      .divider {
+        height: 2px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          #e4c48a,
+          transparent
+        );
+        margin: 12px 0;
+      }
+
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+        }
+
+        .biodata-container {
+          width: 210mm;
+          height: 297mm;
+          margin: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="biodata-container">
+      <div class="header">
+        <p class="header-text">|| Shree Ganesh ||</p>
+      </div>
+
+      <div class="logo-section">
+        <img src="https://satfera.in/logo.png" alt="Logo" class="logo" />
+      </div>
+      <div class="photo-section">
+        <div class="photo-frame">
+          <img src="{{photo_url}}" alt="Profile Photo" class="profile-photo" />
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="section">
+          <h2 class="section-title">Personal Details</h2>
+          <table class="info-table">
+            <tr class="info-row">
+              <td class="info-label">Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Date of Birth</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{date_of_birth}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Time of Birth</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{time_of_birth}}</td>
+            </tr>
+            <!-- <tr class="info-row">
+              <td class="info-label">Place of Birth</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{place_of_birth}}</td>
+            </tr> -->
+            <tr class="info-row">
+              <td class="info-label">Height</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{height}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Weight</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{weight}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Rashi</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{rashi}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Caste</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{caste}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Native Place</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{native_place}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Occupation</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{occupation}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Qualification</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{qualification}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Current Address</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{current_address}}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">Family Details</h2>
+          <table class="info-table">
+            <tr class="info-row">
+              <td class="info-label">Father's Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{father_name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Mother's Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{mother_name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Family Type</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{family_type}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Father's Occupation</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{father_occupation}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Mother's Occupation</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{mother_occupation}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Father's Contact</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{father_contact}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Grandfather's Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{grandfather_name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Grandmother's Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{grandmother_name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Nana's Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{nana_name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Nani's Name</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{nani_name}}</td>
+            </tr>
+            <tr class="info-row">
+              <td class="info-label">Family Address</td>
+              <td class="info-separator">:</td>
+              <td class="info-value">{{family_address}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p class="footer-title">Contact Information</p>
+        <p class="footer-content">{{contact_info}}</p>
+        <a href="{{profile_url}}" class="profile-link">View Full Profile</a>
+      </div>
+    </div>
+  </body>
+</html>

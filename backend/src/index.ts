@@ -12,6 +12,7 @@ import { logger, morganStream } from "./lib/common/logger";
 import { redisClient, connectRedis } from "./lib/redis";
 import { startAllWorkers, closeAllWorkers } from "./workers";
 import apiV1 from "./routes/v1";
+import apiV2 from "./routes/v2";
 import * as middleware from "./middleware/securityMiddleware";
 import { ipBlockingMiddleware } from "./middleware/ipBlocking";
 import { csrfProtection } from "./middleware/csrfProtection";
@@ -21,7 +22,7 @@ const swaggerDocument = YAML.load("./docs/swagger.yaml");
 
 app.set("trust proxy", 1);
 
-app.use(ipBlockingMiddleware);
+// app.use(ipBlockingMiddleware);
 
 app.use(
   helmet({
@@ -43,7 +44,7 @@ app.use(cors(middleware.corsOptions));
 
 app.use(middleware.securityLogger);
 
-app.use(middleware.requestTimeoutProtection(30000));
+app.use(middleware.requestTimeoutProtection(60000));
 
 app.use(middleware.securityHeaders);
 
@@ -95,6 +96,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/", apiV1);
+app.use("/api/v2/", apiV2);
 
 app.use((req: Request, res: Response) => {
   res.status(404).json({
@@ -112,6 +114,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     method: req.method,
     ip: req.ip
   });
+
+  if (res.headersSent) {
+    logger.warn("Headers already sent, skipping error response");
+    return next(err);
+  }
 
   const sanitized = middleware.sanitizeError(err);
 
@@ -164,7 +171,7 @@ server = app.listen(PORT, () => {
       const diff = process.hrtime(startTime);
       const ms = diff[0] * 1000 + diff[1] / 1e6;
       logger.info(
-        `Background init triggered (time spent on scheduling only: ~${ms.toFixed(2)}ms)`
+        `Background init completed in ~${ms.toFixed(2)}ms (workers ready: ${areWorkersReady})`
       );
     });
 })();

@@ -17,7 +17,8 @@ import {
   requestEmailChange,
   verifyAndChangeEmail,
   requestPhoneChange,
-  verifyAndChangePhone
+  verifyAndChangePhone,
+  reportProfile
 } from "../../../services/userPersonalService/userSettingService";
 import { User } from "../../../models";
 
@@ -698,3 +699,57 @@ export async function getUserContactInfoController(
     });
   }
 }
+
+export async function reportProfileController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const userId = req.user?.id;
+    const { customId, reason, description, reportType } = req.body;
+
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+
+    if (!customId)
+      return res
+        .status(400)
+        .json({ success: false, message: "customId is required" });
+
+    if (!reason)
+      return res
+        .status(400)
+        .json({ success: false, message: "reason is required" });
+
+    try {
+      const result = await reportProfile(userId, customId, reason, description, reportType);
+      return res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (err: any) {
+      const msg = err?.message || "Failed to report profile";
+
+      if (msg === "Reported user not found") {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      if (msg === "Cannot report your own profile") {
+        return res.status(400).json({
+          success: false,
+          message: "You cannot report your own profile"
+        });
+      }
+
+      return res.status(400).json({ success: false, message: msg });
+    }
+  } catch (error: any) {
+    logger.error("Error in reportProfileController", error.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+

@@ -14,42 +14,126 @@ import {
 import { calculateAge, isAffirmative } from "../../utils/utils";
 import { computeMatchScore } from "../recommendationService";
 import { validateUserId } from "./userSettingService";
+import { generatePDF } from "pdf-node";
+import fs from "fs";
+import path from "path";
 
 export async function getUserDashboardService(userId: string) {
-  const [user, userPersonal, userProfile, userProfession, sentRequests] =
-    await Promise.all([
-      User.findById(userId, "firstName lastName dateOfBirth customId").lean(),
-      UserPersonal.findOne({ userId }, "full_address.city").lean(),
-      Profile.findOne(
-        { userId },
-        "photos.closerPhoto favoriteProfiles isVerified ProfileViewed accountType"
-      ).lean(),
-      UserProfession.findOne({ userId }, "Occupation").lean(),
-      ConnectionRequest.countDocuments({ sender: userId, status: "pending" })
-    ]);
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  const queryStart = Date.now();
 
-  if (!user || !userProfile) {
+  const result = await User.aggregate([
+    { $match: { _id: userObjectId } },
+    {
+      $lookup: {
+        from: "userpersonals",
+        localField: "_id",
+        foreignField: "userId",
+        pipeline: [{ $project: { "full_address.city": 1 } }],
+        as: "personal"
+      }
+    },
+    {
+      $lookup: {
+        from: "profiles",
+        localField: "_id",
+        foreignField: "userId",
+        pipeline: [
+          {
+            $project: {
+              "photos.closerPhoto.url": 1,
+              favoriteProfiles: 1,
+              isVerified: 1,
+              ProfileViewed: 1
+            }
+          }
+        ],
+        as: "profile"
+      }
+    },
+    {
+      $lookup: {
+        from: "userprofessions",
+        localField: "_id",
+        foreignField: "userId",
+        pipeline: [{ $project: { Occupation: 1 } }],
+        as: "profession"
+      }
+    },
+    {
+      $lookup: {
+        from: "connectionrequests",
+        let: { userId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$sender", "$$userId"] },
+                  { $eq: ["$status", "pending"] }
+                ]
+              }
+            }
+          },
+          { $count: "count" }
+        ],
+        as: "sentRequests"
+      }
+    },
+    {
+      $project: {
+        firstName: 1,
+        lastName: 1,
+        dateOfBirth: 1,
+        planExpiry: 1,
+        customId: 1,
+        city: { $arrayElemAt: ["$personal.full_address.city", 0] },
+        closerPhotoUrl: {
+          $arrayElemAt: ["$profile.photos.closerPhoto.url", 0]
+        },
+        accountType: 1,
+        isVerified: { $arrayElemAt: ["$profile.isVerified", 0] },
+        profileViewsCount: { $arrayElemAt: ["$profile.ProfileViewed", 0] },
+        favoriteProfiles: { $arrayElemAt: ["$profile.favoriteProfiles", 0] },
+        occupation: { $arrayElemAt: ["$profession.Occupation", 0] },
+        sentRequestsCount: {
+          $ifNull: [{ $arrayElemAt: ["$sentRequests.count", 0] }, 0]
+        }
+      }
+    }
+  ])
+    .allowDiskUse(true)
+    .exec();
+
+  const queryTime = Date.now() - queryStart;
+  logger.info(
+    `Dashboard aggregation query took ${queryTime}ms for user ${userId}`
+  );
+
+  if (!result || result.length === 0) {
     throw new Error("User or profile data not found");
   }
 
-  const profile = userProfile as any;
-  const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : null;
+  const data = result[0];
+  const age = data.dateOfBirth ? calculateAge(data.dateOfBirth) : null;
 
-  const dashboardData = {
-    firstName: user.firstName || null,
-    lastName: user.lastName || null,
+  return {
+    firstName: data.firstName || null,
+    lastName: data.lastName || null,
     age: age,
-    closerPhotoUrl: profile.photos?.closerPhoto?.url || null,
-    city: userPersonal?.full_address?.city || null,
-    occupation: userProfession?.Occupation || null,
-    accountType: profile.accountType || "free",
-    isVerified: profile.isVerified || false,
-    interestSentCount: sentRequests || 0,
-    profileViewsCount: profile.ProfileViewed || 0,
-    shortListedCount: profile.favoriteProfiles?.length || 0,
-    userId: user.customId || null
+    planExpiry: data.planExpiry
+      ? new Date(data.planExpiry).toISOString()
+      : null,
+    closerPhotoUrl: data.closerPhotoUrl || null,
+    city: data.city || null,
+    occupation: data.occupation || null,
+    accountType: data.accountType || "free",
+    isVerified: data.isVerified || false,
+    interestSentCount: data.sentRequestsCount || 0,
+    profileViewsCount: data.profileViewsCount || 0,
+    shortListedCount: data.favoriteProfiles?.length || 0,
+    userId: data.customId || null
   };
-  return dashboardData;
 }
 
 export async function getUserProfileViewsService(
@@ -100,7 +184,9 @@ export async function getUserProfileViewsService(
       UserProfession.find({ userId: { $in: viewerIds } })
         .select("userId Occupation")
         .lean(),
-      Profile.findOne({ userId }).select("ProfileViewed").lean()
+      Profile.findOne({ userId })
+        .select("ProfileViewed favoriteProfiles")
+        .lean()
     ]);
 
   const userMap = new Map(users.map((u: any) => [String(u._id), u]));
@@ -112,6 +198,12 @@ export async function getUserProfileViewsService(
   );
   const professionMap = new Map(
     (professions || []).map((p: any) => [String(p.userId), p])
+  );
+
+  const favoriteSet = new Set(
+    ((profileViewDoc as any)?.favoriteProfiles || []).map((id: any) =>
+      String(id)
+    )
   );
 
   const listings = results.map((r: any) => {
@@ -127,7 +219,8 @@ export async function getUserProfileViewsService(
       profile,
       profession,
       { score: 0, reasons: [] },
-      null
+      null,
+      favoriteSet.has(vid)
     );
   });
 
@@ -152,11 +245,16 @@ export async function compareProfilesService(
   profilesIds: string[],
   authUserId: string | null
 ) {
-  const [authUser, authPersonal, authProfession] = await Promise.all([
+  const [authUser, authPersonal, authProfession, profile] = await Promise.all([
     User.findById(authUserId).lean(),
     UserPersonal.findOne({ userId: authUserId }).lean(),
-    UserProfession.findOne({ userId: authUserId }).lean()
+    UserProfession.findOne({ userId: authUserId }).lean(),
+    Profile.findOne({ userId: authUserId }).select("favoriteProfiles").lean()
   ]);
+
+  const favoriteSet = new Set(
+    (profile?.favoriteProfiles || []).map((id: any) => id.toString())
+  );
 
   const [
     users,
@@ -265,6 +363,7 @@ export async function compareProfilesService(
         smoking: h?.isTobaccoUser || null,
         drinking: h?.isAlcoholic || null,
         familyType: f?.familyType || null,
+        isFavorite: favoriteSet.has(id),
         closerPhoto: {
           url: pr?.photos?.closerPhoto?.url || null
         },
@@ -356,11 +455,76 @@ export async function searchService(
   limit = 20,
   authUserId?: string
 ) {
-  const match: any = { isActive: true };
+  const match: any = {
+    isActive: true,
+    isDeleted: false,
+    isVisible: true,
+    isProfileApproved: true,
+    profileReviewStatus: "approved"
+  };
 
   const now = new Date();
 
-  if (filters.gender) {
+  let authUserGender: string | null = null;
+  let authUserHasHIV = false;
+  const excludedUserIds: string[] = [];
+
+  if (authUserId) {
+    const [
+      authUser,
+      authUserFavoritesProfiles,
+      authHealth,
+      authUserSentRequests,
+      authUserReceivedRequests
+    ] = await Promise.all([
+      User.findById(authUserId, "gender blockedUsers").lean(),
+      Profile.findOne({ userId: authUserId }, "favoriteProfiles").lean(),
+      UserHealth.findOne({ userId: authUserId }, "isHaveHIV").lean(),
+      ConnectionRequest.find({ sender: authUserId }).lean(),
+      ConnectionRequest.find({ receiver: authUserId }).lean()
+    ]);
+
+    if (authUser) {
+      authUserGender = String(authUser.gender);
+      authUserHasHIV =
+        authHealth && isAffirmative((authHealth as any).isHaveHIV);
+
+      const excludedFavoriteIds = (
+        (authUserFavoritesProfiles as any)?.favoriteProfiles || []
+      ).map((id: any) => String(id));
+      excludedUserIds.push(...excludedFavoriteIds);
+
+      const excludedSentRequestIds = (authUserSentRequests || []).map((req) =>
+        String(req.receiver)
+      );
+      excludedUserIds.push(...excludedSentRequestIds);
+
+      const excludedReceivedRequestIds = (authUserReceivedRequests || []).map(
+        (req) => String(req.sender)
+      );
+      excludedUserIds.push(...excludedReceivedRequestIds);
+
+      const blockedUsers = ((authUser as any)?.blockedUsers || []).map(
+        (id: any) => String(id)
+      );
+      excludedUserIds.push(...blockedUsers);
+
+      const uniqueExcludedIds = [...new Set(excludedUserIds)];
+      if (uniqueExcludedIds.length > 0) {
+        match._id = match._id || {};
+        match._id.$nin = uniqueExcludedIds.map(
+          (id: string) => new mongoose.Types.ObjectId(id)
+        );
+      }
+
+      match.blockedUsers = { $ne: new mongoose.Types.ObjectId(authUserId) };
+    }
+  }
+
+  if (authUserGender) {
+    const oppositeGender = authUserGender === "male" ? "female" : "male";
+    match.gender = String(oppositeGender);
+  } else if (filters.gender) {
     match.gender = String(filters.gender);
   }
 
@@ -410,26 +574,13 @@ export async function searchService(
     match.dateOfBirth = { $gte: fromDate, $lte: toDate };
   }
 
-  const pipeline: any[] = [{ $match: match }];
-
   if (authUserId && mongoose.Types.ObjectId.isValid(authUserId)) {
     const authObjId = new mongoose.Types.ObjectId(authUserId);
-    try {
-      const [authUser] = await Promise.all([
-        User.findById(authObjId).select("blockedUsers").lean()
-      ]);
-      const blockedIds: any[] = (authUser as any)?.blockedUsers || [];
-
-      match._id = match._id || {};
-      match._id.$ne = authObjId;
-
-      if (blockedIds.length > 0) {
-        match._id.$nin = blockedIds;
-      }
-
-      match.blockedUsers = { $ne: authObjId };
-    } catch (e) {}
+    match._id = match._id || {};
+    match._id.$ne = authObjId;
   }
+
+  const pipeline: any[] = [{ $match: match }];
 
   pipeline.push(
     {
@@ -467,10 +618,31 @@ export async function searchService(
         as: "education"
       }
     },
-    { $unwind: { path: "$education", preserveNullAndEmptyArrays: true } }
+    { $unwind: { path: "$education", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: UserHealth.collection.name,
+        localField: "_id",
+        foreignField: "userId",
+        as: "health"
+      }
+    },
+    { $unwind: { path: "$health", preserveNullAndEmptyArrays: true } }
   );
 
   const postMatch: any = {};
+
+  if (authUserId) {
+    if (authUserHasHIV) {
+      postMatch["health.isHaveHIV"] = { $in: ["yes", "Yes", "YES", true] };
+    } else {
+      postMatch.$or = [
+        { "health.isHaveHIV": { $exists: false } },
+        { "health.isHaveHIV": null },
+        { "health.isHaveHIV": { $nin: ["yes", "Yes", "YES", true] } }
+      ];
+    }
+  }
 
   if (
     typeof filters.heightFrom === "number" ||
@@ -682,13 +854,8 @@ export async function searchService(
   const agg = User.aggregate(pipeline);
   const res = (await agg.exec()) as any[];
 
-  const results = (res[0] && res[0].results) || [];
-  const total =
-    (res[0] &&
-      res[0].totalCount &&
-      res[0].totalCount[0] &&
-      res[0].totalCount[0].count) ||
-    0;
+  let results = res[0]?.results || [];
+  const total = res[0]?.totalCount?.[0]?.count || 0;
 
   const listings = await Promise.all(
     results.map(async (r: any) => {
@@ -729,33 +896,114 @@ export async function searchService(
   };
 }
 
-export async function downloadMyPdfData(userId: string) {
+export async function downloadMyPdfData(
+  userId: any,
+  self: boolean,
+  authUserId: string
+) {
   try {
     const userObjectId = validateUserId(userId);
 
-    const [user, userPersonal, userFamily, educations, profession, profile] =
-      await Promise.all([
-        User.findById(userObjectId)
-          .select(
-            "firstName middleName lastName gender phoneNumber email dateOfBirth customId"
-          )
-          .lean(),
-        UserPersonal.findOne({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        UserFamily.findOne({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        UserEducation.find({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        UserProfession.findOne({ userId: userObjectId })
-          .select("-createdAt -updatedAt -__v")
-          .lean(),
-        Profile.findOne({ userId: userObjectId })
-          .select("photos.closerPhoto.url ")
-          .lean()
-      ]);
+    const [
+      user,
+      userPersonal,
+      userFamily,
+      educations,
+      profession,
+      profile,
+      connectionrequests
+    ] = await Promise.all([
+      User.findById(userObjectId)
+        .select(
+          "firstName middleName lastName gender phoneNumber email dateOfBirth customId"
+        )
+        .lean(),
+      UserPersonal.findOne({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean(),
+      UserFamily.findOne({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean(),
+      UserEducation.find({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean<any>(),
+      UserProfession.findOne({ userId: userObjectId })
+        .select("-createdAt -updatedAt -__v")
+        .lean(),
+      Profile.findOne({ userId: userObjectId })
+        .select("photos.closerPhoto.url ")
+        .lean(),
+      ConnectionRequest.find({
+        $and: [
+          { sender: authUserId },
+          { receiver: userObjectId },
+          { status: "accepted" }
+        ]
+      }).lean()
+    ]);
+
+    const isProfileApproved = connectionrequests.map((req) => req.receiver);
+
+    if (!self && isProfileApproved.toString() !== userObjectId.toString()) {
+      throw new Error(
+        "Your profile is not accpeted, try again after accepting profile"
+      );
+    }
+
+    const options = { format: "A4", orientation: "portrait", type: "pdf" };
+
+    const html = fs.readFileSync(
+      path.join(__dirname, "../../pdf-templete/index.html"),
+      "utf8"
+    );
+    const data = {
+      photo_url: profile.photos.closerPhoto.url,
+      name: `${user.firstName} ${user.lastName}`,
+      date_of_birth: user.dateOfBirth.toDateString() || "-",
+      time_of_birth: userPersonal.timeOfBirth || "-",
+      // place_of_birth: "Jammu",
+      height: userPersonal.height || "-",
+      weight: userPersonal.weight || "-",
+      rashi: userPersonal.astrologicalSign || "-",
+      caste: userPersonal.religion || "-",
+      native_place: userFamily.fatherNativePlace || "-",
+      occupation: profession?.Occupation || "-",
+      qualification: educations?.HighestEducation || "-",
+      father_name: userFamily.fatherName || "-",
+      mother_name: userFamily.motherName || "-",
+      family_type: userFamily.familyType || "-",
+      father_occupation: userFamily.fatherOccupation || "-",
+      mother_occupation: userFamily.motherOccupation || "-",
+      father_contact: userFamily.fatherContact.number || "-",
+      grandfather_name: userFamily.grandFatherName || "-",
+      grandmother_name: userFamily.grandMotherName || "-",
+      nana_name: userFamily.naniName || "-",
+      nani_name: userFamily.nanaName || "-",
+      current_address:
+        `${userPersonal.full_address.street1} ${userPersonal.full_address.street2} ${userPersonal.full_address.city} ${userPersonal.full_address.state}, ${userPersonal.full_address.zipCode} ` ||
+        "-",
+      profile_url: `https://satfera.in/dashboard/profile/${userPersonal.userId}`
+    };
+
+    try {
+      const result = await generatePDF({
+        html: html,
+        data: data,
+        buffer: true,
+        pdfOptions: options
+      });
+
+      if ("buffer" in result) {
+        fs.writeFileSync("./user-report-buffer.pdf", result.buffer);
+        console.log("PDF generated from buffer");
+      }
+
+      if ("filename" in result) {
+        console.log("PDF generated at:", result.filename);
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
 
     return {
       user: user || null,

@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Session expiration handler
 
   useEffect(() => {
     let mounted = true;
@@ -33,7 +32,7 @@ export const AuthProvider = ({ children }) => {
           setUser(res.data.user);
         }
       } catch (e) {
-        // not authenticated
+     
         setUser(null);
       } finally {
         if (mounted) {
@@ -50,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (userData) => {
-    // Backend sets httpOnly cookie; frontend should store only minimal user info
+  
     if (userData && userData.user) {
       setUser(userData.user);
       sessionStorage.setItem("user", JSON.stringify(userData.user));
@@ -62,7 +61,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async (redirectPath = "/") => {
     try {
-      // Call backend logout endpoint to clear cookies
+  
       await logoutUser();
     } catch (error) {
       console.error("Logout API error:", error);
@@ -70,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       sessionStorage.clear();
       toast.success("Logged out successfully");
-      // Send users to a public page after logout (defaults to the landing page)
+  
       if (redirectPath) {
         window.location.href = redirectPath;
       }

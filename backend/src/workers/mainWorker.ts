@@ -9,7 +9,8 @@ import {
   sendWelcomeEmail,
   sendProfileReviewSubmissionEmail,
   sendProfileApprovedEmail,
-  sendProfileRejectedEmail
+  sendProfileRejectedEmail,
+  sendProfileRectificationEmail
 } from "../lib/emails";
 import {
   NotificationJobData,
@@ -17,6 +18,7 @@ import {
   ReviewEmailJobData,
   ProfileReviewJobData
 } from "../types";
+import { MatchService } from "../services/matchService";
 
 // Notification delivery helpers (adapted from previous worker files)
 async function isDeliveryCompleted(
@@ -216,10 +218,11 @@ async function processProfileReviewEmail(
 ): Promise<void> {
   try {
     if (!data?.email || !data?.userId) {
-      logger.warn("Profile review email job missing required data, skipping", {
-        data
-      });
-      return;
+      throw new Error("Profile review email job missing required data");
+    }
+
+    if (!data.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      throw new Error(`Invalid email address: ${data.email}`);
     }
 
     if (process.env.NODE_ENV !== "production") {
@@ -236,9 +239,7 @@ async function processProfileReviewEmail(
         await sendProfileApprovedEmail(
           data.email,
           data.userName,
-          data.dashboardLink ||
-            process.env.FRONTEND_URL ||
-            "https://satfera.com"
+          data.dashboardLink || process.env.FRONTEND_URL || "https://satfera.in"
         );
         break;
       case "rejected":
@@ -248,13 +249,30 @@ async function processProfileReviewEmail(
           data.reason || "Profile does not meet our community standards"
         );
         break;
+      case "rectification":
+        await sendProfileRectificationEmail(
+          data.email,
+          data.userName,
+          data.reason ||
+            "Your profile requires updates to meet our community standards"
+        );
+        break;
+      default:
+        throw new Error(`Unknown email type: ${data.type}`);
     }
 
-    logger.info(`Profile review email (${data.type}) sent to ${data.email}`);
+    logger.info(`Profile review email (${data.type}) sent successfully`, {
+      to: data.email,
+      type: data.type,
+      userId: data.userId
+    });
   } catch (error: any) {
-    logger.error(`Failed to send profile review email to ${data.email}:`, {
+    logger.error(`Failed to send profile review email:`, {
       error: error.message,
-      type: data.type
+      email: data.email,
+      type: data.type,
+      userId: data.userId,
+      stack: error.stack
     });
     throw error;
   }
@@ -294,6 +312,14 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
           data.reason || "Does not meet community standards"
         }`;
         break;
+
+      case "rectification":
+        notificationTitle = "⚠ Action Required";
+        notificationMessage = `Your profile requires updates. Reason: ${
+          data.reason ||
+          "Please update your profile to meet our community standards"
+        }`;
+        break;
     }
 
     const notification = await Notification.create({
@@ -302,7 +328,9 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
         ? "profile_review_submitted"
         : data.type === "approved"
           ? "profile_approved"
-          : "profile_rejected",
+          : data.type === "rejected" || data.type === "rectification"
+            ? "profile_rejected"
+            : "profile_rejected",
       title: notificationTitle,
       message: notificationMessage,
       meta: {
@@ -318,7 +346,7 @@ async function processProfileReview(data: ProfileReviewJobData): Promise<void> {
     const names = data.userName.split(" ");
     const reviewData: any = {
       type: data.type as any,
-      dashboardLink: process.env.FRONTEND_URL || "https://satfera.com/dashboard"
+      dashboardLink: process.env.FRONTEND_URL || "https://satfera.in/dashboard"
     };
     if (data.reason) reviewData.reason = data.reason;
 
@@ -353,7 +381,10 @@ export const mainWorker = new Worker(
   "main-queue",
   async (job: Job) => {
     try {
-      logger.debug(`Processing main job: ${job.id}`, { jobName: job.name });
+      logger.info(`▶ Processing main job: ${job.id}`, {
+        jobName: job.name,
+        data: job.data
+      });
 
       switch (job.name) {
         case "deliver-notification": {
@@ -427,6 +458,17 @@ export const mainWorker = new Worker(
           await processProfileReview(job.data as ProfileReviewJobData);
           break;
 
+        case "process-new-user-matches": {
+          const { userId } = job.data as { userId: string };
+          if (!mongoose.Types.ObjectId.isValid(userId)) {
+            logger.error(`Invalid user ID for match processing: ${userId}`);
+            throw new Error(`Invalid user ID: ${userId}`);
+          }
+          const result = await MatchService.processNewUserMatches(userId);
+          logger.info(`Match processing completed for user ${userId}:`, result);
+          return { success: true, ...result };
+        }
+
         default:
           logger.warn(`Unknown main job type: ${job.name}`);
           throw new Error(`Unknown job type: ${job.name}`);
@@ -441,9 +483,6 @@ export const mainWorker = new Worker(
     } catch (error: any) {
       logger.error(`Main worker error for job ${job.id}:`, error);
 
-      // Prevent pointless retries for expected/non-retryable errors such as
-      // invalid IDs or missing recipient data. These should be logged and
-      // dropped rather than retried multiple times.
       const msg = String(error?.message || "").toLowerCase();
       const nonRetryablePhrases = [
         "invalid notification id",
@@ -484,7 +523,8 @@ mainWorker.on("completed", (job: Job) => {
 mainWorker.on("failed", (job: Job | undefined, err: Error) => {
   logger.error(`Main job failed: ${job?.id || "unknown"}`, {
     error: err.message,
-    attempts: job?.attemptsMade
+    attempts: job?.attemptsMade,
+    jobName: job?.name
   });
 });
 

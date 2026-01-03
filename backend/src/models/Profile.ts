@@ -7,33 +7,26 @@ export interface IProfile extends Document {
     closerPhoto: {
       url: string;
       uploadedAt: Date;
-      visibility: "public";
     };
     personalPhotos: {
       url: string;
       uploadedAt: Date;
-      visibility: "connectionOnly";
     }[];
     familyPhoto: {
       url: string;
       uploadedAt: Date;
-      visibility: "connectionOnly";
     };
     otherPhotos: {
       url: string;
       title: string;
       uploadedAt: Date;
-      visibility: "connectionOnly";
     }[];
   };
   governmentIdImage: {
     url: string;
     uploadedAt: Date;
     verificationStatus: "pending" | "verified" | "rejected";
-    visibility: "adminOnly";
   };
-  isProfileApproved: boolean;
-  isVisible: boolean;
   privacy: {
     allowProfileViewOnRequest: boolean;
     showPhotosToConnectionsOnly: boolean;
@@ -46,9 +39,7 @@ export interface IProfile extends Document {
   };
   favoriteProfiles: mongoose.Types.ObjectId[];
   compareProfiles: mongoose.Types.ObjectId[];
-  accountType: "free" | "premium" | "gold";
   ProfileViewed: number;
-  profileReviewStatus: "pending" | "approved" | "rejected";
   reviewedAt?: Date;
   reviewNotes?: string;
   createdAt: Date;
@@ -114,8 +105,6 @@ const ProfileSchema = new Schema(
       visibility: { type: String, enum: ["adminOnly"], default: "adminOnly" }
     },
 
-    isProfileApproved: { type: Boolean, default: true },
-    isVisible: { type: Boolean, default: true },
     privacy: {
       allowProfileViewOnRequest: { type: Boolean, default: false },
       showPhotosToConnectionsOnly: { type: Boolean, default: true }
@@ -129,16 +118,7 @@ const ProfileSchema = new Schema(
     },
     favoriteProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     compareProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    accountType: {
-      type: String,
-      enum: ["free", "premium"],
-      default: "free"
-    },
     ProfileViewed: { type: Number, default: 0 },
-    profileReviewStatus: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-    },
     reviewedAt: { type: Date },
     reviewNotes: { type: String }
   },

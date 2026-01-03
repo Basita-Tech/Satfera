@@ -108,16 +108,17 @@ export function clearAuthCookies(res: Response): void {
  */
 export function generateDeviceFingerprint(
   userAgent: string,
-  ip: string
+  _ip?: string
 ): string {
-  return crypto.createHash("sha256").update(`${userAgent}:${ip}`).digest("hex");
+  const ua = (userAgent || "").trim();
+  return crypto.createHash("sha256").update(ua).digest("hex");
 }
 
 export function verifyDeviceFingerprint(
   storedFingerprint: string,
   currentUserAgent: string,
-  currentIp: string
+  _currentIp?: string
 ): boolean {
-  const current = generateDeviceFingerprint(currentUserAgent, currentIp);
+  const current = generateDeviceFingerprint(currentUserAgent);
   return storedFingerprint === current;
 }

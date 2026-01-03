@@ -27,6 +27,6 @@ const userEducationSchema = new Schema(
   }
 );
 
-export const UserEducation =
+export const UserEducation: mongoose.Model<IUserEducation> =
   (mongoose.models.UserEducation as mongoose.Model<IUserEducation>) ||
   mongoose.model<IUserEducation>("UserEducation", userEducationSchema);

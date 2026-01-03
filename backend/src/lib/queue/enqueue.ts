@@ -145,7 +145,7 @@ export async function enqueueProfileReviewEmail(
     lastName: string;
   },
   reviewData: {
-    type: "submission" | "approved" | "rejected";
+    type: "submission" | "approved" | "rejected" | "rectification";
     reason?: string;
     dashboardLink?: string;
   }
@@ -162,12 +162,15 @@ export async function enqueueProfileReviewEmail(
       })
     } as types.ReviewEmailJobData;
 
+    const timestamp = Date.now();
+    const uniqueJobId = `profile-review-${userId}-${reviewData.type}-${timestamp}`;
+
     await mainQueue.add("send-profile-review-email", jobData, {
-      jobId: `profile-review-${userId}-${reviewData.type}`
+      jobId: uniqueJobId
     });
 
-    logger.debug(
-      `Profile review email enqueued for user: ${userId} | type: ${reviewData.type}`
+    logger.info(
+      `Profile review email enqueued for user: ${userId} | type: ${reviewData.type} | jobId: ${uniqueJobId}`
     );
     return true;
   } catch (error: any) {
@@ -270,3 +273,72 @@ export async function getEnqueueMetrics() {
     return null;
   }
 }
+
+/**
+ * Enqueue match processing for a newly approved user.
+ * This triggers bidirectional match creation in the background.
+ */
+export async function enqueueMatchProcessing(
+  userId: string | mongoose.Types.ObjectId
+): Promise<boolean> {
+  try {
+    const id = String(userId);
+
+    await mainQueue.add(
+      "process-new-user-matches",
+      { userId: id },
+      {
+        jobId: `match-process-${id}-${Date.now()}`,
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000
+        }
+      }
+    );
+
+    logger.info(`Match processing enqueued for user: ${id}`);
+    return true;
+  } catch (error: any) {
+    logger.error("Failed to enqueue match processing:", {
+      error: error.message,
+      userId: String(userId)
+    });
+    return false;
+  }
+}
+
+/**
+ * Enqueue job to recalculate matches for a user (full refresh).
+ * This deletes existing matches and recreates them, useful for profile updates.
+ */
+export async function enqueueMatchRecalculation(
+  userId: string | mongoose.Types.ObjectId
+): Promise<boolean> {
+  try {
+    const id = String(userId);
+
+    await mainQueue.add(
+      "process-new-user-matches",
+      { userId: id },
+      {
+        jobId: `match-recalc-${id}-${Date.now()}`,
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000
+        }
+      }
+    );
+
+    logger.info(`Match recalculation enqueued for user: ${id}`);
+    return true;
+  } catch (error: any) {
+    logger.error("Failed to enqueue match recalculation:", {
+      error: error.message,
+      userId: String(userId)
+    });
+    return false;
+  }
+}
+

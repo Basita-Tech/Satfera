@@ -184,13 +184,11 @@ export const updateUserExpectationDetailsService = async (
 
 export const getUserOnboardingStatusService = async (userId: string) => {
   const userObjectId = validateUserId(userId);
-  const profile = await Profile.findOne({ userId: userObjectId }).select(
-    "profileReviewStatus"
-  );
+
   const user = await User.findById(userObjectId)
-    .select("isOnboardingCompleted completedSteps")
+    .select("isOnboardingCompleted completedSteps profileReviewStatus")
     .lean();
-  return { profile, user };
+  return { user };
 };
 
 export const updateUserBoardingStatusService = async (

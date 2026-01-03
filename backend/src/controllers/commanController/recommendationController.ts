@@ -1,77 +1,19 @@
 import type { Request, Response } from "express";
 import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
-import {
-  computeMatchScore,
-  findMatchingUsers,
-  getDetailedProfile
-} from "../../services";
+import { findMatchingUsers, getDetailedProfile } from "../../services";
 import { formatListingProfile, logger } from "../../lib";
 import {
   UserPersonal,
   User,
   Profile,
   UserHealth,
-  UserProfession
+  UserProfession,
+  ConnectionRequest
 } from "../../models";
 import { AuthenticatedRequest } from "../../types";
 import { APP_CONFIG } from "../../utils/constants";
 import { isAffirmative } from "../../utils/utils";
-
-export const testMatchScore = async (req: Request, res: Response) => {
-  try {
-    const { userId1, userId2 } = req.body;
-
-    if (!userId1 || !userId2) {
-      return res.status(400).json({
-        success: false,
-        message: "userId1 and userId2 are required"
-      });
-    }
-
-    const result = await computeMatchScore(
-      new ObjectId(userId1),
-      new ObjectId(userId2)
-    );
-
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error("Error testing match score:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to test match score"
-    });
-  }
-};
-
-export const getMatchings = async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "userId is required"
-      });
-    }
-
-    const result = await findMatchingUsers(new ObjectId(userId));
-
-    res.json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error("Error fetching matchings:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch matchings"
-    });
-  }
-};
 
 export const getRecommendations = async (req: Request, res: Response) => {
   try {
@@ -110,7 +52,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
       (r: any) => new mongoose.Types.ObjectId(r.user.userId)
     );
 
-    const [users, personals, profiles, professions] = await Promise.all([
+    const [users, personals, profiles, professions, authUserProfile] = await Promise.all([
       User.find(
         { _id: { $in: candidateIds } },
         "firstName lastName dateOfBirth createdAt"
@@ -125,8 +67,15 @@ export const getRecommendations = async (req: Request, res: Response) => {
         .lean(),
       UserProfession.find({ userId: { $in: candidateIds } })
         .select("userId Occupation")
-        .lean()
+        .lean(),
+      Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
     ]);
+
+    const favoriteSet = new Set(
+      ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
+        id.toString()
+      )
+    );
 
     const userMap = new Map(users.map((u: any) => [u._id.toString(), u]));
     const personalMap = new Map(
@@ -155,15 +104,22 @@ export const getRecommendations = async (req: Request, res: Response) => {
           profile,
           profession,
           rec.scoreDetail || { score: 0, reasons: [] },
-          null
+          null,
+          favoriteSet.has(candidateId)
         );
+
       })
     );
 
     const validResults = formattedResults.filter((r) => r !== null);
     const paginatedResults = validResults.slice(skip, skip + limitNum);
 
-    res.json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent in getRecommendations, cannot respond");
+      return;
+    }
+
+    const responseData = {
       success: true,
       data: paginatedResults,
       pagination: {
@@ -172,10 +128,32 @@ export const getRecommendations = async (req: Request, res: Response) => {
         total: validResults.length,
         hasMore: skip + limitNum < validResults.length
       }
-    });
+    };
+
+    try {
+      JSON.stringify(responseData);
+    } catch (serializationError) {
+      logger.error(
+        "JSON serialization error in getRecommendations:",
+        serializationError
+      );
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to serialize response data"
+        });
+      }
+      return;
+    }
+
+    return res.json(responseData);
   } catch (error) {
     logger.error("Error fetching recommendations:", error);
-    res.status(500).json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent in error handler, cannot respond");
+      return;
+    }
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch recommendations"
     });
@@ -205,6 +183,10 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (matches.length === 0) {
+      if (res.headersSent) {
+        logger.warn("Headers already sent, cannot respond");
+        return;
+      }
       return res.json({
         success: true,
         data: [],
@@ -219,7 +201,12 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
 
     const paginatedResults = matches.slice(skip, skip + limitNum);
 
-    res.json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent before final response, cannot respond");
+      return;
+    }
+
+    const responseData = {
       success: true,
       data: paginatedResults,
       pagination: {
@@ -228,10 +215,29 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
         total: matches.length,
         hasMore: skip + limitNum < matches.length
       }
-    });
+    };
+
+    try {
+      JSON.stringify(responseData);
+    } catch (serializationError) {
+      logger.error("JSON serialization error:", serializationError);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to serialize response data"
+        });
+      }
+      return;
+    }
+
+    return res.json(responseData);
   } catch (error) {
     logger.error("Error fetching matches:", error);
-    res.status(500).json({
+    if (res.headersSent) {
+      logger.warn("Headers already sent in error handler, cannot respond");
+      return;
+    }
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch matches"
     });
@@ -266,13 +272,13 @@ export const getProfile = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: profile
     });
   } catch (error) {
     logger.error("Error fetching profile:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch profile"
     });
@@ -288,176 +294,176 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     const skip = (pageNum - 1) * limitNum;
 
     const requesterId = req.user?.id;
-    let users: any[] = [];
-    let personals: any[] = [];
-    let profiles: any[] = [];
-    let professions: any[] = [];
+    let authObjId: mongoose.Types.ObjectId | null = null;
 
-    const authObjId =
-      requesterId && mongoose.Types.ObjectId.isValid(requesterId)
-        ? new mongoose.Types.ObjectId(requesterId)
-        : null;
+    const matchCriteria: any = {
+      isActive: true,
+      isDeleted: false,
+      isVisible: true,
+      isProfileApproved: true,
+      profileReviewStatus: "approved"
+    };
 
-    const baseQuery: any = {};
-    if (authObjId) {
-      baseQuery._id = { $ne: authObjId };
-    }
+    let hivFilter: any = null;
+    const excludedUserIds: any[] = [];
 
-    try {
-      let targetIds: mongoose.Types.ObjectId[] | null = null;
+    if (requesterId && mongoose.Types.ObjectId.isValid(requesterId)) {
+      authObjId = new mongoose.Types.ObjectId(requesterId);
 
-      if (authObjId) {
-        const seekerHealth = await UserHealth.findOne({ userId: authObjId })
-          .select("isHaveHIV")
-          .lean();
-        const seekerHasHIV =
-          seekerHealth && isAffirmative((seekerHealth as any).isHaveHIV);
-        const seekerHasNegative =
-          seekerHealth && !isAffirmative((seekerHealth as any).isHaveHIV);
-
-        if (seekerHasHIV) {
-          const hivUserIds = await UserHealth.find(
-            {
-              $or: [
-                { isHaveHIV: true },
-                { isHaveHIV: "true" },
-                { isHaveHIV: "yes" },
-                { isHaveHIV: "1" },
-                { isHaveHIV: 1 }
-              ]
-            },
-            "userId"
-          )
-            .lean()
-            .then((rows: any[]) => rows.map((r) => r.userId));
-
-          if (hivUserIds.length > 0) {
-            targetIds = hivUserIds.map((id: any) =>
-              mongoose.Types.ObjectId.isValid(String(id))
-                ? new mongoose.Types.ObjectId(id)
-                : id
-            );
-          } else {
-            targetIds = [];
-          }
-        } else if (seekerHasNegative) {
-          const noHivUserIds = await UserHealth.find(
-            {
-              $or: [
-                { isHaveHIV: false },
-                { isHaveHIV: "false" },
-                { isHaveHIV: "no" },
-                { isHaveHIV: "0" },
-                { isHaveHIV: 0 }
-              ]
-            },
-            "userId"
-          )
-            .lean()
-            .then((rows: any[]) => rows.map((r) => r.userId));
-
-          if (noHivUserIds.length > 0) {
-            targetIds = noHivUserIds.map((id: any) =>
-              mongoose.Types.ObjectId.isValid(String(id))
-                ? new mongoose.Types.ObjectId(id)
-                : id
-            );
-          } else {
-            targetIds = [];
-          }
-        }
-      }
-
-      if (targetIds !== null) {
-        if (targetIds.length === 0) {
-          return res.json({
-            success: true,
-            data: [],
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              total: 0,
-              hasMore: false
-            }
-          });
-        }
-
-        baseQuery._id = { ...baseQuery._id, $in: targetIds };
-      }
-
-      [users, personals, profiles, professions] = await Promise.all([
-        User.find(baseQuery, "firstName lastName dateOfBirth createdAt").lean(),
-        UserPersonal.find({
-          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
-        })
-          .select(
-            "userId full_address.city full_address.state residingCountry religion subCaste"
-          )
-          .lean(),
-        Profile.find({
-          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
-        })
-          .select("userId favoriteProfiles photos.closerPhoto.url")
-          .lean(),
-        UserProfession.find({
-          userId: targetIds ? { $in: targetIds } : { $ne: authObjId }
-        })
-          .select("userId Occupation")
-          .lean()
+      const [
+        authUser,
+        authHealth,
+        authUserFavoritesProfiles,
+        authUserSentRequests,
+        authUserReceivedRequests
+      ] = await Promise.all([
+        User.findById(authObjId, "gender blockedUsers").lean(),
+        UserHealth.findOne({ userId: authObjId }, "isHaveHIV").lean(),
+        Profile.findOne({ userId: authObjId }, "favoriteProfiles").lean(),
+        ConnectionRequest.find({ sender: authObjId }).lean(),
+        ConnectionRequest.find({ receiver: authObjId }).lean()
       ]);
 
-      if (!targetIds && authObjId) {
-        const authIdStr = authObjId.toString();
-        personals = personals.filter((p) => p.userId.toString() !== authIdStr);
-        profiles = profiles.filter((p) => p.userId.toString() !== authIdStr);
-        professions = professions.filter(
-          (p) => p.userId.toString() !== authIdStr
+      if (authUser) {
+        const blockedByMe = (authUser as any).blockedUsers || [];
+        excludedUserIds.push(...blockedByMe);
+
+        matchCriteria.blockedUsers = { $ne: authObjId };
+
+        const gender = String(authUser.gender).toLowerCase();
+        if (gender === "male") matchCriteria.gender = "female";
+        else if (gender === "female") matchCriteria.gender = "male";
+      }
+
+      if (authUserFavoritesProfiles) {
+        const favoriteIds =
+          (authUserFavoritesProfiles as any).favoriteProfiles || [];
+        excludedUserIds.push(...favoriteIds);
+      }
+
+      if (authUserSentRequests && authUserSentRequests.length > 0) {
+        const sentRequestIds = authUserSentRequests.map((req) => req.receiver);
+        excludedUserIds.push(...sentRequestIds);
+      }
+
+      if (authUserReceivedRequests && authUserReceivedRequests.length > 0) {
+        const receivedRequestIds = authUserReceivedRequests.map(
+          (req) => req.sender
         );
+        excludedUserIds.push(...receivedRequestIds);
       }
-    } catch (e) {
-      logger.error("Error in getAllProfiles logic:", e);
 
-      [users, personals, profiles, professions] = await Promise.all([
-        User.find(baseQuery, "firstName lastName dateOfBirth createdAt").lean(),
-        UserPersonal.find({ userId: { $ne: authObjId } })
-          .select(
-            "userId full_address.city full_address.state residingCountry religion subCaste"
-          )
-          .lean(),
-        Profile.find({ userId: { $ne: authObjId } })
-          .select("userId favoriteProfiles photos.closerPhoto.url")
-          .lean(),
-        UserProfession.find({ userId: { $ne: authObjId } })
-          .select("userId Occupation")
-          .lean()
-      ]);
+      if (excludedUserIds.length > 0) {
+        matchCriteria._id = { $ne: authObjId, $nin: excludedUserIds };
+      } else {
+        matchCriteria._id = { $ne: authObjId };
+      }
+
+      if (authHealth) {
+        const isHIV = isAffirmative((authHealth as any).isHaveHIV);
+        const trueValues = [true, "true", "yes", "1", 1];
+        const falseValues = [false, "false", "no", "0", 0, "", null];
+
+        if (isHIV) {
+          hivFilter = { $in: trueValues };
+        } else {
+          hivFilter = { $in: falseValues };
+        }
+      }
     }
 
-    const personalMap = new Map(
-      personals.map((p: any) => [p.userId.toString(), p])
-    );
-    const profileMap = new Map(
-      profiles.map((p: any) => [p.userId.toString(), p])
-    );
-    const professionMap = new Map(
-      professions.map((p: any) => [p.userId.toString(), p])
-    );
+    const pipeline: any[] = [
+      { $match: matchCriteria },
+
+      {
+        $lookup: {
+          from: "profiles",
+          localField: "_id",
+          foreignField: "userId",
+          as: "profileDoc"
+        }
+      },
+
+      { $unwind: "$profileDoc" }
+    ];
+
+    if (hivFilter) {
+      pipeline.push(
+        {
+          $lookup: {
+            from: "userhealths",
+            localField: "_id",
+            foreignField: "userId",
+            as: "healthDoc"
+          }
+        },
+        { $unwind: { path: "$healthDoc", preserveNullAndEmptyArrays: false } },
+        {
+          $match: {
+            "healthDoc.isHaveHIV": hivFilter
+          }
+        }
+      );
+    }
+
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $sort: { createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limitNum },
+
+          {
+            $lookup: {
+              from: "userpersonals",
+              localField: "_id",
+              foreignField: "userId",
+              as: "personalDoc"
+            }
+          },
+          {
+            $lookup: {
+              from: "userprofessions",
+              localField: "_id",
+              foreignField: "userId",
+              as: "professionDoc"
+            }
+          },
+
+          {
+            $addFields: {
+              personal: { $arrayElemAt: ["$personalDoc", 0] },
+              profession: { $arrayElemAt: ["$professionDoc", 0] },
+              profile: "$profileDoc"
+            }
+          },
+
+          {
+            $project: {
+              personalDoc: 0,
+              professionDoc: 0,
+              profileDoc: 0,
+              healthDoc: 0
+            }
+          }
+        ]
+      }
+    });
+
+    const result = await User.aggregate(pipeline);
+
+    const metadata = result[0]?.metadata?.[0] || { total: 0 };
+    const usersData = result[0]?.data || [];
+    const total = metadata.total || 0;
 
     const formattedResults = await Promise.all(
-      users.map((u: any) => {
-        const candidateId = u._id.toString();
-        const user = u;
-        const personal = personalMap.get(candidateId);
-        const profile = profileMap.get(candidateId);
-        const profession = professionMap.get(candidateId);
-
-        if (!user) return null;
-
+      usersData.map((user: any) => {
         return formatListingProfile(
           user,
-          personal,
-          profile,
-          profession,
+          user.personal,
+          user.profile,
+          user.profession,
           { score: 0, reasons: [] },
           null
         );
@@ -465,21 +471,20 @@ export const getAllProfiles = async (req: Request, res: Response) => {
     );
 
     const validResults = formattedResults.filter((r) => r !== null);
-    const paginatedResults = validResults.slice(skip, skip + limitNum);
 
-    res.json({
+    return res.json({
       success: true,
-      data: paginatedResults,
+      data: validResults,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: validResults.length,
-        hasMore: skip + limitNum < validResults.length
+        total: total,
+        hasMore: skip + limitNum < total
       }
     });
   } catch (error) {
     logger.error("Error fetching matches:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch matches"
     });

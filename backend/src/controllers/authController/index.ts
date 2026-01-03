@@ -13,10 +13,6 @@ import { User, Profile } from "../../models";
 import { redisClient } from "../../lib/redis";
 import { env } from "../../config";
 import { APP_CONFIG } from "../../utils/constants";
-import {
-  recordFailedAttempt,
-  resetLoginAttempts
-} from "../../middleware/bruteForceProtection";
 import { sanitizeError } from "../../middleware/securityMiddleware";
 import { logger } from "../../lib/common/logger";
 import {
@@ -24,10 +20,12 @@ import {
   generateCSRFToken,
   setCSRFTokenCookie,
   clearAuthCookies,
-  verifyDeviceFingerprint
+  verifyDeviceFingerprint,
+  generateDeviceFingerprint
 } from "../../utils/secureToken";
 import { SessionService } from "../../services/sessionService";
 import { getClientIp, normalizeIp } from "../../utils/ipUtils";
+import { generateJTI } from "../../utils/timingSafe";
 
 const authService = new AuthService();
 
@@ -93,30 +91,88 @@ export class AuthController {
   static async googleCallback(req: Request, res: Response) {
     try {
       const code = req.query.code as string;
-      if (!code) return res.status(400).send("Missing code parameter");
+      const { idToken } = req.body;
+      const isMobile = req.body.platform === "mobile" || !!idToken;
 
-      const { tokens } = await client.getToken(code);
-      client.setCredentials(tokens);
+      let googleUser: any;
+      let email: string;
+      let emailVerified: boolean;
+      let givenName: string;
+      let picture: string;
 
-      const userInfoResponse = await fetch(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        {
-          headers: { Authorization: `Bearer ${tokens.access_token}` }
+      if (isMobile && idToken) {
+        try {
+          const ticket = await client.verifyIdToken({
+            idToken,
+            audience: [
+              env.GOOGLE_CLIENT_ID,
+              env.GOOGLE_ANDROID_CLIENT_ID,
+              env.GOOGLE_IOS_CLIENT_ID
+            ].filter(Boolean)
+          });
+
+          const payload = ticket.getPayload();
+          if (!payload) {
+            return res
+              .status(400)
+              .json({ success: false, message: "Invalid Google token" });
+          }
+
+          email = (payload.email || "").toLowerCase();
+          emailVerified = payload.email_verified || false;
+          givenName = payload.given_name || "";
+          picture = payload.picture || "";
+        } catch (verifyError: any) {
+          logger.error("Google idToken verification failed", {
+            error: verifyError.message
+          });
+          return res.status(401).json({
+            success: false,
+            message: "Invalid or expired Google token"
+          });
         }
-      );
-      const googleUser: any = await userInfoResponse.json();
+      } else if (code) {
+        const { tokens } = await client.getToken(code);
+        client.setCredentials(tokens);
 
-      const email = (googleUser?.email || "").toLowerCase();
-      const emailVerified = googleUser?.email_verified;
-      const givenName = googleUser?.given_name;
-      const picture = googleUser?.picture;
+        const userInfoResponse = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${tokens.access_token}` }
+          }
+        );
+        googleUser = await userInfoResponse.json();
+
+        email = (googleUser?.email || "").toLowerCase();
+        emailVerified = googleUser?.email_verified;
+        givenName = googleUser?.given_name;
+        picture = googleUser?.picture;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Missing code parameter or idToken"
+        });
+      }
 
       const user = await User.findOne({
         email,
         isActive: true,
         isDeleted: false
       });
+
       if (!user) {
+        if (isMobile) {
+          return res.status(404).json({
+            success: false,
+            message: "User not found. Please sign up first.",
+            data: {
+              email,
+              name: givenName,
+              picture
+            }
+          });
+        }
+
         const frontendLoginNoUser = `${
           process.env.FRONTEND_URL
         }/login?googleExists=false&email=${encodeURIComponent(
@@ -132,16 +188,56 @@ export class AuthController {
         await user.save();
       }
 
-      const token = jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "7d" }
+      // Use existing session management logic
+      const userId = String(user._id);
+      const ipAddress = getClientIp(req);
+
+      const existingSession = await SessionService.findExistingSession(
+        userId,
+        req,
+        ipAddress
       );
 
-      setSecureTokenCookie(res, token, { maxAge: APP_CONFIG.COOKIE_MAX_AGE });
+      let token: string;
+      let isNewSession: boolean;
 
-      const csrfToken = generateCSRFToken();
-      setCSRFTokenCookie(res, csrfToken);
+      if (existingSession) {
+        token = existingSession.token;
+        isNewSession = false;
+        await SessionService.updateSessionActivity(String(existingSession._id));
+        logger.info(`Reusing existing session for Google OAuth user ${userId}`);
+      } else {
+        const jti = generateJTI();
+        token = jwt.sign(
+          {
+            id: userId,
+            email: user.email,
+            jti,
+            iat: Math.floor(Date.now() / 1000)
+          },
+          process.env.JWT_SECRET as string,
+          { expiresIn: "30d" }
+        );
+
+        const fingerprint = generateDeviceFingerprint(
+          req.get("user-agent") || "",
+          ipAddress
+        );
+
+        await SessionService.createSession(
+          userId,
+          token,
+          jti,
+          req,
+          ipAddress,
+          APP_CONFIG.COOKIE_MAX_AGE,
+          fingerprint
+        );
+        isNewSession = true;
+      }
+
+      user.lastLoginAt = new Date();
+      await user.save();
 
       const publicUser = sanitizeUser(user.toObject());
 
@@ -159,13 +255,54 @@ export class AuthController {
         redirectTo = "/onboarding/review";
       }
 
+      // Mobile response
+      if (isMobile) {
+        logger.info("Google OAuth mobile login successful", {
+          userId,
+          email,
+          isNewSession
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: "Login successful",
+          token,
+          user: publicUser,
+          isNewSession,
+          redirectTo
+        });
+      }
+
+      // Web response (with cookies and redirect)
+      setSecureTokenCookie(res, token, { maxAge: APP_CONFIG.COOKIE_MAX_AGE });
+
+      const csrfToken = generateCSRFToken();
+      setCSRFTokenCookie(res, csrfToken);
+
       const frontendLoginUrl = `${
         process.env.FRONTEND_URL
       }/login?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`;
 
+      logger.info("Google OAuth web login successful", {
+        userId,
+        email,
+        isNewSession
+      });
+
       return res.redirect(frontendLoginUrl);
     } catch (error: any) {
-      console.error("Google OAuth error:", error);
+      logger.error("Google OAuth error:", {
+        error: error.message,
+        stack: error.stack
+      });
+
+      if (req.body.platform === "mobile" || req.body.idToken) {
+        return res.status(500).json({
+          success: false,
+          message: "Authentication failed"
+        });
+      }
+
       res.status(500).send("Authentication failed");
     }
   }
@@ -174,14 +311,12 @@ export class AuthController {
     try {
       const validation = formatValidationErrors(req);
       if (validation) {
-        await recordFailedAttempt(req);
         return res.status(400).json({ success: false, errors: validation });
       }
 
       const { email, phoneNumber, password }: LoginRequest = req.body;
 
       if (!password || (!email && !phoneNumber)) {
-        await recordFailedAttempt(req);
         return res.status(400).json({
           success: false,
           message: "Email or phone number and password are required"
@@ -200,8 +335,6 @@ export class AuthController {
           );
         }
       } catch (authError: any) {
-        await recordFailedAttempt(req);
-
         logger.warn("Login failed", {
           email: email || phoneNumber,
           ip: req.ip,
@@ -224,7 +357,6 @@ export class AuthController {
       }
 
       const identifier = email || phoneNumber!;
-      await resetLoginAttempts(identifier);
 
       const userObj = result.user.toObject
         ? result.user.toObject()
@@ -350,107 +482,6 @@ export class AuthController {
           .json({ success: false, message: "Not authenticated" });
       }
 
-      const reqIp = getClientIp(req);
-      const reqUA = req.get("user-agent") || "";
-
-      const isProduction = process.env.NODE_ENV === "production";
-      const strictSessionChecks = !isProduction;
-
-      let isSuspicious = false;
-
-      if (
-        session.ipAddress &&
-        reqIp &&
-        normalizeIp(session.ipAddress) !== normalizeIp(reqIp)
-      ) {
-        logger.warn("IP mismatch", {
-          userId,
-          sessionIp: session.ipAddress,
-          reqIp,
-          strictMode: strictSessionChecks
-        });
-        if (strictSessionChecks) {
-          try {
-            await SessionService.logoutSession(userId, String(session._id));
-          } catch (e) {
-            logger.error("Failed to logout session after IP mismatch", {
-              error: e
-            });
-          }
-          clearAuthCookies(res);
-          return res
-            .status(401)
-            .json({ success: false, message: "Not authenticated" });
-        } else {
-          isSuspicious = true;
-          logger.info(
-            "Non-strict mode: marking session suspicious due to IP change",
-            { userId }
-          );
-        }
-      }
-
-      const sessionUA = session.deviceInfo?.userAgent || "";
-      if (
-        sessionUA &&
-        reqUA &&
-        !sessionUA.startsWith(reqUA) &&
-        !reqUA.startsWith(sessionUA)
-      ) {
-        logger.warn("User-Agent mismatch", { userId, sessionUA, reqUA });
-        if (strictSessionChecks) {
-          try {
-            await SessionService.logoutSession(userId, String(session._id));
-          } catch (e) {
-            logger.error("Failed to logout session after UA mismatch", {
-              error: e
-            });
-          }
-          clearAuthCookies(res);
-          return res
-            .status(401)
-            .json({ success: false, message: "Not authenticated" });
-        } else {
-          isSuspicious = true;
-          logger.info(
-            "Non-strict mode: marking session suspicious due to UA change",
-            { userId }
-          );
-        }
-      }
-
-      const storedFingerprint = (session as any).fingerprint || "";
-      if (storedFingerprint) {
-        const ok = verifyDeviceFingerprint(storedFingerprint, reqUA, reqIp);
-        if (!ok) {
-          logger.warn("Device fingerprint mismatch", {
-            userId,
-            reqIp,
-            reqUA
-          });
-          if (strictSessionChecks) {
-            try {
-              await SessionService.logoutSession(userId, String(session._id));
-            } catch (e) {
-              logger.error(
-                "Failed to logout session after fingerprint mismatch",
-                { error: e }
-              );
-            }
-            clearAuthCookies(res);
-            return res
-              .status(401)
-              .json({ success: false, message: "Not authenticated" });
-          } else {
-            isSuspicious = true;
-            logger.info(
-              "Non-strict mode: marking session suspicious due to fingerprint change",
-              { userId }
-            );
-          }
-        }
-      }
-
       const userRecord =
         req.user || (await User.findById(userId).select("-password -__v"));
       if (!userRecord) {
@@ -463,12 +494,6 @@ export class AuthController {
         ? (userRecord as any).toObject()
         : userRecord;
       const publicUser = sanitizeUser(userObj);
-
-      if (isSuspicious) {
-        return res
-          .status(200)
-          .json({ success: true, user: publicUser, suspicious: true });
-      }
 
       return res.status(200).json({ success: true, user: publicUser });
     } catch (err: any) {

@@ -38,6 +38,7 @@ ConnectionRequestSchema.index(
   { sender: 1, receiver: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: "pending" } }
 );
+ConnectionRequestSchema.index({ sender: 1, status: 1 });
 
 export const ConnectionRequest =
   (mongoose.models

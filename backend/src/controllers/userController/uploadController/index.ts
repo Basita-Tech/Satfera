@@ -31,7 +31,7 @@ export const uploadPhotoController = async (
       });
     }
 
-    const { photoType, title } = req.body;
+    const { photoType, title, userId } = req.body;
 
     if (!photoType) {
       return res.status(400).json({
@@ -63,7 +63,7 @@ export const uploadPhotoController = async (
     }
 
     const result = await uploadPhoto({
-      userId: user.id,
+      userId: userId ? userId : user.id,
       photoType: photoType as "closer" | "personal" | "family" | "other",
       file: req.file,
       title: title,
@@ -78,21 +78,23 @@ export const uploadPhotoController = async (
       });
     }
 
-    logger.info(
-      `Photo uploaded successfully for user ${user.id}: ${photoType}`
-    );
-    return res.status(201).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    return res.status(201).json(response);
   } catch (error: any) {
     logger.error("Error uploading photo:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to upload photo",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload photo",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -115,7 +117,7 @@ export const updatePhotoController = async (
       });
     }
 
-    const { photoType, photoIndex } = req.body;
+    const { photoType, photoIndex, userId } = req.body;
 
     if (!photoType) {
       return res.status(400).json({
@@ -143,7 +145,7 @@ export const updatePhotoController = async (
       photoIndex !== undefined
     ) {
       result = await updatePhotoInArray(
-        user.id,
+        userId ? userId : user.id,
         photoType as "personal" | "other",
         parseInt(photoIndex),
         req.file,
@@ -152,7 +154,7 @@ export const updatePhotoController = async (
       );
     } else {
       result = await updatePhoto({
-        userId: user.id,
+        userId: userId ? userId : user.id,
         photoType: photoType as "closer" | "family" | "governmentId",
         file: req.file,
         cleanBuffer: fileValidation.cleanBuffer
@@ -167,19 +169,23 @@ export const updatePhotoController = async (
       });
     }
 
-    logger.info(`Photo updated successfully for user ${user.id}: ${photoType}`);
-    return res.status(200).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    return res.status(200).json(response);
   } catch (error: any) {
     logger.error("Error updating photo:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update photo",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update photo",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -199,7 +205,7 @@ export const deletePhotoController = async (
         .json({ success: false, message: "Authentication required" });
     }
 
-    const { photoType, photoIndex } = req.body;
+    const { photoType, photoIndex, userId } = req.body;
 
     if (!photoType) {
       return res.status(400).json({
@@ -211,7 +217,11 @@ export const deletePhotoController = async (
     const photoIndexNum =
       photoIndex !== undefined ? parseInt(photoIndex) : undefined;
 
-    const result = await deletePhotoService(user.id, photoType, photoIndexNum);
+    const result = await deletePhotoService(
+      userId ? userId : user.id,
+      photoType,
+      photoIndexNum
+    );
 
     if (!result.success) {
       return res.status(400).json({
@@ -221,19 +231,23 @@ export const deletePhotoController = async (
       });
     }
 
-    logger.info(`Photo deleted successfully for user ${user.id}: ${photoType}`);
-    return res.status(200).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    return res.status(200).json(response);
   } catch (error: any) {
     logger.error("Error deleting photo:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete photo",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete photo",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -260,6 +274,8 @@ export const uploadGovernmentIdController = async (
       });
     }
 
+    const { userId } = req.body;
+
     const fileValidation = await validateUploadedFile(req.file, {
       allowedMimeTypes: ALLOWED_MIME_TYPES.governmentId,
       maxSize: req.body.maxSize
@@ -273,7 +289,7 @@ export const uploadGovernmentIdController = async (
     }
 
     const result = await uploadPhoto({
-      userId: user.id,
+      userId: userId ? userId : user.id,
       photoType: "governmentId",
       file: req.file,
       cleanBuffer: fileValidation.cleanBuffer
@@ -287,19 +303,23 @@ export const uploadGovernmentIdController = async (
       });
     }
 
-    logger.info(`Government ID uploaded successfully for user ${user.id}`);
-    return res.status(201).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    return res.status(201).json(response);
   } catch (error: any) {
     logger.error("Error uploading government ID:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to upload government ID",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload government ID",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -326,6 +346,8 @@ export const updateGovernmentIdController = async (
       });
     }
 
+    const { userId } = req.body;
+
     const fileValidation = await validateUploadedFile(req.file, {
       allowedMimeTypes: ALLOWED_MIME_TYPES.governmentId,
       maxSize: req.body.maxSize
@@ -339,7 +361,7 @@ export const updateGovernmentIdController = async (
     }
 
     const result = await updatePhoto({
-      userId: user.id,
+      userId: userId ? userId : user.id,
       photoType: "governmentId",
       file: req.file,
       cleanBuffer: fileValidation.cleanBuffer
@@ -353,19 +375,23 @@ export const updateGovernmentIdController = async (
       });
     }
 
-    logger.info(`Government ID updated successfully for user ${user.id}`);
-    return res.status(200).json({
+    const response = {
       success: true,
       message: result.message,
       data: result.data
-    });
+    };
+
+    return res.status(200).json(response);
   } catch (error: any) {
     logger.error("Error updating government ID:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update government ID",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update government ID",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -401,11 +427,14 @@ export const getPhotosController = async (
     });
   } catch (error: any) {
     logger.error("Error fetching photos:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch photos",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch photos",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };
 
@@ -442,10 +471,13 @@ export const getGovernmentIdController = async (
     });
   } catch (error: any) {
     logger.error("Error fetching government ID:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch government ID",
-      error: error.message || "Internal server error"
-    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch government ID",
+        error: error.message || "Internal server error"
+      });
+    }
   }
 };

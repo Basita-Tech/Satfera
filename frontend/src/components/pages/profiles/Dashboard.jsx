@@ -33,6 +33,7 @@ export function Dashboard({
 
   const [user, setUser] = useState(null);
   const [matchedProfiles, setMatchedProfiles] = useState([]);
+  const [totalMatches, setTotalMatches] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -73,6 +74,7 @@ export function Dashboard({
 
         if (matchesRes?.success && Array.isArray(matchesRes?.data)) {
           setMatchedProfiles(matchesRes.data);
+          setTotalMatches(matchesRes.pagination?.total ?? matchesRes.data.length);
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -342,7 +344,7 @@ export function Dashboard({
         />
         <StatCard
           label="Your Matches"
-          value={matchedProfiles?.length ?? 0}
+          value={totalMatches}
           onViewClick={() => onNavigate?.("browse")}
         />
         <StatCard
