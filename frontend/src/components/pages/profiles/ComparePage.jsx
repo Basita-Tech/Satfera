@@ -109,10 +109,8 @@ export function ComparePage({
       {}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="mb-2 m-0 font-bold text-lg">Compare Profiles</h2>
-          <p className="text-muted-foreground m-0">
-            Compare up to 5 profiles side by side to make an informed decision
-          </p>
+          <h2 className="m-0 mb-2 text-2xl font-semibold text-[#3a2f00]">Compare Profiles</h2>
+          <p className="text-muted-foreground m-0">Compare up to 5 profiles side by side to make an informed decision</p>
         </div>
       </div>
 

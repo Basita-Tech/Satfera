@@ -1611,3 +1611,145 @@ export const updateUserPhoto = async formData => {
     throw error;
   }
 };
+
+export const activateAccount = async (token) => {
+  try {
+    // If token is not provided, just reactivate the authenticated user
+    const response = await axios.post(`${API}/user/account/activate`, token ? { token } : {}, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Account Activation Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Account activation failed. Please try again."
+    };
+  }
+};
+
+export const getAccountStatus = async () => {
+  try {
+    const response = await axios.get(`${API}/user/account/status`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Account Status Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      status: 'active',
+      message: error.response?.data?.message || "Failed to fetch account status"
+    };
+  }
+};
+
+export const deactivateAccount = async (reason) => {
+  try {
+    const response = await axios.post(`${API}/user/account/deactivate`, { reason }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Account Deactivation Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Account deactivation failed. Please try again."
+    };
+  }
+};
+
+export const deleteUserAccount = async (reason) => {
+  try {
+    const response = await axios.delete(`${API}/user/account`, {
+      headers: getAuthHeaders(),
+      data: { reason }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Delete User Account Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to delete account. Please try again."
+    };
+  }
+};
+
+
+export const createSupportTicket = async (subject, message, category) => {
+  try {
+    const payload = { subject, message, description: message, category };
+    console.log("Creating ticket with payload:", payload);
+    
+    const response = await axios.post(`${API}/support/tickets`, payload, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Create Support Ticket Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to create support ticket."
+    };
+  }
+};
+
+export const getSupportTickets = async () => {
+  try {
+    const response = await axios.get(`${API}/support/tickets`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Support Tickets Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to fetch support tickets."
+    };
+  }
+};
+
+export const getSupportTicketDetails = async (ticketId) => {
+  try {
+    const response = await axios.get(`${API}/support/tickets/${ticketId}`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Ticket Details Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to fetch ticket details."
+    };
+  }
+};
+
+export const getFAQs = async () => {
+  try {
+    const response = await axios.get(`${API}/support/faqs`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get FAQs Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to fetch FAQs."
+    };
+  }
+};
+
+
+
+export const addTicketMessage = async (ticketId, text) => {
+  try {
+    const response = await axios.post(`${API}/support/tickets/${ticketId}/messages`, { text }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Add Ticket Message Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to add message to ticket."
+    };
+  }
+};

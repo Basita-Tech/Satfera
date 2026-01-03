@@ -24,10 +24,24 @@ export function Requests({
     if (["new", "new request", "request"].includes(status)) {
       status = "pending";
     }
+    
+    const user = p.user || p;
+    const personal = user?.personal || {};
+    
     return {
       ...p,
       type,
-      status
+      status,
+
+      city: p.city || user.city || personal.city || '',
+      state: p.state || user.state || personal.state || '',
+      country: p.country || user.country || personal.country || '',
+      
+      profession: p.profession || user.profession || user.occupation || personal.occupation || '',
+      religion: p.religion || user.religion || personal.religion || '',
+      caste: p.caste || user.subCaste || personal.subCaste || '',
+      image: p.image || user.closerPhoto?.url || user.image || '',
+      age: p.age || user.age || null
     };
   });
   const sentRequestsList = normalizedProfiles.filter(p => p.type === "sent");
@@ -61,10 +75,8 @@ export function Requests({
     </div>;
   return <div className="max-w-[1440px] mx-auto px-3 md:px-6 lg:px-8 py-6 space-y-6">
       <div>
-        <h2 className="mb-2 text-lg font-semibold">Requests</h2>
-        <p className="text-muted-foreground">
-          Manage your sent and received interest requests
-        </p>
+        <h2 className="m-0 mb-2 text-2xl font-semibold text-[#3a2f00]">Requests</h2>
+        <p className="text-muted-foreground m-0">Manage your sent and received interest requests</p>
       </div>
 
       <div className="bg-white rounded-[20px] satfera-shadow">

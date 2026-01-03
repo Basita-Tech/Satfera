@@ -249,10 +249,18 @@ export function Dashboard({
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
-        <StatCard label="Interests Sent" value={user?.interestSentCount ?? 0} onViewClick={() => onNavigate?.("requests")} />
+        <StatCard
+          label="Interests Sent"
+          value={Array.isArray(sentProfileIds) ? sentProfileIds.length : user?.interestSentCount ?? 0}
+          onViewClick={() => onNavigate?.("requests")}
+        />
         <StatCard label="Your Matches" value={totalMatches} onViewClick={() => onNavigate?.("browse")} />
         <StatCard label="Profile Views" value={user?.profileViewsCount ?? 0} onViewClick={() => onNavigate?.("profile-views")} />
-        <StatCard label="Shortlisted" value={user?.shortListedCount ?? 0} onViewClick={() => onNavigate?.("shortlisted")} />
+        <StatCard
+          label="Shortlisted"
+          value={Array.isArray(shortlistedIds) ? shortlistedIds.length : user?.shortListedCount ?? 0}
+          onViewClick={() => onNavigate?.("shortlisted")}
+        />
       </div>
 
       <div className="space-y-4">

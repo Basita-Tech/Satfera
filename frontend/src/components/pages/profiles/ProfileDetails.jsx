@@ -137,6 +137,7 @@ export function ProfileDetails({
   const isUiInCompare = isInCompare || optimisticInCompare;
   const profileFromList = useMemo(() => profiles?.find(p => String(p.id) === String(profileId)), [profiles, profileId]);
   const status = useMemo(() => profileFromList?.status ? String(profileFromList.status).toLowerCase() : String(profile?.status || "none").toLowerCase(), [profileFromList, profile?.status]);
+  const canShowFullAddress = useMemo(() => ["accepted", "approved"].includes(status), [status]);
   const isSentRequest = useMemo(() => profileId && (sentProfileIds.includes(String(profileId)) || profiles?.some(p => String(p.id) === String(profileId) && p.type === "sent")), [profileId, sentProfileIds, profiles]);
   const matchText = useMemo(() => profile?.scoreDetail?.score ? `${profile.scoreDetail.score}% Match` : "", [profile?.scoreDetail?.score]);
   const handleBack = useCallback(() => navigate(-1), [navigate]);
@@ -309,7 +310,7 @@ export function ProfileDetails({
           {}
           <div className="min-w-0 space-y-7">
             <HeaderSection profile={profile} capitalize={capitalize} />
-            <PersonalDetailsSection profile={profile} capitalize={capitalize} formatAgeFromDob={formatAgeFromDob} />
+            <PersonalDetailsSection profile={profile} capitalize={capitalize} formatAgeFromDob={formatAgeFromDob} canShowFullAddress={canShowFullAddress} />
             <FamilyDetailsSection profile={profile} capitalize={capitalize} />
             <EducationDetailsSection profile={profile} />
             <ProfessionalDetailsSection profile={profile} capitalize={capitalize} />
@@ -432,8 +433,15 @@ function DetailRow({
 function PersonalDetailsSection({
   profile,
   capitalize,
-  formatAgeFromDob
+  formatAgeFromDob,
+  canShowFullAddress
 }) {
+  const fullAddress = profile?.personal?.full_address;
+  const formattedFullAddress = useMemo(() => {
+    if (!fullAddress) return null;
+    const parts = [fullAddress.street1, fullAddress.street2, fullAddress.city, fullAddress.state, fullAddress.zipCode].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+  }, [fullAddress]);
   return <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
       <h3 className="text-lg font-semibold text-[#222] mb-4 flex items-center gap-2">
         <User className="text-[#C8A227]" size={20} />
@@ -453,6 +461,7 @@ function PersonalDetailsSection({
         {profile?.personal?.subCaste && <DetailRow icon={<User className="text-[#C8A227]" size={18} />} label="Subcaste" value={profile.personal.subCaste} />}
         {profile?.personal?.country && <DetailRow icon={<MapPin className="text-[#C8A227]" size={18} />} label="Country" value={profile.personal.country} />}
         {profile?.personal?.city && profile?.personal?.state && <DetailRow icon={<MapPin className="text-[#C8A227]" size={18} />} label="Current Location" value={`${capitalize(profile.personal.city)}, ${profile.personal.state}`} />}
+        {canShowFullAddress && formattedFullAddress && <DetailRow icon={<MapPin className="text-[#C8A227]" size={18} />} label="Full Address (shared after mutual acceptance)" value={formattedFullAddress} />}
         {profile?.personal?.nationality && <DetailRow icon={<User className="text-[#C8A227]" size={18} />} label="Nationality" value={profile.personal.nationality} />}
         {profile?.personal?.astrologicalSign && <DetailRow icon={<Star className="text-[#C8A227]" size={18} />} label="Zodiac Sign" value={profile.personal.astrologicalSign} />}
         {profile?.personal?.dosh && <DetailRow icon={<Heart className="text-[#C8A227]" size={18} />} label="Dosh" value={profile.personal.dosh} />}

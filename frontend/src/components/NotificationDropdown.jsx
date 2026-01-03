@@ -108,8 +108,8 @@ export default function NotificationDropdown({
       {}
       <button onClick={() => setIsOpen(!isOpen)} className="relative p-2 hover:bg-[#D4A052]/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Notifications" type="button">
         <Bell className="w-6 h-6 text-[#800000]" />
-        {unreadCount > 0 && <span className="absolute top-0 right-0 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[9px] font-bold text-white bg-red-500 rounded-full ring-2 ring-white">
-            {unreadCount > 9 ? "9+" : unreadCount}
+        {unreadCount > 0 && <span className="absolute top-0 right-0 flex items-center justify-center min-w-[20px] h-[18px] px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ring-white">
+          {unreadCount}
           </span>}
       </button>
 

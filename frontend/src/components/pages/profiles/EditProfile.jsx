@@ -10,6 +10,7 @@ import { getStateCode, getAllCountriesWithCodes } from "../../../lib/locationUti
 import { TabsComponent } from "../../TabsComponent";
 import { Label } from "../../ui/label";
 import CustomSelect from "../../ui/CustomSelect";
+import NoKeyboardInput from "../../ui/NoKeyboardInput";
 import SearchableCountryCode from "../../SearchableCountryCode";
 import { Textarea } from "../../ui/textarea";
 import { Button } from "../../ui/button";
@@ -48,7 +49,7 @@ const LIFESTYLE_DIET_OPTIONS = ["Eggetarian", "Jain", "Non-Vegetarian", "Swamina
 const LEGAL_STATUSES = ["Awaiting Divorce", "Divorced", "Never Married", "Separated", "Widowed"];
 const EXPECT_MARITAL_STATUSES = ["Any", "Awaiting Divorce", "Divorced", "Never Married", "Separated", "Widowed"];
 const EXPECT_PROFESSION_OPTIONS = ["Any", "Business", "Government", "Not Working", "Private Sector", "Self-Employed", "Student"];
-const EXPECT_CAST_OPTIONS = ["Brahmin", "Brahmin-Audichya", "Jain-Digambar", "Jain-Swetamber", "Jain-Vanta", "No preference", "Patel", "Patel-Desai", "Patel-Kadva", "Patel-Leva", "Vaishnav-Vania"];
+const EXPECT_CAST_OPTIONS = ["Any", "Brahmin", "Brahmin-Audichya", "Jain-Digambar", "Jain-Swetamber", "Patel", "Patel-Desai", "Patel-Kadva", "Patel-Leva", "Vaishnav-Vania"];
 const EXPECT_EDUCATION_OPTIONS = ["Any", ...QUALIFICATION_LEVELS];
 const EXPECT_DIET_OPTIONS = ["Any", "Eggetarian", "Jain", "Non-Vegetarian", "Swaminarayan", "Veg & Non-Veg", "Vegetarian"];
 const AGE_OPTIONS = Array.from({
@@ -56,7 +57,7 @@ const AGE_OPTIONS = Array.from({
 }, (_, i) => 18 + i);
 const ALL_COUNTRIES = getAllCountriesWithCodes().map(c => c.name);
 const INDIAN_STATES = State.getStatesOfCountry("IN").map(s => s.name).sort();
-const ABROAD_OPTIONS = ["No preference", ...ALL_COUNTRIES];
+const ABROAD_OPTIONS = ["Any", ...ALL_COUNTRIES];
 const countryCodes = allCountries.map(c => ({
   code: `+${c.dialCode}`,
   country: c.name
@@ -174,6 +175,9 @@ export function EditProfile({
     if (!value || typeof value !== "string") return "";
     return value.trim().replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ");
   };
+  const isStudent = String(profession.employmentStatus || "").toLowerCase() === "student";
+  const isNotWorking = String(profession.employmentStatus || "").toLowerCase() === "unemployed";
+  const isEmploymentInactive = isStudent || isNotWorking;
   const isFieldValid = (value, isRequired = true) => {
     if (!isRequired) return true;
     const trimmed = String(value || "").trim();
@@ -195,7 +199,11 @@ export function EditProfile({
       if (!isFieldValid(formData.dosh)) errors.dosh = "Dosh is required";
       if (!isFieldValid(formData.street1)) errors.street1 = "Street 1 is required";
       if (!isFieldValid(formData.street2)) errors.street2 = "Street 2 is required";
-      if (!isFieldValid(formData.pincode)) errors.pincode = "Pincode is required";
+      if (!isFieldValid(formData.pincode)) {
+        errors.pincode = "Pincode is required";
+      } else if (!/^\d{6}$/.test(String(formData.pincode).trim())) {
+        errors.pincode = "Enter a valid 6-digit pincode";
+      }
       if (!isFieldValid(formData.city)) errors.city = "City is required";
       if (!isFieldValid(formData.state)) errors.state = "State is required";
       if (!isFieldValid(formData.ownHouse)) errors.ownHouse = "Own house information is required";
@@ -230,9 +238,11 @@ export function EditProfile({
     }
     if (tabKey === "profession") {
       if (!isFieldValid(formData.employmentStatus)) errors.employmentStatus = "Employment status is required";
-      if (!isFieldValid(formData.occupation)) errors.occupation = "Occupation is required";
-      if (!isFieldValid(formData.annualIncome)) errors.annualIncome = "Annual income is required";
-      if (!isFieldValid(formData.organizationName)) errors.organizationName = "Organization name is required";
+      if (!isEmploymentInactive) {
+        if (!isFieldValid(formData.occupation)) errors.occupation = "Occupation is required";
+        if (!isFieldValid(formData.annualIncome)) errors.annualIncome = "Annual income is required";
+        if (!isFieldValid(formData.organizationName)) errors.organizationName = "Organization name is required";
+      }
     }
     if (tabKey === "lifestyle") {
       if (!isFieldValid(formData.diet)) errors.diet = "Diet is required";
@@ -595,7 +605,9 @@ export function EditProfile({
             return lower === "any" || lower === "no preference";
           });
         };
-        const determinePartnerLocation = livingInCountry => {
+        const determinePartnerLocation = (livingInCountry, livingInState) => {
+          const hasStates = Array.isArray(livingInState) && livingInState.length > 0;
+          if (hasStates) return "India";
           if (!livingInCountry || isAnyLocation(livingInCountry)) return "No preference";
           if (typeof livingInCountry === "string") {
             if (livingInCountry === "India") return "India";
@@ -619,7 +631,7 @@ export function EditProfile({
           if (s === "occasionally" || s === "occasional") return "Occasional";
           return String(val);
         };
-        const partnerLocation = determinePartnerLocation(data.livingInCountry);
+        const partnerLocation = determinePartnerLocation(data.livingInCountry, data.livingInState);
         const partnerStateOrCountry = (() => {
           if (partnerLocation === "India") {
             return (data.livingInState || []).map(s => s.value || s);
@@ -878,7 +890,9 @@ export function EditProfile({
                 return lower === "any" || lower === "no preference";
               });
             };
-            const determinePartnerLocation = livingInCountry => {
+            const determinePartnerLocation = (livingInCountry, livingInState) => {
+              const hasStates = Array.isArray(livingInState) && livingInState.length > 0;
+              if (hasStates) return "India";
               if (!livingInCountry || isAnyLocation(livingInCountry)) return "No preference";
               if (typeof livingInCountry === "string") {
                 if (livingInCountry === "India") return "India";
@@ -894,7 +908,7 @@ export function EditProfile({
               }
               return "No preference";
             };
-            const partnerLocation = determinePartnerLocation(server.livingInCountry || server.livingInState || expectations.partnerLocation);
+            const partnerLocation = determinePartnerLocation(server.livingInCountry, server.livingInState);
             const partnerStateOrCountry = (() => {
               if (partnerLocation === "India") {
                 return (server.livingInState || []).map(s => s.value || s);
@@ -1002,9 +1016,9 @@ export function EditProfile({
         const normalize = v => v === undefined || v === null ? "" : String(v);
         const submissionData = {
           EmploymentStatus: normalize(profession.employmentStatus),
-          Occupation: normalize(profession.occupation),
-          AnnualIncome: normalize(profession.annualIncome),
-          OrganizationName: normalize(profession.organizationName)
+          Occupation: isEmploymentInactive ? "" : normalize(profession.occupation),
+          AnnualIncome: isEmploymentInactive ? "" : normalize(profession.annualIncome),
+          OrganizationName: isEmploymentInactive ? "" : normalize(profession.organizationName)
         };
         try {
           console.info("Profession submissionData ->", submissionData);
@@ -1344,6 +1358,15 @@ export function EditProfile({
       [field]: ""
     }));
   };
+  useEffect(() => {
+    if (!isEmploymentInactive) return;
+    setProfession(prev => ({
+      ...prev,
+      occupation: "",
+      annualIncome: "",
+      organizationName: ""
+    }));
+  }, [isEmploymentInactive]);
   const handleLifestyleChange = field => e => {
     const value = e?.target ? e.target.value : e;
     setLifestyle(prev => ({
@@ -1422,6 +1445,14 @@ export function EditProfile({
         }
       });
     } else {
+      if (name === "pincode") {
+        const numeric = String(value || "").replace(/\D/g, "").slice(0, 6);
+        setPersonal(prev => ({
+          ...prev,
+          [name]: numeric
+        }));
+        return;
+      }
       setPersonal(prev => ({
         ...prev,
         [name]: value
@@ -1893,41 +1924,51 @@ export function EditProfile({
       label: v,
       value: v
     }));
+    const selectComponents = {
+      IndicatorSeparator: () => null,
+      Input: NoKeyboardInput
+    };
     const multiStyles = {
       control: (base, state) => ({
         ...base,
-        minHeight: "3rem",
-        borderColor: state.isFocused ? "#9ca3af" : "#d1d5db",
+        borderColor: state.isFocused ? "#D4A052" : "#d1d5db",
         boxShadow: "none",
-        borderRadius: "10px",
-        backgroundColor: "#ffffff",
+        borderRadius: "0.5rem",
+        backgroundColor: "#fff",
+        minHeight: "3rem",
+        display: "flex",
+        alignItems: "center",
+        fontSize: "0.875rem",
+        transition: "all 0.2s ease",
         "&:hover": {
-          borderColor: state.isFocused ? "#6b7280" : "#9ca3af"
+          borderColor: "#D4A052"
         }
       }),
       valueContainer: base => ({
         ...base,
-        padding: "0 0.75rem"
+        padding: "0 0.75rem",
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        flexWrap: "wrap"
       }),
       multiValue: base => ({
         ...base,
-        backgroundColor: "#e5e7eb",
-        borderRadius: "14px",
-        padding: "2px 4px"
+        backgroundColor: "#F9F7F5",
+        borderRadius: "0.5rem",
+        padding: "0 6px"
       }),
       multiValueLabel: base => ({
         ...base,
-        color: "#374151",
-        fontSize: "0.70rem",
-        padding: "0 2px"
+        color: "#111827",
+        fontSize: "0.875rem"
       }),
       multiValueRemove: base => ({
         ...base,
-        color: "#4b5563",
+        color: "#6b7280",
         ":hover": {
-          backgroundColor: "#d1d5db",
-          color: "#111827",
-          borderRadius: "50%"
+          backgroundColor: "#D4A052",
+          color: "white"
         }
       }),
       dropdownIndicator: (base, state) => ({
@@ -1950,7 +1991,7 @@ export function EditProfile({
       }),
       menu: base => ({
         ...base,
-        borderRadius: "10px",
+        borderRadius: "0.75rem",
         overflow: "hidden",
         zIndex: 9999,
         maxHeight: "300px"
@@ -1992,25 +2033,27 @@ export function EditProfile({
           {}
           <div>
             <Label className="mb-2">Preferred Partner Location Type</Label>
-            <select value={expectations.partnerLocation || ""} onChange={e => {
-            const val = e.target.value;
-            setExpectations(prev => ({
-              ...prev,
-              partnerLocation: val,
-              partnerCountry: "",
-              partnerState: "",
-              partnerStateOrCountry: []
-            }));
-            setExpectationErrors(prev => ({
-              ...prev,
-              partnerLocation: ""
-            }));
-          }} className={`${inputClass} ${expectationErrors.partnerLocation ? "border-red-500" : "border-gray-300"}`}>
-              <option value="">Select</option>
-              <option value="No preference">No preference</option>
-              <option value="India">India (Select States)</option>
-              <option value="Abroad">Abroad (Select Countries)</option>
-            </select>
+            <CustomSelect
+              name="partnerLocation"
+              value={expectations.partnerLocation || ""}
+              onChange={e => {
+                const val = e.target.value;
+                setExpectations(prev => ({
+                  ...prev,
+                  partnerLocation: val,
+                  partnerCountry: "",
+                  partnerState: "",
+                  partnerStateOrCountry: val === "No preference" ? ["Any"] : []
+                }));
+                setExpectationErrors(prev => ({
+                  ...prev,
+                  partnerLocation: ""
+                }));
+              }}
+              options={["", "No preference", "India", "Abroad"]}
+              placeholder="Select location type"
+              className={expectationErrors.partnerLocation ? "border-red-500" : ""}
+            />
             {expectationErrors.partnerLocation && <p className="text-red-500 text-sm mt-1">
                 {expectationErrors.partnerLocation}
               </p>}
@@ -2021,16 +2064,19 @@ export function EditProfile({
               <Label className="mb-2">Preferred State *</Label>
               <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.partnerStateOrCountry || [])} onChange={sel => {
             const values = sel ? sel.map(o => o.value) : [];
+            const next = values.includes("Any") || values.includes("No preference") ? ["Any"] : values.filter(v => v !== "Any" && v !== "No preference");
             setExpectations(prev => ({
               ...prev,
-              partnerStateOrCountry: values,
-              partnerState: values[0] || ""
+              partnerStateOrCountry: next,
+              partnerState: next[0] || ""
             }));
             setExpectationErrors(prev => ({
               ...prev,
               partnerState: ""
             }));
-          }} options={toOptions(INDIAN_STATES)} classNamePrefix="react-select" styles={multiStyles} menuPlacement="auto" menuPortalTarget={document.body} placeholder="Search and select states" />
+          }} options={toOptions(["Any", ...INDIAN_STATES])} classNamePrefix="react-select" styles={multiStyles} components={{
+            IndicatorSeparator: () => null
+          }} menuPlacement="auto" menuPosition="fixed" menuPortalTarget={document.body} placeholder="Search and select states" />
               {expectationErrors.partnerState && <p className="text-red-500 text-sm mt-1">
                   {expectationErrors.partnerState}
                 </p>}
@@ -2041,16 +2087,19 @@ export function EditProfile({
               <Label className="mb-2">Preferred Country *</Label>
               <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.partnerStateOrCountry || [])} onChange={sel => {
             const values = sel ? sel.map(o => o.value) : [];
+            const next = values.includes("Any") || values.includes("No preference") ? ["Any"] : values.filter(v => v !== "Any" && v !== "No preference");
             setExpectations(prev => ({
               ...prev,
-              partnerStateOrCountry: values,
-              partnerCountry: values[0] || ""
+              partnerStateOrCountry: next,
+              partnerCountry: next[0] || ""
             }));
             setExpectationErrors(prev => ({
               ...prev,
               partnerCountry: ""
             }));
-          }} options={toOptions(ABROAD_OPTIONS)} classNamePrefix="react-select" styles={multiStyles} menuPlacement="auto" menuPortalTarget={document.body} placeholder="Search and select countries" />
+          }} options={toOptions(ABROAD_OPTIONS)} classNamePrefix="react-select" styles={multiStyles} components={{
+            IndicatorSeparator: () => null
+          }} menuPlacement="auto" menuPosition="fixed" menuPortalTarget={document.body} placeholder="Search and select countries" />
               {expectationErrors.partnerCountry && <p className="text-red-500 text-sm mt-1">
                   {expectationErrors.partnerCountry}
                 </p>}
@@ -2066,7 +2115,7 @@ export function EditProfile({
 
           <div>
             <Label className="mb-2">Preferred Education *</Label>
-            <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.partnerEducation)} onChange={sel => {
+            <ReactSelect isMulti closeMenuOnSelect={false} isSearchable={false} components={selectComponents} menuPosition="fixed" value={toOptions(expectations.partnerEducation)} onChange={sel => {
             setExpectations(prev => ({
               ...prev,
               partnerEducation: sel ? sel.map(o => o.value) : []
@@ -2083,10 +2132,14 @@ export function EditProfile({
 
           <div>
             <Label className="mb-2">Preferred Diet *</Label>
-            <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.partnerDiet)} onChange={sel => {
+            <ReactSelect isMulti closeMenuOnSelect={false} isSearchable={false} components={selectComponents} menuPosition="fixed" value={toOptions(expectations.partnerDiet)} onChange={sel => {
+            const values = sel ? sel.map(o => o.value) : [];
+            const hasAny = values.includes("Any");
+            const hasNoPref = values.includes("No preference");
+            const next = hasAny ? ["Any"] : hasNoPref ? ["No preference"] : values.filter(v => v !== "Any" && v !== "No preference");
             setExpectations(prev => ({
               ...prev,
-              partnerDiet: sel ? sel.map(o => o.value) : []
+              partnerDiet: next
             }));
             setExpectationErrors(prev => ({
               ...prev,
@@ -2100,10 +2153,13 @@ export function EditProfile({
 
           <div>
             <Label className="mb-2">Preferred Community *</Label>
-            <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.partnerCommunity)} onChange={sel => {
+            <ReactSelect isMulti closeMenuOnSelect={false} isSearchable={false} components={selectComponents} menuPosition="fixed" value={toOptions(expectations.partnerCommunity)} onChange={sel => {
+            const values = sel ? sel.map(o => o.value) : [];
+            const hasAny = values.includes("Any");
+            const next = hasAny ? ["Any"] : values.filter(v => v !== "Any");
             setExpectations(prev => ({
               ...prev,
-              partnerCommunity: sel ? sel.map(o => o.value) : []
+              partnerCommunity: next
             }));
             setExpectationErrors(prev => ({
               ...prev,
@@ -2117,10 +2173,13 @@ export function EditProfile({
 
           <div>
             <Label className="mb-2">Preferred Profession *</Label>
-            <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.profession)} onChange={sel => {
+            <ReactSelect isMulti closeMenuOnSelect={false} isSearchable={false} components={selectComponents} menuPosition="fixed" value={toOptions(expectations.profession)} onChange={sel => {
+            const values = sel ? sel.map(o => o.value) : [];
+            const hasAny = values.includes("Any");
+            const next = hasAny ? ["Any"] : values.filter(v => v !== "Any");
             setExpectations(prev => ({
               ...prev,
-              profession: sel ? sel.map(o => o.value) : []
+              profession: next
             }));
             setExpectationErrors(prev => ({
               ...prev,
@@ -2134,10 +2193,14 @@ export function EditProfile({
 
           <div>
             <Label className="mb-2">Marital Status Preference *</Label>
-            <ReactSelect isMulti closeMenuOnSelect={false} value={toOptions(expectations.maritalStatus)} onChange={sel => {
+            <ReactSelect isMulti closeMenuOnSelect={false} isSearchable={false} components={selectComponents} menuPosition="fixed" value={toOptions(expectations.maritalStatus)} onChange={sel => {
+            const values = sel ? sel.map(o => o.value) : [];
+            const hasAny = values.includes("Any");
+            const hasNoPref = values.includes("No preference");
+            const next = hasAny ? ["Any"] : hasNoPref ? ["No preference"] : values.filter(v => v !== "Any" && v !== "No preference");
             setExpectations(prev => ({
               ...prev,
-              maritalStatus: sel ? sel.map(o => o.value) : []
+              maritalStatus: next
             }));
             setExpectationErrors(prev => ({
               ...prev,
@@ -2362,45 +2425,26 @@ export function EditProfile({
       {}
       <div className="space-y-2">
         <Label className="mb-2">Field of Study *</Label>
-        <CreatableSelect isClearable name="fieldOfStudy" value={education.fieldOfStudy ? {
-        label: education.fieldOfStudy,
-        value: education.fieldOfStudy
-      } : null} onChange={val => {
-        const next = val ? val.value : "";
-        const sanitized = next ? sanitizeInput(next) : "";
-        setEducation(prev => ({
-          ...prev,
-          fieldOfStudy: sanitized
-        }));
-        setEducationErrors(prev => ({
-          ...prev,
-          fieldOfStudy: ""
-        }));
-      }} options={filteredFieldOfStudyOptions.map(opt => ({
-        label: opt,
-        value: opt
-      }))} classNamePrefix="react-select" styles={{
-        control: (base, state) => ({
-          ...base,
-          minHeight: "3rem",
-          borderColor: educationErrors.fieldOfStudy ? "#ef4444" : state.isFocused ? "#9ca3af" : "#d1d5db",
-          boxShadow: "none",
-          backgroundColor: "#ffffff",
-          borderRadius: "10px",
-          "&:hover": {
-            borderColor: state.isFocused ? "#6b7280" : "#9ca3af"
-          }
-        }),
-        valueContainer: base => ({
-          ...base,
-          padding: "0 0.75rem",
-          height: "3rem"
-        }),
-        indicatorsContainer: base => ({
-          ...base,
-          height: "3rem"
-        })
-      }} menuPlacement="top" />
+        <CustomSelect
+          name="fieldOfStudy"
+          value={education.fieldOfStudy || ""}
+          onChange={e => {
+            const sanitized = sanitizeInput(e.target.value);
+            setEducation(prev => ({
+              ...prev,
+              fieldOfStudy: sanitized
+            }));
+            setEducationErrors(prev => ({
+              ...prev,
+              fieldOfStudy: ""
+            }));
+          }}
+          options={filteredFieldOfStudyOptions}
+          placeholder="Select or type field of study"
+          className={educationErrors.fieldOfStudy ? "border-red-500" : ""}
+          allowCustom
+          preserveCase
+        />
         {educationErrors.fieldOfStudy && <p className="text-red-500 text-sm mt-1">
             {educationErrors.fieldOfStudy}
           </p>}
@@ -2436,65 +2480,53 @@ export function EditProfile({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6 mt-4">
         <div className="flex flex-col">
           <Label className="mb-2">Employment Status *</Label>
-          <select name="employmentStatus" value={profession.employmentStatus || ""} onChange={e => {
-          handleProfessionChange("employmentStatus")(e);
-        }} className={`w-full border rounded-md p-2.5 sm:p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition ${professionErrors.employmentStatus ? "border-red-500" : "border-[#D4A052]"}`}>
-            <option value="">Select Employment Status</option>
-            {EMPLOYMENT_OPTIONS.map(val => <option key={val} value={val}>
-                {EMPLOYMENT_DISPLAY_MAP[val] || val}
-              </option>)}
-          </select>
+          <CustomSelect
+            name="employmentStatus"
+            value={profession.employmentStatus ? EMPLOYMENT_DISPLAY_MAP[profession.employmentStatus] || profession.employmentStatus : ""}
+            options={EMPLOYMENT_OPTIONS.map(val => EMPLOYMENT_DISPLAY_MAP[val] || val)}
+            placeholder="Select Employment Status"
+            className={professionErrors.employmentStatus ? "border-red-500" : ""}
+            onChange={e => {
+              const label = e.target.value;
+              const rawValue = Object.entries(EMPLOYMENT_DISPLAY_MAP).find(([, l]) => l === label)?.[0] || label;
+              handleProfessionChange("employmentStatus")({
+                target: {
+                  name: "employmentStatus",
+                  value: rawValue
+                }
+              });
+            }}
+          />
           {professionErrors.employmentStatus && <p className="text-red-500 text-sm mt-1">
               {professionErrors.employmentStatus}
             </p>}
         </div>
         <div className="flex flex-col">
           <Label className="mb-2">Occupation *</Label>
-          <div style={{
-          marginBottom: "8px"
-        }}>
-            <CreatableSelect name="occupation" isClearable value={profession.occupation ? {
-            label: profession.occupation,
-            value: profession.occupation
-          } : null} onChange={val => {
-            const sanitized = val ? sanitizeInput(val.value) : "";
-            setProfession(prev => ({
-              ...prev,
-              occupation: sanitized
-            }));
-            setProfessionErrors(prev => ({
-              ...prev,
-              occupation: ""
-            }));
-          }} options={[...JOB_TITLES].sort().map(t => ({
-            label: t,
-            value: t
-          }))} classNamePrefix="react-select" maxMenuHeight={192} styles={{
-            control: (base, state) => ({
-              ...base,
-              minHeight: "3rem",
-              borderColor: professionErrors.occupation ? "#ef4444" : state.isFocused ? "#9ca3af" : "#d1d5db",
-              boxShadow: "none",
-              backgroundColor: "#ffffff",
-              borderRadius: "10px",
-              "&:hover": {
-                borderColor: state.isFocused ? "#6b7280" : "#9ca3af"
-              }
-            }),
-            valueContainer: base => ({
-              ...base,
-              padding: "0 0.75rem",
-              height: "3rem"
-            }),
-            indicatorsContainer: base => ({
-              ...base,
-              height: "3rem"
-            })
-          }} menuPlacement="top" />
-            {professionErrors.occupation && <p className="text-red-500 text-sm mt-1">
-                {professionErrors.occupation}
-              </p>}
-          </div>
+          <CustomSelect
+            name="occupation"
+            value={profession.occupation || ""}
+            onChange={e => {
+              const sanitized = sanitizeInput(e.target.value || "");
+              setProfession(prev => ({
+                ...prev,
+                occupation: sanitized
+              }));
+              setProfessionErrors(prev => ({
+                ...prev,
+                occupation: ""
+              }));
+            }}
+            options={[...JOB_TITLES].sort()}
+            placeholder="Select or type occupation"
+            className={professionErrors.occupation ? "border-red-500" : ""}
+            allowCustom
+            preserveCase
+            disabled={isEmploymentInactive}
+          />
+          {professionErrors.occupation && <p className="text-red-500 text-sm mt-1">
+              {professionErrors.occupation}
+            </p>}
         </div>
       </div>
 
@@ -2503,14 +2535,21 @@ export function EditProfile({
           <Label className="mb-2">Annual Income *</Label>
           <CustomSelect name="annualIncome" value={profession.annualIncome || ""} onChange={e => {
           handleProfessionChange("annualIncome")(e);
-        }} options={INCOME_OPTIONS} placeholder="Select Annual Income" className={professionErrors.annualIncome ? "border-red-500" : ""} />
+        }} options={INCOME_OPTIONS} placeholder="Select Annual Income" className={professionErrors.annualIncome ? "border-red-500" : ""} disabled={isEmploymentInactive} />
           {professionErrors.annualIncome && <p className="text-red-500 text-sm mt-1">
               {professionErrors.annualIncome}
             </p>}
         </div>
         <div>
           <Label className="mb-2">Organization Name *</Label>
-          <EditableInput value={profession.organizationName || ""} onChange={handleProfessionChange("organizationName")} className={`rounded-md ${professionErrors.organizationName ? "border-red-500" : "border-gray-300"}`} name="organizationName" />
+          <EditableInput
+            value={profession.organizationName || ""}
+            placeholder="Enter organization name"
+            onChange={handleProfessionChange("organizationName")}
+            className={`rounded-md ${professionErrors.organizationName ? "border-red-500" : "border-gray-300"}`}
+            name="organizationName"
+            disabled={isEmploymentInactive}
+          />
           {professionErrors.organizationName && <p className="text-red-500 text-sm mt-1">
               {professionErrors.organizationName}
             </p>}

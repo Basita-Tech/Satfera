@@ -52,10 +52,8 @@ export function Shortlisted({
       {}
       <div className="flex items-center justify-between">
         <div>
-          <h5 className="mb-2 m-0">Shortlisted Profiles</h5>
-          <p className="text-muted-foreground m-0">
-            Your saved profiles for easy access and comparison
-          </p>
+          <h2 className="m-0 mb-2 text-2xl font-semibold text-[#3a2f00]">Shortlisted Profiles</h2>
+          <p className="text-muted-foreground m-0">Your saved profiles for easy access and comparison</p>
         </div>
 
         {}

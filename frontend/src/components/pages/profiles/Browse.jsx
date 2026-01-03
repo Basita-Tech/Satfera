@@ -31,6 +31,8 @@ export function Browse({
   const fetchMatches = async () => {
     setLoadingMatches(true);
     setErrorMatches(null);
+    // Clear current page data so auto-advance logic does not reuse stale results.
+    setRecommendedProfiles([]);
     try {
       const res = await getMatches({
         page: currentPage,
@@ -82,7 +84,22 @@ export function Browse({
     fetchMatches();
   }, [currentPage]);
   const totalPages = Math.max(1, Math.ceil(totalProfiles / profilesPerPage));
-  useEffect(() => {}, [totalProfiles, totalPages, currentPage, recommendedProfiles.length]);
+  const filteredRecommendations = useMemo(() => {
+    return recommendedProfiles.filter(p => !sentProfileIds.includes(String(p.id)));
+  }, [recommendedProfiles, sentProfileIds]);
+
+  
+  useEffect(() => {
+    if (loadingMatches) return;
+    const pageHasResults = recommendedProfiles.length > 0;
+    const nothingVisible = filteredRecommendations.length === 0;
+    const hasMorePages = currentPage < totalPages;
+    if (pageHasResults && nothingVisible && hasMorePages) {
+ 
+      setLoadingMatches(true);
+      handlePageChange(currentPage + 1);
+    }
+  }, [filteredRecommendations.length, recommendedProfiles.length, currentPage, totalPages, loadingMatches]);
   const handlePageChange = pageNumber => {
     if (pageNumber >= 1 && pageNumber <= totalPages && pageNumber !== currentPage) {
       setCurrentPage(pageNumber);
@@ -100,7 +117,7 @@ export function Browse({
         {}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="mb-2 m-0 text-2xl md:text-3xl lg:text-4xl font-bold text-black">Recommendations</h2>
+            <h2 className="m-0 mb-2 text-2xl font-semibold text-[#3a2f00]">Recommendations</h2>
           </div>
 
           {}
@@ -161,8 +178,8 @@ export function Browse({
           </div>}
 
         {!loadingMatches && !errorMatches && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {recommendedProfiles.map(profile => <ProfileCard key={profile.id} {...profile} variant="browse" onView={onViewProfile} onSendRequest={onSendRequest} onAddToCompare={onAddToCompare} onRemoveCompare={onRemoveCompare} isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false} isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some(sid => String(sid) === String(profile.id)) : false} onToggleShortlist={onToggleShortlist} />)}
-            {recommendedProfiles.length === 0 && <div className="col-span-full py-16 text-center text-gray-600">
+            {filteredRecommendations.map(profile => <ProfileCard key={profile.id} {...profile} variant="browse" onView={onViewProfile} onSendRequest={onSendRequest} onAddToCompare={onAddToCompare} onRemoveCompare={onRemoveCompare} isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false} isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some(sid => String(sid) === String(profile.id)) : false} onToggleShortlist={onToggleShortlist} />)}
+            {filteredRecommendations.length === 0 && <div className="col-span-full py-16 text-center text-gray-600">
                 No recommendations found.
               </div>}
           </div>}

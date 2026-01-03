@@ -125,15 +125,19 @@ export function UserDashboard() {
             console.warn("⚠️ User keys:", Object.keys(user));
           }
           const status = item?.status || user?.status || 'pending';
+          const personal = user?.personal || {};
+          
           return {
             id: user.userId || user.id,
             connectionRequestId,
             name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
             age: user.age,
-            city: user.city,
-            profession: user.profession || 'Graphic Designer',
-            religion: user.religion,
-            caste: user.subCaste,
+            city: user.city || personal.city || '',
+            state: user.state || personal.state || '',
+            country: user.country || personal.country || '',
+            profession: user.profession || user.occupation || personal.occupation || 'Graphic Designer',
+            religion: user.religion || personal.religion || '',
+            caste: user.subCaste || personal.subCaste || '',
             image: user.closerPhoto?.url || '',
             compatibility: scoreDetail.score || 0,
             status

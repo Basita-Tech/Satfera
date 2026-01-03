@@ -145,9 +145,10 @@ export function ProfileCard({
               return;
             }
             navigate(`/dashboard/profile/${profileId}`);
-          }} className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#e0c36a] rounded-full font-medium 
-              hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200">
-              View
+            }} className="flex-1 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#e0c36a] rounded-full font-medium 
+              hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200 flex items-center justify-center gap-2">
+              <Eye size={16} />
+              <span>View Profile</span>
             </Button>
             <Button size="sm" onClick={handleSendRequestClick} className="flex-1 bg-[#c8a227] text-white rounded-[12px]">
               Send Request
@@ -158,8 +159,9 @@ export function ProfileCard({
             <Button onClick={() => onView?.(profile || {
             id
           })} className="flex-1 h-[38px] bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium 
-              hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200">
-              View Profile
+              hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200 flex items-center justify-center gap-2">
+              <Eye size={16} />
+              <span>View </span>
             </Button>
             {onWithdraw && (() => {
             const s = String(status || "").toLowerCase();
@@ -181,8 +183,8 @@ export function ProfileCard({
             id
           })} className="w-full h-[38px] bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium 
               hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] transition-all duration-200 flex items-center justify-center gap-2">
-              <span className="inline-block" aria-hidden>👁</span>
-              <span>View Profile</span>
+              <Eye size={16} />
+              <span>View </span>
             </Button>
 
             {}
@@ -228,15 +230,16 @@ export function ProfileCard({
               <Button onClick={() => onView?.(profile || {
               id
             })} className="flex-1 bg-[#f9f5ed] text-[#c8a227]  hover:text-white  border-[1.3px] border-[#c8a227] rounded-full font-medium py-2 
-          hover:bg-[#c8a227] transition-all duration-200">
-                👁 View Profile
+          hover:bg-[#c8a227] transition-all duration-200 flex items-center justify-center gap-2">
+                <Eye size={16} />
+                <span>View </span>
               </Button>
 
               {}
               <Button onClick={e => {
               if (isUiInCompare) handleRemoveClick(e);else handleAddClick(e);
             }} className={`flex-1 rounded-full font-medium py-2 px-3 border transition-all duration-200 whitespace-nowrap ${isUiInCompare ? "bg-[#c8a227] text-white border-[#c8a227] hover:bg-[#c8a227]" : "bg-[#f9f5ed] text-[#c8a227]  border-[1.3px] hover:text-white border-[#c8a227] hover:bg-[#c8a227]"}`}>
-                {isUiInCompare ? "Added" : "Compare"}
+                {isUiInCompare ? "Remove Compare" : "Add to Compare"}
               </Button>
             </div>
 
@@ -271,18 +274,15 @@ export function ProfileCard({
               id
             })} className="flex-1 h-11 bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full font-medium text-[14px] 
                   hover:bg-[#c8a227] hover:text-white transition-all duration-200 flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="#b8860b" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5S21.75 12 21.75 12s-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                <span>View Profile</span>
+                <Eye size={16} />
+                <span>View </span>
               </Button>
 
               {}
               <Button onClick={e => {
               if (isUiInCompare) handleRemoveClick(e);else handleAddClick(e);
             }} className={`flex-1 h-11 rounded-full font-medium text-[14px] border transition-all duration-200 ${isUiInCompare ? "bg-[#c8a227] text-white border-[#c8a227]" : "bg-[#f9f5ed] text-[#c8a227] border-[1.3px] hover:bg-[#c8a227] hover:text-white border-[#c8a227]"}`}>
-                {isUiInCompare ? "Added" : "Compare"}
+                {isUiInCompare ? "Remove From Compare" : "Add toCompare"}
               </Button>
               <Button onClick={e => {
               if (isUiInCompare) handleRemoveClick(e);else handleAddClick(e);
@@ -313,23 +313,25 @@ export function ProfileCard({
               navigate(`/dashboard/profile/${profileId}`);
             }} className="flex-1 h-[38px] bg-[#f9f5ed] text-[#c8a227] border-[1.3px] border-[#c8a227] rounded-full 
           font-medium text-[13px] hover:bg-[#c8a227] hover:text-white hover:border-[#c8a227] 
-          transition-all duration-200 px-4">
-                View Profile
+          transition-all duration-200 px-4 flex items-center justify-center gap-2">
+                <Eye size={16} />
+                <span>View </span>
               </Button>
 
-              <Button onClick={e => {
-              if (isUiInCompare) handleRemoveClick(e);else handleAddClick(e);
-            }} className={`flex-1 h-[38px] rounded-full font-medium text-[13px] border transition-all duration-200 px-4 ${isUiInCompare ? "bg-[#c8a227] text-white border-[#c8a227]" : "bg-[#f9f5ed] text-[#c8a227]  border-[1.3px] border-[#c8a227] hover:bg-[#c8a227] hover:text-white"}`}>
-                {isUiInCompare ? "Added" : " Compare"}
+              <Button onClick={handleSendRequestClick} className="w-full h-[38px] bg-[#c8a227] text-white rounded-full font-medium text-[13px] 
+          hover:bg-[#b8941e] transition-all duration-200 px-4">
+                Send Request
               </Button>
             </div>
 
             {}
             <div className="flex gap-2">
-              <Button onClick={handleSendRequestClick} className="w-full h-[38px] bg-[#c8a227] text-white rounded-full font-medium text-[13px] 
-          hover:bg-[#b8941e] transition-all duration-200 px-4">
-                Send Request
+              <Button onClick={e => {
+              if (isUiInCompare) handleRemoveClick(e);else handleAddClick(e);
+            }} className={`flex-1 h-[38px] rounded-full font-medium text-[13px] border transition-all duration-200 px-4 ${isUiInCompare ? "bg-[#c8a227] text-white border-[#c8a227]" : "bg-[#f9f5ed] text-[#c8a227]  border-[1.3px] border-[#c8a227] hover:bg-[#c8a227] hover:text-white"}`}>
+                {isUiInCompare ? "Remove From Compare" : "Add to Compare"}
               </Button>
+              
             </div>
           </div>;
       default:

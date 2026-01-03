@@ -237,6 +237,16 @@ export default function NewProfiles({
       return true;
     });
   }, [allProfiles, appliedFilters, shortlistedIds, sentProfileIds]);
+
+    useEffect(() => {
+    if (!initialLoadDone || loadingProfiles) return;
+    const pageHasProfiles = allProfiles.length > 0;
+    const nothingVisible = filteredProfiles.length === 0;
+    const hasMorePages = page < totalPages;
+    if (pageHasProfiles && nothingVisible && hasMorePages) {
+      handleSubmit(undefined, page + 1);
+    }
+  }, [filteredProfiles.length, allProfiles.length, page, totalPages, loadingProfiles, initialLoadDone]);
   const clearAllFilters = () => {
     setPendingFilters({
       searchInput: "",
@@ -494,7 +504,7 @@ export default function NewProfiles({
                 }).map((_, idx) => {
                   const pNum = idx + 1;
                   if (pNum === 1 || pNum === totalPages || pNum >= page - 1 && pNum <= page + 1) {
-                    return <button key={pNum} onClick={() => handlePageChange(pNum)} className={`w-9 h-9 rounded-full text-sm border transition-all ${pNum === page ? "bg-[#c8a227] text-white border-[#c8a227]" : "bg-white border-gray-300 text-gray-700 hover:bg-[#f9f5ed]"}`}>
+                    return <button key={pNum} onClick={() => handlePageChange(pNum)} className={`rounded-full text-sm border transition-all ${pNum === page ? "bg-[#c8a227] text-white border-[#c8a227]" : "bg-white border-gray-300 text-gray-700 hover:bg-[#f9f5ed]"}`}>
                                 {pNum}
                               </button>;
                   } else if (pNum === page - 2 || pNum === page + 2) {
