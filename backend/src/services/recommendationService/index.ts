@@ -196,15 +196,15 @@ export async function computeMatchScore(
     if (!seeker || !seekerExpectRaw || !candidate) {
       const [s, se, c] = await Promise.all([
         seeker ||
-        User.findById(seekerUserId, "firstName lastName dateOfBirth").lean(),
+          User.findById(seekerUserId, "firstName lastName dateOfBirth").lean(),
         seekerExpectRaw ||
-        UserExpectations.findOne({ userId: seekerUserId }).lean(),
+          UserExpectations.findOne({ userId: seekerUserId }).lean(),
 
         candidate ||
-        User.findById(
-          candidateUserId,
-          "firstName lastName dateOfBirth gender isActive createdAt"
-        ).lean()
+          User.findById(
+            candidateUserId,
+            "firstName lastName dateOfBirth gender isActive createdAt"
+          ).lean()
       ]);
       seeker = s;
       seekerExpectRaw = se;
@@ -222,25 +222,25 @@ export async function computeMatchScore(
       // Only fetch the fields needed for scoring to reduce payload
       const [cp, ch, ce, cpf] = await Promise.all([
         candidatePersonalData ||
-        UserPersonal.findOne(
-          { userId: candidateUserId },
-          "userId religion subCaste full_address.state marriedStatus residingCountry"
-        ).lean(),
+          UserPersonal.findOne(
+            { userId: candidateUserId },
+            "userId religion subCaste full_address.state marriedStatus residingCountry"
+          ).lean(),
         candidateHealthData ||
-        UserHealth.findOne(
-          { userId: candidateUserId },
-          "userId isAlcoholic diet"
-        ).lean(),
+          UserHealth.findOne(
+            { userId: candidateUserId },
+            "userId isAlcoholic diet"
+          ).lean(),
         candidateEducationData ||
-        UserEducation.findOne(
-          { userId: candidateUserId },
-          "userId HighestEducation"
-        ).lean(),
+          UserEducation.findOne(
+            { userId: candidateUserId },
+            "userId HighestEducation"
+          ).lean(),
         candidateProfessionData ||
-        UserProfession.findOne(
-          { userId: candidateUserId },
-          "userId Occupation"
-        ).lean()
+          UserProfession.findOne(
+            { userId: candidateUserId },
+            "userId Occupation"
+          ).lean()
       ]);
       candidatePersonalData = cp;
       candidateHealthData = ch;
@@ -264,8 +264,8 @@ export async function computeMatchScore(
 
     const candidateCommunityArray = candidatePersonalData?.religion
       ? [candidatePersonalData.religion, candidatePersonalData.subCaste].filter(
-        Boolean
-      )
+          Boolean
+        )
       : [];
     const communityScoreRaw = communityScore(
       seekerExpect.community,
@@ -850,7 +850,8 @@ export async function getDetailedProfile(
               {
                 viewer: viewerId,
                 candidate: candidateId,
-                weekStartDate: weekStart
+                weekStartDate: weekStart,
+                viewedAt: new Date()
               },
               {
                 $set: {

@@ -71,6 +71,24 @@ export async function formatDetailedProfile(
       : maskEmail(candidate.email)
     : "****";
 
+  const fatherPhoneNumber = family.fatherContact
+    ? isAccepted
+      ? family.fatherContact
+      : maskPhoneNumber(family.fatherContact.number)
+    : "****";
+
+  const motherPhoneNumber = family.motherContact
+    ? isAccepted
+      ? family.motherContact
+      : maskPhoneNumber(family.motherContact.number)
+    : "****";
+
+  const userFullAddress = personal.full_address
+    ? isAccepted
+      ? personal.full_address
+      : "*****"
+    : "****";
+
   const ms = String(personal?.marriedStatus || "").toLowerCase();
   const hasChildren = !!personal?.isHaveChildren;
   const extraPersonalFields: Record<string, any> = {};
@@ -117,7 +135,7 @@ export async function formatDetailedProfile(
     scoreDetail: scoreDetail
       ? { score: scoreDetail.score, reasons: scoreDetail.reasons }
       : { score: 0, reasons: [] },
-
+    address: userFullAddress,
     status: status,
     createdAt: candidate?.createdAt,
 
@@ -143,6 +161,8 @@ export async function formatDetailedProfile(
     family: {
       fatherName: family?.fatherName,
       motherName: family?.motherName,
+      motherContact: motherPhoneNumber,
+      fatherContact: fatherPhoneNumber,
       fatherOccupation: family?.fatherOccupation,
       motherOccupation: family?.motherOccupation,
       fatherNativePlace: family?.fatherNativePlace,
