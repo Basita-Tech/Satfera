@@ -228,7 +228,7 @@ export async function getPendingProfilesService(
     const [users, professions, personalData, profiles] = await Promise.all([
       User.find({ _id: { $in: userIds } })
         .select(
-          "firstName lastName gender dateOfBirth phoneNumber email customId profileReviewStatus createdAt"
+          "firstName lastName gender dateOfBirth phoneNumber email customId profileReviewStatus createdAt reviewNotes reviewedAt"
         )
         .lean(),
 
@@ -277,7 +277,9 @@ export async function getPendingProfilesService(
         city: personal?.full_address?.city || null,
         state: personal?.full_address?.state || null,
         closerPhoto: profile?.photos?.closerPhoto?.url || null,
-        createdAt: user?.createdAt || null
+        createdAt: user?.createdAt || null,
+        reason: user.reviewNotes || null,
+        reviewedAt: user.reviewedAt || null
       };
     });
 
