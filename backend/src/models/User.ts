@@ -37,6 +37,8 @@ export interface IUser extends Document {
   accountType?: "free" | "premium";
   planDurationMonths?: number;
   planExpiry?: Date;
+  reviewedAt?: Date;
+  reviewNotes?: string;
 }
 
 const sanitizeString = (value: string): string => {
@@ -225,7 +227,9 @@ const userSchema: Schema = new Schema(
         message: "Blocked users limit exceeded"
       }
     },
-    isVisible: { type: Boolean, default: true }
+    isVisible: { type: Boolean, default: true },
+    reviewedAt: { type: Date },
+    reviewNotes: { type: String }
   },
   {
     timestamps: true,

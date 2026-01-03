@@ -40,8 +40,6 @@ export interface IProfile extends Document {
   favoriteProfiles: mongoose.Types.ObjectId[];
   compareProfiles: mongoose.Types.ObjectId[];
   ProfileViewed: number;
-  reviewedAt?: Date;
-  reviewNotes?: string;
   createdAt: Date;
 }
 
@@ -118,9 +116,7 @@ const ProfileSchema = new Schema(
     },
     favoriteProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     compareProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    ProfileViewed: { type: Number, default: 0 },
-    reviewedAt: { type: Date },
-    reviewNotes: { type: String }
+    ProfileViewed: { type: Number, default: 0 }
   },
   { timestamps: true }
 );
