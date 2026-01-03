@@ -41,7 +41,7 @@ const ExpectationDetails = ({
   const [errors, setErrors] = useState({});
   const maritalStatuses = sortAlphaWithPinned(["Any", "Never Married", "Divorced", "Widowed", "Separated", "Awaiting Divorce"], ["Any"]);
   const professionOptions = sortAlphaWithPinned(["Any", "Private Sector", "Government", "Business", "Self-Employed", "Not Working", "Student"], ["Any"]);
-  const castOptions = sortAlphaWithPinned(["Patel-Desai", "Patel-Kadva", "Patel-Leva", "Patel", "Brahmin-Audichya", "Brahmin", "Jain-Digambar", "Jain-Swetamber", "Jain-Vanta", "Vaishnav-Vania", "No preference"], ["No preference"]);
+  const castOptions = sortAlphaWithPinned(["Patel-Desai", "Patel-Kadva", "Patel-Leva", "Patel", "Brahmin-Audichya", "Brahmin", "Jain-Digambar", "Jain-Swetamber", "Vaishnav-Vania"], []);
   const inputClass = "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
   const ageOptions = useMemo(() => Array.from({
     length: 23
@@ -68,12 +68,18 @@ const ExpectationDetails = ({
   }, []);
   const handleChange = useCallback((field, value) => {
     if (field === "preferredAgeFrom" || field === "preferredAgeTo") {
-      let num = Number(value);
-      if (Number.isNaN(num)) num = "";else {
-        if (num < 18) num = 18;
-        if (num > 40) num = 40;
+      if (value === "" || value === null || value === undefined) {
+        value = "";
+      } else {
+        let num = Number(value);
+        if (Number.isNaN(num)) {
+          value = "";
+        } else {
+          if (num < 18) num = 18;
+          if (num > 40) num = 40;
+          value = String(num);
+        }
       }
-      value = num === "" ? "" : String(num);
     }
     const shouldClearError = Array.isArray(value) && value.length > 0 || typeof value === "string" && value.trim() !== "" || value && typeof value === "object" && Object.keys(value).length > 0;
     setFormData(prev => ({

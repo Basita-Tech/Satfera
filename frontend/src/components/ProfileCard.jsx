@@ -347,7 +347,7 @@ export function ProfileCard({
       {}
       <div className="relative w-full overflow-visible rounded-t-[20px]">
         {image ? <div className="relative w-full h-[220px]">
-            <img src={image} alt={name} loading="lazy" decoding="async" className="w-full h-[220px]  object-center" onError={e => {
+            <img src={image} alt={name} loading="lazy" decoding="async" className="w-full h-full object-cover object-center" onError={e => {
           e.currentTarget.style.display = 'none';
           const fallback = e.currentTarget.nextElementSibling;
           if (fallback) fallback.style.display = 'flex';

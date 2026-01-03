@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
-import CreatableSelect from "react-select/creatable";
 import CustomSelect from "../ui/CustomSelect";
 import LocationSelect from "../ui/LocationSelect";
 import { getOnboardingStatus, getUserPersonal, saveUserPersonal, updateUserPersonal } from "../../api/auth";
@@ -351,10 +350,16 @@ const PersonalDetails = ({
       name,
       value
     } = e.target;
-    const capitalizeFields = ["birthCity", "birthState", "residingCity", "residingState", "street1", "street2", "middleName", "city", "state", "residingCountry"];
+    const capitalizeEveryWordFields = ["birthCity", "birthState", "residingCity", "residingState", "middleName", "city", "state", "residingCountry"];
+    const capitalizeFirstLetterOnlyFields = ["street1", "street2"];
     let newValue = value;
-    if (capitalizeFields.includes(name) && value.length > 0) {
+    
+    if (name === "pincode") {
+      newValue = value.replace(/\D/g, "").slice(0, 6);
+    } else if (capitalizeEveryWordFields.includes(name) && value.length > 0) {
       newValue = value.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
+    } else if (capitalizeFirstLetterOnlyFields.includes(name) && value.length > 0) {
+      newValue = value.charAt(0).toUpperCase() + value.slice(1);
     }
     setFormData(prev => ({
       ...prev,
@@ -409,7 +414,13 @@ const PersonalDetails = ({
     if (!formData.caste) newErrors.caste = "Caste is required";
     if (!formData.interCommunity) newErrors.interCommunity = "Please select an option";
     if (!formData.street1) newErrors.street1 = "Street Address 1 is required";
-    if (!formData.pincode) newErrors.pincode = "Pincode is required";
+    if (!formData.pincode) {
+      newErrors.pincode = "Pincode is required";
+    } else if (formData.pincode.length !== 6) {
+      newErrors.pincode = "Pincode must be exactly 6 digits";
+    } else if (!/^\d{6}$/.test(formData.pincode)) {
+      newErrors.pincode = "Pincode must contain only numbers";
+    }
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.state) newErrors.state = "State is required";
     if (!formData.nationality) newErrors.nationality = "Nationality is required";
@@ -662,28 +673,30 @@ const PersonalDetails = ({
             {}
             <div className="flex flex-col">
               <label className="block text-sm font-medium mb-1">Height</label>
-              <CreatableSelect isClearable options={HEIGHT_SELECT_OPTIONS} value={formData.height ? {
-              label: formData.height,
-              value: formData.height
-            } : null} onChange={(selected, actionMeta) => {
-              handleSelectChange("height", selected);
-            }} placeholder="Select or type height" classNamePrefix="react-select" components={{
-              IndicatorSeparator: () => null
-            }} tabSelectsValue={false} styles={customSelectStyles(errors.height, formData.height)} menuPlacement="auto" menuPosition="fixed" menuPortalTarget={document.body} />
+              <CustomSelect
+                name="height"
+                value={formData.height}
+                onChange={handleChange}
+                options={heightOptions}
+                placeholder="Select height"
+                forcesMobileUI={true}
+                className={getInputClass("height")}
+              />
               {errors.height && <p className="text-red-500 text-sm mt-1">{errors.height}</p>}
             </div>
 
             {}
             <div className="flex flex-col">
               <label className="block text-sm font-medium mb-1">Weight</label>
-              <CreatableSelect isClearable options={WEIGHT_SELECT_OPTIONS} value={formData.weight ? {
-              label: formData.weight,
-              value: formData.weight
-            } : null} onChange={(selected, actionMeta) => {
-              handleSelectChange("weight", selected);
-            }} placeholder="Select or type weight" classNamePrefix="react-select" components={{
-              IndicatorSeparator: () => null
-            }} tabSelectsValue={false} styles={customSelectStyles(errors.weight, formData.weight)} menuPlacement="auto" menuPosition="fixed" menuPortalTarget={document.body} />
+              <CustomSelect
+                name="weight"
+                value={formData.weight}
+                onChange={handleChange}
+                options={weightOptions}
+                placeholder="Select weight"
+                forcesMobileUI={true}
+                className={getInputClass("weight")}
+              />
               {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight}</p>}
             </div>
           </div>
