@@ -3,17 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { getProfileReviewStatus } from "../../api/auth";
 import toast from "react-hot-toast";
 import { CheckCircle, Clock, AlertCircle, ArrowRight } from "lucide-react";
-
 const ReviewPage = () => {
   const navigate = useNavigate();
   const [reviewStatus, setReviewStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   useEffect(() => {
     fetchReviewStatus();
   }, []);
-
   const fetchReviewStatus = async () => {
     try {
       setLoading(true);
@@ -32,15 +29,12 @@ const ReviewPage = () => {
       setLoading(false);
     }
   };
-
   const handleDashboardClick = () => {
     navigate("/dashboard");
   };
-
   const handleRetryClick = () => {
     fetchReviewStatus();
   };
-
   const colors = {
     gold: "#D4A052",
     goldLight: "#E4C48A",
@@ -49,163 +43,109 @@ const ReviewPage = () => {
     white: "#FFFFFF",
     green: "#27ae60",
     lightGreen: "#eafaf1",
-    orange: "#e74c3c",
+    orange: "#e74c3c"
   };
-
   if (loading) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: colors.beige }}
-      >
+    return <div className="min-h-screen flex items-center justify-center" style={{
+      backgroundColor: colors.beige
+    }}>
         <div className="text-center">
-          <div
-            className="inline-block animate-spin rounded-full h-16 w-16 border-b-4"
-            style={{ borderColor: colors.gold }}
-          ></div>
-          <p
-            className="mt-4 text-lg font-semibold"
-            style={{ color: colors.gold }}
-          >
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4" style={{
+          borderColor: colors.gold
+        }}></div>
+          <p className="mt-4 text-lg font-semibold" style={{
+          color: colors.gold
+        }}>
             Loading your review status...
           </p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (error || !reviewStatus) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center px-4"
-        style={{ backgroundColor: colors.beige }}
-      >
-        <div
-          className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-t-4"
-          style={{ borderColor: colors.orange }}
-        >
-          <AlertCircle
-            size={64}
-            className="mx-auto mb-4"
-            color={colors.orange}
-          />
-          <h1
-            className="text-2xl font-bold mb-2"
-            style={{ color: colors.gold }}
-          >
+    return <div className="min-h-screen flex items-center justify-center px-4" style={{
+      backgroundColor: colors.beige
+    }}>
+        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-t-4" style={{
+        borderColor: colors.orange
+      }}>
+          <AlertCircle size={64} className="mx-auto mb-4" color={colors.orange} />
+          <h1 className="text-2xl font-bold mb-2" style={{
+          color: colors.gold
+        }}>
             Unable to Load
           </h1>
           <p className="text-gray-600 mb-6">
-            {error ||
-              "There was an issue loading your review status. Please try again."}
+            {error || "There was an issue loading your review status. Please try again."}
           </p>
-          <button
-            onClick={handleRetryClick}
-            className="w-full py-3 rounded-lg font-semibold text-white hover:brightness-90 transition"
-            style={{ backgroundColor: colors.gold }}
-          >
+          <button onClick={handleRetryClick} className="w-full py-3 rounded-lg font-semibold text-white hover:brightness-90 transition" style={{
+          backgroundColor: colors.gold
+        }}>
             Retry
           </button>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  const { profileReviewStatus, reviewedAt, reviewNotes, userName, email } =
-    reviewStatus;
+  const {
+    profileReviewStatus,
+    reviewedAt,
+    reviewNotes,
+    userName,
+    email
+  } = reviewStatus;
   const isPending = profileReviewStatus === "pending";
   const isApproved = profileReviewStatus === "approved";
   const isRejected = profileReviewStatus === "rejected";
-
-  return (
-    <div
-      className="min-h-screen flex items-center justify-center py-8 px-4"
-      style={{ backgroundColor: colors.beige }}
-    >
+  return <div className="min-h-screen flex items-center justify-center py-8 px-4" style={{
+    backgroundColor: colors.beige
+  }}>
       <div className="w-full max-w-2xl">
-        {/* Header Section */}
+        {}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-6">
-            <img
-              src="/logo.png"
-              alt="Satfera"
-              width={220}
-              height={220}
-              className="object-contain"
-            />
+            <img src="/logo.png" alt="Satfera" width={220} height={220} className="object-contain" />
           </div>
         </div>
 
-        {/* Main Card */}
-        <div
-          className="bg-white rounded-3xl shadow-2xl overflow-hidden"
-          style={{ borderTop: `6px solid ${colors.gold}` }}
-        >
-          {/* Status Header */}
-          <div
-            className="p-8 text-center text-black"
-            style={{
-              background: isPending
-                ? `linear-gradient(135deg, ${colors.gold}, ${colors.gold},`
-                : isApproved
-                ? `linear-gradient(135deg, ${colors.green}, #2ecc71)`
-                : `linear-gradient(135deg, ${colors.orange}, #c0392b)`,
-            }}
-          >
+        {}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden" style={{
+        borderTop: `6px solid ${colors.gold}`
+      }}>
+          {}
+          <div className="p-8 text-center text-black" style={{
+          background: isPending ? `linear-gradient(135deg, ${colors.gold}, ${colors.gold},` : isApproved ? `linear-gradient(135deg, ${colors.green}, #2ecc71)` : `linear-gradient(135deg, ${colors.orange}, #c0392b)`
+        }}>
             <div className="flex justify-center mb-4">
-              {isPending ? (
-                <Clock size={64} className="animate-pulse" />
-              ) : isApproved ? (
-                <CheckCircle size={64} />
-              ) : (
-                <AlertCircle size={64} />
-              )}
+              {isPending ? <Clock size={64} className="animate-pulse" /> : isApproved ? <CheckCircle size={64} /> : <AlertCircle size={64} />}
             </div>
             <h2 className="text-3xl font-bold mb-2">
-              {isPending
-                ? "Profile Under Review"
-                : isApproved
-                ? "Profile Approved! 🎉"
-                : "Review Required"}
+              {isPending ? "Profile Under Review" : isApproved ? "Profile Approved! 🎉" : "Review Required"}
             </h2>
             <p className="text-lg opacity-90">
-              {isPending
-                ? "Your profile is being reviewed by our team"
-                : isApproved
-                ? "You're all set to start connecting!"
-                : "Please review the feedback below"}
+              {isPending ? "Your profile is being reviewed by our team" : isApproved ? "You're all set to start connecting!" : "Please review the feedback below"}
             </p>
           </div>
 
-          {/* Content Section */}
+          {}
           <div className="p-8 space-y-6">
-            {/* User Info */}
-            <div
-              className="p-4 rounded-lg border-l-4"
-              style={{
-                backgroundColor: colors.planBg,
-                borderColor: colors.gold,
-              }}
-            >
+            {}
+            <div className="p-4 rounded-lg border-l-4" style={{
+            backgroundColor: colors.planBg,
+            borderColor: colors.gold
+          }}>
               <p className="text-sm text-gray-600 mb-2">Dear {userName},</p>
-              {isPending && (
-                <>
+              {isPending && <>
                   <p className="text-gray-700 leading-relaxed mb-4">
                     Thank you for submitting your profile to{" "}
                     <strong>Satfera</strong>. We've received your details
                     successfully, and they are currently under review.
                   </p>
-                  <div
-                    className="p-4 rounded-lg mt-4"
-                    style={{
-                      backgroundColor: colors.white,
-                      border: `1px solid ${colors.goldLight}`,
-                    }}
-                  >
-                    <p
-                      className="font-semibold mb-2"
-                      style={{ color: colors.gold }}
-                    >
+                  <div className="p-4 rounded-lg mt-4" style={{
+                backgroundColor: colors.white,
+                border: `1px solid ${colors.goldLight}`
+              }}>
+                    <p className="font-semibold mb-2" style={{
+                  color: colors.gold
+                }}>
                       What happens next?
                     </p>
                     <ul className="space-y-2 text-sm text-gray-700">
@@ -222,124 +162,100 @@ const ReviewPage = () => {
                       <li>✓ Review typically takes 24-48 hours</li>
                     </ul>
                   </div>
-                </>
-              )}
+                </>}
 
-              {isApproved && (
-                <>
+              {isApproved && <>
                   <p className="text-gray-700 leading-relaxed mb-4">
                     Great news! Your profile has been <strong>approved</strong>{" "}
                     and is now
                     <strong> live on Satfera</strong>. You're all set to start
                     connecting with other members!
                   </p>
-                  <div
-                    className="p-4 rounded-lg mt-4"
-                    style={{
-                      backgroundColor: colors.lightGreen,
-                      border: `1px solid ${colors.green}`,
-                    }}
-                  >
-                    <p
-                      className="font-semibold mb-2"
-                      style={{ color: colors.green }}
-                    >
+                  <div className="p-4 rounded-lg mt-4" style={{
+                backgroundColor: colors.lightGreen,
+                border: `1px solid ${colors.green}`
+              }}>
+                    <p className="font-semibold mb-2" style={{
+                  color: colors.green
+                }}>
                       ✅ Your Profile Status: APPROVED
                     </p>
-                    <ul
-                      className="space-y-2 text-sm"
-                      style={{ color: colors.green }}
-                    >
+                    <ul className="space-y-2 text-sm" style={{
+                  color: colors.green
+                }}>
                       <li>✓ View and browse other member profiles</li>
                       <li>✓ Send connection requests</li>
                       <li>✓ Receive and respond to matches</li>
                       <li>✓ Update your profile anytime</li>
                     </ul>
                   </div>
-                </>
-              )}
+                </>}
 
-              {isRejected && (
-                <>
+              {isRejected && <>
                   <p className="text-gray-700 leading-relaxed mb-4">
                     Thank you for your submission. We reviewed your profile and
                     need some additional information or corrections before we
                     can proceed.
                   </p>
-                  <div
-                    className="p-4 rounded-lg mt-4 bg-red-50 border-l-4"
-                    style={{ borderColor: colors.orange }}
-                  >
-                    <p
-                      className="font-semibold mb-2"
-                      style={{ color: colors.orange }}
-                    >
+                  <div className="p-4 rounded-lg mt-4 bg-red-50 border-l-4" style={{
+                borderColor: colors.orange
+              }}>
+                    <p className="font-semibold mb-2" style={{
+                  color: colors.orange
+                }}>
                       ⚠️ Feedback
                     </p>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {reviewNotes ||
-                        "Please update your profile and resubmit for review."}
+                      {reviewNotes || "Please update your profile and resubmit for review."}
                     </p>
                   </div>
-                </>
-              )}
+                </>}
             </div>
 
-            {/* Status Details */}
-            <div
-              className="grid grid-cols-2 gap-4 p-4 rounded-lg"
-              style={{ backgroundColor: colors.planBg }}
-            >
+            {}
+            <div className="grid grid-cols-2 gap-4 p-4 rounded-lg" style={{
+            backgroundColor: colors.planBg
+          }}>
               <div>
                 <p className="text-xs text-gray-600 mb-1">Status</p>
-                <p
-                  className="font-semibold text-lg capitalize"
-                  style={{ color: colors.gold }}
-                >
+                <p className="font-semibold text-lg capitalize" style={{
+                color: colors.gold
+              }}>
                   {profileReviewStatus}
                 </p>
               </div>
-              {reviewedAt && (
-                <div>
+              {reviewedAt && <div>
                   <p className="text-xs text-gray-600 mb-1">Reviewed On</p>
                   <p className="font-semibold text-lg">
                     {new Date(reviewedAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric"
+                })}
                   </p>
-                </div>
-              )}
-              {!reviewedAt && (
-                <div>
+                </div>}
+              {!reviewedAt && <div>
                   <p className="text-xs text-gray-600 mb-1">Email</p>
                   <p className="font-semibold text-sm text-gray-700 truncate">
                     {email}
                   </p>
-                </div>
-              )}
+                </div>}
             </div>
 
-            {/* Email Notification */}
-            <div
-              className="p-4 rounded-lg flex items-start gap-3"
-              style={{
-                backgroundColor: "#f0f8ff",
-                border: `1px solid ${colors.goldLight}`,
-              }}
-            >
-              <div
-                className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                style={{ backgroundColor: colors.gold }}
-              >
+            {}
+            <div className="p-4 rounded-lg flex items-start gap-3" style={{
+            backgroundColor: "#f0f8ff",
+            border: `1px solid ${colors.goldLight}`
+          }}>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{
+              backgroundColor: colors.gold
+            }}>
                 ✓
               </div>
               <div>
-                <p
-                  className="font-semibold text-sm"
-                  style={{ color: colors.gold }}
-                >
+                <p className="font-semibold text-sm" style={{
+                color: colors.gold
+              }}>
                   Email Notification Sent
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
@@ -350,90 +266,68 @@ const ReviewPage = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div
-            className="px-8 py-6 flex gap-4 flex-col sm:flex-row"
-            style={{ backgroundColor: colors.planBg }}
-          >
-            {isApproved && (
-              <button
-                onClick={handleDashboardClick}
-                className="flex-1 py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition"
-                style={{ backgroundColor: colors.gold }}
-              >
+          {}
+          <div className="px-8 py-6 flex gap-4 flex-col sm:flex-row" style={{
+          backgroundColor: colors.planBg
+        }}>
+            {isApproved && <button onClick={handleDashboardClick} className="flex-1 py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition" style={{
+            backgroundColor: colors.gold
+          }}>
                 Go to Dashboard <ArrowRight size={20} />
-              </button>
-            )}
+              </button>}
 
-            {isRejected && (
-              <>
-                <button
-                  onClick={() => navigate("/onboarding/user?step=personal")}
-                  className="flex-1 py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition"
-                  style={{ backgroundColor: colors.gold }}
-                >
+            {isRejected && <>
+                <button onClick={() => navigate("/onboarding/user?step=personal")} className="flex-1 py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition" style={{
+              backgroundColor: colors.gold
+            }}>
                   Update Profile <ArrowRight size={20} />
                 </button>
-                <button
-                  onClick={handleRetryClick}
-                  className="flex-1 py-3 rounded-lg font-semibold border-2 hover:bg-gray-50 transition"
-                  style={{ borderColor: colors.gold, color: colors.gold }}
-                >
+                <button onClick={handleRetryClick} className="flex-1 py-3 rounded-lg font-semibold border-2 hover:bg-gray-50 transition" style={{
+              borderColor: colors.gold,
+              color: colors.gold
+            }}>
                   Refresh Status
                 </button>
-              </>
-            )}
+              </>}
 
-            {isPending && (
-              <>
-                <button
-                  onClick={handleRetryClick}
-                  className="flex-1 py-3 rounded-lg font-semibold text-white hover:brightness-90 transition"
-                  style={{ backgroundColor: colors.gold }}
-                >
+            {isPending && <>
+                <button onClick={handleRetryClick} className="flex-1 py-3 rounded-lg font-semibold text-white hover:brightness-90 transition" style={{
+              backgroundColor: colors.gold
+            }}>
                   Check Status
                 </button>
-                <button
-                  onClick={() => navigate("/")}
-                  className="flex-1 py-3 rounded-lg font-semibold border-2 bg-white transition"
-                  style={{ border: `2px dashed ${colors.goldLight}` }}
-                >
+                <button onClick={() => navigate("/")} className="flex-1 py-3 rounded-lg font-semibold border-2 bg-white transition" style={{
+              border: `2px dashed ${colors.goldLight}`
+            }}>
                   Return Home
                 </button>
-              </>
-            )}
+              </>}
           </div>
 
-          {/* Footer */}
-          <div
-            className="px-8 py-4 text-center text-xs text-gray-600 border-t"
-            style={{
-              borderColor: colors.goldLight,
-              backgroundColor: colors.white,
-            }}
-          >
+          {}
+          <div className="px-8 py-4 text-center text-xs text-gray-600 border-t" style={{
+          borderColor: colors.goldLight,
+          backgroundColor: colors.white
+        }}>
             <p>
               Need help? Contact our support team at{" "}
-              <a
-                href="mailto:support@satfera.com"
-                className="font-semibold"
-                style={{ color: colors.gold }}
-              >
+              <a href="mailto:support@satfera.com" className="font-semibold" style={{
+              color: colors.gold
+            }}>
                 support@satfera.com
               </a>
             </p>
           </div>
         </div>
 
-        {/* Info Box */}
-        <div
-          className="mt-8 p-6 rounded-2xl text-center"
-          style={{
-            backgroundColor: colors.white,
-            border: `2px dashed ${colors.goldLight}`,
-          }}
-        >
-          <h3 className="font-semibold mb-2" style={{ color: colors.gold }}>
+        {}
+        <div className="mt-8 p-6 rounded-2xl text-center" style={{
+        backgroundColor: colors.white,
+        border: `2px dashed ${colors.goldLight}`
+      }}>
+          <h3 className="font-semibold mb-2" style={{
+          color: colors.gold
+        }}>
             💡 Pro Tips for Profile Approval
           </h3>
           <ul className="text-sm text-gray-700 space-y-2 text-left inline-block">
@@ -444,8 +338,6 @@ const ReviewPage = () => {
           </ul>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ReviewPage;

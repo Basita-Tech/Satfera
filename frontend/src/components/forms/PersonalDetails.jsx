@@ -1,91 +1,44 @@
-﻿import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNames, getCode } from "country-list";
 import CreatableSelect from "react-select/creatable";
 import CustomSelect from "../ui/CustomSelect";
 import LocationSelect from "../ui/LocationSelect";
-import {
-  getOnboardingStatus,
-  getUserPersonal,
-  saveUserPersonal,
-  updateUserPersonal,
-} from "../../api/auth";
+import { getOnboardingStatus, getUserPersonal, saveUserPersonal, updateUserPersonal } from "../../api/auth";
 import { getCountryCode, getStateCode, getAllCountries } from "../../lib/locationUtils";
 import toast from "react-hot-toast";
-import {
-  nationalities,
-  visaCategories,
-  allCastes,
-  doshOptions,
-  weightOptions,
-  heightOptions,
-} from "@/lib/constant";
-
-const sortAlpha = (list) =>
-  [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-
+import { nationalities, visaCategories, allCastes, doshOptions, weightOptions, heightOptions } from "@/lib/constant";
+const sortAlpha = list => [...list].sort((a, b) => a.localeCompare(b, undefined, {
+  sensitivity: "base"
+}));
 const COUNTRIES = getAllCountries();
-
-const ZODIAC_SIGNS = sortAlpha([
-  "Aries (Mesh)",
-  "Taurus (Vrishabh)",
-  "Gemini (Mithun)",
-  "Cancer (Kark)",
-  "Leo (Singh)",
-  "Virgo (Kanya)",
-  "Libra (Tula)",
-  "Scorpio (Vrishchik)",
-  "Sagittarius (Dhanu)",
-  "Capricorn (Makar)",
-  "Aquarius (Kumbh)",
-  "Pisces (Meen)",
-]);
-
+const ZODIAC_SIGNS = sortAlpha(["Aries (Mesh)", "Taurus (Vrishabh)", "Gemini (Mithun)", "Cancer (Kark)", "Leo (Singh)", "Virgo (Kanya)", "Libra (Tula)", "Scorpio (Vrishchik)", "Sagittarius (Dhanu)", "Capricorn (Makar)", "Aquarius (Kumbh)", "Pisces (Meen)"]);
 const RELIGIONS = sortAlpha(["Hindu", "Jain"]);
-
-const LEGAL_STATUSES = sortAlpha([
-  "Never Married",
-  "Divorced",
-  "Widowed",
-  "Separated",
-  "Awaiting Divorce",
-]);
-
+const LEGAL_STATUSES = sortAlpha(["Never Married", "Divorced", "Widowed", "Separated", "Awaiting Divorce"]);
 const SORTED_CASTES = sortAlpha(allCastes);
 const SORTED_NATIONALITIES = sortAlpha(nationalities);
 const SORTED_VISA_CATEGORIES = sortAlpha(visaCategories);
-const SORTED_DOSH_OPTIONS = [
-  "No Dosh",
-  ...sortAlpha(doshOptions.filter((d) => d !== "No Dosh")),
-];
-
-const HOURS = Array.from({ length: 24 }, (_, i) =>
-  i.toString().padStart(2, "0")
-);
-const MINUTES = Array.from({ length: 60 }, (_, i) =>
-  i.toString().padStart(2, "0")
-);
-
-const HEIGHT_SELECT_OPTIONS = heightOptions.map((h) => ({
+const SORTED_DOSH_OPTIONS = ["No Dosh", ...sortAlpha(doshOptions.filter(d => d !== "No Dosh"))];
+const HOURS = Array.from({
+  length: 24
+}, (_, i) => i.toString().padStart(2, "0"));
+const MINUTES = Array.from({
+  length: 60
+}, (_, i) => i.toString().padStart(2, "0"));
+const HEIGHT_SELECT_OPTIONS = heightOptions.map(h => ({
   label: h,
-  value: h,
+  value: h
 }));
-const WEIGHT_SELECT_OPTIONS = weightOptions.map((w) => ({
+const WEIGHT_SELECT_OPTIONS = weightOptions.map(w => ({
   label: w,
-  value: w,
+  value: w
 }));
-
-const PersonalDetails = ({ onNext, onPrevious }) => {
+const PersonalDetails = ({
+  onNext,
+  onPrevious
+}) => {
   const navigate = useNavigate();
-
   const minuteRef = useRef(null);
-
   const [formData, setFormData] = useState({
     firstName: "",
     middleName: "",
@@ -121,99 +74,119 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     numChildren: "",
     livingWith: "",
     separatedSince: "",
-    maritalStatus: "",
+    maritalStatus: ""
   });
-
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
     pincode: "",
     city: "",
     state: "",
-    maritalStatus: "",
+    maritalStatus: ""
   });
-
   const [errorMsg, setErrorMsg] = useState("");
   const [isLegallySeparated, setIsLegallySeparated] = useState("");
   const [separatedSince, setSeparationYear] = useState("");
   const [manualSeparationEntry, setManualSeparationEntry] = useState(false);
-
   const [showDivorceFields, setShowDivorceFields] = useState(false);
   const [showChildrenFields, setShowChildrenFields] = useState(false);
   const [birthCountryCode, setBirthCountryCode] = useState(null);
   const [birthStateCode, setBirthStateCode] = useState(null);
   const [residingCountryCode, setResidingCountryCode] = useState(null);
-
-  const handleHourInput = useCallback((e) => {
+  const handleHourInput = useCallback(e => {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 2) value = value.slice(0, 2);
-    setFormData((prev) => ({ ...prev, birthHour: value }));
-
+    setFormData(prev => ({
+      ...prev,
+      birthHour: value
+    }));
     if (value.length === 2) minuteRef.current?.focus();
-
     if (value !== "" && (+value < 0 || +value > 23)) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
-        birthHour: "Hour must be between 00â€“23",
+        birthHour: "Hour must be between 00â€“23"
       }));
     } else {
-      setErrors((prev) => ({ ...prev, birthHour: "" }));
+      setErrors(prev => ({
+        ...prev,
+        birthHour: ""
+      }));
     }
   }, []);
-
-  const handleMinuteInput = useCallback((e) => {
+  const handleMinuteInput = useCallback(e => {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 2) value = value.slice(0, 2);
-    setFormData((prev) => ({ ...prev, birthMinute: value }));
-
+    setFormData(prev => ({
+      ...prev,
+      birthMinute: value
+    }));
     if (value !== "" && (+value < 0 || +value > 59)) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
-        birthMinute: "Minute must be between 00â€“59",
+        birthMinute: "Minute must be between 00â€“59"
       }));
     } else {
-      setErrors((prev) => ({ ...prev, birthMinute: "" }));
+      setErrors(prev => ({
+        ...prev,
+        birthMinute: ""
+      }));
     }
   }, []);
-
   const handleHourBlur = useCallback(() => {
     if (formData.birthHour === "") return;
-    // Only process if input is exactly two digits
     if (formData.birthHour.length !== 2) {
-      setErrors((prev) => ({ ...prev, birthHour: "Hour must be two digits (00–23)" }));
+      setErrors(prev => ({
+        ...prev,
+        birthHour: "Hour must be two digits (00–23)"
+      }));
       return;
     }
     let num = Number(formData.birthHour);
     if (Number.isNaN(num) || num < 0 || num > 23) {
-      setErrors((prev) => ({ ...prev, birthHour: "Hour must be between 00–23" }));
+      setErrors(prev => ({
+        ...prev,
+        birthHour: "Hour must be between 00–23"
+      }));
       return;
     }
-    setFormData((prev) => ({ ...prev, birthHour: formData.birthHour }));
-    setErrors((prev) => ({ ...prev, birthHour: "" }));
+    setFormData(prev => ({
+      ...prev,
+      birthHour: formData.birthHour
+    }));
+    setErrors(prev => ({
+      ...prev,
+      birthHour: ""
+    }));
   }, [formData.birthHour]);
-
   const handleMinuteBlur = useCallback(() => {
     if (formData.birthMinute === "") return;
     let num = Number(formData.birthMinute);
     if (Number.isNaN(num)) {
-      setFormData((prev) => ({ ...prev, birthMinute: "" }));
-      setErrors((prev) => ({ ...prev, birthMinute: "Minute must be between 00â€“59" }));
+      setFormData(prev => ({
+        ...prev,
+        birthMinute: ""
+      }));
+      setErrors(prev => ({
+        ...prev,
+        birthMinute: "Minute must be between 00â€“59"
+      }));
       return;
     }
     num = Math.min(Math.max(num, 0), 59);
     const padded = num.toString().padStart(2, "0");
-    setFormData((prev) => ({ ...prev, birthMinute: padded }));
+    setFormData(prev => ({
+      ...prev,
+      birthMinute: padded
+    }));
   }, [formData.birthMinute]);
-
   const castOptions = useMemo(() => {
     if (formData.religion === "Hindu") {
-      return SORTED_CASTES.filter((c) => !c.toLowerCase().includes("jain"));
+      return SORTED_CASTES.filter(c => !c.toLowerCase().includes("jain"));
     }
     if (formData.religion?.toLowerCase().includes("jain")) {
       return ["Jain - Digambar", "Jain - Shwetambar"];
     }
     return SORTED_CASTES;
   }, [formData.religion]);
-
   useEffect(() => {
     const fetchPersonal = async () => {
       try {
@@ -221,9 +194,7 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         const res = await getUserPersonal();
         if (res?.data) {
           const data = res.data?.data || {};
-
           const dateObj = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
-
           let birthHour = "",
             birthMinute = "";
           if (data.timeOfBirth) {
@@ -231,111 +202,51 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
             birthHour = parts[0] || "";
             birthMinute = parts[1] || "";
           }
-
           const mapped = {
             firstName: data.firstName || "",
             middleName: data.middleName || "",
             lastName: data.lastName || "",
-            dobDay: dateObj
-              ? dateObj.getDate().toString().padStart(2, "0")
-              : "",
-            dobMonth: dateObj
-              ? (dateObj.getMonth() + 1).toString().padStart(2, "0")
-              : "",
+            dobDay: dateObj ? dateObj.getDate().toString().padStart(2, "0") : "",
+            dobMonth: dateObj ? (dateObj.getMonth() + 1).toString().padStart(2, "0") : "",
             dobYear: dateObj ? dateObj.getFullYear().toString() : "",
             birthHour,
             birthMinute,
-
-            height: data.height
-              ? typeof data.height === "object"
-                ? data.height.text || data.height.value || ""
-                : String(data.height)
-              : "",
-            weight: data.weight
-              ? typeof data.weight === "object"
-                ? data.weight.text || data.weight.value || ""
-                : String(data.weight)
-              : "",
-
+            height: data.height ? typeof data.height === "object" ? data.height.text || data.height.value || "" : String(data.height) : "",
+            weight: data.weight ? typeof data.weight === "object" ? data.weight.text || data.weight.value || "" : String(data.weight) : "",
             rashi: data.astrologicalSign || "",
             dosh: data.dosh || "",
             religion: data.religion || "",
             caste: data.subCaste || "",
             nationality: data.nationality || "",
-
             street1: data.full_address?.street1 || "",
             street2: data.full_address?.street2 || "",
             pincode: data.full_address?.zipCode || "",
             city: data.full_address?.city || "",
             state: data.full_address?.state || "",
-            ownHouse:
-              typeof data.full_address?.isYourHome === "boolean"
-                ? data.full_address.isYourHome
-                  ? "Yes"
-                  : "No"
-                : "",
-
+            ownHouse: typeof data.full_address?.isYourHome === "boolean" ? data.full_address.isYourHome ? "Yes" : "No" : "",
             birthCity: data.birthPlace || "",
             birthState: data.birthState || "",
             visaCategory: data.visaType || "",
             residingCountry: data.residingCountry || "",
-
             legalStatus: data.marriedStatus || "",
             divorceStatus: data.divorceStatus || "",
-
-            interCommunity:
-              data.marryToOtherReligion === true
-                ? "Yes"
-                : data.marryToOtherReligion === false
-                ? "No"
-                : "",
-
-            hasChildren:
-              data.isHaveChildren === true
-                ? "Yes"
-                : data.isHaveChildren === false
-                ? "No"
-                : "",
-            numChildren: data.numberOfChildren
-              ? String(data.numberOfChildren)
-              : "",
-            livingWith:
-              data.isChildrenLivingWithYou === true
-                ? "With Me"
-                : data.isChildrenLivingWithYou === false
-                ? "No"
-                : "",
-
-            residingInIndia:
-              typeof data.isResidentOfIndia === "boolean"
-                ? data.isResidentOfIndia
-                  ? "yes"
-                  : "no"
-                : "",
+            interCommunity: data.marryToOtherReligion === true ? "Yes" : data.marryToOtherReligion === false ? "No" : "",
+            hasChildren: data.isHaveChildren === true ? "Yes" : data.isHaveChildren === false ? "No" : "",
+            numChildren: data.numberOfChildren ? String(data.numberOfChildren) : "",
+            livingWith: data.isChildrenLivingWithYou === true ? "With Me" : data.isChildrenLivingWithYou === false ? "No" : "",
+            residingInIndia: typeof data.isResidentOfIndia === "boolean" ? data.isResidentOfIndia ? "yes" : "no" : ""
           };
-
-          setFormData((prev) => ({ ...prev, ...mapped }));
-
+          setFormData(prev => ({
+            ...prev,
+            ...mapped
+          }));
           const status = data.marriedStatus || "";
           setShowChildrenFields(status && status !== "Never Married");
-          setShowDivorceFields(
-            status === "Divorced" || status === "Awaiting Divorce"
-          );
-
+          setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
           let separated = "";
-
-          if (data.isYouLegallySeparated === true) separated = "Yes";
-          else if (data.isYouLegallySeparated === false && data.separatedSince)
-            separated = "No";
-          else if (data.isLegallySeparated === true) separated = "Yes";
-          else if (data.isLegallySeparated === false && data.separatedSince)
-            separated = "No";
-          else if (data.separatedSince) separated = "Yes";
-
+          if (data.isYouLegallySeparated === true) separated = "Yes";else if (data.isYouLegallySeparated === false && data.separatedSince) separated = "No";else if (data.isLegallySeparated === true) separated = "Yes";else if (data.isLegallySeparated === false && data.separatedSince) separated = "No";else if (data.separatedSince) separated = "Yes";
           setIsLegallySeparated(separated);
-          setSeparationYear(
-            data.separatedSince ? String(data.separatedSince) : ""
-          );
+          setSeparationYear(data.separatedSince ? String(data.separatedSince) : "");
         }
       } catch (err) {
         console.error("Failed to fetch personal details:", err);
@@ -343,222 +254,186 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         setLoading(false);
       }
     };
-
     fetchPersonal();
   }, []);
-
   const validateBirthState = () => {
     if (!formData.birthState) {
-      setErrors((prev) => ({ ...prev, birthState: "Please select a state" }));
+      setErrors(prev => ({
+        ...prev,
+        birthState: "Please select a state"
+      }));
     } else {
-      setErrors((prev) => ({ ...prev, birthState: "" }));
+      setErrors(prev => ({
+        ...prev,
+        birthState: ""
+      }));
     }
   };
-  const handleLegalStatusChange = useCallback((value) => {
-    setFormData((prev) => ({ ...prev, legalStatus: value }));
-    setErrors((prev) => ({ ...prev, legalStatus: "" }));
-  }, []);
-
-  const handleSelectChange = useCallback((field, selected) => {
-    setFormData((prev) => ({
+  const handleLegalStatusChange = useCallback(value => {
+    setFormData(prev => ({
       ...prev,
-      [field]: selected ? selected.value : "",
+      legalStatus: value
     }));
-    setErrors((prev) => {
-      const updated = { ...prev };
+    setErrors(prev => ({
+      ...prev,
+      legalStatus: ""
+    }));
+  }, []);
+  const handleSelectChange = useCallback((field, selected) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: selected ? selected.value : ""
+    }));
+    setErrors(prev => {
+      const updated = {
+        ...prev
+      };
       delete updated[field];
       return updated;
     });
   }, []);
-
   const customSelectStyles = (error, value) => ({
     control: (base, state) => {
       let borderColor = "#d1d5db";
-      if (error) borderColor = "red";
-      else if (value && value.value) borderColor = "#D4A052";
-      else if (state.isFocused) borderColor = "#D4A052";
-
+      if (error) borderColor = "red";else if (value && value.value) borderColor = "#D4A052";else if (state.isFocused) borderColor = "#D4A052";
       return {
         ...base,
         minHeight: "3rem",
         borderRadius: "0.5rem",
         borderColor,
         boxShadow: "none",
-        "&:hover": { borderColor },
-        transition: "all 0.2s",
+        "&:hover": {
+          borderColor
+        },
+        transition: "all 0.2s"
       };
     },
-    valueContainer: (base) => ({
+    valueContainer: base => ({
       ...base,
       padding: "0 0.75rem",
       height: "3rem",
       display: "flex",
-      alignItems: "center",
+      alignItems: "center"
     }),
-    input: (base) => ({ ...base, margin: 0, padding: 0 }),
-    indicatorsContainer: (base) => ({ ...base, height: "3rem" }),
-    placeholder: (base) => ({ ...base, margin: 0 }),
-    menu: (base) => ({
+    input: base => ({
+      ...base,
+      margin: 0,
+      padding: 0
+    }),
+    indicatorsContainer: base => ({
+      ...base,
+      height: "3rem"
+    }),
+    placeholder: base => ({
+      ...base,
+      margin: 0
+    }),
+    menu: base => ({
       ...base,
       maxHeight: "280px",
       overflowY: "auto",
-      zIndex: 9999,
+      zIndex: 9999
     }),
-    menuList: (base) => ({
+    menuList: base => ({
       ...base,
       maxHeight: "280px",
       overflowY: "auto",
       paddingTop: 0,
-      paddingBottom: 0,
+      paddingBottom: 0
     }),
-    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+    menuPortal: base => ({
+      ...base,
+      zIndex: 9999
+    })
   });
-
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-
-    const capitalizeFields = [
-      "birthCity",
-      "birthState",
-      "residingCity",
-      "residingState",
-      "street1",
-      "street2",
-      "middleName",
-      "city",
-      "state",
-      "residingCountry",
-    ];
-
+  const handleChange = useCallback(e => {
+    const {
+      name,
+      value
+    } = e.target;
+    const capitalizeFields = ["birthCity", "birthState", "residingCity", "residingState", "street1", "street2", "middleName", "city", "state", "residingCountry"];
     let newValue = value;
-
     if (capitalizeFields.includes(name) && value.length > 0) {
-      newValue = value
-        .split(" ")
-        .map(
-          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        )
-        .join(" ");
+      newValue = value.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
     }
-
-    setFormData((prev) => ({ ...prev, [name]: newValue }));
-
-    setErrors((prev) => {
-      const updated = { ...prev };
+    setFormData(prev => ({
+      ...prev,
+      [name]: newValue
+    }));
+    setErrors(prev => {
+      const updated = {
+        ...prev
+      };
       if (newValue.trim() !== "" && updated[name]) {
         delete updated[name];
       }
       return updated;
     });
   }, []);
-
-  const handleLegalStatus = useCallback((e) => {
+  const handleLegalStatus = useCallback(e => {
     const status = e.target.value;
-
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       legalStatus: status,
       hasChildren: "",
       numChildren: "",
       livingWith: "",
-      divorceStatus: "",
+      divorceStatus: ""
     }));
-
-    setErrors((prev) => {
-      const updated = { ...prev };
+    setErrors(prev => {
+      const updated = {
+        ...prev
+      };
       if (status) delete updated.legalStatus;
       return updated;
     });
-
     setShowChildrenFields(status && status !== "Never Married");
-    setShowDivorceFields(
-      status === "Divorced" || status === "Awaiting Divorce"
-    );
-
+    setShowDivorceFields(status === "Divorced" || status === "Awaiting Divorce");
     if (status !== "Separated") {
       setIsLegallySeparated("");
       setSeparationYear("");
       setManualSeparationEntry(false);
     }
   }, []);
-
-  // Standardized input class helpers
   const inputClass = "w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition";
-  const getInputClass = (field) =>
-    `${inputClass} ${errors[field] ? "border-red-500 focus:ring-red-300 focus:border-red-500" : "border-[#D4A052] focus:ring-[#D4A052] focus:border-[#D4A052]"}`;
-
+  const getInputClass = field => `${inputClass} ${errors[field] ? "border-red-500 focus:ring-red-300 focus:border-red-500" : "border-[#D4A052] focus:ring-[#D4A052] focus:border-[#D4A052]"}`;
   const validate = () => {
     const newErrors = {};
-
     if (!formData.birthCity) newErrors.birthCity = "Birth city is required";
     if (!formData.birthState) newErrors.birthState = "Birth state is required";
-
     if (!formData.height) newErrors.height = "Height is required";
     if (!formData.weight) newErrors.weight = "Weight is required";
-
     if (!formData.rashi) newErrors.rashi = "Rashi is required";
     if (!formData.dosh) newErrors.dosh = "Dosh is required";
-
     if (!formData.religion) newErrors.religion = "Religion is required";
     if (!formData.caste) newErrors.caste = "Caste is required";
-
-    if (!formData.interCommunity)
-      newErrors.interCommunity = "Please select an option";
-
+    if (!formData.interCommunity) newErrors.interCommunity = "Please select an option";
     if (!formData.street1) newErrors.street1 = "Street Address 1 is required";
     if (!formData.pincode) newErrors.pincode = "Pincode is required";
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.state) newErrors.state = "State is required";
-
-    if (!formData.nationality)
-      newErrors.nationality = "Nationality is required";
-
-    if (!formData.legalStatus)
-      newErrors.legalStatus = "Marital status is required";
-
+    if (!formData.nationality) newErrors.nationality = "Nationality is required";
+    if (!formData.legalStatus) newErrors.legalStatus = "Marital status is required";
     if (showDivorceFields && !formData.divorceStatus) {
       newErrors.divorceStatus = "Divorce status is required";
     }
-
     if (showChildrenFields && !formData.hasChildren) {
       newErrors.hasChildren = "Please select if you have children";
     }
-
-    if (
-      showChildrenFields &&
-      formData.hasChildren === "Yes" &&
-      !formData.numChildren
-    ) {
+    if (showChildrenFields && formData.hasChildren === "Yes" && !formData.numChildren) {
       newErrors.numChildren = "Number of children is required";
     }
-
-    if (
-      showChildrenFields &&
-      formData.hasChildren === "Yes" &&
-      !formData.livingWith
-    ) {
+    if (showChildrenFields && formData.hasChildren === "Yes" && !formData.livingWith) {
       newErrors.livingWith = "Please select living arrangement";
     }
-
-    if (
-      formData.legalStatus === "Separated" &&
-      isLegallySeparated === "Yes" &&
-      !separatedSince
-    ) {
+    if (formData.legalStatus === "Separated" && isLegallySeparated === "Yes" && !separatedSince) {
       newErrors.separatedSince = "Separation year is required";
     }
-
-    if (!formData.residingInIndia)
-      newErrors.residingInIndia = "Please select an option";
-
+    if (!formData.residingInIndia) newErrors.residingInIndia = "Please select an option";
     if (formData.residingInIndia === "no") {
-      if (!formData.residingCountry)
-        newErrors.residingCountry = "Residing country is required";
-      if (!formData.visaCategory)
-        newErrors.visaCategory = "Visa category is required";
+      if (!formData.residingCountry) newErrors.residingCountry = "Residing country is required";
+      if (!formData.visaCategory) newErrors.visaCategory = "Visa category is required";
     }
-
-    // Time of Birth optional, but if one part is filled, both required and validated
     const hour = formData.birthHour?.toString() || "";
     const minute = formData.birthMinute?.toString() || "";
     const anyTimeEntered = hour !== "" || minute !== "";
@@ -574,16 +449,12 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         newErrors.birthMinute = "Minute must be between 00â€“59";
       }
     }
-
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSavePersonalDetails = async () => {
     if (!validate()) return false;
-
-    const extractNumber = (value) => {
+    const extractNumber = value => {
       if (!value) return null;
       const str = typeof value === "object" ? value.text || "" : value;
       const cmMatch = str.match(/(\d+)\s*cm/i);
@@ -591,20 +462,13 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
       const match = str.match(/\d+/g);
       return match ? parseInt(match[match.length - 1]) : null;
     };
-
-    const timeOfBirth =
-      formData.birthHour && formData.birthMinute
-        ? `${formData.birthHour}:${formData.birthMinute}`
-        : "";
-
+    const timeOfBirth = formData.birthHour && formData.birthMinute ? `${formData.birthHour}:${formData.birthMinute}` : "";
     const payload = {
       timeOfBirth: timeOfBirth,
       birthPlace: formData.birthCity,
       birthState: formData.birthState,
-
       height: formData.height || null,
       weight: formData.weight || null,
-
       astrologicalSign: formData.rashi,
       dosh: formData.dosh,
       religion: formData.religion,
@@ -617,101 +481,72 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
         city: formData.city,
         state: formData.state,
         zipCode: formData.pincode,
-        isYourHome: formData.ownHouse === "Yes",
+        isYourHome: formData.ownHouse === "Yes"
       },
       marriedStatus: formData.legalStatus,
       isResidentOfIndia: formData.residingInIndia === "yes",
       residingCountry: formData.residingCountry || "India",
-      visaType: formData.visaCategory || "N/A",
+      visaType: formData.visaCategory || "N/A"
     };
-
-    // Only include children and divorce-related fields for applicable marital statuses
     if (formData.legalStatus !== "Never Married") {
       payload.divorceStatus = formData.divorceStatus || null;
       payload.isHaveChildren = formData.hasChildren === "Yes";
       payload.numberOfChildren = parseInt(formData.numChildren) || 0;
       payload.isChildrenLivingWithYou = formData.livingWith === "With Me";
     }
-
-    // Include separation fields only for "Separated" status
     if (formData.legalStatus === "Separated") {
       payload.isLegallySeparated = formData.legalStatus === "Separated";
       payload.isYouLegallySeparated = isLegallySeparated === "Yes";
       payload.separatedSince = separatedSince || null;
     }
-
     try {
       setLoading(true);
-
       const personalStep = await getOnboardingStatus();
       let res;
-
-      const alreadyCompleted =
-        Array.isArray(personalStep?.data?.data?.completedSteps) &&
-        personalStep.data.data.completedSteps.includes("personal");
-
+      const alreadyCompleted = Array.isArray(personalStep?.data?.data?.completedSteps) && personalStep.data.data.completedSteps.includes("personal");
       if (alreadyCompleted) {
         res = await updateUserPersonal(payload);
       } else {
         res = await saveUserPersonal(payload);
       }
-
-      const isSuccess = !!(
-        res?.success ||
-        res?.data?.success ||
-        res?.data?.data ||
-        res?.status === 200 ||
-        res?.status === 201
-      );
-
+      const isSuccess = !!(res?.success || res?.data?.success || res?.data?.data || res?.status === 200 || res?.status === 201);
       if (!isSuccess) {
-        const serverMessage =
-          res?.message ||
-          res?.data?.message ||
-          "Failed to save personal details.";
+        const serverMessage = res?.message || res?.data?.message || "Failed to save personal details.";
         console.error("âŒ Save returned unsuccessful response:", res);
-
         const fieldErrors = res?.data?.errors || res?.errors || null;
         if (fieldErrors && typeof fieldErrors === "object") {
-          setErrors((prev) => ({ ...prev, ...fieldErrors }));
+          setErrors(prev => ({
+            ...prev,
+            ...fieldErrors
+          }));
         }
         toast.error(`âŒ ${serverMessage}`);
         return false;
       }
-
-      toast.success(
-        alreadyCompleted
-          ? " Personal details updated successfully!"
-          : " Personal details saved successfully!"
-      );
-
+      toast.success(alreadyCompleted ? " Personal details updated successfully!" : " Personal details saved successfully!");
       try {
         await getUserPersonal();
       } catch (refreshErr) {
         console.warn("Failed to refresh personal data after save:", refreshErr);
       }
-
       return true;
     } catch (err) {
       console.error("âŒ Error saving/updating personal details:", err);
-
       const serverData = err?.response?.data || {};
       if (serverData?.errors && typeof serverData.errors === "object") {
-        setErrors((prev) => ({ ...prev, ...serverData.errors }));
+        setErrors(prev => ({
+          ...prev,
+          ...serverData.errors
+        }));
       }
-
-      const msg =
-        serverData?.message ||
-        err?.message ||
-        "Failed to save personal details.";
+      const msg = serverData?.message || err?.message || "Failed to save personal details.";
       toast.error(`Error: ${msg}`);
       return false;
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSaveNext = async (e) => {
+  const handleSaveNext = async e => {
     e.preventDefault();
     const valid = validate();
     if (!valid) {
@@ -721,13 +556,10 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
     const success = await handleSavePersonalDetails();
     if (success && onNext) onNext("family");
   };
-
   const handlePrevious = () => navigate("/signup");
-
-  return (
-    <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
+  return <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
       <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300 hover:scale-[1.02]">
-        {/* Heading */}
+        {}
         <h2 className="text-2xl font-bold text-[#1f1e1d] text-center mb-8">
           Personal Details
         </h2>
@@ -736,57 +568,39 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium">First Name</label>
-              <input
-                readOnly
-                value={formData.firstName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
-                style={{ backgroundColor: '#EEEAE6' }}
-              />
+              <input readOnly value={formData.firstName} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
+              backgroundColor: '#EEEAE6'
+            }} />
             </div>
             <div>
               <label className="text-sm font-medium">Middle Name</label>
-              <input
-                readOnly
-                value={formData.middleName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
-                style={{ backgroundColor: '#EEEAE6' }}
-              />
+              <input readOnly value={formData.middleName} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
+              backgroundColor: '#EEEAE6'
+            }} />
             </div>
             <div>
               <label className="text-sm font-medium">Last Name</label>
-              <input
-                readOnly
-                value={formData.lastName}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
-                style={{ backgroundColor: '#EEEAE6' }}
-              />
+              <input readOnly value={formData.lastName} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
+              backgroundColor: '#EEEAE6'
+            }} />
             </div>
           </div>
 
-          {/* Date of Birth */}
+          {}
           <div>
             <label className="text-sm font-medium">
               Date of Birth (DD / MM / YYYY)
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
-              <input
-                readOnly
-                value={formData.dobDay}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
-                style={{ backgroundColor: '#EEEAE6' }}
-              />
-              <input
-                readOnly
-                value={formData.dobMonth}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
-                style={{ backgroundColor: '#EEEAE6' }}
-              />
-              <input
-                readOnly
-                value={formData.dobYear}
-                className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition"
-                style={{ backgroundColor: '#EEEAE6' }}
-              />
+              <input readOnly value={formData.dobDay} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
+              backgroundColor: '#EEEAE6'
+            }} />
+              <input readOnly value={formData.dobMonth} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
+              backgroundColor: '#EEEAE6'
+            }} />
+              <input readOnly value={formData.dobYear} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
+              backgroundColor: '#EEEAE6'
+            }} />
             </div>
           </div>
 
@@ -796,43 +610,20 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
               </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-              {/* Hour Input */}
-              <input
-                type="text"
-                name="birthHour"
-                value={formData.birthHour}
-                onChange={handleHourInput}
-                onBlur={handleHourBlur}
-                placeholder="HH (00-23)"
-                maxLength={2}
-                className={getInputClass("birthHour")}
-              />
+              {}
+              <input type="text" name="birthHour" value={formData.birthHour} onChange={handleHourInput} onBlur={handleHourBlur} placeholder="HH (00-23)" maxLength={2} className={getInputClass("birthHour")} />
 
-              {/* Minute Input */}
-              <input
-                type="text"
-                name="birthMinute"
-                value={formData.birthMinute}
-                onChange={handleMinuteInput}
-                onBlur={handleMinuteBlur}
-                placeholder="MM (00-59)"
-                maxLength={2}
-                ref={minuteRef}
-                className={getInputClass("birthMinute")}
-              />
+              {}
+              <input type="text" name="birthMinute" value={formData.birthMinute} onChange={handleMinuteInput} onBlur={handleMinuteBlur} placeholder="MM (00-59)" maxLength={2} ref={minuteRef} className={getInputClass("birthMinute")} />
             </div>
             
-            {/* Error Messages Below Grid */}
+            {}
             <div className="space-y-1 mt-2">
-              {errors.birthHour && (
-                <p className="text-red-500 text-sm">{errors.birthHour}</p>
-              )}
-              {errors.birthMinute && (
-                <p className="text-red-500 text-sm">{errors.birthMinute}</p>
-              )}
+              {errors.birthHour && <p className="text-red-500 text-sm">{errors.birthHour}</p>}
+              {errors.birthMinute && <p className="text-red-500 text-sm">{errors.birthMinute}</p>}
             </div>
           </div>
-          {/* Birth Place */}
+          {}
           <div>
             <label className="block text-sm font-medium mb-1">Birth Place</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -840,413 +631,245 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
                 <label className="block text-sm font-medium mb-1">
                   Birth State
                 </label>
-                <LocationSelect
-                  type="state"
-                  name="birthState"
-                  value={formData.birthState}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setFormData((prev) => ({ ...prev, birthCity: "" }));
-                    // Use the code passed from LocationSelect, or calculate it
-                    const code = e.target.code || getStateCode("IN", e.target.value);
-                    setBirthStateCode(code);
-                  }}
-                  countryCode="IN"
-                  placeholder="Select state"
-                  className={getInputClass("birthState")}
-                />
-                {errors.birthState && (
-                  <p className="text-red-500 text-sm mt-1">
+                <LocationSelect type="state" name="birthState" value={formData.birthState} onChange={e => {
+                handleChange(e);
+                setFormData(prev => ({
+                  ...prev,
+                  birthCity: ""
+                }));
+                const code = e.target.code || getStateCode("IN", e.target.value);
+                setBirthStateCode(code);
+              }} countryCode="IN" placeholder="Select state" className={getInputClass("birthState")} />
+                {errors.birthState && <p className="text-red-500 text-sm mt-1">
                     {errors.birthState}
-                  </p>
-                )}
+                  </p>}
               </div>
 
-              {/* City Dropdown */}
+              {}
               <div>
                 <label className=" block text-sm font-medium mb-1">City</label>
-                <LocationSelect
-                  type="city"
-                  name="birthCity"
-                  value={formData.birthCity}
-                  onChange={(e) => {
-                    handleChange(e);
-                  }}
-                  countryCode="IN"
-                  stateCode={birthStateCode}
-                  placeholder="Select city"
-                  className={getInputClass("birthCity")}
-                />
-                {errors.birthCity && (
-                  <p className="text-red-500 text-sm mt-1">
+                <LocationSelect type="city" name="birthCity" value={formData.birthCity} onChange={e => {
+                handleChange(e);
+              }} countryCode="IN" stateCode={birthStateCode} placeholder="Select city" className={getInputClass("birthCity")} />
+                {errors.birthCity && <p className="text-red-500 text-sm mt-1">
                     {errors.birthCity}
-                  </p>
-                )}
+                  </p>}
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            {/* Height */}
+            {}
             <div className="flex flex-col">
               <label className="block text-sm font-medium mb-1">Height</label>
-              <CreatableSelect
-                isClearable
-                options={HEIGHT_SELECT_OPTIONS}
-                value={
-                  formData.height
-                    ? { label: formData.height, value: formData.height }
-                    : null
-                }
-                onChange={(selected, actionMeta) => {
-                  handleSelectChange("height", selected);
-                }}
-                placeholder="Select or type height"
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null,
-                }}
-                tabSelectsValue={false}
-                styles={customSelectStyles(errors.height, formData.height)}
-                menuPlacement="auto"
-                menuPosition="fixed"
-                menuPortalTarget={document.body}
-              />
-              {errors.height && (
-                <p className="text-red-500 text-sm mt-1">{errors.height}</p>
-              )}
+              <CreatableSelect isClearable options={HEIGHT_SELECT_OPTIONS} value={formData.height ? {
+              label: formData.height,
+              value: formData.height
+            } : null} onChange={(selected, actionMeta) => {
+              handleSelectChange("height", selected);
+            }} placeholder="Select or type height" classNamePrefix="react-select" components={{
+              IndicatorSeparator: () => null
+            }} tabSelectsValue={false} styles={customSelectStyles(errors.height, formData.height)} menuPlacement="auto" menuPosition="fixed" menuPortalTarget={document.body} />
+              {errors.height && <p className="text-red-500 text-sm mt-1">{errors.height}</p>}
             </div>
 
-            {/* Weight */}
+            {}
             <div className="flex flex-col">
               <label className="block text-sm font-medium mb-1">Weight</label>
-              <CreatableSelect
-                isClearable
-                options={WEIGHT_SELECT_OPTIONS}
-                value={
-                  formData.weight
-                    ? { label: formData.weight, value: formData.weight }
-                    : null
-                }
-                onChange={(selected, actionMeta) => {
-                  handleSelectChange("weight", selected);
-                }}
-                placeholder="Select or type weight"
-                classNamePrefix="react-select"
-                components={{
-                  IndicatorSeparator: () => null,
-                }}
-                tabSelectsValue={false}
-                styles={customSelectStyles(errors.weight, formData.weight)}
-                menuPlacement="auto"
-                menuPosition="fixed"
-                menuPortalTarget={document.body}
-              />
-              {errors.weight && (
-                <p className="text-red-500 text-sm mt-1">{errors.weight}</p>
-              )}
+              <CreatableSelect isClearable options={WEIGHT_SELECT_OPTIONS} value={formData.weight ? {
+              label: formData.weight,
+              value: formData.weight
+            } : null} onChange={(selected, actionMeta) => {
+              handleSelectChange("weight", selected);
+            }} placeholder="Select or type weight" classNamePrefix="react-select" components={{
+              IndicatorSeparator: () => null
+            }} tabSelectsValue={false} styles={customSelectStyles(errors.weight, formData.weight)} menuPlacement="auto" menuPosition="fixed" menuPortalTarget={document.body} />
+              {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight}</p>}
             </div>
           </div>
 
-          {/* Rashi, Religion, Caste, Dosh Section */}
+          {}
           <div className="space-y-6">
-            {/* Rashi */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">
                 Astrological Sign (Rashi)
               </label>
-              <CustomSelect
-                name="rashi"
-                value={formData.rashi}
-                onChange={handleChange}
-                options={ZODIAC_SIGNS}
-                placeholder="Select Rashi"
-                className={getInputClass("rashi")}
-              />
-              {errors.rashi && (
-                <p className="text-red-500 text-sm mt-1">{errors.rashi}</p>
-              )}
+              <CustomSelect name="rashi" value={formData.rashi} onChange={handleChange} options={ZODIAC_SIGNS} placeholder="Select Rashi" className={getInputClass("rashi")} />
+              {errors.rashi && <p className="text-red-500 text-sm mt-1">{errors.rashi}</p>}
             </div>
 
-            {/* Dosh */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">Dosh</label>
-              <CustomSelect
-                name="dosh"
-                value={formData.dosh}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, dosh: e.target.value }));
-                  setErrors((prev) => {
-                    const updated = { ...prev };
-                    delete updated.dosh;
-                    return updated;
-                  });
-                }}
-                options={SORTED_DOSH_OPTIONS}
-                placeholder="Select Type of Dosh"
-                className={getInputClass("dosh")}
-              />
-              {errors.dosh && (
-                <p className="text-red-500 text-sm mt-1">{errors.dosh}</p>
-              )}
+              <CustomSelect name="dosh" value={formData.dosh} onChange={e => {
+              setFormData(prev => ({
+                ...prev,
+                dosh: e.target.value
+              }));
+              setErrors(prev => {
+                const updated = {
+                  ...prev
+                };
+                delete updated.dosh;
+                return updated;
+              });
+            }} options={SORTED_DOSH_OPTIONS} placeholder="Select Type of Dosh" className={getInputClass("dosh")} />
+              {errors.dosh && <p className="text-red-500 text-sm mt-1">{errors.dosh}</p>}
             </div>
 
-            {/* Religion */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">Religion</label>
-              <CustomSelect
-                name="religion"
-                value={formData.religion}
-                onChange={(e) => {
-                  handleChange(e);
-                  setFormData((prev) => ({ ...prev, caste: "" }));
-                }}
-                options={RELIGIONS}
-                placeholder="Select Religion"
-                className={getInputClass("religion")}
-              />
-              {errors.religion && (
-                <p className="text-red-500 text-sm mt-1">{errors.religion}</p>
-              )}
+              <CustomSelect name="religion" value={formData.religion} onChange={e => {
+              handleChange(e);
+              setFormData(prev => ({
+                ...prev,
+                caste: ""
+              }));
+            }} options={RELIGIONS} placeholder="Select Religion" className={getInputClass("religion")} />
+              {errors.religion && <p className="text-red-500 text-sm mt-1">{errors.religion}</p>}
             </div>
 
-            {/* Caste */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">Caste</label>
-              <CustomSelect
-                name="caste"
-                value={formData.caste}
-                onChange={handleChange}
-                options={castOptions.length > 0 ? castOptions : []}
-                placeholder="Select Caste"
-                className={getInputClass("caste")}
-                disabled={castOptions.length === 0}
-              />
-              {errors.caste && (
-                <p className="text-red-500 text-sm mt-1">{errors.caste}</p>
-              )}
+              <CustomSelect name="caste" value={formData.caste} onChange={handleChange} options={castOptions.length > 0 ? castOptions : []} placeholder="Select Caste" className={getInputClass("caste")} disabled={castOptions.length === 0} />
+              {errors.caste && <p className="text-red-500 text-sm mt-1">{errors.caste}</p>}
             </div>
 
-            {/* Willing to marry from other community */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Willing to marry from other community?
               </label>
               <div className="flex items-center gap-6">
-                {/* YES Option */}
+                {}
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="interCommunity"
-                    value="Yes"
-                    checked={formData.interCommunity === "Yes"}
-                    onChange={() => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        interCommunity: "Yes",
-                      }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        interCommunity: "",
-                      }));
-                    }}
-                    className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.interCommunity === "Yes"
-              ? "bg-[#D4A052] border-[#D4A052]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#D4A052]`}
-                  />
+                  <input type="radio" name="interCommunity" value="Yes" checked={formData.interCommunity === "Yes"} onChange={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    interCommunity: "Yes"
+                  }));
+                  setErrors(prev => ({
+                    ...prev,
+                    interCommunity: ""
+                  }));
+                }} className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.interCommunity === "Yes" ? "bg-[#D4A052] border-[#D4A052]" : "border-gray-300"}
+          focus:ring-1 focus:ring-[#D4A052]`} />
                   <span className="text-gray-700 text-sm">Yes</span>
                 </label>
-                {/* NO Option */}
+                {}
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="interCommunity"
-                    value="No"
-                    checked={formData.interCommunity === "No"}
-                    onChange={() => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        interCommunity: "No",
-                      }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        interCommunity: "",
-                      }));
-                    }}
-                    className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.interCommunity === "No"
-              ? "bg-[#D4A052] border-[#D4A052]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#D4A052]`}
-                  />
+                  <input type="radio" name="interCommunity" value="No" checked={formData.interCommunity === "No"} onChange={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    interCommunity: "No"
+                  }));
+                  setErrors(prev => ({
+                    ...prev,
+                    interCommunity: ""
+                  }));
+                }} className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.interCommunity === "No" ? "bg-[#D4A052] border-[#D4A052]" : "border-gray-300"}
+          focus:ring-1 focus:ring-[#D4A052]`} />
                   <span className="text-gray-700 text-sm">No</span>
                 </label>
               </div>
-              {errors.interCommunity && (
-                <p className="text-red-500 text-sm mt-2">
+              {errors.interCommunity && <p className="text-red-500 text-sm mt-2">
                   {errors.interCommunity}
-                </p>
-              )}
+                </p>}
             </div>
 
-            {/* Full Address Section */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">
                 Full Address
               </label>
 
               <div className="space-y-4">
-                {/* Street Address 1 */}
+                {}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Street Address 1
                   </label>
-                  <input
-                    name="street1"
-                    value={formData.street1}
-                    placeholder="Enter address line 1"
-                    onChange={handleChange}
-                    className={getInputClass("street1")}
-                  />
-                  {errors.street1 && (
-                    <p className="text-red-500 text-sm mt-1">
+                  <input name="street1" value={formData.street1} placeholder="Enter address line 1" onChange={handleChange} className={getInputClass("street1")} />
+                  {errors.street1 && <p className="text-red-500 text-sm mt-1">
                       {errors.street1}
-                    </p>
-                  )}
+                    </p>}
                 </div>
 
-                {/* Street Address 2 */}
+                {}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Street Address 2
                   </label>
-                  <input
-                    name="street2"
-                    value={formData.street2}
-                    onChange={handleChange}
-                    placeholder="Enter address line 2"
-                    className={getInputClass("street2")}
-                  />
-                  {errors.street2 && (
-                    <p className="text-red-500 text-sm mt-1">
+                  <input name="street2" value={formData.street2} onChange={handleChange} placeholder="Enter address line 2" className={getInputClass("street2")} />
+                  {errors.street2 && <p className="text-red-500 text-sm mt-1">
                       {errors.street2}
-                    </p>
-                  )}
+                    </p>}
                 </div>
 
-                {/* State & City (always editable) */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* State */}
+                  {}
                   <div>
                     <label className="block text-sm font-medium mb-1">State</label>
-                    <LocationSelect
-                      type="state"
-                      name="state"
-                      value={formData.state}
-                      onChange={(e) => {
-                        handleChange(e);
-                        setFormData((prev) => ({ ...prev, city: "" }));
-                      }}
-                      countryCode="IN"
-                      placeholder="Select state"
-                      className={getInputClass("state")}
-                    />
-                    {errors.state && (
-                      <p className="text-red-500 text-sm mt-1">
+                    <LocationSelect type="state" name="state" value={formData.state} onChange={e => {
+                    handleChange(e);
+                    setFormData(prev => ({
+                      ...prev,
+                      city: ""
+                    }));
+                  }} countryCode="IN" placeholder="Select state" className={getInputClass("state")} />
+                    {errors.state && <p className="text-red-500 text-sm mt-1">
                         {errors.state}
-                      </p>
-                    )}
+                      </p>}
                   </div>
 
-                  {/* City */}
+                  {}
                   <div>
                     <label className="block text-sm font-medium mb-1">City</label>
-                    <LocationSelect
-                      type="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      countryCode="IN"
-                      stateCode={getStateCode("IN", formData.state) || ""}
-                      placeholder="Select city"
-                      className={getInputClass("city")}
-                    />
-                    {errors.city && (
-                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-                    )}
+                    <LocationSelect type="city" name="city" value={formData.city} onChange={handleChange} countryCode="IN" stateCode={getStateCode("IN", formData.state) || ""} placeholder="Select city" className={getInputClass("city")} />
+                    {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Pincode */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">Pincode</label>
-              <input
-                type="text"
-                name="pincode"
-                value={formData.pincode}
-                onChange={handleChange}
-                placeholder="Enter pincode"
-                maxLength={6}
-                className={getInputClass("pincode")}
-              />
+              <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Enter pincode" maxLength={6} className={getInputClass("pincode")} />
 
-              {(errors.pincode || errorMsg) && (
-                <p className="text-red-500 text-sm mt-1">
+              {(errors.pincode || errorMsg) && <p className="text-red-500 text-sm mt-1">
                   {errors.pincode || errorMsg}
-                </p>
-              )}
+                </p>}
             </div>
 
-            {/* Is this your own house? */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Is this your own house?
               </label>
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="ownHouse"
-                    value="Yes"
-                    checked={formData.ownHouse === "Yes"}
-                    onChange={() =>
-                      setFormData((prev) => ({ ...prev, ownHouse: "Yes" }))
-                    }
-                    className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.ownHouse === "Yes"
-              ? "bg-[#D4A052] border-[#D4A052]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#D4A052]`}
-                  />
+                  <input type="radio" name="ownHouse" value="Yes" checked={formData.ownHouse === "Yes"} onChange={() => setFormData(prev => ({
+                  ...prev,
+                  ownHouse: "Yes"
+                }))} className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.ownHouse === "Yes" ? "bg-[#D4A052] border-[#D4A052]" : "border-gray-300"}
+          focus:ring-1 focus:ring-[#D4A052]`} />
                   <span className="text-gray-700 text-sm">Yes</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="ownHouse"
-                    value="No"
-                    checked={formData.ownHouse === "No"}
-                    onChange={() =>
-                      setFormData((prev) => ({ ...prev, ownHouse: "No" }))
-                    }
-                    className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.ownHouse === "No"
-              ? "bg-[#D4A052] border-[#D4A052]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#D4A052]`}
-                  />
+                  <input type="radio" name="ownHouse" value="No" checked={formData.ownHouse === "No"} onChange={() => setFormData(prev => ({
+                  ...prev,
+                  ownHouse: "No"
+                }))} className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.ownHouse === "No" ? "bg-[#D4A052] border-[#D4A052]" : "border-gray-300"}
+          focus:ring-1 focus:ring-[#D4A052]`} />
                   <span className="text-gray-700 text-sm">No</span>
                 </label>
               </div>
@@ -1254,343 +877,206 @@ const PersonalDetails = ({ onNext, onPrevious }) => {
           </div>
 
           <div className="space-y-6">
-            {/* Marital Status */}
+            {}
             <div>
               <label className="block text-sm font-medium mb-1">
                 Marital Status
               </label>
-              <CustomSelect
-                name="legalStatus"
-                value={formData.legalStatus}
-                onChange={handleLegalStatus}
-                options={LEGAL_STATUSES}
-                placeholder="Select Status"
-                className={getInputClass("legalStatus")}
-              />
-              {errors.legalStatus && (
-                <p className="text-red-500 text-sm mt-1">
+              <CustomSelect name="legalStatus" value={formData.legalStatus} onChange={handleLegalStatus} options={LEGAL_STATUSES} placeholder="Select Status" className={getInputClass("legalStatus")} />
+              {errors.legalStatus && <p className="text-red-500 text-sm mt-1">
                   {errors.legalStatus}
-                </p>
-              )}
+                </p>}
             </div>
 
-            {/* Conditional Divorce Fields */}
-            {showDivorceFields && (
-              <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4">
+            {}
+            {showDivorceFields && <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4">
                 <label className="block text-sm font-medium mb-1 text-black">
                   Divorce Status
                 </label>
-                <CustomSelect
-                  name="divorceStatus"
-                  value={formData.divorceStatus}
-                  onChange={handleChange}
-                  options={['filed', 'process', 'court', 'divorced']}
-                  placeholder="Select Divorce Status"
-                  className={errors.divorceStatus ? "border-red-500" : ""}
-                />
-              </div>
-            )}
+                <CustomSelect name="divorceStatus" value={formData.divorceStatus} onChange={handleChange} options={['filed', 'process', 'court', 'divorced']} placeholder="Select Divorce Status" className={errors.divorceStatus ? "border-red-500" : ""} />
+              </div>}
 
-            {/* Children Fields */}
-            {showChildrenFields && (
-              <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4">
+            {}
+            {showChildrenFields && <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4">
                 <label className="block text-sm font-medium mb-2 text-black">
                   Do you have children?
                 </label>
                 <div className="flex gap-4">
-                  {["Yes", "No"].map((option) => (
-                    <label key={option} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="hasChildren"
-                        value={option}
-                        checked={formData.hasChildren === option}
-                        onChange={handleChange}
-                        className="peer hidden"
-                      />
+                  {["Yes", "No"].map(option => <label key={option} className="flex items-center gap-2">
+                      <input type="radio" name="hasChildren" value={option} checked={formData.hasChildren === option} onChange={handleChange} className="peer hidden" />
                       <span className="w-4 h-4 rounded-full border border-[#D4A052] peer-checked:bg-[#D4A052] peer-checked:border-[#D4A052] transition-all"></span>
                       <span className="text-sm">{option}</span>
-                    </label>
-                  ))}
+                    </label>)}
                 </div>
 
-                {formData.hasChildren === "Yes" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <CustomSelect
-                      name="numChildren"
-                      value={formData.numChildren}
-                      onChange={handleChange}
-                      options={[...Array(10)].map((_, i) => String(i + 1))}
-                      placeholder="Number of Children"
-                      className={errors.numChildren ? "border-red-500" : ""}
-                    />
+                {formData.hasChildren === "Yes" && <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <CustomSelect name="numChildren" value={formData.numChildren} onChange={handleChange} options={[...Array(10)].map((_, i) => String(i + 1))} placeholder="Number of Children" className={errors.numChildren ? "border-red-500" : ""} />
 
-                    <CustomSelect
-                      name="livingWith"
-                      value={formData.livingWith}
-                      onChange={handleChange}
-                      options={['Yes', 'No']}
-                      placeholder="Living with you?"
-                      className={errors.livingWith ? "border-red-500" : ""}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+                    <CustomSelect name="livingWith" value={formData.livingWith} onChange={handleChange} options={['Yes', 'No']} placeholder="Living with you?" className={errors.livingWith ? "border-red-500" : ""} />
+                  </div>}
+              </div>}
 
-            {/* Separated Status Fields */}
-            {formData.legalStatus === "Separated" && (
-              <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4 space-y-3">
+            {}
+            {formData.legalStatus === "Separated" && <div className="bg-[#FFF7E6] border border-[#D4A052] rounded-lg p-4 space-y-3">
                 <label className="block text-sm font-medium text-black">
                   Are you legally separated?
                 </label>
                 <div className="flex gap-4">
-                  {["Yes", "No"].map((option) => (
-                    <label key={option} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="legallySeparated"
-                        value={option}
-                        checked={isLegallySeparated === option}
-                        onChange={() => {
-                          setIsLegallySeparated(option);
-                          if (option === "No") setSeparationYear("");
-                        }}
-                        className="peer hidden"
-                      />
+                  {["Yes", "No"].map(option => <label key={option} className="flex items-center gap-2">
+                      <input type="radio" name="legallySeparated" value={option} checked={isLegallySeparated === option} onChange={() => {
+                  setIsLegallySeparated(option);
+                  if (option === "No") setSeparationYear("");
+                }} className="peer hidden" />
                       <span className="w-4 h-4 rounded-full border border-[#D4A052] peer-checked:bg-[#D4A052] peer-checked:border-[#D4A052] transition-all"></span>
                       <span className="text-sm">{option}</span>
-                    </label>
-                  ))}
+                    </label>)}
                 </div>
 
-                {/* Separation Year */}
-                {isLegallySeparated === "Yes" && (
-                  <div className="mt-2">
+                {}
+                {isLegallySeparated === "Yes" && <div className="mt-2">
                     <label className="block text-sm font-medium mb-2 text-black">
                       Since when are you separated?
                     </label>
                     <div className="flex gap-4 overflow-x-auto py-2">
-                      {Array.from({ length: 50 }, (_, i) => {
-                        const year = new Date().getFullYear() - i;
-                        return (
-                          <label
-                            key={year}
-                            className="flex items-center gap-1 flex-shrink-0"
-                          >
-                            <input
-                              type="radio"
-                              name="separatedSince"
-                              value={year}
-                              checked={separatedSince === year.toString()}
-                              onChange={(e) =>
-                                setSeparationYear(e.target.value)
-                              }
-                              className="peer hidden"
-                            />
+                      {Array.from({
+                  length: 50
+                }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return <label key={year} className="flex items-center gap-1 flex-shrink-0">
+                            <input type="radio" name="separatedSince" value={year} checked={separatedSince === year.toString()} onChange={e => setSeparationYear(e.target.value)} className="peer hidden" />
                             <span className="w-4 h-4 rounded-full border border-[#D4A052] peer-checked:bg-[#D4A052] peer-checked:border-[#D4A052] transition-all"></span>
                             <span className="text-sm">{year}</span>
-                          </label>
-                        );
-                      })}
+                          </label>;
+                })}
                     </div>
-                    {errors.separatedSince && (
-                      <p className="text-xs text-red-500 mt-1">
+                    {errors.separatedSince && <p className="text-xs text-red-500 mt-1">
                         {errors.separatedSince}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                      </p>}
+                  </div>}
+              </div>}
           </div>
 
-          {/* Nationality */}
+          {}
           <div>
             <label className="block text-sm font-medium mb-1">
               Nationality
             </label>
-            <CustomSelect
-              name="nationality"
-              value={formData.nationality}
-              onChange={handleChange}
-              options={SORTED_NATIONALITIES}
-              placeholder="Select Nationality"
-              className={getInputClass("nationality")}
-            />
-            {errors.nationality && (
-              <p className="text-red-500 text-sm mt-1">{errors.nationality}</p>
-            )}
+            <CustomSelect name="nationality" value={formData.nationality} onChange={handleChange} options={SORTED_NATIONALITIES} placeholder="Select Nationality" className={getInputClass("nationality")} />
+            {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality}</p>}
           </div>
 
-          {/* Currently Residing In */}
+          {}
           <div>
             <label className="block text-sm font-medium mb-2">
               Currently Residing in India?
             </label>
 
             <div className="flex items-center gap-6">
-              {/* YES Option */}
+              {}
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="residingInIndia"
-                  value="yes"
-                  checked={formData.residingInIndia === "yes"}
-                  onChange={() => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      residingInIndia: "yes",
-                      residingCountry: "India",
-                      visaCategory: "",
-                    }));
-
-                    setErrors((prev) => {
-                      const updated = { ...prev };
-                      delete updated.residingInIndia;
-                      return updated;
-                    });
-                  }}
-                  className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.residingInIndia === "yes"
-              ? "bg-[#D4A052] border-[#D4A052]"
-              : "border-gray-300"
-          }
-          focus:ring-1 focus:ring-[#D4A052]`}
-                />
+                <input type="radio" name="residingInIndia" value="yes" checked={formData.residingInIndia === "yes"} onChange={() => {
+                setFormData(prev => ({
+                  ...prev,
+                  residingInIndia: "yes",
+                  residingCountry: "India",
+                  visaCategory: ""
+                }));
+                setErrors(prev => {
+                  const updated = {
+                    ...prev
+                  };
+                  delete updated.residingInIndia;
+                  return updated;
+                });
+              }} className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.residingInIndia === "yes" ? "bg-[#D4A052] border-[#D4A052]" : "border-gray-300"}
+          focus:ring-1 focus:ring-[#D4A052]`} />
                 <span className="text-gray-700 text-sm">Yes</span>
               </label>
 
-              {/* NO Option */}
+              {}
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="residingInIndia"
-                  value="no"
-                  checked={formData.residingInIndia === "no"}
-                  onChange={() => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      residingInIndia: "no",
-                      residingCountry: "",
-                      visaCategory: "",
-                    }));
-
-                    setErrors((prev) => {
-                      const updated = { ...prev };
-                      delete updated.residingInIndia;
-                      return updated;
-                    });
-                  }}
-                  className={`appearance-none w-4 h-4 rounded-full border transition duration-200
-          ${
-            formData.residingInIndia === "no"
-              ? "bg-[#D4A052] border-[#D4A052]"
-              : "border-gray-300"
-          }
-          focus:outline-none focus:ring-2 focus:ring-[#D4A052] focus:ring-offset-1`}
-                />
+                <input type="radio" name="residingInIndia" value="no" checked={formData.residingInIndia === "no"} onChange={() => {
+                setFormData(prev => ({
+                  ...prev,
+                  residingInIndia: "no",
+                  residingCountry: "",
+                  visaCategory: ""
+                }));
+                setErrors(prev => {
+                  const updated = {
+                    ...prev
+                  };
+                  delete updated.residingInIndia;
+                  return updated;
+                });
+              }} className={`appearance-none w-4 h-4 rounded-full border transition duration-200
+          ${formData.residingInIndia === "no" ? "bg-[#D4A052] border-[#D4A052]" : "border-gray-300"}
+          focus:outline-none focus:ring-2 focus:ring-[#D4A052] focus:ring-offset-1`} />
                 <span className="text-gray-700 text-sm">No</span>
               </label>
             </div>
 
-            {/* Error if user skips Yes/No */}
-            {errors.residingInIndia && (
-              <p className="text-red-500 text-sm mt-1">
+            {}
+            {errors.residingInIndia && <p className="text-red-500 text-sm mt-1">
                 {errors.residingInIndia}
-              </p>
-            )}
+              </p>}
 
-            {/* If user selected "No" */}
-            {formData.residingInIndia === "no" && (
-              <div className="mt-4 space-y-4 transition-all duration-300">
-                {/* Residing Country */}
+            {}
+            {formData.residingInIndia === "no" && <div className="mt-4 space-y-4 transition-all duration-300">
+                {}
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">
                     Residing In Which Country
                   </label>
-                  <LocationSelect
-                    type="country"
-                    name="residingCountry"
-                    value={formData.residingCountry}
-                    onChange={(e) => {
-                      handleChange(e);
-                      const code = getCountryCode(e.target.value);
-                      setResidingCountryCode(code);
-                    }}
-                    placeholder="Select Country"
-                    className={`w-full ${
-                      errors.residingCountry
-                        ? "border-red-500"
-                        : ""
-                    }`}
-                  />
-                  {errors.residingCountry && (
-                    <p className="text-red-500 text-sm mt-1">
+                  <LocationSelect type="country" name="residingCountry" value={formData.residingCountry} onChange={e => {
+                handleChange(e);
+                const code = getCountryCode(e.target.value);
+                setResidingCountryCode(code);
+              }} placeholder="Select Country" className={`w-full ${errors.residingCountry ? "border-red-500" : ""}`} />
+                  {errors.residingCountry && <p className="text-red-500 text-sm mt-1">
                       {errors.residingCountry}
-                    </p>
-                  )}
+                    </p>}
                 </div>
 
-                {/* Visa Category */}
+                {}
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">
                     Visa Category
                   </label>
-                  <CustomSelect
-                    name="visaCategory"
-                    value={formData.visaCategory}
-                    onChange={(e) => {
-                      handleChange(e);
-                      if (!e.target.value) {
-                        setErrors({
-                          ...errors,
-                          visaCategory: "Please select a visa category",
-                        });
-                      } else {
-                        setErrors({ ...errors, visaCategory: "" });
-                      }
-                    }}
-                    options={SORTED_VISA_CATEGORIES}
-                    placeholder="Select Visa Category"
-                    className={`capitalize ${
-                      errors.visaCategory
-                        ? "border-red-500"
-                        : ""
-                    }`}
-                  />
-                  {errors.visaCategory && (
-                    <p className="text-red-500 text-sm mt-1">
+                  <CustomSelect name="visaCategory" value={formData.visaCategory} onChange={e => {
+                handleChange(e);
+                if (!e.target.value) {
+                  setErrors({
+                    ...errors,
+                    visaCategory: "Please select a visa category"
+                  });
+                } else {
+                  setErrors({
+                    ...errors,
+                    visaCategory: ""
+                  });
+                }
+              }} options={SORTED_VISA_CATEGORIES} placeholder="Select Visa Category" className={`capitalize ${errors.visaCategory ? "border-red-500" : ""}`} />
+                  {errors.visaCategory && <p className="text-red-500 text-sm mt-1">
                       {errors.visaCategory}
-                    </p>
-                  )}
+                    </p>}
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
 
-          {/* âœ… Buttons */}
+          {}
           <div className="pt-6 flex justify-between items-center gap-4">
-            <button
-              type="button"
-              onClick={handlePrevious}
-              className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition"
-            >
+            <button type="button" onClick={handlePrevious} className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition">
               Previous
             </button>
 
-            <button
-              type="submit"
-              className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#D4A052] transition"
-            >
+            <button type="submit" className="w-full sm:w-1/2 bg-[#D4A052] text-white py-3 rounded-xl font-semibold hover:bg-[#D4A052] transition">
               Save & Next
             </button>
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default PersonalDetails;

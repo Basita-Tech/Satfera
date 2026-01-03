@@ -3,26 +3,22 @@ import { Link } from "react-router-dom";
 import { allCountries } from "country-telephone-data";
 import { forgotPassword, verifyEmailOtp } from "@/api/auth";
 import toast from "react-hot-toast";
-
 const ForgotPassword = () => {
   const [resetType, setResetType] = useState("email");
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     countryCode: "+91",
-    otp: "",
+    otp: ""
   });
   const [step, setStep] = useState("input");
   const [otpSent, setOtpSent] = useState(false);
   const [otpExpiry, setOtpExpiry] = useState(180);
   const [error, setError] = useState("");
-
   const intervalRef = useRef(null);
-
-  // OTP countdown timer
   useEffect(() => {
     if (otpSent && otpExpiry > 0 && !intervalRef.current) {
       intervalRef.current = setInterval(() => {
-        setOtpExpiry((prev) => {
+        setOtpExpiry(prev => {
           if (prev <= 1) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -34,35 +30,26 @@ const ForgotPassword = () => {
     }
     return () => clearInterval(intervalRef.current);
   }, [otpSent, otpExpiry]);
-
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
+  const handleChange = e => {
+    const {
+      name,
+      value
+    } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [name]:
-        name === "emailOrPhone" && resetType === "email"
-          ? value.toLowerCase()
-          : value,
+      [name]: name === "emailOrPhone" && resetType === "email" ? value.toLowerCase() : value
     }));
   };
-
-  // Send or Resend OTP
-  const handleSendOtp = async (e) => {
+  const handleSendOtp = async e => {
     if (e) e.preventDefault();
-
     let emailOrPhone = formData.emailOrPhone;
     if (resetType === "email") emailOrPhone = emailOrPhone.toLowerCase();
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (resetType === "email" && !emailRegex.test(emailOrPhone)) {
       setError("Enter a valid email address");
       return;
     }
-
     const data = await forgotPassword(emailOrPhone);
-
     if (!data.success) {
       toast.error(data.message);
       return;
@@ -74,26 +61,23 @@ const ForgotPassword = () => {
       setOtpExpiry(180);
       return;
     }
-
     if (resetType === "mobile" && !/^\d{10}$/.test(emailOrPhone)) {
       setError("Enter a valid 10-digit mobile number");
       return;
     }
-
-    // Reset OTP state
-    setFormData({ ...formData, emailOrPhone, otp: "" });
+    setFormData({
+      ...formData,
+      emailOrPhone,
+      otp: ""
+    });
     setError("");
     setStep("otp");
     setOtpSent(true);
     setOtpExpiry(180);
-
-    // Clear any existing interval
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
   };
-
-  // Verify OTP
-  const handleVerifyOtp = async (e) => {
+  const handleVerifyOtp = async e => {
     e.preventDefault();
     if (otpExpiry <= 0) {
       setError("OTP Expired. Please resend OTP.");
@@ -102,7 +86,7 @@ const ForgotPassword = () => {
     const data = {
       otp: formData.otp,
       email: resetType === "email" ? formData.emailOrPhone : undefined,
-      type: "forgot-password",
+      type: "forgot-password"
     };
     const res = await verifyEmailOtp(data);
     if (!res.success) {
@@ -115,23 +99,16 @@ const ForgotPassword = () => {
     clearInterval(intervalRef.current);
     intervalRef.current = null;
   };
-
-  // Mask email for display
-  const maskEmail = (email) => {
+  const maskEmail = email => {
     if (!email) return "";
     const [user, domain] = email.split("@");
     return user[0] + "****@" + domain;
   };
-
-  // Mask phone for display
-  const maskPhone = (phone) => "****" + phone.slice(-4);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+  const maskPhone = phone => "****" + phone.slice(-4);
+  return <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-md bg-[#FBFAF7] rounded-lg shadow-2xl p-8">
-        {/* STEP 1: INPUT */}
-        {step === "input" && (
-          <>
+        {}
+        {step === "input" && <>
             <h3 className="text-3xl font-bold text-center text-gray-800 mb-2">
               Forgot Password
             </h3>
@@ -139,148 +116,78 @@ const ForgotPassword = () => {
               Select how you want to receive your OTP.
             </p>
 
-            {/* Toggle Buttons */}
+            {}
             <div className="flex justify-center mb-6 gap-2 rounded-md p-1">
-              {["email", "mobile"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    setResetType(type);
-                    setFormData((prev) => ({ ...prev, emailOrPhone: "" }));
-                    setError("");
-                  }}
-                  className={`px-6 py-2 rounded-md font-semibold text-sm md:text-base transition ${
-                    resetType === type
-                      ? "bg-[#D4A052] text-white"
-                      : "text-[#D4A052] hover:bg-[#D4A052] bg-transparent border border-[#D4A052]"
-                  }`}
-                >
+              {["email", "mobile"].map(type => <button key={type} onClick={() => {
+            setResetType(type);
+            setFormData(prev => ({
+              ...prev,
+              emailOrPhone: ""
+            }));
+            setError("");
+          }} className={`px-6 py-2 rounded-md font-semibold text-sm md:text-base transition ${resetType === type ? "bg-[#D4A052] text-white" : "text-[#D4A052] hover:bg-[#D4A052] bg-transparent border border-[#D4A052]"}`}>
                   {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
+                </button>)}
             </div>
 
             <form onSubmit={handleSendOtp} className="space-y-4">
-              {resetType === "email" ? (
-                <input
-                  type="email"
-                  name="emailOrPhone"
-                  placeholder="Enter your email"
-                  value={formData.emailOrPhone}
-                  onChange={handleChange}
-                  required
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  style={{ textTransform: "lowercase" }}
-                  className="w-full px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800"
-                />
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <select
-                    name="countryCode"
-                    value={formData.countryCode}
-                    onChange={handleChange}
-                    className="w-full sm:w-1/3 px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800"
-                  >
-                    {allCountries.map((c) => (
-                      <option key={c.iso2} value={`+${c.dialCode}`}>
+              {resetType === "email" ? <input type="email" name="emailOrPhone" placeholder="Enter your email" value={formData.emailOrPhone} onChange={handleChange} required autoCapitalize="none" autoComplete="email" style={{
+            textTransform: "lowercase"
+          }} className="w-full px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800" /> : <div className="flex flex-col sm:flex-row gap-2">
+                  <select name="countryCode" value={formData.countryCode} onChange={handleChange} className="w-full sm:w-1/3 px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800">
+                    {allCountries.map(c => <option key={c.iso2} value={`+${c.dialCode}`}>
                         {`+${c.dialCode} (${c.name})`}
-                      </option>
-                    ))}
+                      </option>)}
                   </select>
-                  <input
-                    type="tel"
-                    name="emailOrPhone"
-                    placeholder="Enter 10-digit mobile number"
-                    value={formData.emailOrPhone}
-                    onChange={handleChange}
-                    required
-                    className="w-full sm:w-2/3 px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800"
-                  />
-                </div>
-              )}
+                  <input type="tel" name="emailOrPhone" placeholder="Enter 10-digit mobile number" value={formData.emailOrPhone} onChange={handleChange} required className="w-full sm:w-2/3 px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800" />
+                </div>}
 
               {error && <p className="text-red-600 text-sm">{error}</p>}
 
-              <button
-                type="submit"
-                className="w-full py-3 rounded-md bg-[#D4A052] text-white font-semibold hover:bg-[#B3863F] transition"
-              >
+              <button type="submit" className="w-full py-3 rounded-md bg-[#D4A052] text-white font-semibold hover:bg-[#B3863F] transition">
                 Send OTP
               </button>
             </form>
-          </>
-        )}
+          </>}
 
-        {/* STEP 2: OTP */}
-        {step === "otp" && (
-          <>
+        {}
+        {step === "otp" && <>
             <h3 className="text-3xl font-bold text-center text-gray-800 mb-2">
               Verify OTP
             </h3>
             <p className="text-gray-500 text-center mb-4 text-sm">
               An OTP has been sent to{" "}
-              {resetType === "email"
-                ? maskEmail(formData.emailOrPhone)
-                : maskPhone(formData.emailOrPhone)}
+              {resetType === "email" ? maskEmail(formData.emailOrPhone) : maskPhone(formData.emailOrPhone)}
             </p>
             <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <input
-                type="text"
-                name="otp"
-                placeholder="Enter OTP"
-                value={formData.otp}
-                onChange={handleChange}
-                required
-                disabled={otpExpiry <= 0}
-                className="w-full px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800"
-              />
+              <input type="text" name="otp" placeholder="Enter OTP" value={formData.otp} onChange={handleChange} required disabled={otpExpiry <= 0} className="w-full px-4 py-3 rounded-md border border-[#D4A052] focus:ring-2 focus:ring-[#D4A052] outline-none text-gray-800" />
               {error && <p className="text-red-600 text-sm">{error}</p>}
-              <button
-                type="submit"
-                disabled={otpExpiry <= 0}
-                className="w-full py-3 rounded-md bg-[#D4A052] text-white font-semibold hover:bg-[#B3863F] transition"
-              >
+              <button type="submit" disabled={otpExpiry <= 0} className="w-full py-3 rounded-md bg-[#D4A052] text-white font-semibold hover:bg-[#B3863F] transition">
                 Verify OTP
               </button>
             </form>
             <div className="text-center mt-2">
-              {otpExpiry > 0 ? (
-                <p className="text-gray-500 text-sm">
+              {otpExpiry > 0 ? <p className="text-gray-500 text-sm">
                   OTP expires in {Math.floor(otpExpiry / 60)}m {otpExpiry % 60}s
-                </p>
-              ) : (
-                <button
-                  onClick={() => handleSendOtp(null)}
-                  className="text-[#D4A052] text-sm underline"
-                >
+                </p> : <button onClick={() => handleSendOtp(null)} className="text-[#D4A052] text-sm underline">
                   OTP Expired. Resend OTP
-                </button>
-              )}
+                </button>}
             </div>
-          </>
-        )}
+          </>}
 
-        {/* STEP 3: SUCCESS */}
-        {step === "success" && (
-          <div className="text-center">
+        {}
+        {step === "success" && <div className="text-center">
             <h3 className="text-3xl font-bold text-green-600 mb-3">
               OTP Verified!
             </h3>
-            {resetType === "email" ? (
-              <>
+            {resetType === "email" ? <>
                 <p className="text-gray-500 mb-4">
                   A reset password link has been sent to your registered email.
                 </p>
-                <a
-                  href={`mailto:${formData.emailOrPhone}?subject=Password Reset&body=Click the reset link`}
-                  className="w-full inline-block py-3 rounded-md bg-[#D4A052] text-white font-semibold hover:bg-[#B3863F] transition"
-                >
+                <a href={`mailto:${formData.emailOrPhone}?subject=Password Reset&body=Click the reset link`} className="w-full inline-block py-3 rounded-md bg-[#D4A052] text-white font-semibold hover:bg-[#B3863F] transition">
                   Open Email
                 </a>
-              </>
-            ) : (
-              <>
+              </> : <>
                 <p className="text-gray-500 mb-4">
                   A reset password link has been sent via SMS to your mobile
                   number.
@@ -288,22 +195,15 @@ const ForgotPassword = () => {
                 <button className="w-full py-3 rounded-md bg-[#D4A052] text-white font-semibold cursor-not-allowed">
                   Check your SMS
                 </button>
-              </>
-            )}
-          </div>
-        )}
+              </>}
+          </div>}
 
         <div className="mt-6 text-center">
-          <Link
-            to="/login"
-            className="text-sm text-gray-700 hover:underline font-medium"
-          >
+          <Link to="/login" className="text-sm text-gray-700 hover:underline font-medium">
             Back to Sign In
           </Link>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ForgotPassword;

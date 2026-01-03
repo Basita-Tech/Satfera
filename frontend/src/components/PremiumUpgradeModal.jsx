@@ -1,23 +1,14 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Crown, Check, Lock } from 'lucide-react';
-
-export function PremiumUpgradeModal({ open, onOpenChange }) {
-  const features = [
-    'Unlimited Chat with Matches',
-    'View Contact Details',
-    'See Income Information',
-    'Priority Profile Visibility',
-    'Advanced Filters',
-    'Send Unlimited Requests',
-    'Ad-Free Experience',
-    'Verified Badge',
-  ];
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+export function PremiumUpgradeModal({
+  open,
+  onOpenChange
+}) {
+  const features = ['Unlimited Chat with Matches', 'View Contact Details', 'See Income Information', 'Priority Profile Visibility', 'Advanced Filters', 'Send Unlimited Requests', 'Ad-Free Experience', 'Verified Badge'];
+  return <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg rounded-[20px] p-0 max-h-[80vh] !top-[52%] my-12 mx-4 overflow-y-auto gap-0">
-        {/* Premium Header */}
+        {}
         <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-8 py-8 text-center text-white relative overflow-hidden rounded-t-[20px]">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -34,20 +25,18 @@ export function PremiumUpgradeModal({ open, onOpenChange }) {
           </div>
         </div>
 
-        {/* Features List */}
+        {}
         <div className="p-8 space-y-6">
           <div className="grid grid-cols-1 gap-3">
-            {features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-3">
+            {features.map((feature, index) => <div key={index} className="flex items-center gap-3">
                 <div className="w-6 h-6 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0">
                   <Check className="w-4 h-4 text-gold" />
                 </div>
                 <span className="text-sm text-[#222222]">{feature}</span>
-              </div>
-            ))}
+              </div>)}
           </div>
 
-          {/* Pricing */}
+          {}
           <div className="bg-beige rounded-[16px] p-6 text-center">
             <div className="mb-2">
               <span className="text-3xl font-semibold text-gold">₹999</span>
@@ -58,24 +47,16 @@ export function PremiumUpgradeModal({ open, onOpenChange }) {
             </p>
           </div>
 
-          {/* CTA Buttons */}
+          {}
           <div className="space-y-3">
-            <Button
-              className="w-full bg-gold hover:bg-gold/90 text-white rounded-[12px] h-12"
-              onClick={() => {
-                onOpenChange(false);
-                // Handle premium upgrade logic here
-              }}
-            >
+            <Button className="w-full bg-gold hover:bg-gold/90 text-white rounded-[12px] h-12" onClick={() => {
+            onOpenChange(false);
+          }}>
               <Crown className="w-4 h-4 mr-2" />
               Upgrade Now
             </Button>
 
-            <Button
-              variant="outline"
-              className="w-full border-border-subtle rounded-[12px] h-12"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="outline" className="w-full border-border-subtle rounded-[12px] h-12" onClick={() => onOpenChange(false)}>
               Maybe Later
             </Button>
           </div>
@@ -85,6 +66,5 @@ export function PremiumUpgradeModal({ open, onOpenChange }) {
           </p>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 }
