@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getUserPhotos, getGovernmentId, submitProfileForReview, updateOnboardingStatus, getOnboardingStatus } from "../../api/auth";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import usePhotoUpload from "../../hooks/usePhotoUpload";
+import ImageCropperModal from "../ImageCropperModal";
 const UploadPhotos = ({
   onPrevious
 }) => {
@@ -36,6 +37,18 @@ const UploadPhotos = ({
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [initialHadRequired, setInitialHadRequired] = useState(false);
   const [onBoardingStatus, setOnBoardingStatus] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState("");
+  const [currentCropPhotoType, setCurrentCropPhotoType] = useState(null);
+  
+  // Photo dimensions mapping
+  const PHOTO_DIMENSIONS = {
+    compulsory3: { w: 600, h: 600, ratio: 1, label: "Close-up Portrait (600x600)" },      // 1:1
+    compulsory2: { w: 1200, h: 900, ratio: 4/3, label: "Family Photo (1200x900)" },     // 4:3
+    compulsory1: { w: 900, h: 1200, ratio: 3/4, label: "Full Body Photo (900x1200)" },   // 3:4
+    optional1: { w: 1200, h: 1200, ratio: 1, label: "Additional Photo 1 (1200x1200)" },  // 1:1
+    optional2: { w: 1200, h: 1200, ratio: 1, label: "Additional Photo 2 (1200x1200)" }   // 1:1
+  };
   const requiredKeys = ["compulsory1", "compulsory2", "compulsory3", "governmentId"];
   const photoLabels = {
     compulsory1: "Full Body Photo",
@@ -86,24 +99,81 @@ const UploadPhotos = ({
   const handlePhotoChange = useCallback(async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
-    const {
-      validateProfilePhoto,
-      validateGovernmentID
-    } = await import("../../utils/fileValidation");
-    const validation = type === "governmentId" ? await validateGovernmentID(file) : await validateProfilePhoto(file);
+
+    // Skip cropper for government ID
+    if (type === "governmentId") {
+      const { validateGovernmentID } = await import("../../utils/fileValidation");
+      const validation = await validateGovernmentID(file);
+      if (!validation.valid) {
+        toast.error(validation.errors[0] || "File validation failed");
+        e.target.value = "";
+        return;
+      }
+      setPhotos(prev => ({
+        ...prev,
+        [type]: file
+      }));
+      const isPdf = file.type === "application/pdf";
+      const fileType = isPdf ? "PDF" : "Photo";
+      toast.success(`${fileType} validated successfully`);
+      e.target.value = "";
+      return;
+    }
+
+    // For photo files, validate first
+    const { validateProfilePhoto } = await import("../../utils/fileValidation");
+    const validation = await validateProfilePhoto(file);
     if (!validation.valid) {
       toast.error(validation.errors[0] || "File validation failed");
       e.target.value = "";
       return;
     }
-    setPhotos(prev => ({
-      ...prev,
-      [type]: file
-    }));
-    const isPdf = file.type === "application/pdf";
-    const fileType = isPdf ? "PDF" : "Photo";
-    toast.success(`${fileType} validated successfully`);
+
+    // Show cropper for image files
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImageToCrop(ev.target.result);
+      setCurrentCropPhotoType(type);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   }, []);
+
+  const handleCropSave = useCallback(async (croppedBase64) => {
+    if (!currentCropPhotoType) return;
+
+    try {
+      // Convert base64 to File
+      const response = await fetch(croppedBase64);
+      const blob = await response.blob();
+      
+      // Get photo dimensions
+      const dims = PHOTO_DIMENSIONS[currentCropPhotoType];
+      const ext = 'jpg';
+      const filename = `photo_${currentCropPhotoType}.${ext}`;
+      
+      const croppedFile = new File([blob], filename, {
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+
+      setPhotos(prev => ({
+        ...prev,
+        [currentCropPhotoType]: croppedFile
+      }));
+
+      toast.success(`Photo cropped successfully!`);
+      
+      // Close cropper
+      setCropperOpen(false);
+      setImageToCrop("");
+      setCurrentCropPhotoType(null);
+    } catch (error) {
+      console.error('Crop save error:', error);
+      toast.error('Failed to process cropped image. Please try again.');
+    }
+  }, [currentCropPhotoType]);
   const hasAllRequired = () => requiredKeys.every(k => photos[k] instanceof File || uploadedUrls && uploadedUrls[k]);
   const handleSubmit = async e => {
     e.preventDefault();
@@ -511,6 +581,24 @@ const UploadPhotos = ({
             </p>
           </div>
         </div>}
+
+        {/* Image Cropper Modal */}
+        <ImageCropperModal
+          isOpen={cropperOpen}
+          imageSrc={imageToCrop}
+          onClose={() => {
+            setCropperOpen(false);
+            setImageToCrop("");
+            setCurrentCropPhotoType(null);
+          }}
+          aspectRatio={
+            currentCropPhotoType ? PHOTO_DIMENSIONS[currentCropPhotoType].ratio : undefined
+          }
+          title={
+            currentCropPhotoType ? PHOTO_DIMENSIONS[currentCropPhotoType].label : "Crop Photo"
+          }
+          onSave={handleCropSave}
+        />
     </div>;
 };
 export default UploadPhotos;
