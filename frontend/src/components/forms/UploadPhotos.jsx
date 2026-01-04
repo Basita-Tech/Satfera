@@ -44,8 +44,8 @@ const UploadPhotos = ({
   // Photo dimensions mapping
   const PHOTO_DIMENSIONS = {
     compulsory3: { w: 600, h: 600, ratio: 1, label: "Close-up Portrait (600x600)" },      // 1:1
-    compulsory2: { w: 1200, h: 900, ratio: 4/3, label: "Family Photo (1200x900)" },     // 4:3
-    compulsory1: { w: 900, h: 1200, ratio: 3/4, label: "Full Body Photo (900x1200)" },   // 3:4
+    compulsory2: { w: 1600, h: 1200, ratio: 4/3, label: "Family Photo (1600x1200)" },     // 4:3
+    compulsory1: { w: 1080, h: 1350, ratio: 4/5, label: "Full Body Photo (1080x1350)" },   // 4:5
     optional1: { w: 1200, h: 1200, ratio: 1, label: "Additional Photo 1 (1200x1200)" },  // 1:1
     optional2: { w: 1200, h: 1200, ratio: 1, label: "Additional Photo 2 (1200x1200)" }   // 1:1
   };

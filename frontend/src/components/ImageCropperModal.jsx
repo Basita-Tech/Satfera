@@ -23,8 +23,7 @@ const ImageCropperModal = ({
     try {
       const canvas = cropperRef.current.getCanvas();
       if (canvas) {
-        // Convert canvas to blob with high quality
-        canvas.toBlob(
+               canvas.toBlob(
           (blob) => {
             if (blob) {
               const reader = new FileReader();
@@ -50,12 +49,12 @@ const ImageCropperModal = ({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b">
+        <div className="flex items-center justify-between border-b pl-6">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition"
+              className="text-gray-400 hover:text-gray-600 transition !bg-transparent"
               disabled={isSaving}
               style={{
                 width: 'fit-content',
@@ -87,7 +86,7 @@ const ImageCropperModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3  border-t">
+        <div className="flex items-center justify-end gap-3 border-t pr-6">
           <button
             onClick={onClose}
             disabled={isSaving}
