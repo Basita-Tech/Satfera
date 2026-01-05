@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import ReactSelect from "react-select";
 import { getNames } from "country-list";
 import { allCountries } from "country-telephone-data";
@@ -16,6 +16,7 @@ import { Textarea } from "../../ui/textarea";
 import { Button } from "../../ui/button";
 import { ArrowLeft, Save } from "lucide-react";
 import usePhotoUpload from "../../../hooks/usePhotoUpload";
+import EditProfileCropperModal from "../../EditProfileCropperModal";
 import { getUserPersonal, getUserFamilyDetails, getEducationalDetails, getUserProfession, getUserExpectations, getUserPhotos, getUserHealth, updateUserPersonal, updateUserFamilyDetails, updateUserExpectations, updateUserHealth, updateEducationalDetails, saveEducationalDetails, saveUserProfession, updateUserProfession, saveUserHealth, saveUserFamilyDetails, saveUserExpectations } from "../../../api/auth";
 import toast from "react-hot-toast";
 const QUALIFICATION_LEVELS = ["Associates Degree", "Bachelors", "Diploma", "Doctorate", "High School", "Honours Degree", "Less Than High School", "Masters", "Trade School", "Undergraduate"];
@@ -69,6 +70,21 @@ export function EditProfile({
     uploadPhotos
   } = usePhotoUpload();
   const [activeTab, setActiveTab] = useState("personal");
+  
+
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState("");
+  const [currentCropPhotoIndex, setCurrentCropPhotoIndex] = useState(null);
+  
+ 
+  const PHOTO_DIMENSIONS = {
+    0: { w: 1080, h: 1350, ratio: 4/5, label: "Full Body Photo (1080x1350)" },   // personal
+    1: { w: 1600, h: 1200, ratio: 4/3, label: "Family Photo (1600x1200)" },     // family
+    2: { w: 600, h: 600, ratio: 1, label: "Close-up Portrait (600x600)" },      // closer
+    3: { w: 1200, h: 1200, ratio: 1, label: "Additional Photo 1 (1200x1200)" }, // other 1
+    4: { w: 1200, h: 1200, ratio: 1, label: "Additional Photo 2 (1200x1200)" }  // other 2
+  };
+  
   const [family, setFamily] = useState({
     fatherName: "",
     fatherProfession: "",
@@ -2555,6 +2571,25 @@ export function EditProfile({
             </p>}
         </div>
       </div>
+      
+      {/* Image Cropper Modal */}
+      <EditProfileCropperModal
+        isOpen={cropperOpen}
+        imageSrc={imageToCrop}
+        onClose={() => {
+          setCropperOpen(false);
+          setImageToCrop("");
+          setCurrentCropPhotoIndex(null);
+        }}
+        aspectRatio={
+          currentCropPhotoIndex !== null ? PHOTO_DIMENSIONS[currentCropPhotoIndex].ratio : undefined
+        }
+        title={
+          currentCropPhotoIndex !== null ? PHOTO_DIMENSIONS[currentCropPhotoIndex].label : "Crop Photo"
+        }
+        onSave={handleCropSave}
+        isUploading={uploadingPhotoIdx === currentCropPhotoIndex}
+      />
     </div>;
   const renderLifestyleDetails = () => <div className="space-y-6 px-4 md:px-6 py-2 md:py-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-6">
@@ -2719,12 +2754,67 @@ export function EditProfile({
     input.onchange = async e => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      setUploadingPhotoIdx(index);
-      const photoType = mapIndexToPhotoType(index);
-      await uploadToCloudinaryAndSave(file, photoType, index);
+      
+      // Validate file first
+      const { validateProfilePhoto } = await import("../../../utils/fileValidation");
+      const validation = await validateProfilePhoto(file);
+      if (!validation.valid) {
+        toast.error(validation.errors[0] || "File validation failed");
+        return;
+      }
+      
+      // Show cropper for image files
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setImageToCrop(ev.target.result);
+        setCurrentCropPhotoIndex(index);
+        setCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
     };
     input.click();
   }
+  
+  const handleCropSave = useCallback(async (croppedBase64) => {
+    if (currentCropPhotoIndex === null && currentCropPhotoIndex !== 0) return;
+
+    // Set loading state immediately
+    setUploadingPhotoIdx(currentCropPhotoIndex);
+    
+    try {
+      // Convert base64 to File
+      const response = await fetch(croppedBase64);
+      const blob = await response.blob();
+      
+      if (!blob) {
+        toast.error('Failed to process image');
+        setUploadingPhotoIdx(null);
+        return;
+      }
+      
+      // Get photo dimensions
+      const dims = PHOTO_DIMENSIONS[currentCropPhotoIndex];
+      const ext = 'jpg';
+      const filename = `photo_${currentCropPhotoIndex}.${ext}`;
+      
+      const croppedFile = new File([blob], filename, {
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+
+      const photoType = mapIndexToPhotoType(currentCropPhotoIndex);
+      await uploadToCloudinaryAndSave(croppedFile, photoType, currentCropPhotoIndex);
+      
+      // Close cropper after successful upload
+      setCropperOpen(false);
+      setImageToCrop("");
+      setCurrentCropPhotoIndex(null);
+    } catch (error) {
+      console.error('Crop save error:', error);
+      toast.error('Failed to upload photo. Please try again.');
+      setUploadingPhotoIdx(null);
+    }
+  }, [currentCropPhotoIndex, PHOTO_DIMENSIONS]);
   return <div className="p-3 sm:p-4 md:p-6 lg:p-10 max-w-5xl mx-auto">
       <div className="bg-white rounded-[16px] sm:rounded-[20px] md:rounded-[24px] shadow-md border border-[#e5e5e5] p-4 sm:p-5 md:p-6 lg:p-8">
         {}
@@ -2764,5 +2854,25 @@ export function EditProfile({
           </Button>
         </div>
       </div>
+      
+      {/* Image Cropper Modal */}
+      <EditProfileCropperModal
+        isOpen={cropperOpen}
+        imageSrc={imageToCrop}
+        onClose={() => {
+          // Prevent closing during upload
+          if (uploadingPhotoIdx !== null) {
+            toast.error('Please wait for upload to complete');
+            return;
+          }
+          setCropperOpen(false);
+          setImageToCrop("");
+          setCurrentCropPhotoIndex(null);
+        }}
+        onSave={handleCropSave}
+        aspectRatio={currentCropPhotoIndex !== null ? PHOTO_DIMENSIONS[currentCropPhotoIndex]?.ratio : 1}
+        title={currentCropPhotoIndex !== null ? PHOTO_DIMENSIONS[currentCropPhotoIndex]?.label : "Crop Image"}
+        isUploading={uploadingPhotoIdx !== null}
+      />
     </div>;
 }

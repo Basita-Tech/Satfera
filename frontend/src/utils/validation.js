@@ -207,22 +207,18 @@ export const validateSignupForm = formData => {
   }
   const dobError = validateDateOfBirth(formData.dobDay, formData.dobMonth, formData.dobYear, formData.gender);
   if (dobError) errors.dobDay = dobError;
-  if (formData.useAsUsername?.includes("email")) {
-    const emailError = validateEmail(formData.email);
-    if (emailError) errors.email = emailError;
-  } else if (formData.email) {
-    const emailError = validateEmail(formData.email);
-    if (emailError) errors.email = emailError;
-  }
-  if (formData.useAsUsername?.includes("mobile")) {
-    const countryCodeError = validateCountryCode(formData.countryCode);
-    if (countryCodeError) errors.mobile = countryCodeError;
-    const phoneError = validatePhone(formData.mobile, formData.countryCode);
-    if (phoneError) errors.mobile = phoneError;
-  } else if (formData.mobile) {
-    const phoneError = validatePhone(formData.mobile, formData.countryCode);
-    if (phoneError) errors.mobile = phoneError;
-  }
+  
+  // Always validate email
+  const emailError = validateEmail(formData.email);
+  if (emailError) errors.email = emailError;
+  
+  // Always validate mobile and country code
+  const countryCodeError = validateCountryCode(formData.countryCode);
+  if (countryCodeError) errors.mobile = countryCodeError;
+  
+  const phoneError = validatePhone(formData.mobile, formData.countryCode);
+  if (phoneError) errors.mobile = phoneError;
+  
   if (!formData.useAsUsername || formData.useAsUsername.length === 0) {
     errors.useAsUsername = "Select Email or Mobile as Username";
   }

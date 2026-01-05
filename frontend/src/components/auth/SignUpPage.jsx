@@ -119,6 +119,14 @@ const SignUpPage = () => {
       formattedValue = sanitizeEmail(value);
     } else if (name === "mobile") {
       formattedValue = sanitizePhone(value);
+      // Limit to 15 digits max (international standard)
+      const cleanValue = formattedValue.replace(/\D/g, "");
+      // For Indian numbers, limit to 10 digits
+      if (formData.countryCode === "+91" && cleanValue.length > 10) {
+        formattedValue = cleanValue.slice(0, 10);
+      } else if (cleanValue.length > 15) {
+        formattedValue = cleanValue.slice(0, 15);
+      }
     } else if (name === "countryCode") {
       formattedValue = sanitizeCountryCode(value);
     } else if (name === "password" || name === "confirmPassword") {
@@ -134,38 +142,30 @@ const SignUpPage = () => {
       ...prev,
       [name]: formattedValue
     }));
-    setErrors(prev => ({
-      ...prev,
-      [name]: ""
-    }));
+    
+    // Validate and set errors immediately
     if (["firstName", "lastName"].includes(name)) {
-      if (formattedValue.trim() && errors[name]) {
-        const error = validateName(formattedValue, name === "firstName" ? "First Name" : "Last Name");
-        if (error) {
-          setErrors(prev => ({
-            ...prev,
-            [name]: error
-          }));
-        }
-      }
+      const error = validateName(formattedValue, name === "firstName" ? "First Name" : "Last Name");
+      setErrors(prev => ({
+        ...prev,
+        [name]: error
+      }));
     }
-    if (name === "email" && formattedValue) {
+    
+    if (name === "email") {
       const emailError = validateEmail(formattedValue);
-      if (emailError) {
-        setErrors(prev => ({
-          ...prev,
-          email: emailError
-        }));
-      }
+      setErrors(prev => ({
+        ...prev,
+        email: emailError
+      }));
     }
-    if (name === "mobile" && formattedValue) {
+    
+    if (name === "mobile") {
       const phoneError = validatePhone(formattedValue, formData.countryCode);
-      if (phoneError) {
-        setErrors(prev => ({
-          ...prev,
-          mobile: phoneError
-        }));
-      }
+      setErrors(prev => ({
+        ...prev,
+        mobile: phoneError
+      }));
     }
     if (name === "password") {
       const strength = getPasswordStrength(formattedValue);
@@ -560,13 +560,7 @@ const SignUpPage = () => {
             <label className="block font-semibold mb-2 text-sm sm:text-base text-gray-700">
               Email <span className="text-red-500">*</span>
             </label>
-            <input type="email" name="email" placeholder="Enter Email Address" value={formData.email} onChange={e => {
-            handleInputChange(e);
-            setErrors(prev => ({
-              ...prev,
-              email: ""
-            }));
-          }} autoComplete="off" className={`w-full p-3 rounded-md border text-sm ${errors.email ? "border-red-500" : "border-[#E4C48A]"} focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`} />
+            <input type="email" name="email" placeholder="Enter Email Address" value={formData.email} onChange={handleInputChange} autoComplete="off" className={`w-full p-3 rounded-md border text-sm ${errors.email ? "border-red-500" : "border-[#E4C48A]"} focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`} />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
 
             <div className="mt-1">
@@ -602,13 +596,7 @@ const SignUpPage = () => {
               }} error={errors.mobile} countryCodes={countryCodes} />
               </div>
 
-              <input type="tel" name="mobile" placeholder="Enter Mobile Number" value={formData.mobile} onChange={e => {
-              handleInputChange(e);
-              setErrors(prev => ({
-                ...prev,
-                mobile: ""
-              }));
-            }} autoComplete="off" className={`w-full p-3 rounded-md border text-sm ${errors.mobile ? "border-red-500" : "border-[#E4C48A]"} focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`} />
+              <input type="tel" name="mobile" placeholder="Enter Mobile Number" value={formData.mobile} maxLength={15} onChange={handleInputChange} autoComplete="off" className={`w-full p-3 rounded-md border text-sm ${errors.mobile ? "border-red-500" : "border-[#E4C48A]"} focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`} />
             </div>
 
             {}
@@ -649,7 +637,7 @@ const SignUpPage = () => {
                     • At least one number
                   </p>
                   <p className={`${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
-                    • At least one special character
+                    • At least one special character (@$!%*?&)
                   </p>
                 </div>}
           </div>
