@@ -402,6 +402,13 @@ function PhotoSection({
   profile,
   onPhotoClick
 }) {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const totalPhotos = photos.length;
   const activePhoto = photos[activeIndex]?.url || profile?.closerPhoto?.url || "https://images.unsplash.com/photo-1554733998-0ddd4f28f5d0?w=800";
   return <div className="lg:col-span-1 space-y-4">
@@ -413,11 +420,21 @@ function PhotoSection({
           <button onClick={onToggleShortlist} className="absolute top-4 w-12 right-4 z-30 rounded-full flex items-center justify-center bg-transparent hover:scale-110 transition-transform active:scale-95 p-2 md:p-2 sm:p-3" aria-label={isShortlisted ? "Remove from shortlist" : "Add to shortlist"} title={isShortlisted ? "Remove from shortlist" : "Add to shortlist"}>
             {isShortlisted ? <Star size={24} className="text-[#DDB84E] fill-[#DDB84E] sm:size-[20px]" /> : <Star size={24} className="text-[#C8A227] sm:size-[20px]" />}
           </button>
-          <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={onPhotoClick}>
+          <div
+            className="relative cursor-pointer hover:opacity-90 transition-opacity md:h-[420px] lg:h-[430px]"
+            style={isMobile ? {
+            aspectRatio: photos[activeIndex]?.ratio || "4/5"
+          } : {}}
+            onClick={onPhotoClick}
+          >
             {totalPhotos > 0 && <span className="absolute z-30 bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
                 {activeIndex + 1}/{totalPhotos}
               </span>}
-            <img src={activePhoto} alt="Profile" className="w-full h-[360px] md:h-[420px] lg:h-[430px] object-cover rounded-2xl shadow-lg border border-gray-200" />
+            <img
+              src={activePhoto}
+              alt="Profile"
+              className="w-full h-full object-cover rounded-2xl shadow-lg border border-gray-200"
+            />
           </div>
         </div>
 
