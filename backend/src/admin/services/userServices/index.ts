@@ -972,7 +972,12 @@ export async function getReportsAndAnalyticsService() {
 export async function getAllRequestsService(
   page: number,
   limit: number,
-  filters?: { userId?: string; username?: string }
+  filters?: {
+    userId?: string;
+    username?: string;
+    femaleToMale?: boolean;
+    maleToFemale?: boolean;
+  }
 ) {
   const skip = (page - 1) * limit;
 
@@ -1048,8 +1053,6 @@ export async function getAllRequestsService(
       };
     }
 
-    const totalCount = await ConnectionRequest.countDocuments(matchQuery);
-
     const pipeline: any[] = [];
 
     if (Object.keys(matchQuery).length) {
@@ -1067,6 +1070,15 @@ export async function getAllRequestsService(
       },
       { $unwind: { path: "$senderUser", preserveNullAndEmptyArrays: true } },
       {
+        $match: {
+          "senderUser.gender": filters.femaleToMale
+            ? "female"
+            : filters.maleToFemale
+              ? "male"
+              : "female"
+        }
+      },
+      {
         $lookup: {
           from: "users",
           localField: "receiver",
@@ -1075,6 +1087,15 @@ export async function getAllRequestsService(
         }
       },
       { $unwind: { path: "$receiverUser", preserveNullAndEmptyArrays: true } },
+      {
+        $match: {
+          "receiverUser.gender": filters.femaleToMale
+            ? "male"
+            : filters.maleToFemale
+              ? "female"
+              : "male"
+        }
+      },
       {
         $lookup: {
           from: "profiles",
@@ -1127,25 +1148,27 @@ export async function getAllRequestsService(
       }
     );
 
-    pipeline.push(
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit }
-    );
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $sort: { createdAt: -1 } }, { $skip: skip }, { $limit: limit }]
+      }
+    });
 
     const requests = await ConnectionRequest.aggregate(pipeline);
+    const metadata = requests[0]?.metadata?.[0] || { total: 0 };
+    const total = metadata.total || 0;
 
     const requestsWithUserData = await Promise.all(
-      requests.map(async (request) => {
+      requests[0]?.data.map(async (request) => {
         const senderToReceiverResp: any = await computeMatchScore(
-          request.sender.userId,
-          request.receiver.userId
+          request.sender?.userId,
+          request.receiver?.userId
         );
         const senderToReceiverMatch =
           typeof senderToReceiverResp === "number"
             ? senderToReceiverResp
             : senderToReceiverResp?.score || 0;
-
         return {
           connectionId: request.connectionId
             ? String(request.connectionId)
@@ -1171,8 +1194,8 @@ export async function getAllRequestsService(
       })
     );
 
-    const totalPages = Math.ceil(totalCount / limit);
-    const hasMore = page * limit < totalCount;
+    const totalPages = Math.ceil(total / limit);
+    const hasMore = page * limit < total;
 
     return {
       success: true,
@@ -1180,7 +1203,7 @@ export async function getAllRequestsService(
       pagination: {
         page,
         limit,
-        total: totalCount,
+        total: total,
         totalPages,
         hasMore
       }
