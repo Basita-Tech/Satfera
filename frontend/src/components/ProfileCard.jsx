@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getViewProfiles } from "../api/auth";
 import toast from "react-hot-toast";
+
+const PROFILE_PHOTO_ASPECT_RATIO = 1/1;
 const isValidProfileId = id => {
   if (!id || typeof id !== 'string') return false;
   if (id === 'undefined' || id === 'null' || id.length < 10) return false;
@@ -38,7 +40,8 @@ export function ProfileCard({
   profile,
   onChat,
   onDownloadPDF,
-  isVerified: isVerifiedProp
+  isVerified: isVerifiedProp,
+  photoAspectRatio
 }) {
   const navigate = useNavigate();
   const [optimisticInCompare, setOptimisticInCompare] = React.useState(false);
@@ -347,9 +350,11 @@ export function ProfileCard({
   };
   return <div className="bg-white rounded-[20px] overflow-hidden shadow hover:shadow-lg transition-all duration-300 flex flex-col w-full max-w-[380px] mx-auto h-full" onMouseEnter={handleMouseEnter}>
       {}
-      <div className="relative w-full overflow-visible rounded-t-[20px]">
-        {image ? <div className="relative w-full h-[220px]">
-            <img src={image} alt={name} loading="lazy" decoding="async" className="w-full h-full object-cover object-center" onError={e => {
+      <div className="relative w-full overflow-visible rounded-t-[20px]" style={{
+      aspectRatio: photoAspectRatio || PROFILE_PHOTO_ASPECT_RATIO
+    }}>
+        {image ? <div className="relative w-full h-full">
+            <img src={image} alt={name} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover object-center rounded-t-[20px]" onError={e => {
           e.currentTarget.style.display = 'none';
           const fallback = e.currentTarget.nextElementSibling;
           if (fallback) fallback.style.display = 'flex';
@@ -357,7 +362,7 @@ export function ProfileCard({
             {}
             <div style={{
           display: 'none'
-        }} className="absolute inset-0 w-full h-[220px] bg-gradient-to-br from-[#fefdfb] via-[#f9f5ed] to-[#f5f0e3] flex items-center justify-center rounded-t-[20px] border-b-2 border-[#e6dec5]">
+        }} className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#fefdfb] via-[#f9f5ed] to-[#f5f0e3] flex items-center justify-center rounded-t-[20px] border-b-2 border-[#e6dec5]">
               <div className="text-center space-y-3">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white to-[#fef9f0] shadow-md flex items-center justify-center mx-auto border-4 border-[#e4c48a]/20">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#c8a227]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -367,7 +372,7 @@ export function ProfileCard({
                 <p className="text-sm text-gray-500 font-semibold">No Photo Available</p>
               </div>
             </div>
-          </div> : <div className="w-full h-[220px] bg-gradient-to-br from-[#fefdfb] via-[#f9f5ed] to-[#f5f0e3] flex items-center justify-center rounded-t-[20px] border-b-2 border-[#e6dec5]">
+          </div> : <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#fefdfb] via-[#f9f5ed] to-[#f5f0e3] flex items-center justify-center rounded-t-[20px] border-b-2 border-[#e6dec5]">
             <div className="text-center space-y-3">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white to-[#fef9f0] shadow-md flex items-center justify-center mx-auto border-4 border-[#e4c48a]/20">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#c8a227]" fill="none" viewBox="0 0 24 24" stroke="currentColor">

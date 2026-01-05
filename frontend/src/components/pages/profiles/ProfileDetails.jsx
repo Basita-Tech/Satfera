@@ -28,6 +28,7 @@ export function ProfileDetails({
   const [isBlockingInProgress, setIsBlockingInProgress] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [optimisticInCompare, setOptimisticInCompare] = useState(false);
+  const [fullscreenPhotoIndex, setFullscreenPhotoIndex] = useState(null);
   useEffect(() => {
     let isMounted = true;
     let retryCount = 0;
@@ -114,18 +115,32 @@ export function ProfileDetails({
     const arr = [];
     if (profile?.closerPhoto?.url) arr.push({
       url: profile.closerPhoto.url,
-      label: "Profile"
+      label: "Close-up Portrait",
+      ratio: 1 // 600x600
     });
+    if (Array.isArray(profile?.personalPhotos)) {
+      profile.personalPhotos.forEach(p => {
+        if (p?.url) arr.push({
+          url: p.url,
+          label: "Full Body",
+          ratio: 4 / 5, // 1080x1350
+          blurred: !!p?.isBlurred
+        });
+      });
+    }
     if (profile?.familyPhoto?.url) arr.push({
       url: profile.familyPhoto.url,
       label: "Family",
+      ratio: 4 / 3, // 1600x1200
       blurred: !!profile?.familyPhoto?.isBlurred
     });
     if (Array.isArray(profile?.otherPhotos)) {
       profile.otherPhotos.forEach(p => {
         if (p?.url) arr.push({
           url: p.url,
-          label: "Photo"
+          label: p.title || "Additional Photo",
+          ratio: 1, // 1200x1200
+          blurred: !!p?.isBlurred
         });
       });
     }
@@ -304,7 +319,7 @@ export function ProfileDetails({
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 lg:gap-8">
           {}
           <div className="w-full max-w-[320px]">
-            <PhotoSection photos={photos} activeIndex={activeIndex} setActiveIndex={setActiveIndex} matchText={matchText} isShortlisted={isShortlisted} onToggleShortlist={handleToggle} profile={profile} />
+            <PhotoSection photos={photos} activeIndex={activeIndex} setActiveIndex={setActiveIndex} matchText={matchText} isShortlisted={isShortlisted} onToggleShortlist={handleToggle} profile={profile} onPhotoClick={() => setFullscreenPhotoIndex(activeIndex)} />
           </div>
 
           {}
@@ -318,6 +333,62 @@ export function ProfileDetails({
             <ActionButtonsSection status={status} profileId={profileId} isSentRequest={isSentRequest} isUiInCompare={isUiInCompare} onSendRequest={onSendRequest} onWithdraw={onWithdraw} onAccept={onAccept} onReject={onReject} onAddClick={handleAddClick} onRemoveClick={handleRemoveClick} />
           </div>
         </div>
+
+      
+        {fullscreenPhotoIndex !== null && photos[fullscreenPhotoIndex] && (
+          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setFullscreenPhotoIndex(null)}>
+            <div className="relative flex items-center justify-center" onClick={e => e.stopPropagation()}>
+              {/* Close button */}
+              <button
+                onClick={() => setFullscreenPhotoIndex(null)}
+                className="absolute top-4 right-4 z-50 bg-white text-black rounded-full p-2 hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+       
+              <div
+                className="flex items-center justify-center max-w-2xl max-h-[70vh]"
+                style={{ aspectRatio: photos[fullscreenPhotoIndex]?.ratio || "4/5" }}
+              >
+                <img
+                  src={photos[fullscreenPhotoIndex]?.url}
+                  alt={photos[fullscreenPhotoIndex]?.label}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+           
+              {photos.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setFullscreenPhotoIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))}
+                    className="absolute -left-12 top-1/2 transform -translate-y-1/2 z-50 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setFullscreenPhotoIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))}
+                    className="absolute -right-12 top-1/2 transform -translate-y-1/2 z-50 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                
+                  <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs">
+                    {fullscreenPhotoIndex + 1} / {photos.length}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>;
 }
@@ -328,7 +399,8 @@ function PhotoSection({
   matchText,
   isShortlisted,
   onToggleShortlist,
-  profile
+  profile,
+  onPhotoClick
 }) {
   const totalPhotos = photos.length;
   const activePhoto = photos[activeIndex]?.url || profile?.closerPhoto?.url || "https://images.unsplash.com/photo-1554733998-0ddd4f28f5d0?w=800";
@@ -341,7 +413,7 @@ function PhotoSection({
           <button onClick={onToggleShortlist} className="absolute top-4 w-12 right-4 z-30 rounded-full flex items-center justify-center bg-transparent hover:scale-110 transition-transform active:scale-95 p-2 md:p-2 sm:p-3" aria-label={isShortlisted ? "Remove from shortlist" : "Add to shortlist"} title={isShortlisted ? "Remove from shortlist" : "Add to shortlist"}>
             {isShortlisted ? <Star size={24} className="text-[#DDB84E] fill-[#DDB84E] sm:size-[20px]" /> : <Star size={24} className="text-[#C8A227] sm:size-[20px]" />}
           </button>
-          <div className="relative">
+          <div className="relative cursor-pointer hover:opacity-90 transition-opacity" onClick={onPhotoClick}>
             {totalPhotos > 0 && <span className="absolute z-30 bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
                 {activeIndex + 1}/{totalPhotos}
               </span>}
