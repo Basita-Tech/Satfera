@@ -466,11 +466,7 @@ export class AuthController {
 
       const session = await SessionService.validateSession(String(userId), jti);
       if (!session) {
-        logger.warn("Unauthorized access", {
-          userId,
-          jti,
-          ip: req.ip
-        });
+        logger.warn(`Unauthorized access:  ${userId}, ${jti}, ip: ${req.ip}`);
         return res
           .status(401)
           .json({ success: false, message: "Not authenticated" });

@@ -304,8 +304,8 @@ export async function searchController(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      data: result.data,
-      pagination: result.pagination
+      data: result?.data,
+      pagination: result?.pagination
     });
   } catch (err: any) {
     console.error("searchController error:", err);

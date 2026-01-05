@@ -467,9 +467,10 @@ export async function findMatchingUsers(
   try {
     const seekerUser = await User.findById(
       seekerUserId,
-      "firstName lastName dateOfBirth gender blockedUsers"
+      "firstName lastName dateOfBirth gender blockedUsers isVisible"
     ).lean();
     if (!seekerUser) return [];
+    if (!seekerUser.isVisible) return [];
 
     const seekerExpectations = await UserExpectations.findOne({
       userId: seekerUserId

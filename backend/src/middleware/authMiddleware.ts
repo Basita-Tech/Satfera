@@ -7,6 +7,7 @@ import { getClientIp } from "../utils/ipUtils";
 import { SessionService } from "../services/sessionService";
 import { redisClient, safeRedisOperation } from "../lib/redis";
 import { Types } from "mongoose";
+import { clearAuthCookies } from "../utils/secureToken";
 
 const AUTH_CACHE_TTL = 300;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -72,10 +73,12 @@ export const authenticate = async (
     try {
       decoded = verifyToken(token);
     } catch (err: any) {
-      logger.warn("Auth failed: Invalid token", {
-        error: err.message,
-        ip: getClientIp(req)
-      });
+      logger.warn(
+        `Auth failed: Invalid token error: ${err.message}, ip: ${getClientIp(req)}`
+      );
+
+      clearAuthCookies(res);
+
       return res
         .status(401)
         .json({ success: false, message: "Invalid or expired token" });
