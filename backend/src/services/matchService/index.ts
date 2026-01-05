@@ -213,7 +213,6 @@ export class MatchService {
         const matchData = {
           score: scoreDetail.score,
           reasons: scoreDetail.reasons || [],
-          scoreBreakdown: scoreDetail,
           isVisible,
           hiddenReason,
           lastCalculatedAt: new Date()

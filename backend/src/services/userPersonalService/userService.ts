@@ -469,6 +469,8 @@ export async function searchService(
   let authUserHasHIV = false;
   const excludedUserIds: string[] = [];
 
+  const pipeline: any[] = [{ $match: match }];
+
   if (authUserId) {
     const [
       authUser,
@@ -530,11 +532,38 @@ export async function searchService(
 
   if (filters.name) {
     const nameRegex = new RegExp(escapeRegex(filters.name), "i");
-    match.$or = [
-      { firstName: { $regex: nameRegex } },
-      { lastName: { $regex: nameRegex } },
-      { middleName: { $regex: nameRegex } }
-    ];
+
+    const nameLower = filters.name.toLowerCase();
+
+    if (filters.name) {
+      pipeline.push({
+        $addFields: {
+          __fullNameLower: {
+            $toLower: {
+              $trim: {
+                input: {
+                  $concat: [
+                    { $ifNull: ["$firstName", ""] },
+                    " ",
+                    { $ifNull: ["$lastName", ""] }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      pipeline.push({
+        $match: {
+          $or: [
+            { firstName: { $regex: nameLower, $options: "i" } },
+            { lastName: { $regex: nameLower, $options: "i" } },
+            { __fullNameLower: { $regex: nameLower, $options: "i" } }
+          ]
+        }
+      });
+    }
   }
 
   if (filters.customId) {
@@ -579,8 +608,6 @@ export async function searchService(
     match._id = match._id || {};
     match._id.$ne = authObjId;
   }
-
-  const pipeline: any[] = [{ $match: match }];
 
   pipeline.push(
     {
