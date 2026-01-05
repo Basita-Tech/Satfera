@@ -18,6 +18,7 @@ import {
 } from "../../../../controllers";
 import userPersonalRouter from "./userPersonal";
 import * as userController from "../../../../controllers/userController";
+import { asyncHandler } from "../../../../utils/utils";
 
 const user = Router();
 
@@ -26,118 +27,159 @@ user.use("/user-personal", userPersonalRouter);
 user.get(
   "/user/profile",
   authenticate,
-  userController.getUserDashboardController
+  asyncHandler(userController.getUserDashboardController)
 );
 
 user.post(
   "/user/change-password",
   authenticate,
   changePasswordValidation,
-  userController.changeUserPassword
+  asyncHandler(userController.changeUserPassword)
 );
 
-user.get("/user/notifications", authenticate, getAllUserNotifications);
-user.get("/user/notifications/count", authenticate, getUnreadCount);
-user.patch("/user/notifications/:id/read", authenticate, markAsRead);
-user.patch("/user/notifications/mark-all-read", authenticate, markAllAsRead);
+user.get(
+  "/user/notifications",
+  authenticate,
+  asyncHandler(getAllUserNotifications)
+);
+user.get(
+  "/user/notifications/count",
+  authenticate,
+  asyncHandler(getUnreadCount)
+);
+user.patch(
+  "/user/notifications/:id/read",
+  authenticate,
+  asyncHandler(markAsRead)
+);
+user.patch(
+  "/user/notifications/mark-all-read",
+  authenticate,
+  asyncHandler(markAllAsRead)
+);
 
-user.get("/user/search", authenticate, searchGatewayLimiter, userController.searchController);
-user.post("/user/block", authenticate, userController.blockController);
-user.post("/user/unblock", authenticate, userController.unblockController);
-user.get("/user/blocked", authenticate, userController.listBlockedController);
+user.get(
+  "/user/search",
+  authenticate,
+  searchGatewayLimiter,
+  asyncHandler(userController.searchController)
+);
+user.post(
+  "/user/block",
+  authenticate,
+  asyncHandler(userController.blockController)
+);
+user.post(
+  "/user/unblock",
+  authenticate,
+  asyncHandler(userController.unblockController)
+);
+user.get(
+  "/user/blocked",
+  authenticate,
+  asyncHandler(userController.listBlockedController)
+);
 
 user.get(
   "/user/profile-views",
   authenticate,
-  userController.getUserProfileViewsController
+  asyncHandler(userController.getUserProfileViewsController)
 );
 
-user.post("/user/compare", authenticate, userController.addCompareController);
+user.post(
+  "/user/compare",
+  authenticate,
+  asyncHandler(userController.addCompareController)
+);
 
-user.get("/user/compare", authenticate, userController.getCompareController);
+user.get(
+  "/user/compare",
+  authenticate,
+  asyncHandler(userController.getCompareController)
+);
 
 user.delete(
   "/user/compare",
   authenticate,
-  userController.deleteCompareController
+  asyncHandler(userController.deleteCompareController)
 );
 
 user.post(
   "/user/account/deactivate",
   authenticate,
-  userController.deactivateAccountController
+  asyncHandler(userController.deactivateAccountController)
 );
 
 user.post(
   "/user/account/activate",
   authenticate,
-  userController.activateAccountController
+  asyncHandler(userController.activateAccountController)
 );
 
 user.get(
   "/user/account/status",
   authenticate,
-  userController.getAccountStatusController
+  asyncHandler(userController.getAccountStatusController)
 );
 
 user.delete(
   "/user/account",
   authenticate,
   deleteAccountValidation,
-  userController.deleteAccountController
+  asyncHandler(userController.deleteAccountController)
 );
 
 user.get(
   "/user/notification-settings",
   authenticate,
-  userController.getNotificationSettingsController
+  asyncHandler(userController.getNotificationSettingsController)
 );
 
 user.patch(
   "/user/notification-settings",
   authenticate,
   notificationSettingsValidation,
-  userController.updateNotificationSettingsController
+  asyncHandler(userController.updateNotificationSettingsController)
 );
 
 user.post(
   "/user/email/request-change",
   authenticate,
   requestEmailChangeValidation,
-  userController.requestEmailChangeController
+  asyncHandler(userController.requestEmailChangeController)
 );
 
 user.post(
   "/user/email/verify-change",
   authenticate,
   verifyEmailChangeValidation,
-  userController.verifyEmailChangeController
+  asyncHandler(userController.verifyEmailChangeController)
 );
 
 user.post(
   "/user/phone/request-change",
   authenticate,
   requestPhoneChangeValidation,
-  userController.requestPhoneChangeController
+  asyncHandler(userController.requestPhoneChangeController)
 );
 
 user.post(
   "/user/phone/verify-change",
   authenticate,
   verifyPhoneChangeValidation,
-  userController.verifyPhoneChangeController
+  asyncHandler(userController.verifyPhoneChangeController)
 );
 
 user.get(
   "/user/contact-info",
   authenticate,
-  userController.getUserContactInfoController
+  asyncHandler(userController.getUserContactInfoController)
 );
 
 user.get(
   "/user/download-pdf",
   authenticate,
-  userController.downloadMyPdfDataController
+  asyncHandler(userController.downloadMyPdfDataController)
 );
 
 export default user;

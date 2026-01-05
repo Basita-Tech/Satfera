@@ -1,28 +1,29 @@
 import { Router } from "express";
 import { SupportController } from "../../../../controllers/supportController";
 import { authenticate } from "../../../../middleware/authMiddleware";
+import { asyncHandler } from "../../../../utils/utils";
 
 const userSupportRouter = Router();
 
 userSupportRouter.post(
   "/tickets",
   authenticate,
-  SupportController.createTicket
+  asyncHandler(SupportController.createTicket)
 );
 userSupportRouter.get(
   "/tickets",
   authenticate,
-  SupportController.getUserTickets
+  asyncHandler(SupportController.getUserTickets)
 );
 userSupportRouter.get(
   "/tickets/:id",
   authenticate,
-  SupportController.getTicketDetails
+  asyncHandler(SupportController.getTicketDetails)
 );
 userSupportRouter.post(
   "/tickets/:id/messages",
   authenticate,
-  SupportController.addMessage
+  asyncHandler(SupportController.addMessage)
 );
 
 export default userSupportRouter;
