@@ -8,7 +8,7 @@ class commonService {
     try {
       const [userStats, profileStats, connectionStats] = await Promise.all([
         User.aggregate([
-          { $match: { role: "user", isDeleted: false } },
+          { $match: { role: "user" } },
           {
             $group: {
               _id: null,
@@ -170,7 +170,7 @@ export async function adminSearchService(filters: any = {}) {
   const accountTypeLower = normalizeAndEscape(filters.accountType);
   const religionLower = normalizeAndEscape(filters.religion);
   const professionLower = normalizeAndEscape(filters.profession);
-  
+
   const match: any = {
     isDeleted: false,
     role: "user"

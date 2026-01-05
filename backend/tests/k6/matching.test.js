@@ -32,10 +32,10 @@ export const options = {
     }
   },
   thresholds: {
-    matching_latency: ["p(95)<2000"],
+    matching_latency: ["p(95)<500"],
     connection_latency: ["p(95)<1000"],
     errors: ["rate<0.05"],
-    http_req_duration: ["p(99)<3000"]
+    http_req_duration: ["p(99)<1000"]
   }
 };
 

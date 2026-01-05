@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as connectionController from "../../../../controllers/userController/connectionController";
 import authenticate from "../../../../middleware/authMiddleware";
+import { asyncHandler } from "../../../../utils/utils";
 
 const requestRouter = Router();
 
@@ -9,66 +10,66 @@ requestRouter.get("/all", authenticate, connectionController.getSentRequests);
 requestRouter.get(
   "/all/received",
   authenticate,
-  connectionController.getReceivedRequests
+  asyncHandler(connectionController.getReceivedRequests)
 );
 
 requestRouter.post(
   "/send",
   authenticate,
-  connectionController.sendConnectionRequest
+  asyncHandler(connectionController.sendConnectionRequest)
 );
 requestRouter.post(
   "/accept",
   authenticate,
-  connectionController.acceptConnectionRequest
+  asyncHandler(connectionController.acceptConnectionRequest)
 );
 
 requestRouter.post(
   "/reject",
   authenticate,
-  connectionController.rejectConnectionRequest
+  asyncHandler(connectionController.rejectConnectionRequest)
 );
 
 requestRouter.post(
   "/accepted/reject",
   authenticate,
-  connectionController.rejectAcceptedConnection
+  asyncHandler(connectionController.rejectAcceptedConnection)
 );
 
 requestRouter.post(
   "/rejected/accept",
   authenticate,
-  connectionController.acceptRejectedConnection
+  asyncHandler(connectionController.acceptRejectedConnection)
 );
 
 requestRouter.get(
   "/approve",
   authenticate,
-  connectionController.getApprovedConnections
+  asyncHandler(connectionController.getApprovedConnections)
 );
 
 requestRouter.post(
   "/withdraw",
   authenticate,
-  connectionController.withdrawConnection
+  asyncHandler(connectionController.withdrawConnection)
 );
 
 requestRouter.get(
   "/favorites",
   authenticate,
-  connectionController.getFavorites
+  asyncHandler(connectionController.getFavorites)
 );
 
 requestRouter.post(
   "/favorites/add",
   authenticate,
-  connectionController.addToFavorites
+  asyncHandler(connectionController.addToFavorites)
 );
 
 requestRouter.post(
   "/favorites/remove",
   authenticate,
-  connectionController.removeFromFavorites
+  asyncHandler(connectionController.removeFromFavorites)
 );
 
 export default requestRouter;

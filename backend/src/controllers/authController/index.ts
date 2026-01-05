@@ -335,18 +335,14 @@ export class AuthController {
           );
         }
       } catch (authError: any) {
-        logger.warn("Login failed", {
-          email: email || phoneNumber,
-          ip: req.ip,
-          userAgent: req.get("user-agent"),
-          reason: authError.message
-        });
+        logger.warn(
+          `Login failed. Email/Phone: ${email || phoneNumber}, IP: ${req.ip}, User Agent: ${req.get("user-agent")}, Reason: ${authError.message}`
+        );
 
-        const sanitized = sanitizeError(authError);
         const statusCode = authError.status || 401;
         const responseBody: any = {
           success: false,
-          message: sanitized.message
+          message: authError.message
         };
 
         if (authError.reason) {
@@ -355,8 +351,6 @@ export class AuthController {
 
         return res.status(statusCode).json(responseBody);
       }
-
-      const identifier = email || phoneNumber!;
 
       const userObj = result.user.toObject
         ? result.user.toObject()
@@ -472,11 +466,7 @@ export class AuthController {
 
       const session = await SessionService.validateSession(String(userId), jti);
       if (!session) {
-        logger.warn("Unauthorized access", {
-          userId,
-          jti,
-          ip: req.ip
-        });
+        logger.warn(`Unauthorized access:  ${userId}, ${jti}, ip: ${req.ip}`);
         return res
           .status(401)
           .json({ success: false, message: "Not authenticated" });

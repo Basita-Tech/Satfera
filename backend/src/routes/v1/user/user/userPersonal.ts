@@ -8,6 +8,7 @@ import {
   createGovernmentIdUpload
 } from "../../../../lib/fileValidation/fileValidationMiddleware";
 import { photoUploadGatewayLimiter } from "../../../../middleware/redisRateLimiter";
+import { asyncHandler } from "../../../../utils/utils";
 
 const userPersonalRouter = Router();
 const profilePhotoUpload = createProfilePhotoUpload();
@@ -17,118 +18,118 @@ userPersonalRouter.post(
   "/",
   authenticate,
   validation.CreateUserPersonalValidation,
-  userPersonalController.createUserPersonalController
+  asyncHandler(userPersonalController.createUserPersonalController)
 );
 
 userPersonalRouter.get(
   "/",
   authenticate,
-  userPersonalController.getUserPersonalController
+  asyncHandler(userPersonalController.getUserPersonalController)
 );
 userPersonalRouter.put(
   "/",
   authenticate,
-  userPersonalController.updateUserPersonalController
+  asyncHandler(userPersonalController.updateUserPersonalController)
 );
 
 userPersonalRouter.post(
   "/family",
   authenticate,
-  userPersonalController.addUserFamilyDetails
+  asyncHandler(userPersonalController.addUserFamilyDetails)
 );
 userPersonalRouter.get(
   "/family",
   authenticate,
-  userPersonalController.getUserFamilyDetails
+  asyncHandler(userPersonalController.getUserFamilyDetails)
 );
 userPersonalRouter.put(
   "/family",
   authenticate,
-  userPersonalController.updateUserFamilyDetails
+  asyncHandler(userPersonalController.updateUserFamilyDetails)
 );
 
 userPersonalRouter.get(
   "/education",
   authenticate,
-  userPersonalController.getUserEducationDetails
+  asyncHandler(userPersonalController.getUserEducationDetails)
 );
 userPersonalRouter.post(
   "/education",
   authenticate,
-  userPersonalController.createUserEducationDetails
+  asyncHandler(userPersonalController.createUserEducationDetails)
 );
 userPersonalRouter.put(
   "/education",
   authenticate,
-  userPersonalController.updateUserEducationDetails
+  asyncHandler(userPersonalController.updateUserEducationDetails)
 );
 
 userPersonalRouter.get(
   "/health",
   authenticate,
-  userPersonalController.getUserHealthController
+  asyncHandler(userPersonalController.getUserHealthController)
 );
 
 userPersonalRouter.post(
   "/health",
   authenticate,
   validation.UserHealthValidation,
-  userPersonalController.addUserHealthController
+  asyncHandler(userPersonalController.addUserHealthController)
 );
 
 userPersonalRouter.put(
   "/health",
   authenticate,
   validation.UserHealthValidation,
-  userPersonalController.updateUserHealthController
+  asyncHandler(userPersonalController.updateUserHealthController)
 );
 
 userPersonalRouter.get(
   "/profession",
   authenticate,
-  userPersonalController.getUserProfessionController
+  asyncHandler(userPersonalController.getUserProfessionController)
 );
 userPersonalRouter.post(
   "/profession",
   authenticate,
   validation.UserProfessionValidation,
-  userPersonalController.addUserProfessionController
+  asyncHandler(userPersonalController.addUserProfessionController)
 );
 userPersonalRouter.put(
   "/profession",
   authenticate,
   validation.UserProfessionValidation,
-  userPersonalController.updateUserProfessionController
+  asyncHandler(userPersonalController.updateUserProfessionController)
 );
 
 userPersonalRouter.get(
   "/expectations",
   authenticate,
-  userPersonalController.getUserExpectationsById
+  asyncHandler(userPersonalController.getUserExpectationsById)
 );
 
 userPersonalRouter.post(
   "/expectations",
   authenticate,
   validation.validateUserExpectations,
-  userPersonalController.createUserExpectations
+  asyncHandler(userPersonalController.createUserExpectations)
 );
 
 userPersonalRouter.put(
   "/expectations/",
   authenticate,
-  userPersonalController.updateUserExpectations
+  asyncHandler(userPersonalController.updateUserExpectations)
 );
 
 userPersonalRouter.get(
   "/onboarding-status",
   authenticate,
-  userPersonalController.getUserOnboardingStatus
+  asyncHandler(userPersonalController.getUserOnboardingStatus)
 );
 userPersonalRouter.put(
   "/onboarding-status",
   authenticate,
-  userPersonalController.updateUserOnboardingStatus
+  asyncHandler(userPersonalController.updateUserOnboardingStatus)
 );
 
 userPersonalRouter.post(
@@ -136,25 +137,25 @@ userPersonalRouter.post(
   authenticate,
   photoUploadGatewayLimiter,
   profilePhotoUpload.single("file"),
-  uploadController.uploadPhotoController
+  asyncHandler(uploadController.uploadPhotoController)
 );
 userPersonalRouter.get(
   "/upload/photos",
   authenticate,
-  uploadController.getPhotosController
+  asyncHandler(uploadController.getPhotosController)
 );
 userPersonalRouter.put(
   "/upload/photos",
   authenticate,
   photoUploadGatewayLimiter,
   profilePhotoUpload.single("file"),
-  uploadController.updatePhotoController
+  asyncHandler(uploadController.updatePhotoController)
 );
 
 userPersonalRouter.delete(
   "/upload/photos",
   authenticate,
-  uploadController.deletePhotoController
+  asyncHandler(uploadController.deletePhotoController)
 );
 
 userPersonalRouter.post(
@@ -162,13 +163,13 @@ userPersonalRouter.post(
   authenticate,
   photoUploadGatewayLimiter,
   governmentIdUpload.single("file"),
-  uploadController.uploadGovernmentIdController
+  asyncHandler(uploadController.uploadGovernmentIdController)
 );
 
 userPersonalRouter.get(
   "/upload/government-id",
   authenticate,
-  uploadController.getGovernmentIdController
+  asyncHandler(uploadController.getGovernmentIdController)
 );
 
 userPersonalRouter.put(
@@ -176,18 +177,18 @@ userPersonalRouter.put(
   authenticate,
   photoUploadGatewayLimiter,
   governmentIdUpload.single("file"),
-  uploadController.updateGovernmentIdController
+  asyncHandler(uploadController.updateGovernmentIdController)
 );
 
 userPersonalRouter.get(
   "/review/status",
   authenticate,
-  userPersonalController.getProfileReviewStatusController
+  asyncHandler(userPersonalController.getProfileReviewStatusController)
 );
 userPersonalRouter.post(
   "/review/submit",
   authenticate,
-  userPersonalController.submitProfileForReviewController
+  asyncHandler(userPersonalController.submitProfileForReviewController)
 );
 
 export default userPersonalRouter;
