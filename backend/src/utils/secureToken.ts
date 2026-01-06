@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { CookieOptions, Response } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/common/logger";
 import { APP_CONFIG } from "./constants";
@@ -28,10 +28,10 @@ export function setSecureTokenCookie(
 ): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  const tokenCookieOptions = {
+  const tokenCookieOptions: CookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    sameSite: isProduction ? "strict" : "none",
     maxAge: options.maxAge || COOKIE_MAX_AGE,
     path: "/",
     ...(getCookieDomain() && { domain: getCookieDomain() })
@@ -40,13 +40,9 @@ export function setSecureTokenCookie(
   res.cookie("token", token, tokenCookieOptions);
 
   if (isProduction) {
-    logger.info("Cookie set in production:", {
-      domain: getCookieDomain(),
-      secure: tokenCookieOptions.secure,
-      sameSite: tokenCookieOptions.sameSite,
-      httpOnly: tokenCookieOptions.httpOnly,
-      maxAge: tokenCookieOptions.maxAge
-    });
+    logger.info(
+      `Cookie set in production: domain: ${getCookieDomain()}, secure: ${tokenCookieOptions.secure}, sameSite: ${tokenCookieOptions.sameSite}, httpOnly: ${tokenCookieOptions.httpOnly}, maxAge: ${tokenCookieOptions.maxAge}`
+    );
   }
 }
 
@@ -63,10 +59,10 @@ export function generateCSRFToken(): string {
 export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  const csrfCookieOptions = {
+  const csrfCookieOptions: CookieOptions = {
     httpOnly: false,
     secure: isProduction,
-    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    sameSite: isProduction ? "strict" : "none",
     maxAge: COOKIE_MAX_AGE,
     path: "/",
     ...(getCookieDomain() && { domain: getCookieDomain() })
@@ -75,7 +71,7 @@ export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
   res.cookie("csrf_token", csrfToken, csrfCookieOptions);
 
   if (!isProduction) {
-    logger.info("CSRF cookie set (dev):", csrfCookieOptions);
+    logger.info(`CSRF cookie set (dev): ${csrfCookieOptions}`);
   }
 }
 
@@ -85,9 +81,9 @@ export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
 export function clearAuthCookies(res: Response): void {
   const isProduction = process.env.NODE_ENV === "production";
 
-  const clearOptions = {
+  const clearOptions: CookieOptions = {
     secure: isProduction,
-    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    sameSite: isProduction ? "strict" : "none",
     path: "/",
     ...(getCookieDomain() && { domain: getCookieDomain() })
   };
