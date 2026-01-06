@@ -467,9 +467,10 @@ export async function findMatchingUsers(
   try {
     const seekerUser = await User.findById(
       seekerUserId,
-      "firstName lastName dateOfBirth gender blockedUsers"
+      "firstName lastName dateOfBirth gender blockedUsers isVisible"
     ).lean();
     if (!seekerUser) return [];
+    if (!seekerUser.isVisible) return [];
 
     const seekerExpectations = await UserExpectations.findOne({
       userId: seekerUserId
@@ -916,6 +917,7 @@ export async function getDetailedProfile(
     return {
       ...detailedProfile,
       closerPhoto: filteredPhotos?.closerPhoto ?? null,
+      personalPhoto: filteredPhotos?.closerPhoto ?? null,
       familyPhoto: filteredPhotos?.familyPhoto ?? null,
       otherPhotos: Array.isArray(filteredPhotos?.otherPhotos)
         ? filteredPhotos!.otherPhotos.slice(0, 2)

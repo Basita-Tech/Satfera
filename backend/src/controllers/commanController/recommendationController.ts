@@ -52,24 +52,27 @@ export const getRecommendations = async (req: Request, res: Response) => {
       (r: any) => new mongoose.Types.ObjectId(r.user.userId)
     );
 
-    const [users, personals, profiles, professions, authUserProfile] = await Promise.all([
-      User.find(
-        { _id: { $in: candidateIds } },
-        "firstName lastName dateOfBirth createdAt"
-      ).lean(),
-      UserPersonal.find({ userId: { $in: candidateIds } })
-        .select(
-          "userId full_address.city full_address.state residingCountry religion subCaste"
-        )
-        .lean(),
-      Profile.find({ userId: { $in: candidateIds } })
-        .select("userId favoriteProfiles photos.closerPhoto.url")
-        .lean(),
-      UserProfession.find({ userId: { $in: candidateIds } })
-        .select("userId Occupation")
-        .lean(),
-      Profile.findOne({ userId: userObjectId }).select("favoriteProfiles").lean()
-    ]);
+    const [users, personals, profiles, professions, authUserProfile] =
+      await Promise.all([
+        User.find(
+          { _id: { $in: candidateIds } },
+          "firstName lastName dateOfBirth createdAt"
+        ).lean(),
+        UserPersonal.find({ userId: { $in: candidateIds } })
+          .select(
+            "userId full_address.city full_address.state residingCountry religion subCaste"
+          )
+          .lean(),
+        Profile.find({ userId: { $in: candidateIds } })
+          .select("userId favoriteProfiles photos.closerPhoto.url")
+          .lean(),
+        UserProfession.find({ userId: { $in: candidateIds } })
+          .select("userId Occupation")
+          .lean(),
+        Profile.findOne({ userId: userObjectId })
+          .select("favoriteProfiles")
+          .lean()
+      ]);
 
     const favoriteSet = new Set(
       ((authUserProfile as any)?.favoriteProfiles || []).map((id: any) =>
@@ -107,7 +110,6 @@ export const getRecommendations = async (req: Request, res: Response) => {
           null,
           favoriteSet.has(candidateId)
         );
-
       })
     );
 
@@ -317,13 +319,13 @@ export const getAllProfiles = async (req: Request, res: Response) => {
         authUserSentRequests,
         authUserReceivedRequests
       ] = await Promise.all([
-        User.findById(authObjId, "gender blockedUsers").lean(),
+        User.findById(authObjId, "gender blockedUsers isVisible").lean(),
         UserHealth.findOne({ userId: authObjId }, "isHaveHIV").lean(),
         Profile.findOne({ userId: authObjId }, "favoriteProfiles").lean(),
         ConnectionRequest.find({ sender: authObjId }).lean(),
         ConnectionRequest.find({ receiver: authObjId }).lean()
       ]);
-
+      if (!authUser.isVisible) return [];
       if (authUser) {
         const blockedByMe = (authUser as any).blockedUsers || [];
         excludedUserIds.push(...blockedByMe);

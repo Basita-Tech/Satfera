@@ -5,7 +5,6 @@ export interface IMatch extends Document {
   candidateId: mongoose.Types.ObjectId;
   score: number;
   reasons: string[];
-  scoreBreakdown?: Record<string, number>;
   isVisible: boolean;
   hiddenReason: "request" | "favorite" | null;
   lastCalculatedAt: Date;
@@ -35,7 +34,6 @@ const MatchSchema = new Schema<IMatch>(
       index: true
     },
     reasons: [{ type: String }],
-    scoreBreakdown: { type: Schema.Types.Mixed },
     isVisible: {
       type: Boolean,
       default: true,

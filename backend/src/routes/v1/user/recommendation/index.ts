@@ -1,6 +1,7 @@
 import express from "express";
 import * as recommendationController from "../../../../controllers";
 import authenticate from "../../../../middleware/authMiddleware";
+import { asyncHandler } from "../../../../utils/utils";
 
 const recommendationRouter = express.Router();
 
@@ -13,18 +14,18 @@ const recommendationRouter = express.Router();
 recommendationRouter.get(
   "/matches",
   authenticate,
-  recommendationController.getMatches
+  asyncHandler(recommendationController.getMatches)
 );
 recommendationRouter.get(
   "/profile/:candidateId",
   authenticate,
-  recommendationController.getProfile
+  asyncHandler(recommendationController.getProfile)
 );
 
 recommendationRouter.get(
   "/profiles",
   authenticate,
-  recommendationController.getAllProfiles
+  asyncHandler(recommendationController.getAllProfiles)
 );
 
 export default recommendationRouter;

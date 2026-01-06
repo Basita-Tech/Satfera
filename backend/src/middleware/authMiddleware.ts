@@ -7,6 +7,7 @@ import { getClientIp } from "../utils/ipUtils";
 import { SessionService } from "../services/sessionService";
 import { redisClient, safeRedisOperation } from "../lib/redis";
 import { Types } from "mongoose";
+import { clearAuthCookies } from "../utils/secureToken";
 
 const AUTH_CACHE_TTL = 300;
 const JWT_SECRET = process.env.JWT_SECRET;
