@@ -7,7 +7,7 @@ const COOKIE_MAX_AGE = APP_CONFIG.COOKIE_MAX_AGE;
 
 export interface SecureCookieOptions {
   maxAge?: number;
-  sameSite?: "strict" | "lax" | "none";
+  sameSite?: "strict" | "lax" | "lax";
 }
 
 function getCookieDomain() {
@@ -31,7 +31,7 @@ export function setSecureTokenCookie(
   const tokenCookieOptions: CookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "strict" : "none",
+    sameSite: isProduction ? "strict" : "lax",
     maxAge: options.maxAge || COOKIE_MAX_AGE,
     path: "/",
     ...(getCookieDomain() && { domain: getCookieDomain() })
@@ -62,7 +62,7 @@ export function setCSRFTokenCookie(res: Response, csrfToken: string): void {
   const csrfCookieOptions: CookieOptions = {
     httpOnly: false,
     secure: isProduction,
-    sameSite: isProduction ? "strict" : "none",
+    sameSite: isProduction ? "strict" : "lax",
     maxAge: COOKIE_MAX_AGE,
     path: "/",
     ...(getCookieDomain() && { domain: getCookieDomain() })
@@ -83,7 +83,7 @@ export function clearAuthCookies(res: Response): void {
 
   const clearOptions: CookieOptions = {
     secure: isProduction,
-    sameSite: isProduction ? "strict" : "none",
+    sameSite: isProduction ? "strict" : "lax",
     path: "/",
     ...(getCookieDomain() && { domain: getCookieDomain() })
   };

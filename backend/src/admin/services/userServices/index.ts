@@ -1071,15 +1071,15 @@ export async function getAllRequestsService(
         }
       },
       { $unwind: { path: "$senderUser", preserveNullAndEmptyArrays: true } },
-      {
-        $match: {
-          "senderUser.gender": filters.femaleToMale
-            ? "female"
-            : filters.maleToFemale
-              ? "male"
-              : "female"
-        }
-      },
+      ...(filters.femaleToMale || filters.maleToFemale
+        ? [
+            {
+              $match: {
+                "senderUser.gender": filters.femaleToMale ? "female" : "male"
+              }
+            }
+          ]
+        : []),
       {
         $lookup: {
           from: "users",
@@ -1089,15 +1089,19 @@ export async function getAllRequestsService(
         }
       },
       { $unwind: { path: "$receiverUser", preserveNullAndEmptyArrays: true } },
-      {
-        $match: {
-          "receiverUser.gender": filters.femaleToMale
-            ? "male"
-            : filters.maleToFemale
-              ? "female"
-              : "male"
-        }
-      },
+      ...(filters.femaleToMale || filters.maleToFemale
+        ? [
+            {
+              $match: {
+                "receiverUser.gender": filters.femaleToMale
+                  ? "male"
+                  : filters.maleToFemale
+                    ? "female"
+                    : "male"
+              }
+            }
+          ]
+        : []),
       {
         $lookup: {
           from: "profiles",

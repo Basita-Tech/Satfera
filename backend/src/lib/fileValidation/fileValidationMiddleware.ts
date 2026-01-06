@@ -28,6 +28,7 @@ interface FileValidationOptions {
 function isValidFileSignature(buffer: Buffer, mimeType: string): boolean {
   const signatures: { [key: string]: number[] } = {
     "image/jpeg": [0xff, 0xd8, 0xff],
+    "image/jpg": [0xff, 0xd8, 0xff],
     "image/png": [0x89, 0x50, 0x4e, 0x47],
     "image/webp": [0x52, 0x49, 0x46, 0x46],
     "application/pdf": [0x25, 0x50, 0x44, 0x46]
@@ -49,28 +50,18 @@ function isValidFileSignature(buffer: Buffer, mimeType: string): boolean {
  */
 function detectPolyglotAttack(buffer: Buffer): boolean {
   // Only check ASCII portions to avoid false positives in binary image data
-  const ascii = buffer.toString("ascii", 0, Math.min(buffer.length, 1024));
+  const content = buffer.toString("utf-8", 0, Math.min(1000, buffer.length));
 
   const suspiciousPatterns = [
-    "<?php",
-    "<%",
-    "<script",
-    "onclick=",
-    "onerror=",
-    "eval(",
-    "exec(",
-    "system(",
-    "shell_exec(",
-    "passthru("
+    /require\s*\(/,
+    /eval\s*\(/,
+    /Function\s*\(/,
+    /child_process/,
+    /fs\.writeFile/,
+    /process\.exit/
   ];
 
-  for (const pattern of suspiciousPatterns) {
-    if (ascii.includes(pattern)) {
-      return true;
-    }
-  }
-
-  return false;
+  return suspiciousPatterns.some((pattern) => pattern.test(content));
 }
 
 /**
