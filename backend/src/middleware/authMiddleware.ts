@@ -72,10 +72,10 @@ export const authenticate = async (
     try {
       decoded = verifyToken(token);
     } catch (err: any) {
-      logger.warn("Auth failed: Invalid token", {
-        error: err.message,
-        ip: getClientIp(req)
-      });
+      logger.warn(
+        `Auth failed: Invalid token error: ${err.message}, ip: ${getClientIp(req)}`
+      );
+
       return res
         .status(401)
         .json({ success: false, message: "Invalid or expired token" });
