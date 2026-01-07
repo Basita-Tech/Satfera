@@ -217,7 +217,7 @@ export async function adminSearchService(filters: any = {}) {
       now.getDate() + 1
     );
     const fromDate = new Date(
-      now.getFullYear() - ageTo - 1,
+      now.getFullYear() - ageTo,
       now.getMonth(),
       now.getDate() + 1
     );
