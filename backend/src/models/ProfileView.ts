@@ -13,14 +13,12 @@ const ProfileViewSchema = new mongoose.Schema(
     viewer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
-      index: true
+      required: true
     },
     candidate: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
-      index: true
+      required: true
     },
     viewedAt: { type: Date, default: Date.now },
     weekStartDate: {

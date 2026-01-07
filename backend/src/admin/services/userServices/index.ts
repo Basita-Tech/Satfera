@@ -1018,7 +1018,8 @@ export async function getAllRequestsService(
         {
           $or: [
             { firstName: new RegExp(raw, "i") },
-            { lastName: new RegExp(raw, "i") }
+            { lastName: new RegExp(raw, "i") },
+            { __fullNameLower: { $regex: new RegExp(raw, "i") } }
           ]
         },
         { _id: 1 }
