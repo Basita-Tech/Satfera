@@ -352,13 +352,14 @@ export async function getAllRequestsController(req: Request, res: Response) {
   const username = (req.query.username as string) || undefined;
   const maleToFemale = Boolean(req.query.maleToFemale);
   const femaleToMale = Boolean(req.query.femaleToMale);
-
+  const status = req.query.status;
   try {
     const result = await adminService.getAllRequestsService(page, limit, {
       userId,
       username,
       maleToFemale,
-      femaleToMale
+      femaleToMale,
+      status
     });
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error: any) {

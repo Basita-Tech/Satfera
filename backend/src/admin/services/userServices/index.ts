@@ -979,16 +979,17 @@ export async function getAllRequestsService(
     username?: string;
     femaleToMale?: boolean;
     maleToFemale?: boolean;
+    status?: any;
   }
 ) {
   const skip = (page - 1) * limit;
 
   try {
-    let matchQuery: any = {};
+    const criteria = [];
 
     if (filters?.userId) {
       const raw = (filters.userId || "").toString().trim();
-      let userObjId: any = null;
+      let userObjId = null;
 
       if (Types.ObjectId.isValid(raw)) {
         const found = await User.findById(raw).select("_id").lean();
@@ -1002,58 +1003,46 @@ export async function getAllRequestsService(
         if (foundByCustom) userObjId = foundByCustom._id;
       }
 
-      if (!userObjId) {
-        return {
-          success: false,
-          message: "User not found for provided userId/customId"
-        };
+      if (userObjId) {
+        criteria.push({
+          $or: [{ sender: userObjId }, { receiver: userObjId }]
+        });
+      } else {
+        return { success: false, message: "User not found" };
       }
-
-      matchQuery = { $or: [{ sender: userObjId }, { receiver: userObjId }] };
-    } else if (filters?.username) {
-      const raw = filters.username.trim();
-      const parts = raw.split(/\s+/);
-      let matchedUsers: any[] = [];
-
-      if (parts.length >= 2) {
-        const firstRegex = new RegExp(`^${escapeRegExp(parts[0])}$`, "i");
-        const lastRegex = new RegExp(
-          `^${escapeRegExp(parts.slice(1).join(" "))}$`,
-          "i"
-        );
-        matchedUsers = await User.find(
-          { firstName: firstRegex, lastName: lastRegex },
-          { _id: 1 }
-        ).lean();
-      }
-
-      if (!matchedUsers.length) {
-        const nameRegex = new RegExp(escapeRegExp(raw), "i");
-        matchedUsers = await User.find(
-          { $or: [{ firstName: nameRegex }, { lastName: nameRegex }] },
-          { _id: 1 }
-        ).lean();
-      }
-
-      const ids = (matchedUsers || []).map((u: any) => u._id);
-      if (!ids.length) {
-        return {
-          success: true,
-          data: [],
-          pagination: {
-            page,
-            limit,
-            total: 0,
-            totalPages: 0,
-            hasMore: false
-          }
-        };
-      }
-
-      matchQuery = {
-        $or: [{ sender: { $in: ids } }, { receiver: { $in: ids } }]
-      };
     }
+
+    if (filters?.username) {
+      const raw = filters.username.trim();
+      const matchedUsers = await User.find(
+        {
+          $or: [
+            { firstName: new RegExp(raw, "i") },
+            { lastName: new RegExp(raw, "i") }
+          ]
+        },
+        { _id: 1 }
+      ).lean();
+
+      const ids = matchedUsers.map((u) => u._id);
+      if (ids.length > 0) {
+        criteria.push({
+          $or: [{ sender: { $in: ids } }, { receiver: { $in: ids } }]
+        });
+      } else {
+        return { success: true, data: [], total: 0 };
+      }
+    }
+
+    if (filters?.status) {
+      const statusArray = filters.status
+        .toString()
+        .split(",")
+        .map((s) => s.trim());
+      criteria.push({ status: { $in: statusArray } });
+    }
+
+    const matchQuery = criteria.length > 0 ? { $and: criteria } : {};
 
     const pipeline: any[] = [];
 
