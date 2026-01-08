@@ -297,7 +297,7 @@ const FamilyDetails = ({
           {}
           <div className="space-y-4">
             <h4 className="text-lg font-semibold text-gray-800 mb-2">
-              Grandparents
+              Grandfather
             </h4>
             {[{
             label: "Paternal Grandfather Name",
@@ -316,7 +316,7 @@ const FamilyDetails = ({
             key: "naniName",
             placeholder: "e.g., Sushma Devi"
           }, {
-            label: "Maternal Grandparents' Native Place",
+            label: "Maternal Grandfather's Native Place",
             key: "nanaNativePlace",
             placeholder: "e.g., Jaipur, Rajasthan"
           }].map(({

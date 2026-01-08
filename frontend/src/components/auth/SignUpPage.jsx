@@ -119,9 +119,9 @@ const SignUpPage = () => {
       formattedValue = sanitizeEmail(value);
     } else if (name === "mobile") {
       formattedValue = sanitizePhone(value);
-      // Limit to 15 digits max (international standard)
+  
       const cleanValue = formattedValue.replace(/\D/g, "");
-      // For Indian numbers, limit to 10 digits
+   
       if (formData.countryCode === "+91" && cleanValue.length > 10) {
         formattedValue = cleanValue.slice(0, 10);
       } else if (cleanValue.length > 15) {
@@ -143,7 +143,7 @@ const SignUpPage = () => {
       [name]: formattedValue
     }));
     
-    // Validate and set errors immediately
+
     if (["firstName", "lastName"].includes(name)) {
       const error = validateName(formattedValue, name === "firstName" ? "First Name" : "Last Name");
       setErrors(prev => ({
@@ -174,7 +174,7 @@ const SignUpPage = () => {
         upper: /[A-Z]/.test(formattedValue),
         lower: /[a-z]/.test(formattedValue),
         number: /\d/.test(formattedValue),
-        special: /[@$!%*?&]/.test(formattedValue)
+        special: /[@$!%*?&#_]/.test(formattedValue)
       });
     }
     if (["dobDay", "dobMonth", "dobYear"].includes(name)) {
@@ -219,8 +219,6 @@ const SignUpPage = () => {
       delete updated.profileFor;
       if (autoGender) {
         delete updated.gender;
-      } else if (sanitizedValue === "myself" || sanitizedValue === "friend") {
-        updated.gender = "Please select gender";
       } else {
         delete updated.gender;
       }
@@ -253,20 +251,14 @@ const SignUpPage = () => {
     }));
   };
   const handleGenderBlur = () => {
-    if ((formData.profileFor === "myself" || formData.profileFor === "friend") && !formData.gender) {
-      setErrors(prev => ({
-        ...prev,
-        gender: "Please select gender"
-      }));
-    } else {
-      setErrors(prev => {
-        const newErr = {
-          ...prev
-        };
-        delete newErr.gender;
-        return newErr;
-      });
-    }
+    // Gender is optional, so no error should be set on blur
+    setErrors(prev => {
+      const newErr = {
+        ...prev
+      };
+      delete newErr.gender;
+      return newErr;
+    });
   };
   const handleNameBlur = fieldName => {
     const fieldLabel = fieldName === "firstName" ? "First Name" : fieldName === "lastName" ? "Last Name" : "Middle Name";
@@ -614,16 +606,21 @@ const SignUpPage = () => {
           </div>
 
           {}
-          <div className="relative">
-            <input type={showPassword ? "text" : "password"} name="password" placeholder="Password" value={formData.password} onChange={handleInputChange} autoComplete="new-password" className={`w-full p-3 pr-12 rounded-md border text-sm ${errors.password ? "border-red-500" : "border-[#E4C48A]"} 
+          <div>
+            <label className="block font-semibold mb-2 text-sm sm:text-base text-gray-700">
+              Password <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} name="password" placeholder="Password" value={formData.password} onChange={handleInputChange} autoComplete="new-password" className={`w-full p-3 pr-12 rounded-md border text-sm ${errors.password ? "border-red-500" : "border-[#E4C48A]"} 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`} />
-            <span className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 cursor-pointer h-5 w-5" onClick={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </span>
+              <span className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </span>
+            </div>
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
 
             {}
-            {formData.password && !(formData.password.length >= 6 && /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password) && /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) && <div className="mt-2 text-xs sm:text-sm space-y-1">
+            {formData.password && !(formData.password.length >= 6 && /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password) && /[@$!%*?&#_]/.test(formData.password)) && <div className="mt-2 text-xs sm:text-sm space-y-1">
                   <p className={`${formData.password.length >= 6 ? "text-green-500" : "text-gray-500"}`}>
                     • Minimum 6 characters
                   </p>
@@ -636,19 +633,24 @@ const SignUpPage = () => {
                   <p className={`${/[0-9]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
                     • At least one number
                   </p>
-                  <p className={`${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
-                    • At least one special character (@$!%*?&)
+                  <p className={`${/[@$!%*?&#_]/.test(formData.password) ? "text-green-500" : "text-gray-500"}`}>
+                    • At least one special character (@$!%*?&#_)
                   </p>
                 </div>}
           </div>
 
           {}
-          <div className="relative">
-            <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleInputChange} autoComplete="new-password" className={`w-full p-3 pr-12 rounded-md border text-sm ${errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"} 
+          <div>
+            <label className="block font-semibold mb-2 text-sm sm:text-base text-gray-700">
+              Confirm Password <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleInputChange} autoComplete="new-password" className={`w-full p-3 pr-12 rounded-md border text-sm ${errors.confirmPassword ? "border-red-500" : "border-[#E4C48A]"} 
     focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition`} />
-            <span className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center text-gray-500 cursor-pointer h-5 w-5" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-              {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </span>
+              <span className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </span>
+            </div>
             {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">
                 {errors.confirmPassword}
               </p>}

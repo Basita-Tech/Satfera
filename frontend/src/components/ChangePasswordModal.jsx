@@ -92,9 +92,9 @@ export function ChangePasswordModal({
     }));
   };
   return <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showClose={false} className="sm:max-w-md max-w-[80vw] rounded-[22px] sm:rounded-[22px] p-0 sm:max-h-[80vh] max-h-[70vh] sm:my-12 my-10 sm:mx-4 mx-6 overflow-y-auto bg-white gap-0 shadow-2xl border border-border-subtle overscroll-contain">
+      <DialogContent showClose={false} className="sm:max-w-[420px] max-w-[90vw] rounded-[20px] p-0 sm:max-h-[80vh] max-h-[80vh] mx-auto overflow-y-auto bg-white gap-0 shadow-2xl border-2 border-border-subtle overscroll-contain">
         {}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-6 sm:px-8 py-5 sm:py-6 text-center text-white relative overflow-hidden rounded-t-[22px] border-b border-gold/20">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 pl-4 pr-4 sm:pl-5 sm:pr-5 py-5 sm:py-6 text-center text-white relative overflow-hidden rounded-t-[18px] border-b border-gold/20">
           <DialogClose className="absolute left-3 top-3 z-50 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
             <span className="sr-only">Close</span>
             <span className="text-lg leading-none">×</span>
@@ -117,7 +117,7 @@ export function ChangePasswordModal({
         </div>
 
         {}
-        <form onSubmit={handleSubmit} className="px-6 sm:px-8 py-5 sm:py-6 space-y-5 pb-[env(safe-area-inset-bottom)]">
+        <form onSubmit={handleSubmit} className="pl-4 pr-4 sm:pl-6 sm:pr-6 pt-6 sm:pt-8 pb-6 space-y-5 pb-[env(safe-area-inset-bottom)] bg-white">
           {}
           <div className="space-y-2">
             <Label htmlFor="oldPassword" className="text-sm font-medium">

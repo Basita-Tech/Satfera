@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getViewProfiles, addToCompare as apiAddToCompare, blockUserProfile, unblockUserProfile } from "../../../api/auth";
-import { Clock, MapPin, Ruler, Weight, User, Heart, GraduationCap, MessageCircle, Briefcase, Calendar, ChevronLeft, Star } from "lucide-react";
+import { Clock, MapPin, Ruler, Weight, User, Heart, GraduationCap, MessageCircle, Briefcase, Calendar, ChevronLeft, Star, Mail, Phone } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import toast from "react-hot-toast";
 export function ProfileDetails({
@@ -118,6 +118,14 @@ export function ProfileDetails({
       label: "Close-up Portrait",
       ratio: 1 // 600x600
     });
+    if (profile?.personalPhoto?.url) {
+      arr.push({
+        url: profile.personalPhoto.url,
+        label: "Full Body",
+        ratio: 4 / 5, // 1080x1350
+        blurred: !!profile?.personalPhoto?.isBlurred
+      });
+    }
     if (Array.isArray(profile?.personalPhotos)) {
       profile.personalPhotos.forEach(p => {
         if (p?.url) arr.push({
@@ -474,11 +482,11 @@ function HeaderSection({
         </p>
         {(profile?.email || profile?.phoneNumber) && <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-1">
             {profile?.email && <div className="flex items-center gap-1">
-                <MessageCircle size={14} />
+                <Mail size={14} className="text-[#C8A227]" />
                 {profile.email}
               </div>}
             {profile?.phoneNumber && <div className="flex items-center gap-1">
-                <span>📱</span>
+                <Phone size={14} className="text-[#C8A227]" />
                 {profile.phoneNumber}
               </div>}
           </div>}

@@ -396,7 +396,7 @@ export default function NewProfiles({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-700">
-                Weight (kg)
+                Height
               </Label>
               <span className="text-sm text-gray-600">
                 {pendingFilters.weightRange[0]} -{" "}

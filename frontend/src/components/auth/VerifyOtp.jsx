@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { verifyEmailOtp, sendEmailOtp } from "../../api/auth";
 import toast from "react-hot-toast";
@@ -24,6 +24,7 @@ const VerifyOTP = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const otpRefs = useRef([]); 
   useEffect(() => {
     const lockData = JSON.parse(localStorage.getItem("otpLock")) || {};
     const now = Date.now();
@@ -56,8 +57,48 @@ const VerifyOTP = () => {
     otpArray[index] = value;
     setEmailOtp(otpArray);
     if (value && index < 5) {
-      document.getElementById(`email-otp-${index + 1}`)?.focus();
+      otpRefs.current[index + 1]?.focus();
     }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (isVerifying) return;
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      const otpArray = [...emailOtp];
+      if (otpArray[index]) {
+        otpArray[index] = "";
+        setEmailOtp(otpArray);
+        return;
+      }
+      if (index > 0) {
+        otpArray[index - 1] = ""; 
+        setEmailOtp(otpArray);
+        otpRefs.current[index - 1]?.focus();
+      }
+    }
+    if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowRight" && index < 5) {
+      e.preventDefault();
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = e => {
+    e.preventDefault();
+    if (isVerifying) return;
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6).split("");
+    if (!paste.length) return;
+    const filled = Array(6).fill("");
+    paste.forEach((d, i) => {
+      filled[i] = d;
+    });
+    setEmailOtp(filled);
+    const nextIndex = Math.min(paste.length, 5);
+    otpRefs.current[nextIndex]?.focus();
   };
   const formatTime = s => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const handleResend = async () => {
@@ -207,7 +248,22 @@ const VerifyOTP = () => {
               <h6 className="font-medium">Email OTP</h6>
               <p className="text-sm text-gray-500">{email}</p>
               <div className="flex justify-center gap-2 mb-2 mt-3">
-                {emailOtp.map((digit, idx) => <input key={idx} id={`email-otp-${idx}`} type="text" inputMode="numeric" maxLength="1" disabled={isEmailVerified || emailCountdown === 0 || isLocked || isVerifying} value={digit} onChange={e => handleOtpChange(idx, e.target.value)} className="otp-input" />)}
+                {emailOtp.map((digit, idx) => <input
+                    key={idx}
+                    id={`email-otp-${idx}`}
+                    ref={el => {
+                    otpRefs.current[idx] = el;
+                  }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength="1"
+                    disabled={isEmailVerified || emailCountdown === 0 || isLocked || isVerifying}
+                    value={digit}
+                    onChange={e => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={e => handleOtpKeyDown(idx, e)}
+                    onPaste={handleOtpPaste}
+                    className="otp-input"
+                  />)}
               </div>
               <div className="text-center text-sm mt-2">
                 {isVerifying ? <span className="text-blue-600">Verifying...</span> : isEmailVerified ? <span className="text-green-600">✅ Email Verified</span> : isLocked ? <span className="text-red-600">

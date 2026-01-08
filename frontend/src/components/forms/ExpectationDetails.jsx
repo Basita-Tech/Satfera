@@ -22,6 +22,11 @@ const isAnyOrNoPreference = val => {
     return lower === "any" || lower === "no preference";
   });
 };
+const REQUIRED_FIELDS = new Set(["preferredAgeFrom", "preferredAgeTo", "maritalStatus", "partnerLocation", "partnerCommunity", "partnerDiet", "partnerEducation", "profession", "partnerStateOrCountry"]);
+const Label = ({ children, field, className = "block text-sm font-medium mb-1" }) => <label className={className}>
+    {children}
+    {REQUIRED_FIELDS.has(field) && <span className="text-red-500 ml-1">*</span>}
+  </label>;
 const ExpectationDetails = ({
   onNext,
   onPrevious
@@ -329,9 +334,9 @@ const ExpectationDetails = ({
         <form className="space-y-4" onSubmit={handleNext}>
           {}
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <Label field="partnerLocation">
               Where would you prefer your partner to be based?
-            </label>
+            </Label>
             <CustomSelect name="partnerLocation" value={formData.partnerLocation} onChange={e => handleChange("partnerLocation", e.target.value)} options={["India", "Abroad", "No preference"]} placeholder="Select" className={inputClass} />
             {errors.partnerLocation && <p className="text-red-500 text-sm mt-1">
                 {errors.partnerLocation}
@@ -340,9 +345,9 @@ const ExpectationDetails = ({
 
           {}
           {formData.partnerLocation === "Abroad" && <div className="mt-6">
-              <label className="block text-sm font-medium mb-1">
+              <Label field="partnerStateOrCountry">
                 Select Countries
-              </label>
+              </Label>
 
               <div className="w-full">
                 <Select menuPlacement="auto" menuPosition="fixed" isMulti name="partnerStateOrCountry" options={countryOptions} value={formData.partnerStateOrCountry} onChange={selectedOptions => {
@@ -418,9 +423,9 @@ const ExpectationDetails = ({
             </div>}
 
           {formData.partnerLocation === "India" && <div className="mt-6">
-              <label className="block text-sm font-medium mb-1">
+              <Label field="partnerStateOrCountry">
                 Select States
-              </label>
+              </Label>
 
               <div className="w-full">
                 <Select menuPlacement="auto" menuPosition="fixed" isMulti name="partnerStateOrCountry" options={stateOptions} value={formData.partnerStateOrCountry} onChange={selectedOptions => {
@@ -509,9 +514,9 @@ const ExpectationDetails = ({
 
           {}
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <Label field="partnerEducation">
               What is your preferred education level for your partner?
-            </label>
+            </Label>
 
             <div className="w-full">
               <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerEducation" options={[{
@@ -617,9 +622,9 @@ const ExpectationDetails = ({
 
           {}
           <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
+            <Label field="partnerCommunity">
               Community / Caste
-            </label>
+            </Label>
 
             <div className="w-full">
               <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerCommunity" options={[{
@@ -703,9 +708,9 @@ const ExpectationDetails = ({
 
           {}
           <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
+            <Label field="partnerDiet">
               What is your preferred diet for your partner?
-            </label>
+            </Label>
 
             <div className="w-full">
               <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerDiet" options={[{
@@ -803,9 +808,9 @@ const ExpectationDetails = ({
 
           {}
           <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
+            <Label field="profession">
               Profession / Occupation
-            </label>
+            </Label>
 
             <div className="w-full">
               <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="profession" options={professionOptions.map(profession => ({
@@ -884,9 +889,9 @@ const ExpectationDetails = ({
 
           {}
           <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
+            <Label field="maritalStatus">
               Legal / Marital Status
-            </label>
+            </Label>
 
             <div className="w-full">
               <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="maritalStatus" options={maritalStatuses.map(status => ({
@@ -967,9 +972,9 @@ const ExpectationDetails = ({
 
           {}
           <div className="flex flex-col mb-4">
-            <label className="block text-sm font-medium mb-2">
+            <Label field="preferredAgeFrom" className="block text-sm font-medium mb-2">
               Preferred Age
-            </label>
+            </Label>
 
             <div className="flex flex-row flex-wrap items-center gap-2 sm:gap-3">
               {}

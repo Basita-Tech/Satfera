@@ -191,8 +191,10 @@ export const validateSignupForm = formData => {
   const errors = {};
   const profileForError = validateProfileFor(formData.profileFor);
   if (profileForError) errors.profileFor = profileForError;
+  
+  // Require gender for "myself" and "friend" profiles
   if ((formData.profileFor === "myself" || formData.profileFor === "friend") && !formData.gender) {
-    errors.gender = "Please select a gender";
+    errors.gender = "Please select gender";
   } else if (formData.gender) {
     const genderError = validateGender(formData.gender);
     if (genderError) errors.gender = genderError;

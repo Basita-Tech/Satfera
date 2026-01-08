@@ -568,6 +568,7 @@ const PersonalDetails = ({
     if (success && onNext) onNext("family");
   };
   const handlePrevious = () => navigate("/signup");
+  const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;
   return <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
       <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-4 border-[#F9F7F5] transition-transform duration-300 hover:scale-[1.02]">
         {}
@@ -578,7 +579,7 @@ const PersonalDetails = ({
         <form onSubmit={handleSaveNext} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm font-medium">First Name</label>
+              <label className="text-sm font-medium">First Name <RequiredMark /></label>
               <input readOnly value={formData.firstName} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
               backgroundColor: '#EEEAE6'
             }} />
@@ -590,7 +591,7 @@ const PersonalDetails = ({
             }} />
             </div>
             <div>
-              <label className="text-sm font-medium">Last Name</label>
+              <label className="text-sm font-medium">Last Name <RequiredMark /></label>
               <input readOnly value={formData.lastName} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
               backgroundColor: '#EEEAE6'
             }} />
@@ -600,7 +601,7 @@ const PersonalDetails = ({
           {}
           <div>
             <label className="text-sm font-medium">
-              Date of Birth (DD / MM / YYYY)
+              Date of Birth (DD / MM / YYYY) <RequiredMark />
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
               <input readOnly value={formData.dobDay} className="capitalize w-full p-3 rounded-md border border-[#D4A052] text-sm focus:outline-none focus:ring-1 focus:ring-[#D4A052] focus:border-[#D4A052] transition" style={{
@@ -636,11 +637,11 @@ const PersonalDetails = ({
           </div>
           {}
           <div>
-            <label className="block text-sm font-medium mb-1">Birth Place</label>
+            <label className="block text-sm font-medium mb-1">Birth Place <RequiredMark /></label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Birth State
+                  Birth State <RequiredMark />
                 </label>
                 <LocationSelect type="state" name="birthState" value={formData.birthState} onChange={e => {
                 handleChange(e);
@@ -658,7 +659,7 @@ const PersonalDetails = ({
 
               {}
               <div>
-                <label className=" block text-sm font-medium mb-1">City</label>
+                <label className=" block text-sm font-medium mb-1">City <RequiredMark /></label>
                 <LocationSelect type="city" name="birthCity" value={formData.birthCity} onChange={e => {
                 handleChange(e);
               }} countryCode="IN" stateCode={birthStateCode} placeholder="Select city" className={getInputClass("birthCity")} />
@@ -672,7 +673,7 @@ const PersonalDetails = ({
           <div className="space-y-6">
             {}
             <div className="flex flex-col">
-              <label className="block text-sm font-medium mb-1">Height</label>
+              <label className="block text-sm font-medium mb-1">Height <RequiredMark /></label>
               <CustomSelect
                 name="height"
                 value={formData.height}
@@ -687,7 +688,7 @@ const PersonalDetails = ({
 
             {}
             <div className="flex flex-col">
-              <label className="block text-sm font-medium mb-1">Weight</label>
+              <label className="block text-sm font-medium mb-1">Weight <RequiredMark /></label>
               <CustomSelect
                 name="weight"
                 value={formData.weight}
@@ -706,7 +707,7 @@ const PersonalDetails = ({
             {}
             <div>
               <label className="block text-sm font-medium mb-1">
-                Astrological Sign (Rashi)
+                Astrological Sign (Rashi) <RequiredMark />
               </label>
               <CustomSelect name="rashi" value={formData.rashi} onChange={handleChange} options={ZODIAC_SIGNS} placeholder="Select Rashi" className={getInputClass("rashi")} />
               {errors.rashi && <p className="text-red-500 text-sm mt-1">{errors.rashi}</p>}
@@ -714,7 +715,7 @@ const PersonalDetails = ({
 
             {}
             <div>
-              <label className="block text-sm font-medium mb-1">Dosh</label>
+              <label className="block text-sm font-medium mb-1">Dosh <RequiredMark /></label>
               <CustomSelect name="dosh" value={formData.dosh} onChange={e => {
               setFormData(prev => ({
                 ...prev,
@@ -733,7 +734,7 @@ const PersonalDetails = ({
 
             {}
             <div>
-              <label className="block text-sm font-medium mb-1">Religion</label>
+              <label className="block text-sm font-medium mb-1">Religion <RequiredMark /></label>
               <CustomSelect name="religion" value={formData.religion} onChange={e => {
               handleChange(e);
               setFormData(prev => ({
@@ -746,7 +747,7 @@ const PersonalDetails = ({
 
             {}
             <div>
-              <label className="block text-sm font-medium mb-1">Caste</label>
+              <label className="block text-sm font-medium mb-1">Caste <RequiredMark /></label>
               <CustomSelect name="caste" value={formData.caste} onChange={handleChange} options={castOptions.length > 0 ? castOptions : []} placeholder="Select Caste" className={getInputClass("caste")} disabled={castOptions.length === 0} />
               {errors.caste && <p className="text-red-500 text-sm mt-1">{errors.caste}</p>}
             </div>
@@ -805,7 +806,7 @@ const PersonalDetails = ({
                 {}
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Street Address 1
+                    Street Address 1 <RequiredMark />
                   </label>
                   <input name="street1" value={formData.street1} placeholder="Enter address line 1" onChange={handleChange} className={getInputClass("street1")} />
                   {errors.street1 && <p className="text-red-500 text-sm mt-1">
@@ -828,7 +829,7 @@ const PersonalDetails = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {}
                   <div>
-                    <label className="block text-sm font-medium mb-1">State</label>
+                    <label className="block text-sm font-medium mb-1">State <RequiredMark /></label>
                     <LocationSelect type="state" name="state" value={formData.state} onChange={e => {
                     handleChange(e);
                     setFormData(prev => ({
@@ -843,7 +844,7 @@ const PersonalDetails = ({
 
                   {}
                   <div>
-                    <label className="block text-sm font-medium mb-1">City</label>
+                    <label className="block text-sm font-medium mb-1">City <RequiredMark /></label>
                     <LocationSelect type="city" name="city" value={formData.city} onChange={handleChange} countryCode="IN" stateCode={getStateCode("IN", formData.state) || ""} placeholder="Select city" className={getInputClass("city")} />
                     {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                   </div>
@@ -853,7 +854,7 @@ const PersonalDetails = ({
 
             {}
             <div>
-              <label className="block text-sm font-medium mb-1">Pincode</label>
+              <label className="block text-sm font-medium mb-1">Pincode <RequiredMark /></label>
               <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Enter pincode" maxLength={6} className={getInputClass("pincode")} />
 
               {(errors.pincode || errorMsg) && <p className="text-red-500 text-sm mt-1">
@@ -864,7 +865,7 @@ const PersonalDetails = ({
             {}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Is this your own house?
+                Is this your own house? <RequiredMark />
               </label>
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -893,7 +894,7 @@ const PersonalDetails = ({
             {}
             <div>
               <label className="block text-sm font-medium mb-1">
-                Marital Status
+                Marital Status <RequiredMark />
               </label>
               <CustomSelect name="legalStatus" value={formData.legalStatus} onChange={handleLegalStatus} options={LEGAL_STATUSES} placeholder="Select Status" className={getInputClass("legalStatus")} />
               {errors.legalStatus && <p className="text-red-500 text-sm mt-1">
@@ -972,7 +973,7 @@ const PersonalDetails = ({
           {}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Nationality
+              Nationality <RequiredMark />
             </label>
             <CustomSelect name="nationality" value={formData.nationality} onChange={handleChange} options={SORTED_NATIONALITIES} placeholder="Select Nationality" className={getInputClass("nationality")} />
             {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality}</p>}
@@ -981,7 +982,7 @@ const PersonalDetails = ({
           {}
           <div>
             <label className="block text-sm font-medium mb-2">
-              Currently Residing in India?
+              Currently Residing in India? <RequiredMark />
             </label>
 
             <div className="flex items-center gap-6">

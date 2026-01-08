@@ -32,6 +32,9 @@ const EditProfile = lazy(() => import("./profiles/EditProfile").then(m => ({
 const Settings = lazy(() => import("./profiles/Settings").then(m => ({
   default: m.Settings
 })));
+const Support = lazy(() => import("./profiles/Support").then(m => ({
+  default: m.Support
+})));
 const Notifications = lazy(() => import("./Notifications").then(m => ({
   default: m.default || m.Notifications
 })));
@@ -1053,6 +1056,7 @@ export function UserDashboard() {
           }).filter(Boolean)} onRemoveFromCompare={handleRemoveCompare} onSendRequest={handleSendRequest} onNavigateBack={() => navigate('/dashboard/browse')} onAddToCompare={handleAddToCompare} shortlistedIds={shortlistedIds} onToggleShortlist={handleToggleShortlist} onViewProfile={handleViewProfile} sentProfileIds={sentProfileIds} />} />
             <Route path="edit-profile" element={<EditProfile onNavigateBack={() => navigate('/dashboard')} />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="support" element={<Support />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="profile/:id" element={<ProfileDetails profiles={[...profiles.sent, ...profiles.received]} sentProfileIds={sentProfileIds} onNavigate={setActivePage} shortlistedIds={shortlistedIds} onToggleShortlist={handleToggleShortlist} compareProfiles={compareProfiles} onAddToCompare={handleAddToCompare} onRemoveCompare={handleRemoveCompare} onSendRequest={handleSendRequest} onWithdraw={handleWithdraw} onAccept={handleAccept} onReject={handleReject} />} />
           </Routes>

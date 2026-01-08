@@ -99,6 +99,7 @@ const HealthLifestyle = ({
     };
   }, []);
   const inputClass = "capitalize w-full p-3 rounded-md border border-[#E4C48A] text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
+  const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;
   return <div className="min-h-screen w-full bg-[#F9F7F5] flex justify-center items-start py-2 px-2">
       <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-xl p-4 sm:p-8 border-t-[2px] border-[#F9F7F5] transition-transform duration-300">
         <div className="text-center mb-6">
@@ -109,7 +110,7 @@ const HealthLifestyle = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
-              Do you consume alcohol?
+              Do you consume alcohol? <RequiredMark />
             </label>
             <CustomSelect name="alcohol" value={formData.alcohol} onChange={e => handleChange("alcohol", e.target.value)} options={["yes", "no", "occasional"]} placeholder="Select" className={`${inputClass} ${errors.alcohol ? "border-red-500" : ""}`} />
             {errors.alcohol && <p className="text-red-500 text-sm mt-1">{errors.alcohol}</p>}
@@ -118,7 +119,7 @@ const HealthLifestyle = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
-              Do you use tobacco or related products?
+              Do you use tobacco or related products? <RequiredMark />
             </label>
             <CustomSelect name="tobacco" value={formData.tobacco} onChange={e => handleChange("tobacco", e.target.value)} options={["yes", "no", "occasional"]} placeholder="Select" className={`${inputClass} ${errors.tobacco ? "border-red-500" : ""}`} />
             {errors.tobacco && <p className="text-red-500 text-sm mt-1">{errors.tobacco}</p>}
@@ -127,7 +128,7 @@ const HealthLifestyle = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
-              Do you have any visible tattoos?
+              Do you have any visible tattoos? <RequiredMark />
             </label>
             <CustomSelect name="tattoos" value={formData.tattoos} onChange={e => handleChange("tattoos", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.tattoos ? "border-red-500" : ""}`} />
             {errors.tattoos && <p className="text-red-500 text-sm mt-1">{errors.tattoos}</p>}
@@ -136,7 +137,7 @@ const HealthLifestyle = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
-              Have you ever tested HIV positive?
+              Have you ever tested HIV positive? <RequiredMark />
             </label>
             <CustomSelect name="hiv" value={formData.hiv} onChange={e => handleChange("hiv", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.hiv ? "border-red-500" : ""}`} />
             {errors.hiv && <p className="text-red-500 text-sm mt-1">{errors.hiv}</p>}
@@ -145,7 +146,7 @@ const HealthLifestyle = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
-              Have you ever tested Tuberculosis (TB) positive?
+              Have you ever tested Tuberculosis (TB) positive? <RequiredMark />
             </label>
             <CustomSelect name="tb" value={formData.tb} onChange={e => handleChange("tb", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.tb ? "border-red-500" : ""}`} />
             {errors.tb && <p className="text-red-500 text-sm mt-1">{errors.tb}</p>}
@@ -155,7 +156,7 @@ const HealthLifestyle = ({
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
               Do you have any past or ongoing medical history we should be aware
-              of?
+              of? <RequiredMark />
             </label>
             <CustomSelect name="medicalHistory" value={formData.medicalHistory} onChange={e => handleChange("medicalHistory", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.medicalHistory ? "border-red-500" : ""}`} />
             {errors.medicalHistory && <p className="text-red-500 text-sm mt-1">
@@ -168,7 +169,7 @@ const HealthLifestyle = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">
-              What is your diet?
+              What is your diet? <RequiredMark />
             </label>
             <CustomSelect name="diet" value={formData.diet} onChange={e => handleChange("diet", e.target.value)} options={["vegetarian", "non-vegetarian", "eggetarian", "jain", "swaminarayan", "veg & non-veg"]} placeholder="Select" className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`} />
             {errors.diet && <p className="text-red-500 text-sm mt-1">{errors.diet}</p>}

@@ -11,7 +11,7 @@ import { ChangePasswordModal } from '../../ChangePasswordModal';
 import { EditContactModal } from '../../EditContactModal';
 import { BlockedUsersList } from '../../BlockedUsersList';
 import { BlockUserDialog } from '../../BlockUserDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '../../ui/dialog';
 import { Textarea } from '../../ui/textarea';
 import { getUserProfileDetails, getBlockedUsers, getNotificationSettings, updateNotificationSettings, getUserContactInfo, getSessions, logoutSession, logoutAllSessions, deactivateAccount, activateAccount, getAccountStatus, deleteUserAccount, createSupportTicket, getSupportTickets, getSupportTicketDetails, addTicketMessage } from '../../../api/auth';
 import { AuthContextr } from '../../context/AuthContext';
@@ -289,7 +289,7 @@ export function Settings() {
         setDeactivateDialogOpen(false);
         setDeactivateReason('');
         
-        // Logout after successful deactivation
+    
         setTimeout(async () => {
           await logout();
           navigate('/login');
@@ -320,7 +320,7 @@ export function Settings() {
         setDeleteDialogOpen(false);
         setDeleteReason('');
         
-        // Logout after successful deletion
+      
         setTimeout(async () => {
           await logout();
           navigate('/login');
@@ -419,7 +419,7 @@ export function Settings() {
       if (response?.success) {
         toast.success('Message sent successfully');
         setReplyMessage('');
-        // Refresh to get updated messages including any admin replies
+
         await handleSelectTicket(selectedTicket);
         await fetchSupportTickets();
       } else {
@@ -700,15 +700,15 @@ export function Settings() {
           </div>
 
           <div className="space-y-3">
-            {/* Your Tickets Button */}
-            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => setYourTicketsDialogOpen(true)}>
+            
+            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => navigate('/dashboard/support')}>
               <Ticket className="w-4 h-4 mr-3" />
               Your Tickets
               {supportTickets.length > 0 && <Badge className="ml-auto bg-gold text-white">{supportTickets.length}</Badge>}
             </Button>
 
             {}
-            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => setSupportDialogOpen(true)}>
+            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => navigate('/dashboard/support')}>
               <MessageCircle className="w-4 h-4 mr-3" />
               Contact Support
               {supportTickets.length > 0 && <Badge className="ml-auto bg-gold text-white">{supportTickets.length}</Badge>}
@@ -797,8 +797,12 @@ export function Settings() {
 
       {/* Deactivate Account Dialog */}
       <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
-        <DialogContent className="sm:max-w-[420px] max-w-[95vw] rounded-[20px] p-0 gap-0 bg-white border-2 border-red-200 shadow-2xl overflow-hidden">
-          <DialogHeader className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 px-5 py-4 text-center text-white relative overflow-hidden rounded-t-[18px]">
+        <DialogContent showClose={false} className="sm:max-w-[420px] max-w-[90vw] rounded-[20px] p-0 gap-0 bg-white border-2 border-red-200 shadow-2xl overflow-hidden mx-auto">
+          <DialogHeader className="bg-gradient-to-br from-red-500 via-red-600 to-red-700 pl-4 pr-4 sm:pl-5 sm:pr-5 py-4 text-center text-white relative overflow-hidden rounded-t-[18px]">
+            <DialogClose className="absolute left-3 top-3 z-50 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
+              <span className="sr-only">Close</span>
+              <span className="text-lg leading-none">×</span>
+            </DialogClose>
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
               <div className="absolute bottom-0 left-0 w-20 h-20 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -810,7 +814,7 @@ export function Settings() {
               <DialogTitle className="text-white text-lg font-semibold">Deactivate Account</DialogTitle>
             </div>
           </DialogHeader>
-          <div className="px-5 py-4 bg-white max-h-[70vh] overflow-y-auto">
+          <div className="pl-4 pr-4 sm:pl-5 sm:pr-5 py-4 bg-white max-h-[80vh] overflow-y-auto">
             <DialogDescription className="text-center text-sm mb-3 text-gray-600">
               Your account will be temporarily deactivated. You can reactivate it anytime by logging back in.
             </DialogDescription>
@@ -841,7 +845,7 @@ export function Settings() {
               <Button 
                 onClick={handleDeactivateAccount}
                 disabled={isDeactivating || !deactivateReason.trim()}
-                className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white rounded-[10px] disabled:opacity-50 disabled:cursor-not-allowed h-10 text-sm"
+                className="w-full sm:w-1/2 bg-transparent border-2 border-red-600 text-red-600 hover:bg-red-50 rounded-[10px] disabled:opacity-50 disabled:cursor-not-allowed h-10 text-sm"
               >
                 {isDeactivating ? 'Deactivating...' : 'Deactivate'}
               </Button>
@@ -852,8 +856,12 @@ export function Settings() {
 
       {/* Delete Account Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[420px] max-w-[95vw] rounded-[20px] p-0 gap-0 bg-white border-2 border-red-600 shadow-2xl overflow-hidden">
-          <DialogHeader className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-5 py-4 text-center text-white relative overflow-hidden rounded-t-[18px]">
+        <DialogContent showClose={false} className="sm:max-w-[420px] max-w-[90vw] rounded-[20px] p-0 gap-0 bg-white border-2 border-red-600 shadow-2xl overflow-hidden mx-auto">
+          <DialogHeader className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 pl-4 pr-4 sm:pl-5 sm:pr-5 py-4 text-center text-white relative overflow-hidden rounded-t-[18px]">
+            <DialogClose className="absolute left-3 top-3 z-50 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
+              <span className="sr-only">Close</span>
+              <span className="text-lg leading-none">×</span>
+            </DialogClose>
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
               <div className="absolute bottom-0 left-0 w-20 h-20 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -865,7 +873,7 @@ export function Settings() {
               <DialogTitle className="text-white text-lg font-semibold">Delete Account</DialogTitle>
             </div>
           </DialogHeader>
-          <div className="px-5 py-4 bg-white max-h-[70vh] overflow-y-auto">
+          <div className="pl-4 pr-4 sm:pl-5 sm:pr-5 py-4 bg-white max-h-[80vh] overflow-y-auto">
             <DialogDescription className="text-center text-sm mb-3 text-gray-600">
               <span className="font-semibold text-red-600">Warning:</span> This action is permanent and cannot be undone. All your data will be permanently deleted.
             </DialogDescription>

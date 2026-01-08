@@ -1753,3 +1753,50 @@ export const addTicketMessage = async (ticketId, text) => {
     };
   }
 };
+
+export const reportProfile = async (customId, reason, description, reportType) => {
+  try {
+    // Validate input
+    if (!customId || !reason || !description || !reportType) {
+      return {
+        success: false,
+        message: "All fields are required."
+      };
+    }
+
+    if (description.length < 6 || description.length > 500) {
+      return {
+        success: false,
+        message: "Description must be between 6 and 500 characters."
+      };
+    }
+
+    const validReportTypes = ['spam', 'abuse', 'hate', 'other'];
+    if (!validReportTypes.includes(reportType)) {
+      return {
+        success: false,
+        message: "Invalid report type."
+      };
+    }
+
+    const response = await axios.post(
+      `${API}/report`,
+      {
+        customId,
+        reason,
+        description,
+        reportType
+      },
+      {
+        headers: getAuthHeaders()
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("❌ Report Profile Error:", error.response?.data || error.message);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to submit report."
+    };
+  }
+};
