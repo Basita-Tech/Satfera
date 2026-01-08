@@ -740,7 +740,7 @@ export async function getDetailedProfile(
     ] = await Promise.all([
       User.findById(
         candidateId,
-        "firstName lastName middleName dateOfBirth gender isActive createdAt phoneNumber email customId blockedUsers"
+        "firstName lastName middleName dateOfBirth gender isActive createdAt phoneNumber email customId blockedUsers isVisible"
       ).lean(),
       UserPersonal.findOne({ userId: candidateId }).lean(),
       UserEducation.findOne({ userId: candidateId }).lean(),
@@ -759,6 +759,7 @@ export async function getDetailedProfile(
     ]);
 
     if (!candidate) return null;
+    if (!candidate.isVisible && !candidate?.isActive) return null;
 
     try {
       const viewerBlockedCandidate =
@@ -823,77 +824,69 @@ export async function getDetailedProfile(
       const hasViewed = await hasViewedInLast24Hours(viewerId, candidateId);
 
       if (!hasViewed) {
-        try {
-          const viewerIsCandidate =
-            viewerId.toString() === candidateId.toString();
+        const viewerIsCandidate =
+          viewerId.toString() === candidateId.toString();
 
-          const viewerName = viewer
-            ? `${viewer.firstName || ""} ${viewer.lastName || ""}`.trim()
-            : "Someone";
+        const viewerName = viewer
+          ? `${viewer.firstName || ""} ${viewer.lastName || ""}`.trim()
+          : "Someone";
 
-          const notificationPayload: any = {
-            user: candidateId,
-            type: "profile_view",
-            title: "Profile Viewed",
-            message: `${viewerName} viewed your profile`,
-            meta: { viewer: viewerId }
-          };
+        const notificationPayload: any = {
+          user: candidateId,
+          type: "profile_view",
+          title: "Profile Viewed",
+          message: `${viewerName} viewed your profile`,
+          meta: { viewer: viewerId }
+        };
 
-          const weekStart = getWeekStartDate();
-          const weekNum = getWeekNumber();
+        const weekStart = getWeekStartDate();
+        const weekNum = getWeekNumber();
 
-          const tasks: Promise<any>[] = [
-            Profile.updateOne(
-              { userId: candidateId },
-              { $inc: { ProfileViewed: 1 } }
-            ),
-            ProfileView.updateOne(
-              {
+        const tasks: Promise<any>[] = [
+          Profile.updateOne(
+            { userId: candidateId },
+            { $inc: { ProfileViewed: 1 } }
+          ),
+          ProfileView.updateOne(
+            {
+              viewer: viewerId,
+              candidate: candidateId,
+              weekStartDate: weekStart,
+              viewedAt: new Date()
+            },
+            {
+              $set: {
+                viewedAt: new Date(),
+                weekNumber: weekNum
+              },
+              $setOnInsert: {
                 viewer: viewerId,
-                candidate: candidateId,
-                weekStartDate: weekStart,
-                viewedAt: new Date()
-              },
-              {
-                $set: {
-                  viewedAt: new Date(),
-                  weekNumber: weekNum
-                },
-                $setOnInsert: {
-                  viewer: viewerId,
-                  candidate: candidateId
-                }
-              },
-              { upsert: true }
-            ),
-            markProfileViewed(viewerId, candidateId)
-          ];
+                candidate: candidateId
+              }
+            },
+            { upsert: true }
+          ),
+          markProfileViewed(viewerId, candidateId)
+        ];
 
-          if (!viewerIsCandidate) {
-            tasks.push(Notification.create(notificationPayload));
-          }
-
-          await Promise.all(tasks);
-
-          logger.info(
-            `Profile view recorded: ${viewerId.toString()} -> ${candidateId.toString()}`
-          );
-        } catch (err: any) {
-          logger.error("Error creating notification for profile view:", {
-            error: err.message,
-            stack: err.stack
-          });
+        if (!viewerIsCandidate) {
+          tasks.push(Notification.create(notificationPayload));
         }
+
+        await Promise.all(tasks);
+
+        logger.info(
+          `Profile view recorded: ${viewerId.toString()} -> ${candidateId.toString()}`
+        );
       } else {
         logger.debug(
           `Viewer ${viewerId.toString()} already viewed ${candidateId.toString()} in last 24 hours`
         );
       }
     } catch (err: any) {
-      logger.error("Error recording profile view:", {
-        error: err.message,
-        stack: err.stack
-      });
+      logger.error(
+        `Error recording profile view: error: ${err.message}, stack:${err.stack} `
+      );
     }
     const isFavorite = !!(
       viewerProfile?.favoriteProfiles &&
@@ -914,6 +907,11 @@ export async function getDetailedProfile(
       status
     );
 
+    const requestType = !!(
+      connectionRequest?.sender &&
+      connectionRequest?.sender.toString() === viewerId.toString()
+    );
+
     return {
       ...detailedProfile,
       closerPhoto: filteredPhotos?.closerPhoto ?? null,
@@ -922,7 +920,9 @@ export async function getDetailedProfile(
       otherPhotos: Array.isArray(filteredPhotos?.otherPhotos)
         ? filteredPhotos!.otherPhotos.slice(0, 2)
         : [],
-      requestId: connectionRequest?._id || null
+      requestId: connectionRequest?._id || null,
+      requestType:
+        connectionRequest === null ? null : requestType ? "sent" : "received"
     };
   } catch (error: any) {
     logger.error("Error in getDetailedProfile:", {
