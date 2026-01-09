@@ -3,6 +3,13 @@ import CustomSelect from "../ui/CustomSelect";
 import LocationSelect from "../ui/LocationSelect";
 import { getEducationalDetails, saveEducationalDetails, updateEducationalDetails } from "../../api/auth";
 import toast from "react-hot-toast";
+import {
+  QUALIFICATION_LEVELS,
+  EDUCATION_OPTIONS_BY_LEVEL,
+  PROFESSIONAL_QUALIFICATIONS,
+  PROFESSIONAL_QUALIFIED_LEVELS
+} from "@/lib/constant";
+
 const EducationDetails = ({
   onNext,
   onPrevious
@@ -31,8 +38,11 @@ const EducationDetails = ({
     if (s.length > max) s = s.slice(0, max);
     return s;
   };
+  
   const capitalizeFirst = val => {
     if (!val) return "";
+    const trimmed = val.trim();
+    if (trimmed.length === 0) return val;
     return val.charAt(0).toUpperCase() + val.slice(1);
   };
   useEffect(() => {
@@ -60,224 +70,16 @@ const EducationDetails = ({
     };
     fetchDetails();
   }, []);
-  const qualificationLevels = useMemo(() => ["High School", "Undergraduate", "Associates Degree", "Bachelors", "Honours Degree", "Masters", "Doctor", "Doctorate", "Diploma", "Trade School", "Less Than High School"], []);
-  const educationOptionsByLevel = useMemo(() => ({
-    "High School": [
-      "Higher Secondary School / High School",
-      "Science Stream",
-      "Commerce Stream",
-      "Arts Stream",
-      "Vocational Stream",
-    ],
-    "Less Than High School": ["Primary School", "Middle School"],
-    "Associates Degree": [
-      "Associates in Arts",
-      "Associates in Science",
-      "Associates in Applied Science",
-      "Associates in Business",
-      "Associates in Engineering",
-      "Associates in Nursing",
-      "Other Associates Degree",
-      "CA - Chartered Accountant",
-      "CFA - Chartered Financial Analyst",
-      "CS - Company Secretary",
-      "ICWA - Cost And Works Accountant",
-      "CPA - Certified Public Accountant",
-      "CMA - Certified Management Accountant",
-    ],
-    "Undergraduate": [
-      "Aeronautical Engineering",
-      "B.Arch. - Bachelor of Architecture",
-      "BCA - Bachelor of Computer Applications",
-      "B.E. - Bachelor of Engineering",
-      "B.Plan - Bachelor of Planning",
-      "B.Des. - Bachelor of Design",
-      "B.Voc. - Bachelor of Vocation",
-      "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
-      "B.S. Eng. - Bachelor of Science in Engineering",
-      "B.Tech. - Bachelor of Technology",
-      "Other Bachelor's Degree in Engineering / Computers",
-      "Aviation Degree",
-      "B.A. - Bachelor of Arts",
-      "B.Com. - Bachelor of Commerce",
-      "B.Ed. - Bachelor of Education",
-      "B.P.Ed - Bachelor of Physical Education",
-      "BFA - Bachelor of Fine Arts",
-      "BFT - Bachelor of Fashion Technology",
-      "BLIS - Bachelor of Library and Information Science",
-      "B.M.M. - Bachelor of Mass Media",
-      "B.Sc. - Bachelor of Science",
-      "B.Stat. - Bachelor of Statistics",
-      "B.S.W. - Bachelor of Social Work",
-      "B.Phil. - Bachelor of Philosophy",
-      "Other Bachelor's Degree in Arts / Science / Commerce",
-      "BBA - Bachelor of Business Administration",
-      "BFM - Bachelor of Financial Management",
-      "BHM - Bachelor of Hotel Management",
-      "BHA - Bachelor of Hospital Administration",
-      "Other Bachelor's Degree in Management",
-      "BPharm - Bachelor of Pharmacy",
-      "BPT - Bachelor of Physiotherapy",
-      "B.Sc. Nursing - Bachelor of Science in Nursing",
-      "B.Optom - Bachelor of Optometry",
-      "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
-      "BGL - Bachelor of General Laws",
-      "BL - Bachelor of Laws",
-      "LLB - Bachelor of Legislative Law",
-      "Other Bachelor's Degree in Legal",
-    ],
-    "Bachelors": [
-      "Aeronautical Engineering",
-      "B.Arch. - Bachelor of Architecture",
-      "BCA - Bachelor of Computer Applications",
-      "B.E. - Bachelor of Engineering",
-      "B.Plan - Bachelor of Planning",
-      "B.Des. - Bachelor of Design",
-      "B.Voc. - Bachelor of Vocation",
-      "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
-      "B.S. Eng. - Bachelor of Science in Engineering",
-      "B.Tech. - Bachelor of Technology",
-      "Other Bachelor's Degree in Engineering / Computers",
-      "Aviation Degree",
-      "B.A. - Bachelor of Arts",
-      "B.Com. - Bachelor of Commerce",
-      "B.Ed. - Bachelor of Education",
-      "B.P.Ed - Bachelor of Physical Education",
-      "BFA - Bachelor of Fine Arts",
-      "BFT - Bachelor of Fashion Technology",
-      "BLIS - Bachelor of Library and Information Science",
-      "B.M.M. - Bachelor of Mass Media",
-      "B.Sc. - Bachelor of Science",
-      "B.Stat. - Bachelor of Statistics",
-      "B.S.W. - Bachelor of Social Work",
-      "B.Phil. - Bachelor of Philosophy",
-      "Other Bachelor's Degree in Arts / Science / Commerce",
-      "BBA - Bachelor of Business Administration",
-      "BFM - Bachelor of Financial Management",
-      "BHM - Bachelor of Hotel Management",
-      "BHA - Bachelor of Hospital Administration",
-      "Other Bachelor's Degree in Management",
-      "BPharm - Bachelor of Pharmacy",
-      "BPT - Bachelor of Physiotherapy",
-      "B.Sc. Nursing - Bachelor of Science in Nursing",
-      "B.Optom - Bachelor of Optometry",
-      "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
-      "BGL - Bachelor of General Laws",
-      "BL - Bachelor of Laws",
-      "LLB - Bachelor of Legislative Law",
-      "Other Bachelor's Degree in Legal",
-    ],
-    "Honours Degree": [
-      "B.Arch. (Hons) - Bachelor of Architecture with Honours",
-      "B.E. (Hons) - Bachelor of Engineering with Honours",
-      "B.Tech. (Hons) - Bachelor of Technology with Honours",
-      "B.Sc. (Hons) - Bachelor of Science with Honours",
-      "B.A. (Hons) - Bachelor of Arts with Honours",
-      "B.Com. (Hons) - Bachelor of Commerce with Honours",
-      "Other Honours Degree",
-    ],
-    "Masters": [
-      "M.Arch. - Master of Architecture",
-      "MCA - Master of Computer Applications",
-      "M.E. - Master of Engineering",
-      "M.Plan - Master of Planning",
-      "M.Des. - Master of Design",
-      "M.Sc. IT/CS - Master of Science in IT/Computer Science",
-      "M.S. Eng. - Master of Science in Engineering",
-      "M.Tech. - Master of Technology",
-      "Other Master's Degree in Engineering / Computers",
-      "M.A. - Master of Arts",
-      "M.Com. - Master of Commerce",
-      "M.Ed. - Master of Education",
-      "M.P.Ed - Master of Physical Education",
-      "MFA - Master of Fine Arts",
-      "MLIS - Master of Library and Information Science",
-      "M.Sc. - Master of Science",
-      "M.Stat. - Master of Statistics",
-      "M.S.W. - Master of Social Work",
-      "M.Phil. - Master of Philosophy",
-      "Other Master's Degree in Arts / Science / Commerce",
-      "MBA - Master of Business Administration",
-      "MFM - Master of Financial Management",
-      "MHM - Master of Hotel Management",
-      "MHRM - Master of Human Resource Management",
-      "MHA - Master of Hospital Administration",
-      "Other Master's Degree in Management",
-      "MPharm - Master of Pharmacy",
-      "MPT - Master of Physiotherapy",
-      "MPH - Master of Public Health",
-      "M.Sc. Nursing - Master of Science in Nursing",
-      "Other Master's Degree in Pharmacy / Nursing or Health Sciences",
-      "LLM - Master of Laws",
-      "ML - Master of Legal Studies",
-      "Other Master's Degree in Legal",
-    ],
-    "Doctor": [
-      "MBBS - Bachelor of Medicine, Bachelor of Surgery",
-      "BDS - Bachelor of Dental Surgery",
-      "BAMS - Bachelor of Ayurvedic Medicine and Surgery",
-      "BHMS - Bachelor of Homeopathic Medicine and Surgery",
-      "BSMS - Bachelor of Siddha Medicine and Surgery",
-      "BUMS - Bachelor of Unani Medicine and Surgery",
-      "BVSc - Bachelor of Veterinary Science",
-      "Pharm.D - Doctor of Pharmacy",
-      "MDS - Master of Dental Surgery",
-      "MS - Master of Surgery",
-      "MVSc - Master of Veterinary Science",
-      "MCh - Master of Chirurgiae",
-      "DM - Doctor of Medicine",
-      "DNB - Diplomate of National Board",
-      "FNB - Fellow of National Board",
-    ],
-    "Doctorate": [
-      "Ph.D. - Doctor of Philosophy",
-      "D.Sc. - Doctor of Science",
-      "Ed.D. - Doctor of Education",
-      "DBA - Doctor of Business Administration",
-      "D.Litt. - Doctor of Literature",
-      "LL.D. - Doctor of Laws",
-      "Psy.D. - Doctor of Psychology",
-      "Postdoctoral Fellow",
-    ],
-    "Diploma": [
-      "Diploma in Engineering",
-      "Diploma in Computer Applications",
-      "Diploma in Management",
-      "Diploma in Nursing",
-      "Diploma in Pharmacy",
-      "Diploma in Education",
-      "Diploma in Medical Laboratory Technology (DMLT)",
-      "Diploma in Hotel Management",
-      "Diploma in Interior Design",
-      "Polytechnic Diploma",
-      "PGDCA - Post Graduate Diploma in Computer Applications",
-      "PGDM - Post Graduate Diploma in Management",
-      "Advanced Diploma",
-      "Other Diplomas",
-    ],
-    "Trade School": [
-      "Electrician",
-      "Plumber",
-      "Carpenter",
-      "Mechanic",
-      "Welder",
-      "Fitter",
-      "Machinist",
-      "Draughtsman",
-      "Other Trade Certification",
-    ],
-  }), []);
-  const professionalQualifications = useMemo(() => [], []);
+
   const educationOptionsFormatted = useMemo(() => {
     let options = [];
-    const professionalQualifiedLevels = ["Bachelors", "Honours Degree", "Masters", "Doctorate", "Undergraduate"];
     if (!formData.highestEducation) {
-      const allOptions = Object.values(educationOptionsByLevel).flat();
-      options = [...new Set([...allOptions, ...professionalQualifications])];
+      const allOptions = Object.values(EDUCATION_OPTIONS_BY_LEVEL).flat();
+      options = [...new Set([...allOptions, ...PROFESSIONAL_QUALIFICATIONS])];
     } else {
-      const levelOptions = educationOptionsByLevel[formData.highestEducation] || [];
-      if (professionalQualifiedLevels.includes(formData.highestEducation)) {
-        options = [...levelOptions, ...professionalQualifications];
+      const levelOptions = EDUCATION_OPTIONS_BY_LEVEL[formData.highestEducation] || [];
+      if (PROFESSIONAL_QUALIFIED_LEVELS.includes(formData.highestEducation)) {
+        options = [...levelOptions, ...PROFESSIONAL_QUALIFICATIONS];
       } else {
         options = levelOptions;
       }
@@ -286,7 +88,7 @@ const EducationDetails = ({
       label: opt.replace(/\b\w/g, c => c.toUpperCase()),
       value: opt.replace(/\b\w/g, c => c.toUpperCase())
     }));
-  }, [formData.highestEducation, educationOptionsByLevel, professionalQualifications]);
+  }, [formData.highestEducation]);
   const handlePrevious = () => {
     if (onPrevious) {
       onPrevious();
@@ -301,9 +103,12 @@ const EducationDetails = ({
       value
     } = e.target;
     let formattedValue = sanitizeLive(value);
-    if (name !== "countryOfEducation") {
+    
+    // Apply capitalization to text input fields (not country selects)
+    if (name === "schoolName" || name === "universityName") {
       formattedValue = capitalizeFirst(formattedValue);
     }
+    
     if (name === "highestEducation") {
       setFormData(prev => ({
         ...prev,
@@ -417,7 +222,7 @@ const EducationDetails = ({
             <label className="block text-sm font-medium mb-1">
               Highest Qualification <RequiredMark />
             </label>
-            <CustomSelect name="highestEducation" value={formData.highestEducation} onChange={handleChange} options={qualificationLevels} placeholder="Select your qualification" className={getInputClass("highestEducation")} />
+            <CustomSelect name="highestEducation" value={formData.highestEducation} onChange={handleChange} options={QUALIFICATION_LEVELS} placeholder="Select your qualification" className={getInputClass("highestEducation")} />
             {errors.highestEducation && <p className="text-red-500 text-sm mt-1">{errors.highestEducation}</p>}
           </div>
 

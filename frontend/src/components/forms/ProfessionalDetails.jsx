@@ -3,6 +3,8 @@ import CustomSelect from "../ui/CustomSelect";
 import { getUserProfession, saveUserProfession, updateUserProfession } from "../../api/auth";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { JOB_TITLES, EMPLOYMENT_OPTIONS, INCOME_OPTIONS } from "@/lib/constant";
+
 const ProfessionDetails = ({
   onNext,
   onPrevious
@@ -16,23 +18,12 @@ const ProfessionDetails = ({
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
-  const jobTitles = useMemo(() => ["Marketing Specialist", "Marketing Manager", "Marketing Director", "Graphic Designer", "Marketing Research Analyst", "Marketing Communications Manager", "Marketing Consultant", "Product Manager", "Public Relations", "Social Media Assistant", "Brand Manager", "SEO Manager", "Content Marketing Manager", "Copywriter", "Media Buyer", "Digital Marketing Manager", "eCommerce Marketing Specialist", "Brand Strategist", "Vice President of Marketing", "Media Relations Coordinator", "Administrative Assistant", "Receptionist", "Office Manager", "Auditing Clerk", "Bookkeeper", "Account Executive", "Branch Manager", "Business Manager", "Quality Control Coordinator", "Administrative Manager", "Chief Executive Officer", "Business Analyst", "Risk Manager", "Human Resources", "Office Assistant", "Secretary", "Office Clerk", "File Clerk", "Account Collector", "Administrative Specialist", "Executive Assistant", "Program Administrator", "Program Manager", "Administrative Analyst", "Data Entry", "Chief Operating Officer", "Chief Financial Officer", "Chief Information Officer", "Chief Technology Officer", "Chief Marketing Officer", "Chief Human Resources Officer", "Chief Data Officer", "CPO—Chief Product Officer", "Chief Customer Officer", "Team Leader", "Manager", "Assistant Manager", "Executive", "Director", "Coordinator", "Administrator", "Controller", "Officer", "Organizer", "Supervisor", "Superintendent", "Head", "Overseer", "Chief", "Foreman", "Principal", "President", "Lead", "Computer Scientist", "IT Professional", "UX Designer & UI Developer", "SQL Developer", "Web Designer", "Web Developer", "Help Desk Worker/Desktop Support", "Software Engineer", "DevOps Engineer", "Computer Programmer", "Network Administrator", "Information Security Analyst", "Artificial Intelligence Engineer", "Cloud Architect", "IT Manager", "Technical Specialist", "Application Developer", "Virtual Assistant", "Customer Service", "Customer Support", "Concierge", "Help Desk", "Customer Service Manager", "Technical Support Specialist", "Account Representative", "Client Service Specialist", "Customer Care Associate", "Operations Manager", "Operations Assistant", "Operations Coordinator", "Operations Analyst", "Operations Director", "Vice President of Operations", "Operations Professional", "Scrum Master", "Continuous Improvement Lead", "Continuous Improvement Consultant", "Credit Authorizer", "Benefits Manager", "Credit Counselor", "Accountant", "Accounting Analyst", "Accounting Director", "Accounts Payable/Receivable Clerk", "Auditor", "Budget Analyst", "Financial Analyst", "Finance Manager", "Economist", "Payroll Manager", "Payroll Clerk", "Financial Planner", "Financial Services Representative", "Finance Director", "Commercial Loan Officer", "Engineer", "Mechanical Engineer", "Civil Engineer", "Electrical Engineer", "Assistant Engineer", "Chemical Engineer", "Chief Engineer", "Drafter", "Engineering Technician", "Geological Engineer", "Biological Engineer", "Maintenance Engineer", "Mining Engineer", "Nuclear Engineer", "Petroleum Engineer", "Plant Engineer", "Production Engineer", "Quality Engineer", "Safety Engineer", "Chief People Officer", "VP of Miscellaneous Stuff", "Chief Robot Whisperer", "Director of First Impressions", "Culture Operations Manager", "Director of Ethical Hacking", "Software Ninjaneer", "Director of Bean Counting", "Digital Overlord", "Director of Storytelling", "Researcher", "Research Assistant", "Data Analyst", "Biostatistician", "Title Researcher", "Market Researcher", "Title Analyst", "Medical Researcher", "Mentor", "Tutor/Online Tutor", "Teacher", "Teaching Assistant", "Substitute Teacher", "Preschool Teacher", "Test Scorer", "Online ESL Instructor", "Professor", "Assistant Professor", "Artist", "Interior Designer", "Video Editor", "Video or Film Producer", "Playwright", "Musician", "Novelist/Writer", "Computer Animator", "Photographer", "Camera Operator", "Sound Engineer", "Motion Picture Director", "Actor", "Music Producer", "Director of Photography", "Nurse", "Travel Nurse", "Nurse Practitioner", "Doctor", "Caregiver", "CNA", "Physical Therapist", "Pharmacist", "Pharmacy Assistant", "Medical Administrator", "Medical Laboratory Tech", "Physical Therapy Assistant", "Massage Therapy", "Dental Hygienist", "Orderly", "Personal Trainer", "Phlebotomist", "Medical Transcriptionist", "Telework Nurse/Doctor", "Reiki Practitioner", "Housekeeper", "Flight Attendant", "Travel Agent", "Hotel Front Door Greeter", "Bellhop", "Cruise Director", "Entertainment Specialist", "Hotel Manager", "Front Desk Associate", "Front Desk Manager", "Group Sales", "Event Planner", "Porter", "Spa Manager", "Wedding Coordinator", "Cruise Ship Attendant", "Casino Host", "Hotel Receptionist", "Reservationist", "Events Manager", "Meeting Planner", "Lodging Manager", "Director of Maintenance", "Valet", "Waiter/Waitress", "Server", "Chef", "Fast Food Worker", "Barista", "Line Cook", "Cafeteria Worker", "Restaurant Manager", "Wait Staff Manager", "Bus Person", "Restaurant Chain Executive", "Political Scientist", "Chemist", "Conservation Scientist", "Sociologist", "Biologist", "Geologist", "Physicist", "Astronomer", "Atmospheric Scientist", "Molecular Scientist", "Call Center Representative", "Telemarketer", "Telephone Operator", "Phone Survey Conductor", "Dispatcher for Trucks or Taxis", "Customer Support Representative", "Over the Phone Interpreter", "Phone Sales Specialist", "Mortgage Loan Processor", "Counselor", "Mental Health Counselor", "Addiction Counselor", "School Counselor", "Speech Pathologist", "Guidance Counselor", "Social Worker", "Therapist", "Life Coach", "Couples Counselor", "Beautician", "Hair Stylist", "Nail Technician", "Cosmetologist", "Salon Manager", "Makeup Artist", "Esthetician", "Skin Care Specialist", "Manicurist", "Barber", "Journalist", "Copy Editor", "Editor/Proofreader", "Content Creator", "Speechwriter", "Communications Director", "Screenwriter", "Technical Writer", "Columnist", "Public Relations Specialist", "Proposal Writer", "Content Strategist", "Grant Writer", "Video Game Writer", "Translator", "Film Critic", "Travel Writer", "Social Media Specialist", "Ghostwriter", "Delivery Driver", "School Bus Driver", "Truck Driver", "Tow Truck Operator", "UPS Driver", "Mail Carrier", "Recyclables Collector", "Courier", "Bus Driver", "Cab Driver", "Archivist", "Actuary", "Architect", "Personal Assistant", "Entrepreneur", "Owner", "Security Guard", "Mechanic", "Recruiter", "Mathematician", "Locksmith", "Management Consultant", "Shelf Stocker", "Caretaker or House Sitter", "Library Assistant", "HVAC Technician", "Attorney", "Paralegal", "Bank Teller", "Parking Attendant", "Machinery Operator", "Manufacturing Assembler", "Funeral Attendant", "Assistant Golf Professional", "Yoga Instructor"], []);
-  const jobOptions = useMemo(() => {
-    const unique = Array.from(new Set(jobTitles));
-    unique.sort((a, b) => a.localeCompare(b, undefined, {
-      sensitivity: "base"
-    }));
-    return unique.map(job => ({
-      label: job,
-      value: job
-    }));
-  }, [jobTitles]);
-  const employmentOptions = ["Private Sector", "Government", "Business", "Self-Employed", "Not Working", "Student"];
-  const incomeOptions = ["₹1 – 5 Lakh", "₹5 – 10 Lakh", "₹10 – 15 Lakh", "₹15 – 20 Lakh", "₹20 – 25 Lakh", "₹25 – 30 Lakh", "₹30 – 35 Lakh", "₹35 – 40 Lakh", "₹40 – 45 Lakh", "₹45 – 50 Lakh", "₹50 – 55 Lakh", "₹55 – 60 Lakh", "₹60 – 65 Lakh", "₹65 – 70 Lakh", "₹70 – 75 Lakh", "₹75 – 80 Lakh", "₹80 – 85 Lakh", "₹85 – 90 Lakh", "₹90 – 95 Lakh", "₹95 Lakh – ₹1 Crore", "More than ₹1 Crore"];
+
   const capitalizeWords = str => {
     if (!str) return "";
     return str.split(" ").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
   };
+  
   const handleChange = useCallback(e => {
     const {
       name
@@ -40,8 +31,11 @@ const ProfessionDetails = ({
     let {
       value
     } = e.target;
-    if (name === "companyName") {
-      value = value.split(/(\s+)/).map(token => token.trim() ? token.charAt(0).toUpperCase() + token.slice(1) : token).join("");
+    if (name === "companyName" && value) {
+      // Capitalize first letter of each word
+      value = value.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
     }
     setFormData(prev => ({
       ...prev,
@@ -200,7 +194,7 @@ const ProfessionDetails = ({
             <label className="text-sm font-medium mb-1">
               Employment Status <RequiredMark />
             </label>
-            <CustomSelect name="employmentStatus" value={formData.employmentStatus} onChange={handleChange} options={employmentOptions} placeholder="Select Employment Status" className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${errors.employmentStatus ? "border-red-500 focus:ring-red-400 focus:border-red-400" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`} />
+            <CustomSelect name="employmentStatus" value={formData.employmentStatus} onChange={handleChange} options={EMPLOYMENT_OPTIONS} placeholder="Select Employment Status" className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${errors.employmentStatus ? "border-red-500 focus:ring-red-400 focus:border-red-400" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`} />
 
             {}
             {errors.employmentStatus && <p className="text-red-500 text-sm mt-1">
@@ -220,7 +214,7 @@ const ProfessionDetails = ({
                 const val = e.target.value;
                 handleSelectChange("occupation", val ? { value: val, label: val } : null);
               }}
-              options={jobTitles}
+              options={JOB_TITLES}
               placeholder="Search or type job title..."
               allowCustom={true}
               disabled={isDisabled}
@@ -247,7 +241,7 @@ const ProfessionDetails = ({
           {}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">Annual Income <RequiredMark /></label>
-            <CustomSelect name="annualIncome" value={isDisabled ? formData.employmentStatus === "Not Working" ? "Not Working" : "Student" : formData.annualIncome} onChange={handleChange} disabled={isDisabled} options={incomeOptions} placeholder="Select Annual Income" className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${isDisabled ? "bg-gray-100 cursor-not-allowed border-gray-300" : errors.annualIncome ? "border-red-500 focus:ring-red-400 focus:border-red-400" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`} />
+            <CustomSelect name="annualIncome" value={isDisabled ? formData.employmentStatus === "Not Working" ? "Not Working" : "Student" : formData.annualIncome} onChange={handleChange} disabled={isDisabled} options={INCOME_OPTIONS} placeholder="Select Annual Income" className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-1 transition ${isDisabled ? "bg-gray-100 cursor-not-allowed border-gray-300" : errors.annualIncome ? "border-red-500 focus:ring-red-400 focus:border-red-400" : "border-[#D4A052] focus:ring-[#E4C48A] focus:border-[#E4C48A]"}`} />
             {errors.annualIncome && <p className="text-red-500 text-sm mt-1">{errors.annualIncome}</p>}
           </div>
 

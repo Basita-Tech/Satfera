@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import CustomSelect from "../ui/CustomSelect";
 import { getUserHealth, saveUserHealth, updateUserHealth } from "../../api/auth";
 import toast from "react-hot-toast";
+import { DIET_OPTIONS, YES_NO_OPTIONS, YES_NO_OCCASIONAL_OPTIONS } from "@/lib/constant";
+
 const HealthLifestyle = ({
   onNext,
   onPrevious
@@ -112,7 +114,7 @@ const HealthLifestyle = ({
             <label className="text-sm font-medium mb-1">
               Do you consume alcohol? <RequiredMark />
             </label>
-            <CustomSelect name="alcohol" value={formData.alcohol} onChange={e => handleChange("alcohol", e.target.value)} options={["yes", "no", "occasional"]} placeholder="Select" className={`${inputClass} ${errors.alcohol ? "border-red-500" : ""}`} />
+            <CustomSelect name="alcohol" value={formData.alcohol} onChange={e => handleChange("alcohol", e.target.value)} options={YES_NO_OCCASIONAL_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.alcohol ? "border-red-500" : ""}`} />
             {errors.alcohol && <p className="text-red-500 text-sm mt-1">{errors.alcohol}</p>}
           </div>
 
@@ -121,7 +123,7 @@ const HealthLifestyle = ({
             <label className="text-sm font-medium mb-1">
               Do you use tobacco or related products? <RequiredMark />
             </label>
-            <CustomSelect name="tobacco" value={formData.tobacco} onChange={e => handleChange("tobacco", e.target.value)} options={["yes", "no", "occasional"]} placeholder="Select" className={`${inputClass} ${errors.tobacco ? "border-red-500" : ""}`} />
+            <CustomSelect name="tobacco" value={formData.tobacco} onChange={e => handleChange("tobacco", e.target.value)} options={YES_NO_OCCASIONAL_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.tobacco ? "border-red-500" : ""}`} />
             {errors.tobacco && <p className="text-red-500 text-sm mt-1">{errors.tobacco}</p>}
           </div>
 
@@ -130,7 +132,7 @@ const HealthLifestyle = ({
             <label className="text-sm font-medium mb-1">
               Do you have any visible tattoos? <RequiredMark />
             </label>
-            <CustomSelect name="tattoos" value={formData.tattoos} onChange={e => handleChange("tattoos", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.tattoos ? "border-red-500" : ""}`} />
+            <CustomSelect name="tattoos" value={formData.tattoos} onChange={e => handleChange("tattoos", e.target.value)} options={YES_NO_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.tattoos ? "border-red-500" : ""}`} />
             {errors.tattoos && <p className="text-red-500 text-sm mt-1">{errors.tattoos}</p>}
           </div>
 
@@ -139,7 +141,7 @@ const HealthLifestyle = ({
             <label className="text-sm font-medium mb-1">
               Have you ever tested HIV positive? <RequiredMark />
             </label>
-            <CustomSelect name="hiv" value={formData.hiv} onChange={e => handleChange("hiv", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.hiv ? "border-red-500" : ""}`} />
+            <CustomSelect name="hiv" value={formData.hiv} onChange={e => handleChange("hiv", e.target.value)} options={YES_NO_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.hiv ? "border-red-500" : ""}`} />
             {errors.hiv && <p className="text-red-500 text-sm mt-1">{errors.hiv}</p>}
           </div>
 
@@ -148,7 +150,7 @@ const HealthLifestyle = ({
             <label className="text-sm font-medium mb-1">
               Have you ever tested Tuberculosis (TB) positive? <RequiredMark />
             </label>
-            <CustomSelect name="tb" value={formData.tb} onChange={e => handleChange("tb", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.tb ? "border-red-500" : ""}`} />
+            <CustomSelect name="tb" value={formData.tb} onChange={e => handleChange("tb", e.target.value)} options={YES_NO_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.tb ? "border-red-500" : ""}`} />
             {errors.tb && <p className="text-red-500 text-sm mt-1">{errors.tb}</p>}
           </div>
 
@@ -158,7 +160,7 @@ const HealthLifestyle = ({
               Do you have any past or ongoing medical history we should be aware
               of? <RequiredMark />
             </label>
-            <CustomSelect name="medicalHistory" value={formData.medicalHistory} onChange={e => handleChange("medicalHistory", e.target.value)} options={["yes", "no"]} placeholder="Select" className={`${inputClass} ${errors.medicalHistory ? "border-red-500" : ""}`} />
+            <CustomSelect name="medicalHistory" value={formData.medicalHistory} onChange={e => handleChange("medicalHistory", e.target.value)} options={YES_NO_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.medicalHistory ? "border-red-500" : ""}`} />
             {errors.medicalHistory && <p className="text-red-500 text-sm mt-1">
                 {errors.medicalHistory}
               </p>}
@@ -171,7 +173,7 @@ const HealthLifestyle = ({
             <label className="text-sm font-medium mb-1">
               What is your diet? <RequiredMark />
             </label>
-            <CustomSelect name="diet" value={formData.diet} onChange={e => handleChange("diet", e.target.value)} options={["vegetarian", "non-vegetarian", "eggetarian", "jain", "swaminarayan", "veg & non-veg"]} placeholder="Select" className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`} />
+            <CustomSelect name="diet" value={formData.diet} onChange={e => handleChange("diet", e.target.value)} options={DIET_OPTIONS} placeholder="Select" className={`${inputClass} ${errors.diet ? "border-red-500" : ""}`} />
             {errors.diet && <p className="text-red-500 text-sm mt-1">{errors.diet}</p>}
           </div>
 

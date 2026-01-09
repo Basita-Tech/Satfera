@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+﻿import React, { useState, useEffect, useMemo, useCallback } from "react";
 import ReactSelect from "react-select";
 import { getNames } from "country-list";
 import { allCountries } from "country-telephone-data";
 import CreatableSelect from "react-select/creatable";
 import { State } from "country-state-city";
-import { nationalities, visaCategories, doshOptions, weightOptions, heightOptions } from "@/lib/constant";
+import { nationalities, visaCategories, doshOptions, weightOptions, heightOptions, QUALIFICATION_LEVELS, EDUCATION_OPTIONS_BY_LEVEL, EMPLOYMENT_OPTIONS, INCOME_OPTIONS, JOB_TITLES, LEGAL_STATUSES, allCastes, DIET_OPTIONS, ZODIAC_SIGNS, RELIGIONS, DIVORCE_STATUSES, CHILDREN_LIVING_OPTIONS } from "@/lib/constant";
 import LocationSelect from "../../ui/LocationSelect";
 import { getStateCode, getAllCountriesWithCodes } from "../../../lib/locationUtils";
 import { TabsComponent } from "../../TabsComponent";
@@ -19,228 +19,7 @@ import usePhotoUpload from "../../../hooks/usePhotoUpload";
 import EditProfileCropperModal from "../../EditProfileCropperModal";
 import { getUserPersonal, getUserFamilyDetails, getEducationalDetails, getUserProfession, getUserExpectations, getUserPhotos, getUserHealth, updateUserPersonal, updateUserFamilyDetails, updateUserExpectations, updateUserHealth, updateEducationalDetails, saveEducationalDetails, saveUserProfession, updateUserProfession, saveUserHealth, saveUserFamilyDetails, saveUserExpectations } from "../../../api/auth";
 import toast from "react-hot-toast";
-const QUALIFICATION_LEVELS = [
-  "High School",
-  "Undergraduate",
-  "Associates Degree",
-  "Bachelors",
-  "Honours Degree",
-  "Masters",
-  "Doctor",
-  "Doctorate",
-  "Diploma",
-  "Trade School",
-  "Less Than High School",
-];
-
-const EDUCATION_OPTIONS_BY_LEVEL = {
-  "High School": [
-    "Higher Secondary School / High School",
-    "Science Stream",
-    "Commerce Stream",
-    "Arts Stream",
-    "Vocational Stream",
-  ],
-  "Less Than High School": ["Primary School", "Middle School"],
-  "Associates Degree": [
-    "Associates in Arts",
-    "Associates in Science",
-    "Associates in Applied Science",
-    "Associates in Business",
-    "Associates in Engineering",
-    "Associates in Nursing",
-    "Other Associates Degree",
-    "CA - Chartered Accountant",
-    "CFA - Chartered Financial Analyst",
-    "CS - Company Secretary",
-    "ICWA - Cost And Works Accountant",
-    "CPA - Certified Public Accountant",
-    "CMA - Certified Management Accountant",
-  ],
-  Undergraduate: [
-    "Aeronautical Engineering",
-    "B.Arch. - Bachelor of Architecture",
-    "BCA - Bachelor of Computer Applications",
-    "B.E. - Bachelor of Engineering",
-    "B.Plan - Bachelor of Planning",
-    "B.Des. - Bachelor of Design",
-    "B.Voc. - Bachelor of Vocation",
-    "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
-    "B.S. Eng. - Bachelor of Science in Engineering",
-    "B.Tech. - Bachelor of Technology",
-    "Other Bachelor's Degree in Engineering / Computers",
-    "Aviation Degree",
-    "B.A. - Bachelor of Arts",
-    "B.Com. - Bachelor of Commerce",
-    "B.Ed. - Bachelor of Education",
-    "B.P.Ed - Bachelor of Physical Education",
-    "BFA - Bachelor of Fine Arts",
-    "BFT - Bachelor of Fashion Technology",
-    "BLIS - Bachelor of Library and Information Science",
-    "B.M.M. - Bachelor of Mass Media",
-    "B.Sc. - Bachelor of Science",
-    "B.Stat. - Bachelor of Statistics",
-    "B.S.W. - Bachelor of Social Work",
-    "B.Phil. - Bachelor of Philosophy",
-    "Other Bachelor's Degree in Arts / Science / Commerce",
-    "BBA - Bachelor of Business Administration",
-    "BFM - Bachelor of Financial Management",
-    "BHM - Bachelor of Hotel Management",
-    "BHA - Bachelor of Hospital Administration",
-    "Other Bachelor's Degree in Management",
-    "BPharm - Bachelor of Pharmacy",
-    "BPT - Bachelor of Physiotherapy",
-    "B.Sc. Nursing - Bachelor of Science in Nursing",
-    "B.Optom - Bachelor of Optometry",
-    "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
-    "BGL - Bachelor of General Laws",
-    "BL - Bachelor of Laws",
-    "LLB - Bachelor of Legislative Law",
-    "Other Bachelor's Degree in Legal",
-  ],
-  Bachelors: [
-    "Aeronautical Engineering",
-    "B.Arch. - Bachelor of Architecture",
-    "BCA - Bachelor of Computer Applications",
-    "B.E. - Bachelor of Engineering",
-    "B.Plan - Bachelor of Planning",
-    "B.Des. - Bachelor of Design",
-    "B.Voc. - Bachelor of Vocation",
-    "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
-    "B.S. Eng. - Bachelor of Science in Engineering",
-    "B.Tech. - Bachelor of Technology",
-    "Other Bachelor's Degree in Engineering / Computers",
-    "Aviation Degree",
-    "B.A. - Bachelor of Arts",
-    "B.Com. - Bachelor of Commerce",
-    "B.Ed. - Bachelor of Education",
-    "B.P.Ed - Bachelor of Physical Education",
-    "BFA - Bachelor of Fine Arts",
-    "BFT - Bachelor of Fashion Technology",
-    "BLIS - Bachelor of Library and Information Science",
-    "B.M.M. - Bachelor of Mass Media",
-    "B.Sc. - Bachelor of Science",
-    "B.Stat. - Bachelor of Statistics",
-    "B.S.W. - Bachelor of Social Work",
-    "B.Phil. - Bachelor of Philosophy",
-    "Other Bachelor's Degree in Arts / Science / Commerce",
-    "BBA - Bachelor of Business Administration",
-    "BFM - Bachelor of Financial Management",
-    "BHM - Bachelor of Hotel Management",
-    "BHA - Bachelor of Hospital Administration",
-    "Other Bachelor's Degree in Management",
-    "BPharm - Bachelor of Pharmacy",
-    "BPT - Bachelor of Physiotherapy",
-    "B.Sc. Nursing - Bachelor of Science in Nursing",
-    "B.Optom - Bachelor of Optometry",
-    "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
-    "BGL - Bachelor of General Laws",
-    "BL - Bachelor of Laws",
-    "LLB - Bachelor of Legislative Law",
-    "Other Bachelor's Degree in Legal",
-  ],
-  "Honours Degree": [
-    "B.Arch. (Hons) - Bachelor of Architecture with Honours",
-    "B.E. (Hons) - Bachelor of Engineering with Honours",
-    "B.Tech. (Hons) - Bachelor of Technology with Honours",
-    "B.Sc. (Hons) - Bachelor of Science with Honours",
-    "B.A. (Hons) - Bachelor of Arts with Honours",
-    "B.Com. (Hons) - Bachelor of Commerce with Honours",
-    "Other Honours Degree",
-  ],
-  Masters: [
-    "M.Arch. - Master of Architecture",
-    "MCA - Master of Computer Applications",
-    "M.E. - Master of Engineering",
-    "M.Plan - Master of Planning",
-    "M.Des. - Master of Design",
-    "M.Sc. IT/CS - Master of Science in IT/Computer Science",
-    "M.S. Eng. - Master of Science in Engineering",
-    "M.Tech. - Master of Technology",
-    "Other Master's Degree in Engineering / Computers",
-    "M.A. - Master of Arts",
-    "M.Com. - Master of Commerce",
-    "M.Ed. - Master of Education",
-    "M.P.Ed - Master of Physical Education",
-    "MFA - Master of Fine Arts",
-    "MLIS - Master of Library and Information Science",
-    "M.Sc. - Master of Science",
-    "M.Stat. - Master of Statistics",
-    "M.S.W. - Master of Social Work",
-    "M.Phil. - Master of Philosophy",
-    "Other Master's Degree in Arts / Science / Commerce",
-    "MBA - Master of Business Administration",
-    "MFM - Master of Financial Management",
-    "MHM - Master of Hotel Management",
-    "MHRM - Master of Human Resource Management",
-    "MHA - Master of Hospital Administration",
-    "Other Master's Degree in Management",
-    "MPharm - Master of Pharmacy",
-    "MPT - Master of Physiotherapy",
-    "MPH - Master of Public Health",
-    "M.Sc. Nursing - Master of Science in Nursing",
-    "Other Master's Degree in Pharmacy / Nursing or Health Sciences",
-    "LLM - Master of Laws",
-    "ML - Master of Legal Studies",
-    "Other Master's Degree in Legal",
-  ],
-  Doctor: [
-    "MBBS - Bachelor of Medicine, Bachelor of Surgery",
-    "BDS - Bachelor of Dental Surgery",
-    "BAMS - Bachelor of Ayurvedic Medicine and Surgery",
-    "BHMS - Bachelor of Homeopathic Medicine and Surgery",
-    "BSMS - Bachelor of Siddha Medicine and Surgery",
-    "BUMS - Bachelor of Unani Medicine and Surgery",
-    "BVSc - Bachelor of Veterinary Science",
-    "Pharm.D - Doctor of Pharmacy",
-    "MDS - Master of Dental Surgery",
-    "MS - Master of Surgery",
-    "MVSc - Master of Veterinary Science",
-    "MCh - Master of Chirurgiae",
-    "DM - Doctor of Medicine",
-    "DNB - Diplomate of National Board",
-    "FNB - Fellow of National Board",
-  ],
-  Doctorate: [
-    "Ph.D. - Doctor of Philosophy",
-    "D.Sc. - Doctor of Science",
-    "Ed.D. - Doctor of Education",
-    "DBA - Doctor of Business Administration",
-    "D.Litt. - Doctor of Literature",
-    "LL.D. - Doctor of Laws",
-    "Psy.D. - Doctor of Psychology",
-    "Postdoctoral Fellow",
-  ],
-  Diploma: [
-    "Diploma in Engineering",
-    "Diploma in Computer Applications",
-    "Diploma in Management",
-    "Diploma in Nursing",
-    "Diploma in Pharmacy",
-    "Diploma in Education",
-    "Diploma in Medical Laboratory Technology (DMLT)",
-    "Diploma in Hotel Management",
-    "Diploma in Interior Design",
-    "Polytechnic Diploma",
-    "PGDCA - Post Graduate Diploma in Computer Applications",
-    "PGDM - Post Graduate Diploma in Management",
-    "Advanced Diploma",
-    "Other Diplomas",
-  ],
-  "Trade School": [
-    "Electrician",
-    "Plumber",
-    "Carpenter",
-    "Mechanic",
-    "Welder",
-    "Fitter",
-    "Machinist",
-    "Draughtsman",
-    "Other Trade Certification",
-  ],
-};
 const FIELD_OF_STUDY_OPTIONS = ["Aeronautical Engineering", "B.Arch. - Bachelor of Architecture", "BCA - Bachelor of Computer Applications", "B.E. - Bachelor of Engineering", "B.Plan - Bachelor of Planning", "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science", "B.S. Eng. - Bachelor of Science in Engineering", "B.Tech. - Bachelor of Technology", "Other Bachelor's Degree in Engineering / Computers", "M.Arch. - Master of Architecture", "MCA - Master of Computer Applications", "M.E. - Master of Engineering", "M.Sc. IT/CS - Master of Science in IT/Computer Science", "M.S. Eng. - Master of Science in Engineering", "M.Tech. - Master of Technology", "PGDCA - Post Graduate Diploma in Computer Applications", "Other Master's Degree in Engineering / Computers", "Aviation Degree", "B.A. - Bachelor of Arts", "B.Com. - Bachelor of Commerce", "B.Ed. - Bachelor of Education", "BFA - Bachelor of Fine Arts", "BFT - Bachelor of Fashion Technology", "BLIS - Bachelor of Library and Information Science", "B.M.M. - Bachelor of Mass Media", "B.Sc. - Bachelor of Science", "B.S.W. - Bachelor of Social Work", "B.Phil. - Bachelor of Philosophy", "Other Bachelor's Degree in Arts / Science / Commerce", "M.A. - Master of Arts", "M.Com. - Master of Commerce", "M.Ed. - Master of Education", "MFA - Master of Fine Arts", "MLIS - Master of Library and Information Science", "M.Sc. - Master of Science", "M.S.W. - Master of Social Work", "M.Phil. - Master of Philosophy", "Other Master's Degree in Arts / Science / Commerce", "BBA - Bachelor of Business Administration", "BFM - Bachelor of Financial Management", "BHM - Bachelor of Hotel Management", "BHA - Bachelor of Hospital Administration", "Other Bachelor's Degree in Management", "MBA - Master of Business Administration", "MFM - Master of Financial Management", "MHM - Master of Hotel Management", "MHRM - Master of Human Resource Management", "PGDM - Post Graduate Diploma in Management", "MHA - Master of Hospital Administration", "Other Master's Degree in Management", "BAMS - Bachelor of Ayurvedic Medicine and Surgery", "BDS - Bachelor of Dental Surgery", "BHMS - Bachelor of Homeopathic Medicine and Surgery", "BSMS - Bachelor of Siddha Medicine and Surgery", "BUMS - Bachelor of Unani Medicine and Surgery", "BVSc - Bachelor of Veterinary Science", "MBBS - Bachelor of Medicine, Bachelor of Surgery", "MDS - Master of Dental Surgery", "Doctor of Medicine / Master of Surgery", "MVSc - Master of Veterinary Science", "MCh - Master of Chirurgiae", "DNB - Diplomate of National Board", "BPharm - Bachelor of Pharmacy", "BPT - Bachelor of Physiotherapy", "B.Sc. Nursing - Bachelor of Science in Nursing", "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences", "MPharm - Master of Pharmacy", "MPT - Master of Physiotherapy", "Other Master's Degree in Pharmacy / Nursing or Health Sciences", "BGL - Bachelor of General Laws", "BL - Bachelor of Laws", "LLB - Bachelor of Legislative Law", "Other Bachelor's Degree in Legal", "LLM - Master of Laws", "ML - Master of Legal Studies", "Other Master's Degree in Legal", "CA - Chartered Accountant", "CFA - Chartered Financial Analyst", "CS - Company Secretary", "ICWA - Cost and Works Accountant", "Other Degree / Qualification in Finance", "IAS - Indian Administrative Service", "IPS - Indian Police Service", "IRS - Indian Revenue Service", "IES - Indian Engineering Services", "IFS - Indian Foreign Service", "Other Civil Services", "Ph.D. - Doctor of Philosophy", "DM - Doctor of Medicine", "Postdoctoral Fellow", "FNB - Fellow of National Board", "Diploma", "Polytechnic", "Other Diplomas", "Higher Secondary School / High School"];
-const EMPLOYMENT_OPTIONS = ["business", "government", "unemployed", "private sector", "self-employed", "student"];
 const EMPLOYMENT_DISPLAY_MAP = {
   business: "Business",
   government: "Government",
@@ -249,17 +28,14 @@ const EMPLOYMENT_DISPLAY_MAP = {
   "self-employed": "Self-Employed",
   student: "Student"
 };
-const INCOME_OPTIONS = ["₹1 – 5 Lakh", "₹5 – 10 Lakh", "₹10 – 15 Lakh", "₹15 – 20 Lakh", "₹20 – 25 Lakh", "₹25 – 30 Lakh", "₹30 – 35 Lakh", "₹35 – 40 Lakh", "₹40 – 45 Lakh", "₹45 – 50 Lakh", "₹50 – 55 Lakh", "₹55 – 60 Lakh", "₹60 – 65 Lakh", "₹65 – 70 Lakh", "₹70 – 75 Lakh", "₹75 – 80 Lakh", "₹80 – 85 Lakh", "₹85 – 90 Lakh", "₹90 – 95 Lakh", "₹95 Lakh – ₹1 Crore", "More than ₹1 Crore"];
-const JOB_TITLES = ["Marketing Specialist", "Marketing Manager", "Marketing Director", "Graphic Designer", "Marketing Research Analyst", "Marketing Communications Manager", "Marketing Consultant", "Product Manager", "Public Relations", "Social Media Assistant", "Brand Manager", "SEO Manager", "Content Marketing Manager", "Copywriter", "Media Buyer", "Digital Marketing Manager", "eCommerce Marketing Specialist", "Brand Strategist", "Vice President of Marketing", "Media Relations Coordinator", "Administrative Assistant", "Receptionist", "Office Manager", "Auditing Clerk", "Bookkeeper", "Account Executive", "Branch Manager", "Business Manager", "Quality Control Coordinator", "Administrative Manager", "Chief Executive Officer", "Business Analyst", "Risk Manager", "Human Resources", "Office Assistant", "Secretary", "Office Clerk", "File Clerk", "Account Collector", "Administrative Specialist", "Executive Assistant", "Program Administrator", "Program Manager", "Administrative Analyst", "Data Entry", "Chief Operating Officer", "Chief Financial Officer", "Chief Information Officer", "Chief Technology Officer", "Chief Marketing Officer", "Chief Human Resources Officer", "Chief Data Officer", "CPO—Chief Product Officer", "Chief Customer Officer", "Team Leader", "Manager", "Assistant Manager", "Executive", "Director", "Coordinator", "Administrator", "Controller", "Officer", "Organizer", "Supervisor", "Superintendent", "Head", "Overseer", "Chief", "Foreman", "Principal", "President", "Lead", "Computer Scientist", "IT Professional", "UX Designer & UI Developer", "SQL Developer", "Web Designer", "Web Developer", "Help Desk Worker/Desktop Support", "Software Engineer", "DevOps Engineer", "Computer Programmer", "Network Administrator", "Information Security Analyst", "Artificial Intelligence Engineer", "Cloud Architect", "IT Manager", "Technical Specialist", "Application Developer", "Virtual Assistant", "Customer Service", "Customer Support", "Concierge", "Help Desk", "Customer Service Manager", "Technical Support Specialist", "Account Representative", "Client Service Specialist", "Customer Care Associate", "Operations Manager", "Operations Assistant", "Operations Coordinator", "Operations Analyst", "Operations Director", "Vice President of Operations", "Operations Professional", "Scrum Master", "Continuous Improvement Lead", "Continuous Improvement Consultant", "Credit Authorizer", "Benefits Manager", "Credit Counselor", "Accountant", "Accounting Analyst", "Accounting Director", "Accounts Payable/Receivable Clerk", "Auditor", "Budget Analyst", "Financial Analyst", "Finance Manager", "Economist", "Payroll Manager", "Payroll Clerk", "Financial Planner", "Financial Services Representative", "Finance Director", "Commercial Loan Officer", "Engineer", "Mechanical Engineer", "Civil Engineer", "Electrical Engineer", "Assistant Engineer", "Chemical Engineer", "Chief Engineer", "Drafter", "Engineering Technician", "Geological Engineer", "Biological Engineer", "Maintenance Engineer", "Mining Engineer", "Nuclear Engineer", "Petroleum Engineer", "Plant Engineer", "Production Engineer", "Quality Engineer", "Safety Engineer", "Chief People Officer", "VP of Miscellaneous Stuff", "Chief Robot Whisperer", "Director of First Impressions", "Culture Operations Manager", "Director of Ethical Hacking", "Software Ninjaneer", "Director of Bean Counting", "Digital Overlord", "Director of Storytelling", "Researcher", "Research Assistant", "Data Analyst", "Biostatistician", "Title Researcher", "Market Researcher", "Title Analyst", "Medical Researcher", "Mentor", "Tutor/Online Tutor", "Teacher", "Teaching Assistant", "Substitute Teacher", "Preschool Teacher", "Test Scorer", "Online ESL Instructor", "Professor", "Assistant Professor", "Artist", "Interior Designer", "Video Editor", "Video or Film Producer", "Playwright", "Musician", "Novelist/Writer", "Computer Animator", "Photographer", "Camera Operator", "Sound Engineer", "Motion Picture Director", "Actor", "Music Producer", "Director of Photography", "Nurse", "Travel Nurse", "Nurse Practitioner", "Doctor", "Caregiver", "CNA", "Physical Therapist", "Pharmacist", "Pharmacy Assistant", "Medical Administrator", "Medical Laboratory Tech", "Physical Therapy Assistant", "Massage Therapy", "Dental Hygienist", "Orderly", "Personal Trainer", "Phlebotomist", "Medical Transcriptionist", "Telework Nurse/Doctor", "Reiki Practitioner", "Housekeeper", "Flight Attendant", "Travel Agent", "Hotel Front Door Greeter", "Bellhop", "Cruise Director", "Entertainment Specialist", "Hotel Manager", "Front Desk Associate", "Front Desk Manager", "Group Sales", "Event Planner", "Porter", "Spa Manager", "Wedding Coordinator", "Cruise Ship Attendant", "Casino Host", "Hotel Receptionist", "Reservationist", "Events Manager", "Meeting Planner", "Lodging Manager", "Director of Maintenance", "Valet", "Waiter/Waitress", "Server", "Chef", "Fast Food Worker", "Barista", "Line Cook", "Cafeteria Worker", "Restaurant Manager", "Wait Staff Manager", "Bus Person", "Restaurant Chain Executive", "Political Scientist", "Chemist", "Conservation Scientist", "Sociologist", "Biologist", "Geologist", "Physicist", "Astronomer", "Atmospheric Scientist", "Molecular Scientist", "Call Center Representative", "Telemarketer", "Telephone Operator", "Phone Survey Conductor", "Dispatcher for Trucks or Taxis", "Customer Support Representative", "Over the Phone Interpreter", "Phone Sales Specialist", "Mortgage Loan Processor", "Counselor", "Mental Health Counselor", "Addiction Counselor", "School Counselor", "Speech Pathologist", "Guidance Counselor", "Social Worker", "Therapist", "Life Coach", "Couples Counselor", "Beautician", "Hair Stylist", "Nail Technician", "Cosmetologist", "Salon Manager", "Makeup Artist", "Esthetician", "Skin Care Specialist", "Manicurist", "Barber", "Journalist", "Copy Editor", "Editor/Proofreader", "Content Creator", "Speechwriter", "Communications Director", "Screenwriter", "Technical Writer", "Columnist", "Public Relations Specialist", "Proposal Writer", "Content Strategist", "Grant Writer", "Video Game Writer", "Translator", "Film Critic", "Travel Writer", "Social Media Specialist", "Ghostwriter", "Delivery Driver", "School Bus Driver", "Truck Driver", "Tow Truck Operator", "UPS Driver", "Mail Carrier", "Recyclables Collector", "Courier", "Bus Driver", "Cab Driver", "Archivist", "Actuary", "Architect", "Personal Assistant", "Entrepreneur", "Owner", "Security Guard", "Mechanic", "Recruiter", "Mathematician", "Locksmith", "Management Consultant", "Shelf Stocker", "Caretaker or House Sitter", "Library Assistant", "HVAC Technician", "Attorney", "Paralegal", "Bank Teller", "Parking Attendant", "Machinery Operator", "Manufacturing Assembler", "Funeral Attendant", "Assistant Golf Professional", "Yoga Instructor"];
 const LIFESTYLE_HABIT_OPTIONS = ["Yes", "No", "Occasional"];
 const LIFESTYLE_YES_NO = ["Yes", "No"];
-const LIFESTYLE_DIET_OPTIONS = ["Eggetarian", "Jain", "Non-Vegetarian", "Swaminarayan", "Veg & Non-veg", "Vegetarian"];
-const LEGAL_STATUSES = ["Awaiting Divorce", "Divorced", "Never Married", "Separated", "Widowed"];
-const EXPECT_MARITAL_STATUSES = ["Any", "Awaiting Divorce", "Divorced", "Never Married", "Separated", "Widowed"];
-const EXPECT_PROFESSION_OPTIONS = ["Any", "Business", "Government", "Not Working", "Private Sector", "Self-Employed", "Student"];
-const EXPECT_CAST_OPTIONS = ["Any", "Brahmin", "Brahmin-Audichya", "Jain-Digambar", "Jain-Swetamber", "Patel", "Patel-Desai", "Patel-Kadva", "Patel-Leva", "Vaishnav-Vania"];
+const LIFESTYLE_DIET_OPTIONS = DIET_OPTIONS.map(d => d.charAt(0).toUpperCase() + d.slice(1)).sort();
+const EXPECT_MARITAL_STATUSES = ["Any", ...LEGAL_STATUSES].sort();
+const EXPECT_PROFESSION_OPTIONS = ["Any", ...EMPLOYMENT_OPTIONS.map(e => EMPLOYMENT_DISPLAY_MAP[e] || e)].sort();
+const EXPECT_CAST_OPTIONS = ["Any", ...allCastes].sort();
 const EXPECT_EDUCATION_OPTIONS = ["Any", ...QUALIFICATION_LEVELS];
-const EXPECT_DIET_OPTIONS = ["Any", "Eggetarian", "Jain", "Non-Vegetarian", "Swaminarayan", "Veg & Non-Veg", "Vegetarian"];
+const EXPECT_DIET_OPTIONS = ["Any", ...DIET_OPTIONS.map(d => d.charAt(0).toUpperCase() + d.slice(1))].sort();
 const AGE_OPTIONS = Array.from({
   length: 23
 }, (_, i) => 18 + i);
@@ -414,7 +190,7 @@ export function EditProfile({
       } else {
         const hour = parseInt(String(formData.birthHour), 10);
         if (isNaN(hour) || hour < 0 || hour > 23) {
-          errors.birthHour = "Hour must be between 00-23";
+          errors.birthHour = "Hour must be between 0-23";
         }
       }
       if (!isFieldValid(formData.birthMinute)) {
@@ -422,7 +198,7 @@ export function EditProfile({
       } else {
         const minute = parseInt(String(formData.birthMinute), 10);
         if (isNaN(minute) || minute < 0 || minute > 59) {
-          errors.birthMinute = "Minute must be between 00-59";
+          errors.birthMinute = "Minute must be between 0-59";
         }
       }
       if (!isFieldValid(formData.maritalStatus)) errors.maritalStatus = "Marital status is required";
@@ -1724,7 +1500,7 @@ export function EditProfile({
       if (numeric && (hour < 0 || hour > 23)) {
         setPersonalErrors(prev => ({
           ...prev,
-          birthHour: "Hour must be between 00-23"
+          birthHour: "Hour must be between 0-23"
         }));
         return;
       }
@@ -1739,7 +1515,7 @@ export function EditProfile({
       if (numeric && (minute < 0 || minute > 59)) {
         setPersonalErrors(prev => ({
           ...prev,
-          birthMinute: "Minute must be between 00-59"
+          birthMinute: "Minute must be between 0-59"
         }));
         return;
       }
@@ -1904,7 +1680,7 @@ export function EditProfile({
                   </p>}
               </div>
               <div>
-                <CustomSelect name="livingWith" value={personal.livingWith || ""} onChange={handleInputChange} options={["Yes", "No"]} placeholder="Living with you? *" className={personalErrors.livingWith ? "border-red-500" : ""} />
+                <CustomSelect name="livingWith" value={personal.livingWith || ""} onChange={handleInputChange} options={CHILDREN_LIVING_OPTIONS} placeholder="Living with you? *" className={personalErrors.livingWith ? "border-red-500" : ""} />
                 {personalErrors.livingWith && <p className="text-red-500 text-sm mt-1">
                     {personalErrors.livingWith}
                   </p>}
@@ -1931,7 +1707,7 @@ export function EditProfile({
                 <Label className="block text-sm font-medium mb-1">
                   Divorce Status *
                 </Label>
-                <CustomSelect name="divorceStatus" value={personal.divorceStatus || ""} onChange={handleInputChange} options={["court", "divorced", "filed", "process"]} placeholder="Select Divorce Status" className={personalErrors.divorceStatus ? "border-red-500" : ""} />
+                <CustomSelect name="divorceStatus" value={personal.divorceStatus || ""} onChange={handleInputChange} options={DIVORCE_STATUSES} placeholder="Select Divorce Status" className={personalErrors.divorceStatus ? "border-red-500" : ""} />
                 {personalErrors.divorceStatus && <p className="text-red-500 text-sm mt-1">
                     {personalErrors.divorceStatus}
                   </p>}
@@ -1975,7 +1751,7 @@ export function EditProfile({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 gap-y-6">
         <div>
           <Label className="mb-2">Rashi *</Label>
-          <CustomSelect name="rashi" value={personal.rashi || ""} onChange={handleInputChange} options={["Aquarius (Kumbh)", "Aries (Mesh)", "Cancer (Kark)", "Capricorn (Makar)", "Gemini (Mithun)", "Leo (Singh)", "Libra (Tula)", "Pisces (Meen)", "Sagittarius (Dhanu)", "Scorpio (Vrischik)", "Taurus (Vrishabh)", "Virgo (Kanya)"].sort()} placeholder="Select Rashi" className={personalErrors.rashi ? "border-red-500" : ""} disabled={false} />
+          <CustomSelect name="rashi" value={personal.rashi || ""} onChange={handleInputChange} options={[...ZODIAC_SIGNS].sort()} placeholder="Select Rashi" className={personalErrors.rashi ? "border-red-500" : ""} disabled={false} />
           {personalErrors.rashi && <p className="text-red-500 text-sm mt-1">{personalErrors.rashi}</p>}
         </div>
         <div>
@@ -2000,7 +1776,7 @@ export function EditProfile({
             religion: "",
             caste: ""
           }));
-        }} options={["Hindu", "Jain"]} placeholder="Select Religion" className={personalErrors.religion ? "border-red-500" : ""} disabled={false} />
+        }} options={RELIGIONS} placeholder="Select Religion" className={personalErrors.religion ? "border-red-500" : ""} disabled={false} />
           {personalErrors.religion && <p className="text-red-500 text-sm mt-1">
               {personalErrors.religion}
             </p>}
@@ -2016,7 +1792,7 @@ export function EditProfile({
             ...prev,
             caste: ""
           }));
-        }} options={personal.religion === "Hindu" ? ["Brahmin", "Brahmin-Audichya", "Patel", "Patel-Desai", "Patel-Kadva", "Patel-Leva", "Vaishnav-Vania"] : personal.religion === "Jain" ? ["Jain-Digambar", "Jain-Swetamber"] : []} placeholder="Select Caste" className={personalErrors.caste ? "border-red-500" : ""} disabled={false} />
+        }} options={personal.religion === "Hindu" ? allCastes.filter(c => !c.startsWith("Jain")) : personal.religion === "Jain" ? allCastes.filter(c => c.startsWith("Jain")) : []} placeholder="Select Caste" className={personalErrors.caste ? "border-red-500" : ""} disabled={false} />
           {personalErrors.caste && <p className="text-red-500 text-sm mt-1">{personalErrors.caste}</p>}
         </div>
       </div>

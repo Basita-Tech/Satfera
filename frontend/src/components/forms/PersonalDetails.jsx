@@ -1,37 +1,38 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNames, getCode } from "country-list";
 import CustomSelect from "../ui/CustomSelect";
 import LocationSelect from "../ui/LocationSelect";
 import { getOnboardingStatus, getUserPersonal, saveUserPersonal, updateUserPersonal } from "../../api/auth";
 import { getCountryCode, getStateCode, getAllCountries } from "../../lib/locationUtils";
 import toast from "react-hot-toast";
-import { nationalities, visaCategories, allCastes, doshOptions, weightOptions, heightOptions } from "@/lib/constant";
+import { 
+  nationalities, 
+  visaCategories, 
+  allCastes, 
+  doshOptions, 
+  weightOptions, 
+  heightOptions,
+  ZODIAC_SIGNS,
+  RELIGIONS,
+  LEGAL_STATUSES,
+  DIVORCE_STATUSES,
+  CHILDREN_LIVING_OPTIONS,
+  HOURS,
+  MINUTES
+} from "@/lib/constant";
+
 const sortAlpha = list => [...list].sort((a, b) => a.localeCompare(b, undefined, {
   sensitivity: "base"
 }));
+
 const COUNTRIES = getAllCountries();
-const ZODIAC_SIGNS = sortAlpha(["Aries (Mesh)", "Taurus (Vrishabh)", "Gemini (Mithun)", "Cancer (Kark)", "Leo (Singh)", "Virgo (Kanya)", "Libra (Tula)", "Scorpio (Vrishchik)", "Sagittarius (Dhanu)", "Capricorn (Makar)", "Aquarius (Kumbh)", "Pisces (Meen)"]);
-const RELIGIONS = sortAlpha(["Hindu", "Jain"]);
-const LEGAL_STATUSES = sortAlpha(["Never Married", "Divorced", "Widowed", "Separated", "Awaiting Divorce"]);
 const SORTED_CASTES = sortAlpha(allCastes);
 const SORTED_NATIONALITIES = sortAlpha(nationalities);
 const SORTED_VISA_CATEGORIES = sortAlpha(visaCategories);
 const SORTED_DOSH_OPTIONS = ["No Dosh", ...sortAlpha(doshOptions.filter(d => d !== "No Dosh"))];
-const HOURS = Array.from({
-  length: 24
-}, (_, i) => i.toString().padStart(2, "0"));
-const MINUTES = Array.from({
-  length: 60
-}, (_, i) => i.toString().padStart(2, "0"));
-const HEIGHT_SELECT_OPTIONS = heightOptions.map(h => ({
-  label: h,
-  value: h
-}));
-const WEIGHT_SELECT_OPTIONS = weightOptions.map(w => ({
-  label: w,
-  value: w
-}));
+const SORTED_ZODIAC_SIGNS = sortAlpha(ZODIAC_SIGNS);
+const SORTED_RELIGIONS = sortAlpha(RELIGIONS);
+const SORTED_LEGAL_STATUSES = sortAlpha(LEGAL_STATUSES);
 const PersonalDetails = ({
   onNext,
   onPrevious
@@ -102,7 +103,7 @@ const PersonalDetails = ({
     if (value !== "" && (+value < 0 || +value > 23)) {
       setErrors(prev => ({
         ...prev,
-        birthHour: "Hour must be between 00â€“23"
+        birthHour: "Hour must be between 0-23"
       }));
     } else {
       setErrors(prev => ({
@@ -121,7 +122,7 @@ const PersonalDetails = ({
     if (value !== "" && (+value < 0 || +value > 59)) {
       setErrors(prev => ({
         ...prev,
-        birthMinute: "Minute must be between 00â€“59"
+        birthMinute: "Minute must be between 0-59"
       }));
     } else {
       setErrors(prev => ({
@@ -143,7 +144,7 @@ const PersonalDetails = ({
     if (Number.isNaN(num) || num < 0 || num > 23) {
       setErrors(prev => ({
         ...prev,
-        birthHour: "Hour must be between 00–23"
+        birthHour: "Hour must be between 0-23"
       }));
       return;
     }
@@ -166,7 +167,7 @@ const PersonalDetails = ({
       }));
       setErrors(prev => ({
         ...prev,
-        birthMinute: "Minute must be between 00â€“59"
+        birthMinute: "Minute must be between 0-59"
       }));
       return;
     }
@@ -452,12 +453,12 @@ const PersonalDetails = ({
       if (!hour || hour.length !== 2) {
         newErrors.birthHour = newErrors.birthHour || "Hour (HH) is required";
       } else if (+hour < 0 || +hour > 23) {
-        newErrors.birthHour = "Hour must be between 00â€“23";
+        newErrors.birthHour = "Hour must be between 0-23";
       }
       if (!minute || minute.length !== 2) {
         newErrors.birthMinute = newErrors.birthMinute || "Minute (MM) is required";
       } else if (+minute < 0 || +minute > 59) {
-        newErrors.birthMinute = "Minute must be between 00â€“59";
+        newErrors.birthMinute = "Minute must be between 0-59";
       }
     }
     setErrors(newErrors);
@@ -709,7 +710,7 @@ const PersonalDetails = ({
               <label className="block text-sm font-medium mb-1">
                 Astrological Sign (Rashi) <RequiredMark />
               </label>
-              <CustomSelect name="rashi" value={formData.rashi} onChange={handleChange} options={ZODIAC_SIGNS} placeholder="Select Rashi" className={getInputClass("rashi")} />
+              <CustomSelect name="rashi" value={formData.rashi} onChange={handleChange} options={SORTED_ZODIAC_SIGNS} placeholder="Select Rashi" className={getInputClass("rashi")} />
               {errors.rashi && <p className="text-red-500 text-sm mt-1">{errors.rashi}</p>}
             </div>
 
@@ -741,7 +742,7 @@ const PersonalDetails = ({
                 ...prev,
                 caste: ""
               }));
-            }} options={RELIGIONS} placeholder="Select Religion" className={getInputClass("religion")} />
+            }} options={SORTED_RELIGIONS} placeholder="Select Religion" className={getInputClass("religion")} />
               {errors.religion && <p className="text-red-500 text-sm mt-1">{errors.religion}</p>}
             </div>
 
@@ -896,7 +897,7 @@ const PersonalDetails = ({
               <label className="block text-sm font-medium mb-1">
                 Marital Status <RequiredMark />
               </label>
-              <CustomSelect name="legalStatus" value={formData.legalStatus} onChange={handleLegalStatus} options={LEGAL_STATUSES} placeholder="Select Status" className={getInputClass("legalStatus")} />
+              <CustomSelect name="legalStatus" value={formData.legalStatus} onChange={handleLegalStatus} options={SORTED_LEGAL_STATUSES} placeholder="Select Status" className={getInputClass("legalStatus")} />
               {errors.legalStatus && <p className="text-red-500 text-sm mt-1">
                   {errors.legalStatus}
                 </p>}
@@ -907,7 +908,7 @@ const PersonalDetails = ({
                 <label className="block text-sm font-medium mb-1 text-black">
                   Divorce Status
                 </label>
-                <CustomSelect name="divorceStatus" value={formData.divorceStatus} onChange={handleChange} options={['filed', 'process', 'court', 'divorced']} placeholder="Select Divorce Status" className={errors.divorceStatus ? "border-red-500" : ""} />
+                <CustomSelect name="divorceStatus" value={formData.divorceStatus} onChange={handleChange} options={DIVORCE_STATUSES} placeholder="Select Divorce Status" className={errors.divorceStatus ? "border-red-500" : ""} />
               </div>}
 
             {}
@@ -926,7 +927,7 @@ const PersonalDetails = ({
                 {formData.hasChildren === "Yes" && <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <CustomSelect name="numChildren" value={formData.numChildren} onChange={handleChange} options={[...Array(10)].map((_, i) => String(i + 1))} placeholder="Number of Children" className={errors.numChildren ? "border-red-500" : ""} />
 
-                    <CustomSelect name="livingWith" value={formData.livingWith} onChange={handleChange} options={['Yes', 'No']} placeholder="Living with you?" className={errors.livingWith ? "border-red-500" : ""} />
+                    <CustomSelect name="livingWith" value={formData.livingWith} onChange={handleChange} options={CHILDREN_LIVING_OPTIONS} placeholder="Living with you?" className={errors.livingWith ? "border-red-500" : ""} />
                   </div>}
               </div>}
 

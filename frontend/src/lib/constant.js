@@ -23,3 +23,328 @@ export const heightOptions = ["4'0\" / 122 cm", "4'1\" / 124 cm", "4'2\" / 127 c
 export const JOB_TITLES = ['Marketing Specialist', 'Marketing Manager', 'Graphic Designer', 'Product Manager', 'Public Relations', 'Brand Manager', 'SEO Manager', 'Content Marketing Manager', 'Copywriter', 'Administrative Assistant', 'Accountant', 'Software Engineer', 'Web Developer', 'DevOps Engineer', 'Network Administrator', 'Information Security Analyst', 'Cloud Architect', 'Data Analyst', 'Researcher', 'Teacher', 'Professor', 'Artist', 'Video Editor', 'Photographer', 'Musician', 'Nurse', 'Doctor', 'Physical Therapist', 'Chef', 'Restaurant Manager', 'Biologist', 'Geologist', 'Physicist', 'Counselor', 'Social Worker', 'Therapist', 'Beautician', 'Makeup Artist', 'Esthetician', 'Security Guard', 'Mechanic', 'Entrepreneur', 'Management Consultant', 'Attorney', 'Engineer', 'Operations Manager', 'HR', 'Business Analyst', 'Financial Analyst', 'Sales Executive', 'Customer Support Representative', 'Tutor', 'Project Manager', 'UX Designer & UI Developer', 'Application Developer', 'Virtual Assistant'];
 export const INDIAN_STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'];
 export const INDIAN_CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Kalyan-Dombivali', 'Vasai-Virar', 'Varanasi', 'Srinagar', 'Aurangabad', 'Dhanbad', 'Amritsar', 'Navi Mumbai', 'Allahabad', 'Ranchi', 'Howrah', 'Coimbatore', 'Jabalpur', 'Gwalior', 'Vijayawada', 'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Chandigarh', 'Guwahati', 'Solapur', 'Hubli-Dharwad', 'Mysore', 'Tiruchirappalli', 'Bareilly', 'Aligarh', 'Tiruppur', 'Moradabad', 'Jalandhar', 'Bhubaneswar', 'Salem', 'Warangal', 'Guntur', 'Bhiwandi', 'Saharanpur', 'Gorakhpur', 'Bikaner', 'Amravati', 'Noida', 'Jamshedpur', 'Bhilai', 'Cuttack', 'Firozabad', 'Kochi', 'Nellore', 'Bhavnagar', 'Dehradun', 'Durgapur', 'Asansol', 'Rourkela', 'Nanded', 'Kolhapur', 'Ajmer', 'Akola', 'Gulbarga', 'Jamnagar', 'Ujjain', 'Loni', 'Siliguri', 'Jhansi', 'Ulhasnagar', 'Jammu', 'Sangli-Miraj & Kupwad', 'Mangalore', 'Erode', 'Belgaum', 'Ambattur', 'Tirunelveli', 'Malegaon', 'Gaya', 'Jalgaon', 'Udaipur', 'Maheshtala', 'Davanagere', 'Kozhikode', 'Kurnool', 'Rajpur Sonarpur', 'Rajahmundry', 'Bokaro', 'South Dumdum', 'Bellary', 'Patiala', 'Gopalpur', 'Agartala', 'Bhagalpur', 'Muzaffarnagar', 'Bhatpara', 'Panihati', 'Latur', 'Dhule', 'Tirupati', 'Rohtak', 'Korba', 'Bhilwara', 'Berhampur', 'Muzaffarpur', 'Ahmednagar', 'Mathura', 'Kollam', 'Avadi', 'Kadapa', 'Kamarhati', 'Sambalpur', 'Bilaspur', 'Shahjahanpur', 'Satara', 'Bijapur', 'Rampur', 'Shivamogga', 'Chandrapur', 'Junagadh', 'Thrissur', 'Alwar', 'Bardhaman', 'Kulti', 'Kakinada', 'Nizamabad', 'Parbhani', 'Tumkur', 'Khammam', 'Ozhukarai', 'Bihar Sharif', 'Panipat', 'Darbhanga', 'Bally', 'Aizawl', 'Dewas', 'Ichalkaranji', 'Karnal', 'Bathinda', 'Jalna', 'Eluru', 'Kirari Suleman Nagar', 'Barasat', 'Purnia', 'Satna', 'Mau', 'Sonipat', 'Farrukhabad', 'Sagar', 'Durg', 'Imphal', 'Ratlam', 'Hapur', 'Arrah', 'Karimnagar', 'Anantapur', 'Etawah', 'Ambernath', 'North Dumdum', 'Bharatpur', 'Begusarai', 'New Delhi', 'Gandhidham', 'Baranagar', 'Tiruvottiyur', 'Puducherry', 'Sikar', 'Thoothukudi', 'Raurkela Industrial Township', 'Sri Ganganagar', 'Karawal Nagar', 'Mango', 'Thanjavur', 'Bulandshahr', 'Uluberia', 'Murwara', 'Sambhal', 'Singrauli', 'Nadiad', 'Secunderabad', 'Naihati', 'Yamunanagar', 'Bidhan Nagar', 'Pallavaram', 'Bidar', 'Munger', 'Panchkula', 'Burhanpur', 'Raurkela', 'Kharagpur', 'Dindigul', 'Gandhinagar', 'Hospet', 'Nangloi Jat', 'Malda', 'Ongole', 'Deoghar', 'Chapra', 'Haldia', 'Khandwa', 'Nandyal', 'Chittoor', 'Morena', 'Amroha', 'Anand', 'Bhind', 'Bhalswa Jahangir Pur', 'Madhyamgram', 'Bhiwani', 'Navi Mumbai Panvel Raigad', 'Baharampur', 'Ambala', 'Morbi', 'Fatehpur', 'Rae Bareli', 'Khora', 'Gonda', 'Bhimavaram', 'Kumbakonam', 'Vizianagaram', 'Katihar', 'Hardwar', 'Nagercoil', 'Thanesar', 'Murshidabad', 'Vellore'];
+
+// Zodiac Signs
+export const ZODIAC_SIGNS = [
+  "Aries (Mesh)",
+  "Taurus (Vrishabh)",
+  "Gemini (Mithun)",
+  "Cancer (Kark)",
+  "Leo (Singh)",
+  "Virgo (Kanya)",
+  "Libra (Tula)",
+  "Scorpio (Vrishchik)",
+  "Sagittarius (Dhanu)",
+  "Capricorn (Makar)",
+  "Aquarius (Kumbh)",
+  "Pisces (Meen)"
+];
+
+// Religions
+export const RELIGIONS = ["Hindu", "Jain"];
+
+// Legal/Marital Statuses
+export const LEGAL_STATUSES = [
+  "Never Married",
+  "Divorced",
+  "Widowed",
+  "Separated",
+  "Awaiting Divorce"
+];
+
+// Divorce Statuses
+export const DIVORCE_STATUSES = ['filed', 'process', 'court', 'divorced'];
+
+
+export const CHILDREN_LIVING_OPTIONS = ['Yes', 'No'];
+
+
+export const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
+export const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"));
+
+
+export const QUALIFICATION_LEVELS = [
+  "High School",
+  "Undergraduate",
+  "Associates Degree",
+  "Bachelors",
+  "Honours Degree",
+  "Masters",
+  "Doctor",
+  "Doctorate",
+  "Diploma",
+  "Trade School",
+  "Less Than High School"
+];
+
+
+export const PROFESSIONAL_QUALIFICATIONS = [];
+
+
+export const PROFESSIONAL_QUALIFIED_LEVELS = [
+  "Bachelors",
+  "Honours Degree",
+  "Masters",
+  "Doctorate",
+  "Undergraduate"
+];
+
+
+export const EDUCATION_OPTIONS_BY_LEVEL = {
+  "High School": [
+    "Higher Secondary School / High School",
+    "Science Stream",
+    "Commerce Stream",
+    "Arts Stream",
+    "Vocational Stream",
+  ],
+  "Less Than High School": [
+    "Primary School",
+    "Middle School"
+  ],
+  "Associates Degree": [
+    "Associates in Arts",
+    "Associates in Science",
+    "Associates in Applied Science",
+    "Associates in Business",
+    "Associates in Engineering",
+    "Associates in Nursing",
+    "Other Associates Degree",
+    "CA - Chartered Accountant",
+    "CFA - Chartered Financial Analyst",
+    "CS - Company Secretary",
+    "ICWA - Cost And Works Accountant",
+    "CPA - Certified Public Accountant",
+    "CMA - Certified Management Accountant",
+  ],
+  "Undergraduate": [
+    "Aeronautical Engineering",
+    "B.Arch. - Bachelor of Architecture",
+    "BCA - Bachelor of Computer Applications",
+    "B.E. - Bachelor of Engineering",
+    "B.Plan - Bachelor of Planning",
+    "B.Des. - Bachelor of Design",
+    "B.Voc. - Bachelor of Vocation",
+    "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
+    "B.S. Eng. - Bachelor of Science in Engineering",
+    "B.Tech. - Bachelor of Technology",
+    "Other Bachelor's Degree in Engineering / Computers",
+    "Aviation Degree",
+    "B.A. - Bachelor of Arts",
+    "B.Com. - Bachelor of Commerce",
+    "B.Ed. - Bachelor of Education",
+    "B.P.Ed - Bachelor of Physical Education",
+    "BFA - Bachelor of Fine Arts",
+    "BFT - Bachelor of Fashion Technology",
+    "BLIS - Bachelor of Library and Information Science",
+    "B.M.M. - Bachelor of Mass Media",
+    "B.Sc. - Bachelor of Science",
+    "B.Stat. - Bachelor of Statistics",
+    "B.S.W. - Bachelor of Social Work",
+    "B.Phil. - Bachelor of Philosophy",
+    "Other Bachelor's Degree in Arts / Science / Commerce",
+    "BBA - Bachelor of Business Administration",
+    "BFM - Bachelor of Financial Management",
+    "BHM - Bachelor of Hotel Management",
+    "BHA - Bachelor of Hospital Administration",
+    "Other Bachelor's Degree in Management",
+    "BPharm - Bachelor of Pharmacy",
+    "BPT - Bachelor of Physiotherapy",
+    "B.Sc. Nursing - Bachelor of Science in Nursing",
+    "B.Optom - Bachelor of Optometry",
+    "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
+    "BGL - Bachelor of General Laws",
+    "BL - Bachelor of Laws",
+    "LLB - Bachelor of Legislative Law",
+    "Other Bachelor's Degree in Legal",
+  ],
+  "Bachelors": [
+    "Aeronautical Engineering",
+    "B.Arch. - Bachelor of Architecture",
+    "BCA - Bachelor of Computer Applications",
+    "B.E. - Bachelor of Engineering",
+    "B.Plan - Bachelor of Planning",
+    "B.Des. - Bachelor of Design",
+    "B.Voc. - Bachelor of Vocation",
+    "B.Sc. IT/CS - Bachelor of Science in IT/Computer Science",
+    "B.S. Eng. - Bachelor of Science in Engineering",
+    "B.Tech. - Bachelor of Technology",
+    "Other Bachelor's Degree in Engineering / Computers",
+    "Aviation Degree",
+    "B.A. - Bachelor of Arts",
+    "B.Com. - Bachelor of Commerce",
+    "B.Ed. - Bachelor of Education",
+    "B.P.Ed - Bachelor of Physical Education",
+    "BFA - Bachelor of Fine Arts",
+    "BFT - Bachelor of Fashion Technology",
+    "BLIS - Bachelor of Library and Information Science",
+    "B.M.M. - Bachelor of Mass Media",
+    "B.Sc. - Bachelor of Science",
+    "B.Stat. - Bachelor of Statistics",
+    "B.S.W. - Bachelor of Social Work",
+    "B.Phil. - Bachelor of Philosophy",
+    "Other Bachelor's Degree in Arts / Science / Commerce",
+    "BBA - Bachelor of Business Administration",
+    "BFM - Bachelor of Financial Management",
+    "BHM - Bachelor of Hotel Management",
+    "BHA - Bachelor of Hospital Administration",
+    "Other Bachelor's Degree in Management",
+    "BPharm - Bachelor of Pharmacy",
+    "BPT - Bachelor of Physiotherapy",
+    "B.Sc. Nursing - Bachelor of Science in Nursing",
+    "B.Optom - Bachelor of Optometry",
+    "Other Bachelor's Degree in Pharmacy / Nursing or Health Sciences",
+    "BGL - Bachelor of General Laws",
+    "BL - Bachelor of Laws",
+    "LLB - Bachelor of Legislative Law",
+    "Other Bachelor's Degree in Legal",
+  ],
+  "Honours Degree": [
+    "B.Arch. (Hons) - Bachelor of Architecture with Honours",
+    "B.E. (Hons) - Bachelor of Engineering with Honours",
+    "B.Tech. (Hons) - Bachelor of Technology with Honours",
+    "B.Sc. (Hons) - Bachelor of Science with Honours",
+    "B.A. (Hons) - Bachelor of Arts with Honours",
+    "B.Com. (Hons) - Bachelor of Commerce with Honours",
+    "Other Honours Degree",
+  ],
+  "Masters": [
+    "M.Arch. - Master of Architecture",
+    "MCA - Master of Computer Applications",
+    "M.E. - Master of Engineering",
+    "M.Plan - Master of Planning",
+    "M.Des. - Master of Design",
+    "M.Sc. IT/CS - Master of Science in IT/Computer Science",
+    "M.S. Eng. - Master of Science in Engineering",
+    "M.Tech. - Master of Technology",
+    "Other Master's Degree in Engineering / Computers",
+    "M.A. - Master of Arts",
+    "M.Com. - Master of Commerce",
+    "M.Ed. - Master of Education",
+    "M.P.Ed - Master of Physical Education",
+    "MFA - Master of Fine Arts",
+    "MLIS - Master of Library and Information Science",
+    "M.Sc. - Master of Science",
+    "M.Stat. - Master of Statistics",
+    "M.S.W. - Master of Social Work",
+    "M.Phil. - Master of Philosophy",
+    "Other Master's Degree in Arts / Science / Commerce",
+    "MBA - Master of Business Administration",
+    "MFM - Master of Financial Management",
+    "MHM - Master of Hotel Management",
+    "MHRM - Master of Human Resource Management",
+    "MHA - Master of Hospital Administration",
+    "Other Master's Degree in Management",
+    "MPharm - Master of Pharmacy",
+    "MPT - Master of Physiotherapy",
+    "MPH - Master of Public Health",
+    "M.Sc. Nursing - Master of Science in Nursing",
+    "Other Master's Degree in Pharmacy / Nursing or Health Sciences",
+    "LLM - Master of Laws",
+    "ML - Master of Legal Studies",
+    "Other Master's Degree in Legal",
+  ],
+  "Doctor": [
+    "MBBS - Bachelor of Medicine, Bachelor of Surgery",
+    "BDS - Bachelor of Dental Surgery",
+    "BAMS - Bachelor of Ayurvedic Medicine and Surgery",
+    "BHMS - Bachelor of Homeopathic Medicine and Surgery",
+    "BSMS - Bachelor of Siddha Medicine and Surgery",
+    "BUMS - Bachelor of Unani Medicine and Surgery",
+    "BVSc - Bachelor of Veterinary Science",
+    "Pharm.D - Doctor of Pharmacy",
+    "MDS - Master of Dental Surgery",
+    "MS - Master of Surgery",
+    "MVSc - Master of Veterinary Science",
+    "MCh - Master of Chirurgiae",
+    "DM - Doctor of Medicine",
+    "DNB - Diplomate of National Board",
+    "FNB - Fellow of National Board",
+  ],
+  "Doctorate": [
+    "Ph.D. - Doctor of Philosophy",
+    "D.Sc. - Doctor of Science",
+    "Ed.D. - Doctor of Education",
+    "DBA - Doctor of Business Administration",
+    "D.Litt. - Doctor of Literature",
+    "LL.D. - Doctor of Laws",
+    "Psy.D. - Doctor of Psychology",
+    "Postdoctoral Fellow",
+  ],
+  "Diploma": [
+    "Diploma in Engineering",
+    "Diploma in Computer Applications",
+    "Diploma in Management",
+    "Diploma in Nursing",
+    "Diploma in Pharmacy",
+    "Diploma in Education",
+    "Diploma in Medical Laboratory Technology (DMLT)",
+    "Diploma in Hotel Management",
+    "Diploma in Interior Design",
+    "Polytechnic Diploma",
+    "PGDCA - Post Graduate Diploma in Computer Applications",
+    "PGDM - Post Graduate Diploma in Management",
+    "Advanced Diploma",
+    "Other Diplomas",
+  ],
+  "Trade School": [
+    "Electrician",
+    "Plumber",
+    "Carpenter",
+    "Mechanic",
+    "Welder",
+    "Fitter",
+    "Machinist",
+    "Draughtsman",
+    "Other Trade Certification",
+  ],
+};
+
+// Employment Options
+export const EMPLOYMENT_OPTIONS = [
+  "Private Sector",
+  "Government",
+  "Business",
+  "Self-Employed",
+  "Not Working",
+  "Student"
+];
+
+// Annual Income Options
+export const INCOME_OPTIONS = [
+  "₹1 – 5 Lakh",
+  "₹5 – 10 Lakh",
+  "₹10 – 15 Lakh",
+  "₹15 – 20 Lakh",
+  "₹20 – 25 Lakh",
+  "₹25 – 30 Lakh",
+  "₹30 – 35 Lakh",
+  "₹35 – 40 Lakh",
+  "₹40 – 45 Lakh",
+  "₹45 – 50 Lakh",
+  "₹50 – 55 Lakh",
+  "₹55 – 60 Lakh",
+  "₹60 – 65 Lakh",
+  "₹65 – 70 Lakh",
+  "₹70 – 75 Lakh",
+  "₹75 – 80 Lakh",
+  "₹80 – 85 Lakh",
+  "₹85 – 90 Lakh",
+  "₹90 – 95 Lakh",
+  "₹95 Lakh – ₹1 Crore",
+  "More than ₹1 Crore"
+];
+
+// Health & Lifestyle Options
+export const DIET_OPTIONS = [
+  "vegetarian",
+  "non-vegetarian",
+  "eggetarian",
+  "jain",
+  "swaminarayan",
+  "veg & non-veg"
+];
+
+export const YES_NO_OPTIONS = ["yes", "no"];
+
+export const YES_NO_OCCASIONAL_OPTIONS = ["yes", "no", "occasional"];

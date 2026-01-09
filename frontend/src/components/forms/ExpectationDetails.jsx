@@ -5,6 +5,7 @@ import CustomSelect from "../ui/CustomSelect";
 import NoKeyboardInput from "../ui/NoKeyboardInput";
 import toast from "react-hot-toast";
 import { getAllCountriesWithCodes, getAllStatesWithCodes } from "../../lib/locationUtils";
+import { LEGAL_STATUSES, EMPLOYMENT_OPTIONS, allCastes, QUALIFICATION_LEVELS, DIET_OPTIONS } from "@/lib/constant";
 const sortAlpha = list => [...list].sort((a, b) => a.localeCompare(b, undefined, {
   sensitivity: "base"
 }));
@@ -44,9 +45,11 @@ const ExpectationDetails = ({
     preferredAgeTo: ""
   });
   const [errors, setErrors] = useState({});
-  const maritalStatuses = sortAlphaWithPinned(["Any", "Never Married", "Divorced", "Widowed", "Separated", "Awaiting Divorce"], ["Any"]);
-  const professionOptions = sortAlphaWithPinned(["Any", "Private Sector", "Government", "Business", "Self-Employed", "Not Working", "Student"], ["Any"]);
-  const castOptions = sortAlphaWithPinned(["Patel-Desai", "Patel-Kadva", "Patel-Leva", "Patel", "Brahmin-Audichya", "Brahmin", "Jain-Digambar", "Jain-Swetamber", "Vaishnav-Vania"], []);
+  const maritalStatuses = useMemo(() => sortAlphaWithPinned(["Any", ...LEGAL_STATUSES], ["Any"]), []);
+  const professionOptions = useMemo(() => sortAlphaWithPinned(["Any", ...EMPLOYMENT_OPTIONS], ["Any"]), []);
+  const castOptions = useMemo(() => allCastes, []);
+  const partnerEducationOptions = useMemo(() => ["Any", ...QUALIFICATION_LEVELS], []);
+  const partnerDietOptions = useMemo(() => ["Any", ...DIET_OPTIONS.map(d => d.charAt(0).toUpperCase() + d.slice(1))], []);
   const inputClass = "w-full border border-[#D4A052] rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#E4C48A] focus:border-[#E4C48A] transition";
   const ageOptions = useMemo(() => Array.from({
     length: 23
@@ -519,40 +522,10 @@ const ExpectationDetails = ({
             </Label>
 
             <div className="w-full">
-              <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerEducation" options={[{
-              value: "Any",
-              label: "Any"
-            }, {
-              value: "High School",
-              label: "High School"
-            }, {
-              value: "Undergraduate",
-              label: "Undergraduate"
-            }, {
-              value: "Associates Degree",
-              label: "Associates Degree"
-            }, {
-              value: "Bachelors",
-              label: "Bachelors"
-            }, {
-              value: "Honours Degree",
-              label: "Honours Degree"
-            }, {
-              value: "Masters",
-              label: "Masters"
-            }, {
-              value: "Doctorate",
-              label: "Doctorate"
-            }, {
-              value: "Diploma",
-              label: "Diploma"
-            }, {
-              value: "Trade School",
-              label: "Trade School"
-            }, {
-              value: "Less Than High School",
-              label: "Less Than High School"
-            }]} value={formData.partnerEducation} onChange={selectedOptions => {
+              <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerEducation" options={partnerEducationOptions.map(option => ({
+              value: option,
+              label: option
+            }))} value={formData.partnerEducation} onChange={selectedOptions => {
               if (selectedOptions?.some(opt => opt.value === "Any")) {
                 handleChange("partnerEducation", [{
                   value: "Any",
@@ -713,28 +686,10 @@ const ExpectationDetails = ({
             </Label>
 
             <div className="w-full">
-              <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerDiet" options={[{
-              value: "Any",
-              label: "Any"
-            }, {
-              value: "Vegetarian",
-              label: "Vegetarian"
-            }, {
-              value: "Non-Vegetarian",
-              label: "Non-Vegetarian"
-            }, {
-              value: "Eggetarian",
-              label: "Eggetarian"
-            }, {
-              value: "Jain",
-              label: "Jain"
-            }, {
-              value: "Swaminarayan",
-              label: "Swaminarayan"
-            }, {
-              value: "Veg & Non-Veg",
-              label: "Veg & Non-veg"
-            }]} value={formData.partnerDiet} onChange={selectedOptions => {
+              <Select menuPlacement="auto" menuPosition="fixed" isMulti isSearchable={false} name="partnerDiet" options={partnerDietOptions.map(option => ({
+              value: option,
+              label: option
+            }))} value={formData.partnerDiet} onChange={selectedOptions => {
               const selectedValues = selectedOptions?.map(opt => opt.value) || [];
               if (selectedValues.includes("Any") || selectedValues.includes("No preference")) {
                 handleChange("partnerDiet", [{
