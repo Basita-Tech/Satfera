@@ -7,7 +7,8 @@ import { getBlockedUsers, unblockUserProfile } from '../api/auth';
 import { toast } from 'react-hot-toast';
 export function BlockedUsersList({
   open,
-  onOpenChange
+  onOpenChange,
+  refreshToken
 }) {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +18,7 @@ export function BlockedUsersList({
     if (open) {
       fetchBlockedUsers();
     }
-  }, [open]);
+  }, [open, refreshToken]);
   const fetchBlockedUsers = async () => {
     setIsLoading(true);
     try {

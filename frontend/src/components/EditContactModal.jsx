@@ -174,16 +174,6 @@ export function EditContactModal({
             </div>}
 
           {}
-          <div className="bg-beige rounded-[12px] p-5">
-            <p className="text-xs font-medium mb-2.5">Important:</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• You will receive an OTP to verify your new {isEmail ? 'email' : 'number'}</li>
-              <li>• This will replace your current contact information</li>
-              <li>• Make sure you have access to this {isEmail ? 'email' : 'number'}</li>
-            </ul>
-          </div>
-
-          {}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading} className="flex-1 rounded-[12px] border-border-subtle h-11 sm:w-auto w-full">
               Cancel

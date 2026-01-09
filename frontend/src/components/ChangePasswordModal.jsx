@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,6 +22,25 @@ export function ChangePasswordModal({
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showRequirements, setShowRequirements] = useState(false);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setFormData({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setErrors({});
+      setShowRequirements(false);
+      setShowPasswords({
+        oldPassword: false,
+        newPassword: false,
+        confirmPassword: false
+      });
+    }
+  }, [open]);
   const validateForm = () => {
     const newErrors = {};
     if (!formData.oldPassword) {
@@ -84,6 +103,10 @@ export function ChangePasswordModal({
         [field]: ''
       }));
     }
+    // Show requirements when typing in new password field
+    if (field === 'newPassword') {
+      setShowRequirements(value.length > 0);
+    }
   };
   const togglePasswordVisibility = field => {
     setShowPasswords(prev => ({
@@ -91,91 +114,108 @@ export function ChangePasswordModal({
       [field]: !prev[field]
     }));
   };
-  return <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showClose={false} className="sm:max-w-[420px] max-w-[90vw] rounded-[20px] p-0 sm:max-h-[80vh] max-h-[80vh] mx-auto overflow-y-auto bg-white gap-0 shadow-2xl border-2 border-border-subtle overscroll-contain">
+  const hasMinLength = formData.newPassword.length >= 8;
+  const isDifferentFromOld = !!(formData.oldPassword && formData.newPassword && formData.oldPassword !== formData.newPassword);
+  const hasLetter = /[A-Za-z]/.test(formData.newPassword);
+  const hasNumber = /\d/.test(formData.newPassword);
+  const hasSymbol = /[@$!%*?&#_]/.test(formData.newPassword);
+  const hasMix = hasLetter && hasNumber && hasSymbol;
+    return <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showClose={false} className="sm:max-w-[420px] max-w-[90vw] rounded-[20px] p-0 sm:max-h-[90vh] max-h-[95vh] mx-auto my-6 sm:my-10 overflow-hidden bg-white gap-0 shadow-2xl border-2 border-border-subtle flex flex-col">
         {}
-        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 pl-4 pr-4 sm:pl-5 sm:pr-5 py-5 sm:py-6 text-center text-white relative overflow-hidden rounded-t-[18px] border-b border-gold/20">
-          <DialogClose className="absolute left-3 top-3 z-50 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
+        <div className="bg-gradient-to-br from-gold via-gold/90 to-gold/80 px-4 sm:px-5 py-4 sm:py-5 text-center text-white relative overflow-hidden rounded-t-[18px] border-b border-gold/20 flex-shrink-0">
+          <DialogClose className="absolute left-3 top-3 z-50 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
             <span className="sr-only">Close</span>
             <span className="text-lg leading-none">×</span>
           </DialogClose>
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
           </div>
           <div className="relative z-10">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3">
-              <Lock className="w-8 h-8 text-white" />
+            <div className="w-12 h-12 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-2">
+              <Lock className="w-6 h-6 text-white" />
             </div>
             <DialogHeader>
-              <DialogTitle className="text-white text-xl">Change Password</DialogTitle>
+              <DialogTitle className="text-white text-lg">Change Password</DialogTitle>
             </DialogHeader>
-            <p className="text-white/90 text-sm mt-1">
-              Keep your account secure with a strong password
+            <p className="text-white/90 text-xs mt-1">
+              Keep your account secure
             </p>
           </div>
         </div>
 
         {}
-        <form onSubmit={handleSubmit} className="pl-4 pr-4 sm:pl-6 sm:pr-6 pt-6 sm:pt-8 pb-6 space-y-5 pb-[env(safe-area-inset-bottom)] bg-white">
+        <form onSubmit={handleSubmit} className="px-4 sm:px-6 pt-4 sm:pt-5 pb-4 space-y-3 bg-white flex-1 overflow-y-auto">
           {}
-          <div className="space-y-2">
-            <Label htmlFor="oldPassword" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="oldPassword" className="text-xs font-medium">
               Old Password
             </Label>
             <div className="relative bg-white rounded-[12px] border border-border-subtle">
-              <Input id="oldPassword" type={showPasswords.oldPassword ? 'text' : 'password'} value={formData.oldPassword} onChange={e => handleChange('oldPassword', e.target.value)} placeholder="Enter your old password" className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground ${errors.oldPassword ? 'border-red-accent' : ''}`} />
+              <Input id="oldPassword" type={showPasswords.oldPassword ? 'text' : 'password'} value={formData.oldPassword} onChange={e => handleChange('oldPassword', e.target.value)} placeholder="Enter your old password" className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground h-10 ${errors.oldPassword ? 'border-red-accent' : ''}`} />
               <button type="button" onClick={() => togglePasswordVisibility('oldPassword')} className="absolute w-11 right-0 top-0 bottom-0 flex justify-center items-center text-gold hover:text-gold/90 transition-colors bg-transparent border-0 p-0" tabIndex={-1}>
-                {showPasswords.oldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPasswords.oldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errors.oldPassword && <p className="text-xs text-red-accent">{errors.oldPassword}</p>}
           </div>
 
           {}
-          <div className="space-y-2">
-            <Label htmlFor="newPassword" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="newPassword" className="text-xs font-medium">
               New Password
             </Label>
             <div className="relative bg-white rounded-[12px] border border-border-subtle">
-              <Input id="newPassword" type={showPasswords.newPassword ? 'text' : 'password'} value={formData.newPassword} onChange={e => handleChange('newPassword', e.target.value)} placeholder="Enter your new password" className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground ${errors.newPassword ? 'border-red-accent' : ''}`} />
+              <Input 
+                id="newPassword" 
+                type={showPasswords.newPassword ? 'text' : 'password'} 
+                value={formData.newPassword} 
+                onChange={e => handleChange('newPassword', e.target.value)} 
+                onFocus={() => setShowRequirements(true)}
+                onBlur={() => setShowRequirements(false)}
+                placeholder="Enter your new password" 
+                className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground h-10 ${errors.newPassword ? 'border-red-accent' : ''}`} 
+              />
               <button type="button" onClick={() => togglePasswordVisibility('newPassword')} className="absolute w-11 right-0 top-0 bottom-0 flex justify-center items-center text-gold hover:text-gold/90 transition-colors bg-transparent border-0 p-0" tabIndex={-1}>
-                {showPasswords.newPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPasswords.newPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errors.newPassword && <p className="text-xs text-red-accent">{errors.newPassword}</p>}
+            
+            {}
+            {showRequirements && (
+              <div className="bg-beige rounded-[10px] p-2.5 mt-1.5">
+                <p className="text-[10px] font-medium mb-1">Password Requirements:</p>
+                <ul className="text-[10px] space-y-0.5">
+                  <li className={hasMinLength ? 'text-green-600' : 'text-red-500'}>• At least 8 characters long</li>
+                  <li className={isDifferentFromOld ? 'text-green-600' : 'text-red-500'}>• Must be different from old password</li>
+                  <li className={hasMix ? 'text-green-600' : 'text-red-500'}>• Use a mix of letters, numbers, and symbols</li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="confirmPassword" className="text-xs font-medium">
               Confirm New Password
             </Label>
             <div className="relative bg-white rounded-[12px] border border-border-subtle">
-              <Input id="confirmPassword" type={showPasswords.confirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} placeholder="Confirm your new password" className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground ${errors.confirmPassword ? 'border-red-accent' : ''}`} />
+              <Input id="confirmPassword" type={showPasswords.confirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} placeholder="Confirm your new password" className={`rounded-[12px] pr-12 bg-transparent border-transparent text-foreground placeholder:text-muted-foreground h-10 ${errors.confirmPassword ? 'border-red-accent' : ''}`} />
               <button type="button" onClick={() => togglePasswordVisibility('confirmPassword')} className="absolute w-11 right-0 top-0 bottom-0 flex justify-center items-center text-gold hover:text-gold/90 transition-colors bg-transparent border-0 p-0" tabIndex={-1}>
-                {showPasswords.confirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPasswords.confirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {errors.confirmPassword && <p className="text-xs text-red-accent">{errors.confirmPassword}</p>}
+            {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword}</p>}
           </div>
 
           {}
-          <div className="bg-beige rounded-[12px] p-4">
-            <p className="text-xs font-medium mb-2">Password Requirements:</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• At least 8 characters long</li>
-              <li>• Must be different from old password</li>
-              <li>• Use a mix of letters, numbers, and symbols</li>
-            </ul>
-          </div>
-
-          {}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading} className="flex-1 rounded-[12px] border-border-subtle h-11 sm:w-auto w-full">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading} className="flex-1 rounded-[12px] border-border-subtle h-10 sm:w-auto w-full text-sm">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-11 sm:w-auto w-full">
+            <Button type="submit" disabled={isLoading} className="flex-1 bg-gold hover:bg-gold/90 text-white rounded-[12px] h-10 sm:w-auto w-full text-sm">
               {isLoading ? 'Changing...' : 'Change Password'}
             </Button>
           </div>

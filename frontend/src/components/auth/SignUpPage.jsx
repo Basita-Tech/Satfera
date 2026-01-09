@@ -667,13 +667,9 @@ const SignUpPage = () => {
           }} className="w-4 h-4 accent-[#D4AF37] mt-1 flex-shrink-0" />
             <label className="text-xs sm:text-sm text-gray-700">
               I agree to the{" "}
-              <span className="text-blue-600 underline hover:text-blue-700 cursor-pointer" onClick={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowDisclaimer(true);
-            }}>
+              <Link to="/terms" className="text-blue-600 underline hover:text-blue-700">
                 Terms & Conditions
-              </span>
+              </Link>
             </label>
           </div>
           {errors.termsAccepted && <p className="text-red-500 text-sm mt-1">{errors.termsAccepted}</p>}

@@ -39,7 +39,7 @@ export function Navigation({
         searchProfiles
       } = await import("../api/auth");
       const rawTerm = searchQuery.trim();
-      // Normalize possible inputs like "ID: SF-4855" or "sf 4855" into a compact candidate.
+     
       const cleanedIdCandidate = rawTerm.replace(/^id[:\s-]*/i, "").replace(/\s+/g, "").replace(/[^A-Za-z0-9-]/g, "");
       const isCustomId = /^[A-Za-z]{1,6}-?\d{2,8}$/i.test(cleanedIdCandidate);
       const searchTerm = isCustomId ? cleanedIdCandidate.toUpperCase() : rawTerm;
