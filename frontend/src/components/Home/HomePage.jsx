@@ -322,6 +322,15 @@ export default function HomePage() {
             <Phone className="w-4 h-4" /> +91 98765 43210
           </a>
         </div>
+        <div className="flex flex-col md:flex-row justify-center items-center gap-4 mt-4 text-sm">
+          <Link to="/terms" className="text-gray-200 hover:text-[#D4A052] transition">
+            Terms & Conditions
+          </Link>
+          <span className="text-gray-500 hidden md:inline">|</span>
+          <Link to="/privacy" className="text-gray-200 hover:text-[#D4A052] transition">
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
     </div>;
 }
