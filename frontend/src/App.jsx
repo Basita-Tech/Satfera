@@ -12,6 +12,8 @@ import SignUpPage from "./components/auth/SignUpPage";
 import VerifyOtp from "./components/auth/VerifyOtp";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ForgotUsername from "./components/auth/ForgotUsername";
+import TermsPage from "./components/pages/TermsPage";
+import PrivacyPolicyPage from "./components/pages/PrivacyPolicyPage";
 const ProfileCompletion = lazy(() => import("./components/forms/ProfileCompletion"));
 const MultiStepForm = lazy(() => import("./components/MultiStepForm"));
 const ReviewPage = lazy(() => import("./components/pages/ReviewPage"));
@@ -39,6 +41,8 @@ function App() {
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/forgot-username" element={<ForgotUsername />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
         {}
         <Route path="/complete-profile" element={<Suspense fallback={<PageLoader />}>

@@ -11,6 +11,7 @@ import { ChangePasswordModal } from '../../ChangePasswordModal';
 import { EditContactModal } from '../../EditContactModal';
 import { BlockedUsersList } from '../../BlockedUsersList';
 import { BlockUserDialog } from '../../BlockUserDialog';
+import { ReportProfileDialog } from '../../ReportProfileDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '../../ui/dialog';
 import { Textarea } from '../../ui/textarea';
 import { getUserProfileDetails, getBlockedUsers, getNotificationSettings, updateNotificationSettings, getUserContactInfo, getSessions, logoutSession, logoutAllSessions, deactivateAccount, activateAccount, getAccountStatus, deleteUserAccount, createSupportTicket, getSupportTickets, getSupportTicketDetails, addTicketMessage } from '../../../api/auth';
@@ -29,6 +30,7 @@ export function Settings() {
   });
   const [blockedUsersModalOpen, setBlockedUsersModalOpen] = useState(false);
   const [blockUserDialogOpen, setBlockUserDialogOpen] = useState(false);
+  const [reportProfileDialogOpen, setReportProfileDialogOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [deactivateReason, setDeactivateReason] = useState('');
@@ -50,6 +52,7 @@ export function Settings() {
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
+  const [blockedUsersRefreshToken, setBlockedUsersRefreshToken] = useState(0);
   const [userProfile, setUserProfile] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [contactInfo, setContactInfo] = useState({
@@ -128,6 +131,7 @@ export function Settings() {
   };
   const handleBlockSuccess = () => {
     fetchBlockedCount();
+    setBlockedUsersRefreshToken(prev => prev + 1);
   };
   const fetchNotificationSettings = async () => {
     setIsLoadingNotifications(true);
@@ -633,7 +637,7 @@ export function Settings() {
             </Button>
 
             {}
-            <Button variant="outline" className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all" onClick={() => toast.info('Report profile form would open')}>
+            <Button variant="outline" className="w-full justify-start border-red-accent/50 text-red-accent hover:!bg-red-50 hover:!text-red-600 active:!bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 rounded-[12px] h-12 transition-all" onClick={() => setReportProfileDialogOpen(true)}>
               <Shield className="w-4 h-4 mr-3" />
               Report a Profile
             </Button>
@@ -701,7 +705,7 @@ export function Settings() {
 
           <div className="space-y-3">
             
-            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => navigate('/dashboard/support')}>
+            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => setYourTicketsDialogOpen(true)}>
               <Ticket className="w-4 h-4 mr-3" />
               Your Tickets
               {supportTickets.length > 0 && <Badge className="ml-auto bg-gold text-white">{supportTickets.length}</Badge>}
@@ -721,7 +725,7 @@ export function Settings() {
             </Button>
 
             {}
-            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => toast.info('Opening terms & privacy...')}>
+            <Button variant="outline" className="w-full justify-start border-border-subtle rounded-[12px] h-12 hover:!bg-[#C8A227]/10 hover:!border-[#C8A227] hover:!text-[#222222] active:!bg-[#C8A227]/30 focus-visible:ring-2 focus-visible:ring-[#C8A227]/50 transition-all" onClick={() => navigate('/privacy')}>
               <FileText className="w-4 h-4 mr-3" />
               Terms & Privacy Policy
             </Button>
@@ -748,13 +752,16 @@ export function Settings() {
     })} contactType={editContactModal.type} currentValue={editContactModal.type === 'email' ? userProfile?.email : userProfile?.phoneNumber} onSave={handleContactUpdate} />
 
       {}
-      <BlockedUsersList open={blockedUsersModalOpen} onOpenChange={open => {
+      <BlockedUsersList open={blockedUsersModalOpen} refreshToken={blockedUsersRefreshToken} onOpenChange={open => {
       setBlockedUsersModalOpen(open);
       if (!open) fetchBlockedCount();
     }} />
 
       {}
       <BlockUserDialog open={blockUserDialogOpen} onOpenChange={setBlockUserDialogOpen} onBlockSuccess={handleBlockSuccess} />
+
+      {}
+      <ReportProfileDialog open={reportProfileDialogOpen} onOpenChange={setReportProfileDialogOpen} />
 
       {}
       <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
