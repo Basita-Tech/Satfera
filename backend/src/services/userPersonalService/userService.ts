@@ -1008,6 +1008,13 @@ export async function downloadMyPdfData(
       path.join(__dirname, "../../pdf-templete/index.html"),
       "utf8"
     );
+    console.log(
+      "pathhh: ",
+      path.join(__dirname, "../../pdf-templete/index.html")
+    );
+
+    console.log("__dirname, ", __dirname);
+
     const data = {
       photo_url: profile.photos.closerPhoto.url,
       name: `${user.firstName} ${user.lastName}`,

@@ -906,7 +906,7 @@ export const getProfileReviewStatusController = async (
     }
 
     const user = await User.findById(authUser.id).select(
-      "firstName email profileReviewStatus isProfileApproved"
+      "firstName email profileReviewStatus isProfileApproved reviewNotes reviewedAt"
     );
 
     if (!user) {
@@ -922,7 +922,9 @@ export const getProfileReviewStatusController = async (
         profileReviewStatus: user.profileReviewStatus,
         isProfileApproved: user.isProfileApproved,
         userName: user.firstName || "User",
-        email: user.email || null
+        email: user.email || null,
+        reason: user.reviewNotes,
+        reviewedAt: user.reviewedAt
       }
     });
   } catch (error: any) {
