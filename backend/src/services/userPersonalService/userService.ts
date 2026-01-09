@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
-import { formatListingProfile, logger } from "../../lib";
+import {
+  formatListingProfile,
+  logger,
+  redisClient,
+  safeRedisOperation
+} from "../../lib";
 import {
   User,
   UserEducation,
@@ -17,6 +22,7 @@ import { validateUserId } from "./userSettingService";
 import { generatePDF } from "pdf-node";
 import fs from "fs";
 import path from "path";
+import { uploadPdfToS3 } from "../../config/awsClient";
 
 export async function getUserDashboardService(userId: string) {
   const userObjectId = new mongoose.Types.ObjectId(userId);
@@ -256,6 +262,11 @@ export async function compareProfilesService(
     (profile?.favoriteProfiles || []).map((id: any) => id.toString())
   );
 
+  const profilesObjectIds = profilesIds.map(
+    (id) => new mongoose.Types.ObjectId(id)
+  );
+  const authObjectId = new mongoose.Types.ObjectId(authUserId);
+
   const [
     users,
     personals,
@@ -263,7 +274,8 @@ export async function compareProfilesService(
     healths,
     professions,
     educations,
-    profiles
+    profiles,
+    connectionRequest
   ] = await Promise.all([
     User.find(
       { _id: { $in: profilesIds } },
@@ -292,7 +304,13 @@ export async function compareProfilesService(
     Profile.find(
       { userId: { $in: profilesIds } },
       "userId photos.closerPhoto.url"
-    ).lean()
+    ).lean(),
+    ConnectionRequest.find({
+      $or: [
+        { sender: authObjectId, receiver: { $in: profilesObjectIds } },
+        { sender: { $in: profilesObjectIds }, receiver: authObjectId }
+      ]
+    }).lean()
   ]);
 
   const usersMap = new Map(users.map((u: any) => [String(u._id), u]));
@@ -314,6 +332,9 @@ export async function compareProfilesService(
   const profileMap = new Map(
     (profiles || []).map((pr: any) => [String(pr.userId), pr])
   );
+  const connectionRequestMap = new Map(
+    (connectionRequest || []).map((pr: any) => [pr.receiver.toString(), pr])
+  );
 
   const compareData = await Promise.all(
     profilesIds.map(async (id: string) => {
@@ -324,6 +345,7 @@ export async function compareProfilesService(
       const prof = professionMap.get(id) || null;
       const edu = educationMap.get(id) || null;
       const pr = profileMap.get(id) || null;
+      const cR = connectionRequestMap.get(id) || null;
 
       let compatibility = null;
       try {
@@ -367,7 +389,8 @@ export async function compareProfilesService(
         closerPhoto: {
           url: pr?.photos?.closerPhoto?.url || null
         },
-        compatibility
+        compatibility,
+        status: (cR && cR.status) || null
       };
     })
   );
@@ -479,12 +502,14 @@ export async function searchService(
       authUserSentRequests,
       authUserReceivedRequests
     ] = await Promise.all([
-      User.findById(authUserId, "gender blockedUsers").lean(),
+      User.findById(authUserId, "gender blockedUsers isVisible").lean(),
       Profile.findOne({ userId: authUserId }, "favoriteProfiles").lean(),
       UserHealth.findOne({ userId: authUserId }, "isHaveHIV").lean(),
       ConnectionRequest.find({ sender: authUserId }).lean(),
       ConnectionRequest.find({ receiver: authUserId }).lean()
     ]);
+
+    if (!authUser.isVisible) return;
 
     if (authUser) {
       authUserGender = String(authUser.gender);
@@ -1012,6 +1037,26 @@ export async function downloadMyPdfData(
       profile_url: `https://satfera.in/dashboard/profile/${userPersonal.userId}`
     };
 
+    let url;
+
+    const s3UrlInCache = (userId: mongoose.Types.ObjectId): string => {
+      return `biodata:${userId.toString()}-biodata.pdf`;
+    };
+
+    const cacheKey = s3UrlInCache(userId);
+    const cached = await safeRedisOperation(
+      () => redisClient.get(cacheKey),
+      "Get cached user profile"
+    );
+
+    if (cached) {
+      try {
+        return { url: JSON.parse(cached) };
+      } catch (error) {
+        logger.warn(`Failed to parse cached user profile for key ${cacheKey}`);
+        return null;
+      }
+    }
     try {
       const result = await generatePDF({
         html: html,
@@ -1021,27 +1066,22 @@ export async function downloadMyPdfData(
       });
 
       if ("buffer" in result) {
-        fs.writeFileSync("./user-report-buffer.pdf", result.buffer);
-        console.log("PDF generated from buffer");
-      }
+        // fs.writeFileSync(`./${userId}-biodata.pdf`, result.buffer);
+        // const s3 = await uploadImageToS3("satfera-pdf", result.buffer);
+        url = await uploadPdfToS3("satfera-pdf", result.buffer, userId);
 
-      if ("filename" in result) {
-        console.log("PDF generated at:", result.filename);
+        const EXPIRE_CACHE = 86400;
+        await safeRedisOperation(
+          () => redisClient.setEx(cacheKey, EXPIRE_CACHE, JSON.stringify(url)),
+          "Set cached match score"
+        );
       }
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
 
     return {
-      user: user || null,
-      userPersonal: userPersonal || null,
-      family: userFamily || null,
-      educations: Array.isArray(educations) ? educations : [],
-      profession: profession || null,
-      closerPhoto:
-        (Array.isArray(profile)
-          ? profile[0]?.photos?.closerPhoto
-          : (profile as any)?.photos?.closerPhoto) || null
+      url
     };
   } catch (error: any) {
     logger.error("Error in downloadMyPdfData:", error?.message || error);

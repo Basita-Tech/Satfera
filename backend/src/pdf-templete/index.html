@@ -2,12 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>satfera Biodata</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satfera Biodata</title>
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
       }
 
       @page {
@@ -16,31 +19,42 @@
       }
 
       body {
-        font-family: sans-serif;
-        background: #fff;
-        color: #000;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #555;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+
+        display: block;
+        text-align: center;
       }
 
       .biodata-container {
-        width: 210mm;
-        height: 297mm;
-        margin: 0 auto;
-        background: linear-gradient(135deg, #fff 0%, #fbfaf7 100%);
         position: relative;
-        overflow: hidden;
+        /* width: 210mm;
+        height: 297mm; */
+        width: 100%;
+        height: 100%;
+        margin: 0 auto;
+        box-shadow: none;
         page-break-after: always;
+        border: none;
+        /* margin: 0 auto; */
+        text-align: left;
+        background: linear-gradient(135deg, #fff 0%, #fbfaf7 100%);
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
       }
 
       .biodata-container::before,
       .biodata-container::after {
         content: "";
         position: absolute;
-        width: 120px;
-        height: 120px;
+        width: 140px;
+        height: 140px;
         background: linear-gradient(135deg, #ddb84e 0%, #e4c48a 100%);
-        opacity: 0.1;
+        opacity: 0.15;
+        z-index: 0;
       }
 
       .biodata-container::before {
@@ -57,9 +71,11 @@
 
       .header {
         background: linear-gradient(135deg, #ddb84e 0%, #e4c48a 100%);
-        padding: 15px 0;
+        padding: 12px 0;
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        z-index: 1;
       }
 
       .header-text {
@@ -67,66 +83,65 @@
         font-size: 16px;
         font-weight: 600;
         letter-spacing: 3px;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        text-transform: uppercase;
       }
 
       .logo-section {
         text-align: center;
-        padding: 18px 0 12px;
+        padding: 15px 0 5px;
         position: relative;
         z-index: 1;
       }
 
       .logo {
-        width: 180px;
+        width: 140px;
         height: auto;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
       }
 
       .photo-section {
         text-align: center;
-        padding: 15px 0;
+        padding: 5px 0 15px;
         position: relative;
         z-index: 1;
       }
 
       .photo-frame {
         display: inline-block;
-        padding: 2px;
+        padding: 3px;
         background: linear-gradient(135deg, #ddb84e 0%, #e4c48a 100%);
         border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(221, 184, 78, 0.3);
+        box-shadow: 0 4px 10px rgba(221, 184, 78, 0.3);
       }
 
       .profile-photo {
-        width: 120px;
-        height: 120px;
+        width: 115px;
+        height: 115px;
         border-radius: 50%;
         border: 3px solid #fff;
         object-fit: cover;
         display: block;
+        background-color: #eee;
       }
 
       .content {
-        padding: 0 30mm 15px;
+        padding: 0 25mm;
         position: relative;
         z-index: 1;
       }
 
       .section {
         margin-bottom: 18px;
-        page-break-inside: avoid;
       }
 
       .section-title {
         color: #ddb84e;
-        font-size: 17px;
-        font-weight: 600;
+        font-size: 16px;
+        font-weight: 700;
         margin-bottom: 10px;
-        padding-bottom: 5px;
+        padding-bottom: 4px;
         border-bottom: 2px solid #e4c48a;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
+        letter-spacing: 1px;
       }
 
       .info-table {
@@ -134,99 +149,94 @@
         border-collapse: collapse;
       }
 
-      .info-row {
-        border-bottom: 1px solid #f0f0f0;
+      .info-row td {
+        padding: 5px 0;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 12px;
+        vertical-align: top;
       }
 
-      .info-row:last-child {
+      .info-row:last-child td {
         border-bottom: none;
       }
 
       .info-label {
-        padding: 7px 0;
+        width: 38%;
         font-weight: 600;
         color: #666;
-        width: 42%;
-        font-size: 12.5px;
       }
 
       .info-separator {
-        padding: 7px 6px;
+        width: 4%;
         color: #ddb84e;
         font-weight: bold;
-        width: 3%;
+        text-align: center;
       }
 
       .info-value {
-        padding: 7px 0;
-        color: #333;
-        font-size: 12.5px;
-        width: 55%;
+        width: 58%;
+        color: #222;
+        font-weight: 500;
       }
 
       .footer {
-        padding: 15px 30mm 30px;
-        background: linear-gradient(to top, #fef9f3 0%, transparent 100%);
-        position: relative;
+        position: absolute;
+        bottom: 60px;
+        width: 100%;
+        /* padding: 15px 0; */
+        text-align: center;
+        /* background: linear-gradient(
+          to top,
+          #fff9ef 0%,
+          rgba(255, 255, 255, 0) 100%
+        ); */
         z-index: 1;
-        page-break-inside: avoid;
-        margin-top: auto;
       }
 
       .footer-title {
-        font-weight: 600;
         color: #ddb84e;
-        margin-bottom: 8px;
+        font-weight: 700;
         font-size: 13px;
+        margin-bottom: 5px;
       }
 
       .footer-content {
         color: #555;
-        line-height: 1.6;
-        font-size: 11.5px;
+        font-size: 11px;
         margin-bottom: 10px;
+        padding: 0 20px;
       }
 
       .profile-link {
         display: inline-block;
+        background-color: #fff;
         color: #ddb84e;
         text-decoration: none;
         font-weight: 600;
-        padding: 7px 18px;
-        border: 2px solid #ddb84e;
-        border-radius: 20px;
+        padding: 6px 20px;
+        border: 1px solid #ddb84e;
+        border-radius: 50px;
         font-size: 11px;
-        transition: all 0.3s ease;
-        margin-top: 4px;
-      }
-
-      .profile-link:hover {
-        background: #ddb84e;
-        color: #fff;
-      }
-
-      .divider {
-        height: 2px;
-        background: linear-gradient(
-          to right,
-          transparent,
-          #e4c48a,
-          transparent
-        );
-        margin: 12px 0;
       }
 
       @media print {
         body {
-          margin: 0;
-          padding: 0;
+          background-color: #fff;
+          width: 210mm;
+          height: 297mm;
         }
 
         .biodata-container {
-          width: 210mm;
-          height: 297mm;
-          margin: 0;
+          width: 100%;
+          height: 100%;
+          margin: 0 auto;
           box-shadow: none;
+          page-break-after: always;
+          border: none;
+        }
+
+        * {
+          print-color-adjust: exact !important;
         }
       }
     </style>
@@ -238,11 +248,12 @@
       </div>
 
       <div class="logo-section">
-        <img src="https://satfera.in/logo.png" alt="Logo" class="logo" />
+        <img src="https://satfera.in/logo.png" alt="Satfera" class="logo" />
       </div>
+
       <div class="photo-section">
         <div class="photo-frame">
-          <img src="{{photo_url}}" alt="Profile Photo" class="profile-photo" />
+          <img src="{{photo_url}}" alt="Profile" class="profile-photo" />
         </div>
       </div>
 
@@ -265,11 +276,6 @@
               <td class="info-separator">:</td>
               <td class="info-value">{{time_of_birth}}</td>
             </tr>
-            <!-- <tr class="info-row">
-              <td class="info-label">Place of Birth</td>
-              <td class="info-separator">:</td>
-              <td class="info-value">{{place_of_birth}}</td>
-            </tr> -->
             <tr class="info-row">
               <td class="info-label">Height</td>
               <td class="info-separator">:</td>
@@ -347,12 +353,12 @@
               <td class="info-value">{{father_contact}}</td>
             </tr>
             <tr class="info-row">
-              <td class="info-label">Grandfather's Name</td>
+              <td class="info-label">Grandfather</td>
               <td class="info-separator">:</td>
               <td class="info-value">{{grandfather_name}}</td>
             </tr>
             <tr class="info-row">
-              <td class="info-label">Grandmother's Name</td>
+              <td class="info-label">Grandmother</td>
               <td class="info-separator">:</td>
               <td class="info-value">{{grandmother_name}}</td>
             </tr>
