@@ -50,6 +50,10 @@ const MultiStepForm = () => {
         const res = await getOnboardingStatus();
         const savedSteps = res?.data?.data?.completedSteps || [];
         setCompletedSteps(savedSteps);
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlStep = urlParams.get('step');
+        
         let nextStep = "personal";
         for (const s of steps) {
           if (!savedSteps.includes(s.id)) {
@@ -57,13 +61,26 @@ const MultiStepForm = () => {
             break;
           }
         }
-        const lastCompletedIndex = savedSteps.length > 0 ? steps.findIndex(s => s.id === savedSteps[savedSteps.length - 1]) : 0;
+        
+        const lastCompletedIndex = savedSteps.length > 0 ? steps.findIndex(s => s.id === savedSteps[savedSteps.length - 1]) : -1;
         const maxAllowedIndex = Math.min(lastCompletedIndex + 1, steps.length - 1);
         setMaxAllowedStep(steps[maxAllowedIndex].id);
-        setCurrentStep(nextStep);
-        navigate(`/onboarding/user?step=${nextStep}`, {
-          replace: true
-        });
+        
+        // Validate URL step against allowed steps
+        if (urlStep) {
+          const urlStepIndex = steps.findIndex(s => s.id === urlStep);
+          if (urlStepIndex > maxAllowedIndex) {
+            // User trying to access a step they haven't unlocked
+            toast.error("Please complete the previous steps first.");
+            setCurrentStep(nextStep);
+            navigate(`/onboarding/user?step=${nextStep}`, { replace: true });
+            return;
+          }
+          setCurrentStep(urlStep);
+        } else {
+          setCurrentStep(nextStep);
+          navigate(`/onboarding/user?step=${nextStep}`, { replace: true });
+        }
       } catch (err) {
         console.error("❌ Failed to fetch onboarding progress:", err);
       } finally {
@@ -110,14 +127,25 @@ const MultiStepForm = () => {
   const handleStepClick = id => {
     const clickedIndex = steps.findIndex(s => s.id === id);
     const maxAllowedIndex = steps.findIndex(s => s.id === maxAllowedStep);
-    if (clickedIndex <= maxAllowedIndex) {
-      setCurrentStep(id);
-      navigate(`/onboarding/user?step=${id}`, {
-        replace: true
-      });
-    } else {
+    
+    
+    if (clickedIndex > maxAllowedIndex) {
       toast.error("Please complete the previous steps first.");
+      return;
     }
+    
+   C
+    if (clickedIndex >= 1 && !completedSteps.includes("personal")) {
+      toast.error("Please complete Personal Details first.");
+      setCurrentStep("personal");
+      navigate("/onboarding/user?step=personal", { replace: true });
+      return;
+    }
+    
+    setCurrentStep(id);
+    navigate(`/onboarding/user?step=${id}`, {
+      replace: true
+    });
   };
   useEffect(() => {
     async function checkUserReview() {

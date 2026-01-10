@@ -9,7 +9,7 @@ const AuthMonitor = () => {
   } = useContext(AuthContextr);
   const navigate = useNavigate();
   const location = useLocation();
-  const publicRoutes = ["/login", "/signup", "/verify-otp", "/forgot-password", "/forgot-username", "/"];
+  const publicRoutes = ["/login", "/signup", "/verify-otp", "/forgot-password", "/reset-password", "/forgot-username", "/"];
   const isPublicRoute = publicRoutes.includes(location.pathname);
   useEffect(() => {
     if (isPublicRoute) return;

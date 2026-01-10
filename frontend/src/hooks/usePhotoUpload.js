@@ -1,6 +1,37 @@
 import { useState, useCallback, useRef } from "react";
-import { uploadUserPhoto, uploadGovernmentId, updateUserPhoto, updateGovernmentId } from "../api/auth";
+import {
+  uploadUserPhoto,
+  uploadGovernmentId,
+  updateUserPhoto,
+  updateGovernmentId,
+  getPreSignedUrlForFile,
+  uploadToS3,
+  getUserId,
+  savePhotoMetadata
+} from "../api/auth";
 const usePhotoUpload = () => {
+  const userIdRef = useRef(null);
+
+  const ensureUserId = useCallback(async () => {
+    if (userIdRef.current) return userIdRef.current;
+    
+    // Get MongoDB _id from /auth/me endpoint (backend uses cookies, not localStorage)
+    try {
+      const mongoId = await getUserId();
+      if (mongoId) {
+        console.log("✅ MongoDB _id from /auth/me:", mongoId);
+        userIdRef.current = mongoId;
+        return mongoId;
+      } else {
+        console.warn("⚠️ /auth/me did not return user ID");
+      }
+    } catch (e) {
+      console.error("❌ Error fetching user ID:", e);
+    }
+    
+    console.warn("⚠️ No MongoDB _id found");
+    return null;
+  }, []);
   const [uploadState, setUploadState] = useState({
     isUploading: false,
     currentPhoto: null,
@@ -63,6 +94,31 @@ const usePhotoUpload = () => {
             }
           }
         }));
+        // Step 1: Pre-sign and upload to S3
+        const userId = await ensureUserId();
+        const presign = await getPreSignedUrlForFile(file, userId || photoKey, photoType);
+        if (!presign?.success || !presign?.url) {
+          throw new Error(presign?.message || "Failed to get pre-signed URL");
+        }
+
+        await uploadToS3(presign.url, file, (percentCompleted) => {
+          setUploadState(prev => ({
+            ...prev,
+            progress: {
+              ...prev.progress,
+              [photoKey]: {
+                ...prev.progress[photoKey],
+                progress: percentCompleted,
+                status: "uploading"
+              }
+            }
+          }));
+        });
+
+        // Step 2: Save photo metadata to database
+        await savePhotoMetadata(userId || photoKey, photoType);
+
+        // Step 3: Existing backend upload to persist metadata/profile
         const formData = new FormData();
         formData.append("file", file);
         formData.append("photoType", photoType);

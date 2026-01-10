@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { Search, Menu, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -7,6 +7,9 @@ import { Button } from "./ui/button";
 import NotificationDropdown from "./NotificationDropdown";
 import { AuthContextr } from "./context/AuthContext";
 import toast from "react-hot-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { getUserProfileDetails } from "../api/auth";
 export function Navigation({
   activePage,
   onNavigate
@@ -24,7 +27,26 @@ export function Navigation({
   const [showResults, setShowResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [logoHighlighted, setLogoHighlighted] = useState(false);
+  const [profileUser, setProfileUser] = useState(null);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUserProfile = async () => {
+      try {
+        const res = await getUserProfileDetails();
+        if (isMounted && res?.success) {
+          setProfileUser(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user profile:", err);
+      }
+    };
+    fetchUserProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
@@ -88,9 +110,6 @@ export function Navigation({
     label: "Dashboard",
     key: "dashboard"
   }, {
-    label: "Recommendations",
-    key: "browse"
-  }, {
     label: "New Profiles",
     key: "newprofiles"
   }, {
@@ -105,12 +124,10 @@ export function Navigation({
   }, {
     label: "Compare",
     key: "compare"
-  }, {
-    label: "Settings",
-    key: "settings"
   }];
   const {
-    logout
+    logout,
+    user
   } = useContext(AuthContextr);
   const handleNavigation = async key => {
     if (key === "logout") {
@@ -229,6 +246,39 @@ export function Navigation({
               <NotificationDropdown onViewAll={() => handleNavigation("notifications")} />
             </div>
 
+            <div className="hidden sm:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-center rounded-full border-2 border-[#e5e7eb] bg-white p-0.5 hover:border-[#C8A227] hover:shadow-md transition-all duration-200" aria-label="Open user menu" type="button">
+                    <Avatar className="size-10 lg:size-9 xl:size-8 ring-2 ring-white">
+                      <AvatarImage 
+                        src={profileUser?.closerPhotoUrl || profileUser?.closerPhoto?.url || profileUser?.profilePhoto?.url || user?.closerPhotoUrl || "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=400&q=80"} 
+                        alt={`${profileUser?.firstName || user?.firstName || "User"}`} 
+                        className="object-cover w-full h-full rounded-full"
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-[#C8A227] to-[#D4A052] text-white font-bold text-base">
+                        {(profileUser?.firstName?.charAt(0) || user?.firstName?.charAt(0) || "U").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="w-56 p-1 border border-[#e5e7eb] rounded-[12px] shadow-lg z-[110]">
+                  <div className="px-3 py-2 border-b border-[#e5e7eb]">
+                    <p className="text-sm font-semibold text-[#111] capitalize line-clamp-1">{profileUser?.firstName || user?.firstName || ""} {profileUser?.lastName || user?.lastName || ""}</p>
+                    <p className="text-xs text-gray-500 truncate">{profileUser?.email || user?.email || ""}</p>
+                  </div>
+                  <div className="py-1">
+                    <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="rounded-lg px-3 py-2 text-sm font-medium text-[#4b3f33] hover:bg-[#f9f5ed] cursor-pointer">
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleNavigation("logout")} className="rounded-lg px-3 py-2 text-sm font-medium text-[#b91c1c] hover:bg-red-50 cursor-pointer">
+                      Logout
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             {}
             <div className="block lg:hidden z-50">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -238,8 +288,25 @@ export function Navigation({
                   </button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[280px] sm:w-[320px] !p-0">
-                  {}
-                  <div className="h-14 bg-gradient-to-r from-[#C8A167] to-[#D4A052] relative z-[1]" />
+                  <div className="h-14 bg-gradient-to-r from-[#C8A167] to-[#D4A052] relative z-[1] flex items-center justify-between px-4">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Avatar className="size-10 ring-1 ring-white/50 flex-shrink-0">
+                        <AvatarImage 
+                          src={profileUser?.closerPhotoUrl || profileUser?.closerPhoto?.url || user?.closerPhotoUrl || "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=400&q=80"} 
+                          alt={`${profileUser?.firstName || user?.firstName || "User"}`}
+                          className="object-cover rounded-full"
+                        />
+                        <AvatarFallback className="bg-white/20 text-white font-bold text-sm">
+                          {(profileUser?.firstName?.charAt(0) || user?.firstName?.charAt(0) || "U").toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-xs truncate">
+                          {profileUser?.firstName || user?.firstName || ""}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   
                   <div className="flex flex-col gap-3 pt-4 pb-6 px-4 overflow-y-auto bg-white" style={{
                   height: 'calc(100vh - 56px)'
@@ -267,14 +334,18 @@ export function Navigation({
 
                     <div className="border-t border-gray-200"></div>
 
-                    {menuItems.map(item => <button key={item.key} onClick={() => handleNavigation(item.key)} className={`px-4 py-3 rounded-lg font-medium transition-all text-left
-                        ${activePage === item.key ? "bg-gray-100 text-[#800000]" : "bg-transparent text-[#800000] hover:bg-gray-50 hover:text-[#800000]"}`}>
-                        {item.label}
+                    {menuItems.map(item => <button key={item.key} onClick={() => handleNavigation(item.key)} className={`px-4 py-3 rounded-lg font-medium transition-all text-left flex items-center justify-between
+                        ${activePage === item.key ? "bg-[#f9f5ed] text-[#C8A227] border-l-4 border-[#C8A227]" : "bg-transparent text-[#4b3f33] hover:bg-gray-50"}`}>
+                        <span>{item.label}</span>
+                        {activePage === item.key && <span className="text-[#C8A227]">●</span>}
                       </button>)}
 
                     <div className="border-t border-gray-200 my-3"></div>
-                    <button onClick={() => handleNavigation("logout")} className="w-full text-left px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 transition-all font-medium text-[#800000]">
-                      Logout
+                    <button onClick={() => navigate("/dashboard/settings")} className="w-full text-left px-4 py-3 rounded-lg bg-[#f9f5ed] hover:bg-[#f0ead8] transition-all font-medium text-[#4b3f33] flex items-center gap-2">
+                      <span>⚙️</span> Settings
+                    </button>
+                    <button onClick={() => handleNavigation("logout")} className="w-full text-left px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 transition-all font-medium text-[#b91c1c] flex items-center gap-2">
+                      <span>🚪</span> Logout
                     </button>
                   </div>
                 </SheetContent>

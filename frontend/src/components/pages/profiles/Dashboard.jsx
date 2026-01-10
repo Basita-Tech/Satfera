@@ -1,17 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { Sparkles, Download, Camera, Loader2 } from "lucide-react";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles, Download, Camera, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { StatCard } from "../../StatCard";
 import { ProfileCard } from "../../ProfileCard";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { getUserProfileDetails, getMatches, getNotifications, getUserPhotos, downloadUserPdf } from "../../../api/auth";
+import { getUserProfileDetails, getMatches, getUserPhotos, downloadUserPdf } from "../../../api/auth";
 import usePhotoUpload from "../../../hooks/usePhotoUpload";
 import toast from "react-hot-toast";
 export function Dashboard({
   onNavigate,
   onSendRequest,
   onAddToCompare,
+  onRemoveCompare,
   compareProfiles = [],
   shortlistedIds = [],
   onToggleShortlist,
@@ -27,13 +28,16 @@ export function Dashboard({
   } = usePhotoUpload();
   const [uploading, setUploading] = useState(false);
   const [user, setUser] = useState(null);
-  const [matchedProfiles, setMatchedProfiles] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [totalMatches, setTotalMatches] = useState(0);
-  const [recentActivities, setRecentActivities] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
+  const [recommendationsError, setRecommendationsError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PROFILES_PER_PAGE = 12;
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [activityLoading, setActivityLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [existingPhotos, setExistingPhotos] = useState(null);
+  const recommendationsSectionRef = useRef(null);
   const mapPhotos = photosData => {
     const mappedPhotos = {};
     if (!photosData) return mappedPhotos;
@@ -43,25 +47,17 @@ export function Dashboard({
   useEffect(() => {
     async function fetchDashboardData() {
       if (id) return;
-      const hasExistingData = user && matchedProfiles.length > 0;
+      const hasExistingData = user;
       if (!hasExistingData) {
         setIsLoading(true);
       }
       try {
-        const [userRes, matchesRes, photosRes] = await Promise.all([getUserProfileDetails(), getMatches({
-          page: 1,
-          limit: 24,
-          useCache: false
-        }), getUserPhotos()]);
+        const [userRes, photosRes] = await Promise.all([getUserProfileDetails(), getUserPhotos()]);
         if (userRes?.success) {
           setUser(userRes.data);
         }
         if (photosRes?.success && photosRes?.data) {
           setExistingPhotos(mapPhotos(photosRes.data));
-        }
-        if (matchesRes?.success && Array.isArray(matchesRes?.data)) {
-          setMatchedProfiles(matchesRes.data);
-          setTotalMatches(matchesRes.pagination?.total ?? matchesRes.data.length);
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -71,54 +67,87 @@ export function Dashboard({
     }
     fetchDashboardData();
   }, [id, location.pathname]);
+
   useEffect(() => {
     let isMounted = true;
-    async function fetchActivities() {
-      setActivityLoading(true);
+    const fetchRecommendations = async () => {
+      setRecommendationsLoading(true);
+      setRecommendationsError(null);
       try {
-        const notificationsRes = await getNotifications(1, 8, false);
-        if (isMounted && notificationsRes?.success && Array.isArray(notificationsRes?.data)) {
-          setRecentActivities(notificationsRes.data.slice(0, 8));
-        }
-      } catch (e) {
-        console.error("❌ Error fetching activities:", e);
+        const response = await getMatches({
+          page: currentPage,
+          limit: PROFILES_PER_PAGE,
+          useCache: true
+        });
+        if (!isMounted) return;
+        const data = Array.isArray(response?.data) ? response.data : [];
+        const mapped = data.map(match => {
+          const userData = match?.user || match || {};
+          return {
+            id: userData.userId || userData.id || userData._id,
+            name: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || "Unknown",
+            age: userData.age,
+            city: userData.city,
+            state: userData.state,
+            religion: userData.religion,
+            caste: userData.subCaste,
+            profession: userData.profession || userData.occupation || userData.professional?.Occupation,
+            image: userData.closerPhoto?.url,
+            compatibility: match?.scoreDetail?.score || userData.compatibility,
+            status: userData.connectionStatus || null
+          };
+        });
+        setRecommendations(mapped);
+        setTotalMatches(response?.pagination?.total ?? response?.total ?? mapped.length);
+      } catch (err) {
+        if (!isMounted) return;
+        setRecommendationsError(err?.message || "Failed to load recommendations");
+        setRecommendations([]);
+        setTotalMatches(0);
       } finally {
-        if (isMounted) setActivityLoading(false);
+        if (isMounted) {
+          setRecommendationsLoading(false);
+        }
       }
-    }
-    fetchActivities();
+    };
+    fetchRecommendations();
     return () => {
       isMounted = false;
     };
-  }, []);
-  const formatActivityTime = dateString => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+  }, [currentPage]);
+
+  const filteredRecommendations = useMemo(() => recommendations.filter(profile => !sentProfileIds.includes(String(profile.id))), [recommendations, sentProfileIds]);
+
+  const totalPages = Math.max(1, Math.ceil(totalMatches / PROFILES_PER_PAGE));
+
+  useEffect(() => {
+    if (recommendationsLoading) return;
+    const pageHasResults = recommendations.length > 0;
+    const nothingVisible = filteredRecommendations.length === 0;
+    const hasMorePages = currentPage < totalPages;
+    if (pageHasResults && nothingVisible && hasMorePages) {
+      setRecommendationsLoading(true);
+      setCurrentPage(currentPage + 1);
+    }
+  }, [filteredRecommendations.length, recommendations.length, currentPage, totalPages, recommendationsLoading]);
+
+  const handlePageChange = pageNumber => {
+    if (pageNumber >= 1 && pageNumber <= totalPages && pageNumber !== currentPage) {
+      setCurrentPage(pageNumber);
+      if (recommendationsSectionRef.current) {
+        recommendationsSectionRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    }
   };
-  const getActivityDescription = (type, message) => {
-    const typeMap = {
-      request_sent: "sent you a request",
-      request_received: "received your request",
-      request_accepted: "accepted your request",
-      request_rejected: "declined your request",
-      profile_view: "viewed your profile",
-      like: "liked your profile",
-      admin_message: "sent you a message",
-      profile_approved: "Your profile was approved",
-      profile_rejected: "Your profile needs attention",
-      welcome: "Welcome to the platform"
-    };
-    return typeMap[type] || message;
+
+  const handleViewMatches = () => {
+    recommendationsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
   };
   if (isLoading && !user) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -254,7 +283,7 @@ export function Dashboard({
           value={Array.isArray(sentProfileIds) ? sentProfileIds.length : user?.interestSentCount ?? 0}
           onViewClick={() => onNavigate?.("requests")}
         />
-        <StatCard label="Your Matches" value={totalMatches} onViewClick={() => onNavigate?.("browse")} />
+        <StatCard label="Your Matches" value={totalMatches} onViewClick={handleViewMatches} />
         <StatCard label="Profile Views" value={user?.profileViewsCount ?? 0} onViewClick={() => onNavigate?.("profile-views")} />
         <StatCard
           label="Shortlisted"
@@ -263,76 +292,123 @@ export function Dashboard({
         />
       </div>
 
-      <div className="space-y-4">
+      <div ref={recommendationsSectionRef} className="space-y-4">
         <div className="flex items-center justify-between px-2 md:px-0">
           <div>
             <h3 className="text-xl md:text-2xl font-semibold mb-1 text-[#4b3f33]">
-              Matches For You
+              Recommendations
             </h3>
             <p className="text-muted-foreground m-0">
-              Based on your preferences and profile
+              Curated profiles for you
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {matchedProfiles.length > 0 ? matchedProfiles.filter(match => !sentProfileIds.includes(String(match.user.userId))).sort((a, b) => {
-          const dateA = a.user?.createdAt || a.user?.profileCreatedAt || null;
-          const dateB = b.user?.createdAt || b.user?.profileCreatedAt || null;
-          if (!dateA && !dateB) {
-            return (b.scoreDetail?.score || 0) - (a.scoreDetail?.score || 0);
-          }
-          if (!dateA) return 1;
-          if (!dateB) return -1;
-          return new Date(dateB) - new Date(dateA);
-        }).slice(0, 6).map(match => <ProfileCard key={match.user.userId} id={match.user.userId} name={`${match.user.firstName} ${match.user.lastName}`} age={match.user.age} city={match.user.city} state={match.user.state} religion={match.user.religion} caste={match.user.subCaste} profession={match.user.profession} image={match.user.closerPhoto?.url} compatibility={match.scoreDetail?.score} status={match.user.connectionStatus || null} variant="browse" onView={() => navigate(`/userdashboard/profile/${match.user.userId}`)} onSendRequest={onSendRequest} onAddToCompare={onAddToCompare} onRemoveCompare={id => {
-          const updatedCompare = compareProfiles.filter(cid => String(cid) !== String(id));
-        }} isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(match.user.userId || match.user.id || match.user._id)) : false} isShortlisted={match.user.isFavorite || Array.isArray(shortlistedIds) && shortlistedIds.some(sid => String(sid) === String(match.user.userId))} onToggleShortlist={onToggleShortlist} />) : <div className="col-span-full text-center py-8 text-muted-foreground">
-              No matches found. Try updating your preferences.
-            </div>}
-        </div>
+        {recommendationsLoading && <div className="py-16 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8A227] mx-auto" />
+            <p className="mt-4 text-gray-600">Loading recommendations...</p>
+          </div>}
+
+        {!recommendationsLoading && recommendationsError && <div className="py-12 text-center text-red-600 font-medium">
+            Failed to load recommendations.
+          </div>}
+
+        {!recommendationsLoading && !recommendationsError && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {filteredRecommendations.map(profile => <ProfileCard key={profile.id} {...profile} variant="browse" onView={() => navigate(`/userdashboard/profile/${profile.id}`)} onSendRequest={onSendRequest} onAddToCompare={onAddToCompare} onRemoveCompare={onRemoveCompare} isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false} isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some(sid => String(sid) === String(profile.id)) : false} onToggleShortlist={onToggleShortlist} />)}
+            {filteredRecommendations.length === 0 && <div className="col-span-full text-center py-8 text-muted-foreground">
+                No matches found. Try updating your preferences.
+              </div>}
+          </div>}
+
+        {!recommendationsLoading && totalMatches > 0 && <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 bg-white rounded-xl p-4 shadow-sm">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} style={{
+            backgroundColor: "white",
+            borderColor: "#d1d5db",
+            color: "#374151"
+          }} onMouseEnter={e => {
+            if (currentPage !== 1) {
+              e.currentTarget.style.backgroundColor = "#C8A227";
+              e.currentTarget.style.color = "white";
+              e.currentTarget.style.borderColor = "#C8A227";
+            }
+          }} onMouseLeave={e => {
+            if (currentPage !== 1) {
+              e.currentTarget.style.backgroundColor = "white";
+              e.currentTarget.style.color = "#374151";
+              e.currentTarget.style.borderColor = "#d1d5db";
+            }
+          }} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border shadow-sm h-8 px-3">
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+
+              <div className="hidden sm:flex items-center gap-1">
+                {Array.from({
+              length: totalPages
+            }, (_, i) => i + 1).map(pageNum => {
+              if (pageNum === 1 || pageNum === totalPages || pageNum >= currentPage - 1 && pageNum <= currentPage + 1) {
+                const isActive = pageNum === currentPage;
+                return <button key={pageNum} onClick={() => handlePageChange(pageNum)} style={{
+                  backgroundColor: isActive ? "#C8A227" : "white",
+                  color: isActive ? "white" : "#374151",
+                  borderColor: isActive ? "#C8A227" : "#d1d5db"
+                }} onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = "#f9f5ed";
+                    e.currentTarget.style.borderColor = "#C8A227";
+                  } else {
+                    e.currentTarget.style.backgroundColor = "#B49520";
+                  }
+                }} onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = "white";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                  } else {
+                    e.currentTarget.style.backgroundColor = "#C8A227";
+                  }
+                }} className="inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border shadow-sm w-10 h-10">
+                        {pageNum}
+                      </button>;
+              }
+              if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                return <span key={pageNum} className="px-1">...</span>;
+              }
+              return null;
+            })}
+              </div>
+
+              <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} style={{
+            backgroundColor: "white",
+            borderColor: "#d1d5db",
+            color: "#374151"
+          }} onMouseEnter={e => {
+            if (currentPage < totalPages) {
+              e.currentTarget.style.backgroundColor = "#C8A227";
+              e.currentTarget.style.color = "white";
+              e.currentTarget.style.borderColor = "#C8A227";
+            }
+          }} onMouseLeave={e => {
+            if (currentPage < totalPages) {
+              e.currentTarget.style.backgroundColor = "white";
+              e.currentTarget.style.color = "#374151";
+              e.currentTarget.style.borderColor = "#d1d5db";
+            }
+          }} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border shadow-sm h-8 px-3">
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600">
+              Total: {totalMatches} profiles
+            </div>
+          </div>}
       </div>
 
-      <div className="bg-white rounded-[20px] p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Recent Activity</h3>
-          <Link to="/dashboard/notifications" className="text-sm text-[#C8A227] hover:underline" aria-label="View all notifications">
-            View all
-          </Link>
-        </div>
-        <div className="space-y-4">
-          {activityLoading && <div className="flex items-center justify-center py-8 text-gray-500">
-              <Loader2 className="w-6 h-6 animate-spin mr-2 text-[#C8A227]" />{" "}
-              Loading activity...
-            </div>}
-          {!activityLoading && recentActivities.length === 0 && <div className="text-center py-8 text-gray-500">
-              <p className="text-sm">No recent activity yet</p>
-              <p className="text-xs mt-1">
-                Start connecting with profiles to see activity here
-              </p>
-            </div>}
-          {!activityLoading && recentActivities.length > 0 && <>
-              {recentActivities.map(activity => <div key={activity._id} className={`flex items-center gap-4 p-4 rounded-[12px] transition-colors ${activity.isRead ? "bg-[#F9F7F5]" : "bg-blue-50/50"}`}>
-                  <div className="w-12 h-12 rounded-full bg-[#C8A2271A] flex items-center justify-center">
-                    <span className="text-[#C8A227] font-semibold text-sm">
-                      {activity.title.split(" ").slice(0, 2).map(n => n[0]).join("")}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="m-0">
-                      <span className="font-semibold">{activity.title}</span>
-                    </p>
-                    <p className="text-sm text-gray-600 m-0 mt-0.5">
-                      {activity.message || getActivityDescription(activity.type, activity.message)}
-                    </p>
-                    <p className="text-xs text-muted-foreground m-0 mt-1">
-                      {formatActivityTime(activity.createdAt)}
-                    </p>
-                  </div>
-                  {!activity.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
-                </div>)}
-            </>}
-        </div>
-      </div>
     </div>;
 }

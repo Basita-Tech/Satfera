@@ -566,7 +566,7 @@ const PersonalDetails = ({
       return;
     }
     const success = await handleSavePersonalDetails();
-    if (success && onNext) onNext("family");
+    if (success && onNext) onNext("personal");
   };
   const handlePrevious = () => navigate("/signup");
   const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;

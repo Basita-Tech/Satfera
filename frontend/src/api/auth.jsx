@@ -4,6 +4,9 @@ import { cachedFetch, dataCache } from "../utils/cache";
 import { dedupeRequest } from "../utils/optimize";
 import { getCSRFToken } from "../utils/csrfProtection";
 const API = import.meta.env.VITE_API_URL;
+// Some envs point to /api/v1; normalize to base and derive v2
+const API_ROOT = API?.replace(/\/v1\/?$/i, "").replace(/\/$/, "");
+const API_V2 = `${API_ROOT || ""}/v2`;
 const getAuthHeaders = () => {
   const headers = {};
   const csrfToken = getCSRFToken();
@@ -11,6 +14,19 @@ const getAuthHeaders = () => {
     headers["X-CSRF-Token"] = csrfToken;
   }
   return headers;
+};
+
+// Get current user ID from /auth/me endpoint
+export const getUserId = async () => {
+  try {
+    const response = await axios.get(`${API}/auth/me`, {
+      headers: getAuthHeaders()
+    });
+    return response.data?.user?.id || null;
+  } catch (error) {
+    console.warn("Could not fetch user ID:", error.message);
+    return null;
+  }
 };
 export const signupUser = async formData => {
   try {
@@ -171,6 +187,19 @@ export const forgotPassword = async email => {
       success: false,
       message: "Server error"
     };
+  }
+};
+
+export const resetPasswordWithToken = async (token, newPassword, confirmPassword) => {
+  try {
+    const response = await axios.post(`${API}/auth/reset-password/${token}`, {
+      newPassword,
+      confirmPassword
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Reset Password Error:", error.response?.data || error.message);
+    throw error;
   }
 };
 export const saveUserPersonal = async payload => {
@@ -393,6 +422,104 @@ export const uploadUserPhoto = async formData => {
     throw error;
   }
 };
+export const getPreSignedUrl = async (userId, photoType) => {
+  try {
+    const response = await axios.get(`${API_V2}/pre-signed-url`, {
+      params: {
+        filename: `${userId}-${String(photoType || "personal").replace(/[^A-Za-z0-9_-]/g, "-").toLowerCase()}`
+      },
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Pre-Signed URL Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Pre-sign using file metadata; safer than raw filename
+export const getPreSignedUrlForFile = async (file, userId, photoType) => {
+  try {
+    const safeType = String(photoType || "personal").replace(/[^A-Za-z0-9_-]/g, "-").toLowerCase();
+    const idPart = (userId || safeType || "user").toString().replace(/[^A-Za-z0-9_-]/g, "-");
+    const candidateName = `${idPart}-${safeType}`;
+    const response = await axios.get(`${API_V2}/pre-signed-url`, {
+      params: {
+        filename: candidateName,
+        contentType: file?.type
+      },
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Get Pre-Signed URL (file) Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const uploadToS3 = async (presignedUrl, file, onProgress) => {
+  try {
+    const response = await axios.put(presignedUrl, file, {
+      headers: {
+        'Content-Type': file.type
+      },
+      withCredentials: false,
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        }
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error("❌ Upload to S3 Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Persist photo metadata after S3 upload
+export const savePhotoMetadata = async (userId, photoType) => {
+  try {
+    const safeType = String(photoType || "personal").replace(/[^A-Za-z0-9_-]/g, "-").toLowerCase();
+    const url = `https://cdn.satfera.in.s3.ap-south-1.amazonaws.com/${userId}-${safeType}`;
+    const response = await axios.put(`${API_V2}/upload/photos`, {
+      photoType: safeType,
+      url
+    }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Save Photo Metadata Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// High-level helper: pre-sign + PUT to S3
+export const uploadPhotoViaS3 = async (file, userId, photoType, onProgress) => {
+  if (!file) throw new Error("File is required");
+  try {
+    const presign = await getPreSignedUrlForFile(file, userId, photoType);
+    if (!presign?.success || !presign?.url) {
+      throw new Error(presign?.message || "Failed to get pre-signed URL");
+    }
+    await uploadToS3(presign.url, file, onProgress);
+    
+    // Save metadata to database
+    await savePhotoMetadata(userId, photoType);
+    
+    return {
+      success: true,
+      key: presign.key,
+      bucket: presign.bucket,
+      url: `https://cdn.satfera.in.s3.ap-south-1.amazonaws.com/${userId}-${String(photoType || "personal").replace(/[^A-Za-z0-9_-]/g, "-").toLowerCase()}`
+    };
+  } catch (error) {
+    console.error("❌ uploadPhotoViaS3 Error:", error.response?.data || error.message);
+    return { success: false, message: error.message };
+  }
+};
 export const uploadGovernmentId = async formData => {
   try {
     const response = await axios.post(`${API}/user-personal/upload/government-id`, formData, {
@@ -406,6 +533,9 @@ export const uploadGovernmentId = async formData => {
     throw error;
   }
 };
+
+
+
 export const getUserPhotos = async () => {
   try {
     const response = await axios.get(`${API}/user-personal/upload/photos`, {

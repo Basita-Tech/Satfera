@@ -11,6 +11,7 @@ import LoginPage from "./components/auth/LoginPage";
 import SignUpPage from "./components/auth/SignUpPage";
 import VerifyOtp from "./components/auth/VerifyOtp";
 import ForgotPassword from "./components/auth/ForgotPassword";
+import ResetPassword from "./components/auth/ResetPassword";
 import ForgotUsername from "./components/auth/ForgotUsername";
 import TermsPage from "./components/pages/TermsPage";
 import PrivacyPolicyPage from "./components/pages/PrivacyPolicyPage";
@@ -40,6 +41,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/forgot-username" element={<ForgotUsername />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />

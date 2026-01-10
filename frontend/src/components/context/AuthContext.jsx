@@ -3,7 +3,7 @@ import axios from "../../api/http";
 import { logoutUser } from "../../api/auth";
 import toast from "react-hot-toast";
 export const AuthContextr = createContext();
-const publicRoutes = ["/login", "/signup", "/verify-otp", "/forgot-password", "/forgot-username", "/"];
+const publicRoutes = ["/login", "/signup", "/verify-otp", "/forgot-password", "/reset-password", "/forgot-username", "/"];
 const isPublicRoute = pathname => publicRoutes.includes(pathname);
 export const AuthProvider = ({
   children

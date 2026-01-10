@@ -38,7 +38,7 @@ function SheetContent({
         <SheetPrimitive.Title className="sr-only">Menu</SheetPrimitive.Title>
         <SheetPrimitive.Description className="sr-only">Mobile navigation menu</SheetPrimitive.Description>
         {children}
-        <SheetPrimitive.Close className="absolute top-3.5 left-4 rounded-full p-1.5 opacity-100 hover:opacity-80 hover:bg-white/20 transition-all z-[9999] focus:outline-none">
+        <SheetPrimitive.Close className="absolute left-3 top-3 z-[9999] w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/50">
           <XIcon className="size-6 text-white" strokeWidth={2.5} />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>

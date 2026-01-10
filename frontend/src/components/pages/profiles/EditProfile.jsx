@@ -211,7 +211,6 @@ export function EditProfile({
       if (!isFieldValid(formData.rashi)) errors.rashi = "Rashi is required";
       if (!isFieldValid(formData.dosh)) errors.dosh = "Dosh is required";
       if (!isFieldValid(formData.street1)) errors.street1 = "Street 1 is required";
-      if (!isFieldValid(formData.street2)) errors.street2 = "Street 2 is required";
       if (!isFieldValid(formData.pincode)) {
         errors.pincode = "Pincode is required";
       } else if (!/^\d{6}$/.test(String(formData.pincode).trim())) {

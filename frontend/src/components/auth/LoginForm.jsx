@@ -193,7 +193,7 @@ const LoginForm = () => {
               <input type={showPassword ? "text" : "password"} id="password" name="password" placeholder="Enter Your Password" value={formData.password} onChange={handleInputChange} required className={inputClass + " pr-10"} />
 
               {}
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute w-11 right-0 top-0 bottom-0 p-0 flex justify-center items-center text-gray-500 " tabIndex={-1}>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute w-11 right-0 top-0 bottom-0 p-0 flex justify-center items-center text-white " tabIndex={-1}>
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
