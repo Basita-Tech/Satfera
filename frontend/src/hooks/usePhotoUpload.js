@@ -94,9 +94,15 @@ const usePhotoUpload = () => {
             }
           }
         }));
-        // Step 1: Pre-sign and upload to S3
+
+        // For "other" photos, convert to "other-1" or "other-2" based on photoIndex
+        let actualPhotoType = photoType;
+        if (photoType === "other" && (photoIndex === 0 || photoIndex === 1)) {
+          actualPhotoType = photoIndex === 0 ? "other-1" : "other-2";
+        }
+        
         const userId = await ensureUserId();
-        const presign = await getPreSignedUrlForFile(file, userId || photoKey, photoType);
+        const presign = await getPreSignedUrlForFile(file, userId || photoKey, actualPhotoType);
         if (!presign?.success || !presign?.url) {
           throw new Error(presign?.message || "Failed to get pre-signed URL");
         }
@@ -115,10 +121,10 @@ const usePhotoUpload = () => {
           }));
         });
 
-        // Step 2: Save photo metadata to database
-        await savePhotoMetadata(userId || photoKey, photoType);
+     
+        await savePhotoMetadata(userId || photoKey, actualPhotoType);
 
-        // Step 3: Existing backend upload to persist metadata/profile
+       
         const formData = new FormData();
         formData.append("file", file);
         formData.append("photoType", photoType);
@@ -241,7 +247,6 @@ const usePhotoUpload = () => {
           currentPhotoIndex: i + 1
         }));
         const existingUrl = existingPhotos[key];
-        const isUpdate = !!existingUrl;
         let photoIndex = null;
         if (photoType === "personal") {
           if (key === "compulsory1") photoIndex = 0;
@@ -249,6 +254,9 @@ const usePhotoUpload = () => {
           if (key === "optional1") photoIndex = 0;
           if (key === "optional2") photoIndex = 1;
         }
+        
+        // For array-based photos (personal, other) with photoIndex, always use PUT (update) method
+        const isUpdate = !!existingUrl || photoIndex !== null;
         const uploadStartTime = Date.now();
         const result = await uploadPhotoWithRetry(file, photoType, key, isUpdate, photoIndex);
         const uploadDuration = Date.now() - uploadStartTime;

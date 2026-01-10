@@ -496,7 +496,6 @@ export const savePhotoMetadata = async (userId, photoType) => {
   }
 };
 
-// High-level helper: pre-sign + PUT to S3
 export const uploadPhotoViaS3 = async (file, userId, photoType, onProgress) => {
   if (!file) throw new Error("File is required");
   try {
@@ -1459,9 +1458,13 @@ export const getProfileViews = async (page = 1, limit = 10, useCache = false) =>
     };
   }
 };
-export const downloadUserPdf = async () => {
+export const downloadUserPdf = async (userId = null) => {
   try {
-    const response = await axios.get(`${API}/user/download-pdf`, {
+    // Get userId from auth context or parameter
+    const currentUserId = userId || localStorage.getItem('userId');
+    
+    const queryParam = currentUserId ? `?userId=${currentUserId}` : '';
+    const response = await axios.get(`${API}/user/download-pdf${queryParam}`, {
       headers: {
         ...getAuthHeaders()
       }
