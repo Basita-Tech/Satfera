@@ -19,7 +19,7 @@ import {
 import { calculateAge, isAffirmative } from "../../utils/utils";
 import { computeMatchScore } from "../recommendationService";
 import { validateUserId } from "./userSettingService";
-import { generatePDF } from "pdf-node";
+import pdf from "pdf-creator-node";
 import fs from "fs";
 import path from "path";
 import { uploadPdfToS3 } from "../../config/awsClient";
@@ -1008,12 +1008,6 @@ export async function downloadMyPdfData(
       path.join(__dirname, "../../pdf-templete/index.html"),
       "utf8"
     );
-    console.log(
-      "pathhh: ",
-      path.join(__dirname, "../../pdf-templete/index.html")
-    );
-
-    console.log("__dirname, ", __dirname);
 
     const data = {
       photo_url: profile.photos.closerPhoto.url,
@@ -1064,22 +1058,28 @@ export async function downloadMyPdfData(
         return null;
       }
     }
+    const document = {
+      html: html,
+      data: data,
+      path: `./${userId}-biodata.pdf`,
+      type: "buffer"
+    };
     try {
-      const result = await generatePDF({
-        html: html,
-        data: data,
-        buffer: true,
-        pdfOptions: options
-      });
-
+      const result = await pdf.create(document, options);
       if ("buffer" in result) {
-        // fs.writeFileSync(`./${userId}-biodata.pdf`, result.buffer);
+        const pdfBuffer = Buffer.from(result.buffer);
+        // fs.writeFileSync(`./${userId}-biodata.pdf`, pdfBuffer);
         // const s3 = await uploadImageToS3("satfera-pdf", result.buffer);
-        url = await uploadPdfToS3("satfera-pdf", result.buffer, userId);
+        url = await uploadPdfToS3("satfera-pdf", pdfBuffer, userId);
 
         const EXPIRE_CACHE = 86400;
         await safeRedisOperation(
-          () => redisClient.setEx(cacheKey, EXPIRE_CACHE, JSON.stringify(url)),
+          () =>
+            redisClient.setEx(
+              cacheKey,
+              EXPIRE_CACHE,
+              JSON.stringify((url = url))
+            ),
           "Set cached match score"
         );
       }
