@@ -3,7 +3,13 @@ import { Profile } from "../../../models";
 import { AuthenticatedRequest } from "../../../types";
 import { Response } from "express";
 
-type PhotoType = "closer" | "personal" | "family" | "other";
+type PhotoType =
+  | "closer"
+  | "personal"
+  | "family"
+  | "other-1"
+  | "other-2"
+  | "governmentid";
 
 export const updatePhotoController = async (
   req: AuthenticatedRequest,
@@ -65,22 +71,48 @@ export const updatePhotoController = async (
 
       case "personal":
         updateQuery = {
-          $push: {
-            "photos.personalPhotos": {
+          $set: {
+            "photos.personalPhotos": [
+              {
+                url,
+                uploadedAt: now
+              }
+            ]
+          }
+        };
+        break;
+
+      case "other-1":
+        updateQuery = {
+          $set: {
+            "photos.otherPhotos.0": {
               url,
+              title: "Other Photo",
               uploadedAt: now
             }
           }
         };
         break;
 
-      case "other":
+      case "other-2":
         updateQuery = {
-          $push: {
-            "photos.otherPhotos": {
+          $set: {
+            "photos.otherPhotos.1": {
               url,
-              title: "Other Photo",
+              title: "Other Photo 2",
               uploadedAt: now
+            }
+          }
+        };
+        break;
+
+      case "governmentid":
+        updateQuery = {
+          $set: {
+            governmentIdImage: {
+              url,
+              uploadedAt: now,
+              verificationStatus: "pending"
             }
           }
         };
