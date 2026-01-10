@@ -91,8 +91,12 @@ export class AuthController {
   static async googleCallback(req: Request, res: Response) {
     try {
       const code = req.query.code as string;
-      const { idToken } = req.body;
-      const isMobile = req.body.platform === "mobile" || !!idToken;
+
+      const body = req.body || {};
+      const { idToken } = body;
+
+      const isMobile =
+        body.platform === "mobile" || typeof idToken === "string";
 
       let googleUser: any;
       let email: string;
@@ -296,7 +300,9 @@ export class AuthController {
         stack: error.stack
       });
 
-      if (req.body.platform === "mobile" || req.body.idToken) {
+      const body = req.body || {};
+
+      if (body.platform === "mobile" || body.idToken) {
         return res.status(500).json({
           success: false,
           message: "Authentication failed"
