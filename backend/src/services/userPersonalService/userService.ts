@@ -16,13 +16,13 @@ import {
   ConnectionRequest,
   ProfileView
 } from "../../models";
-import { calculateAge, isAffirmative } from "../../utils/utils";
+import { calculateAge, generatePdf, isAffirmative } from "../../utils/utils";
 import { computeMatchScore } from "../recommendationService";
 import { validateUserId } from "./userSettingService";
-import pdf from "pdf-creator-node";
 import fs from "fs";
 import path from "path";
 import { uploadPdfToS3 } from "../../config/awsClient";
+import Handlebars from "handlebars";
 
 export async function getUserDashboardService(userId: string) {
   const userObjectId = new mongoose.Types.ObjectId(userId);
@@ -987,24 +987,32 @@ export async function downloadMyPdfData(
         .lean(),
       ConnectionRequest.find({
         $and: [
-          { sender: authUserId },
-          { receiver: userObjectId },
+          {
+            $or: [
+              { sender: authUserId, receiver: userObjectId },
+              { receiver: authUserId, sender: userObjectId }
+            ]
+          },
           { status: "accepted" }
         ]
       }).lean()
     ]);
 
-    const isProfileApproved = connectionrequests.map((req) => req.receiver);
+    const isApproved = connectionrequests.some(
+      (req) =>
+        req.sender.toString() === userObjectId.toString() ||
+        req.receiver.toString() === userObjectId.toString()
+    );
 
-    if (!self && isProfileApproved.toString() !== userObjectId.toString()) {
+    if (!self && !isApproved) {
       throw new Error(
-        "Your profile is not accpeted, try again after accepting profile"
+        "Your profile is not accepted, try again after accepting profile"
       );
     }
 
     const options = { format: "A4", orientation: "portrait", type: "pdf" };
 
-    const html = fs.readFileSync(
+    const templateHtml = fs.readFileSync(
       path.join(__dirname, "../../pdf-templete/index.html"),
       "utf8"
     );
@@ -1033,7 +1041,7 @@ export async function downloadMyPdfData(
       nana_name: userFamily.naniName || "-",
       nani_name: userFamily.nanaName || "-",
       current_address:
-        `${userPersonal.full_address.street1} ${userPersonal.full_address.street2} ${userPersonal.full_address.city} ${userPersonal.full_address.state}, ${userPersonal.full_address.zipCode} ` ||
+        `${userPersonal.full_address.street1 ? userPersonal.full_address.street1 : ""} ${userPersonal.full_address.street2 ? userPersonal.full_address.street2 : ""} ${userPersonal.full_address.city} ${userPersonal.full_address.state}, ${userPersonal.full_address.zipCode} ` ||
         "-",
       profile_url: `https://satfera.in/dashboard/profile/${userPersonal.userId}`
     };
@@ -1058,16 +1066,13 @@ export async function downloadMyPdfData(
         return null;
       }
     }
-    const document = {
-      html: html,
-      data: data,
-      path: `./${userId}-biodata.pdf`,
-      type: "buffer"
-    };
+
     try {
-      const result = await pdf.create(document, options);
-      if ("buffer" in result) {
-        const pdfBuffer = Buffer.from(result.buffer);
+      const template = Handlebars.compile(templateHtml);
+      const finalHtml = template(data);
+
+      const pdfBuffer = await generatePdf(finalHtml);
+      if ("buffer" in pdfBuffer) {
         // fs.writeFileSync(`./${userId}-biodata.pdf`, pdfBuffer);
         // const s3 = await uploadImageToS3("satfera-pdf", result.buffer);
         url = await uploadPdfToS3("satfera-pdf", pdfBuffer, userId);

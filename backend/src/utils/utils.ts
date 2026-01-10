@@ -1,6 +1,7 @@
 import { logger } from "../lib/common/logger";
 import { randomBytes } from "crypto";
 import { Request, Response, NextFunction } from "express";
+import puppeteer from "puppeteer";
 
 export function calculateAge(dateOfBirth?: Date): number | undefined {
   if (!dateOfBirth) return undefined;
@@ -137,4 +138,21 @@ export const asyncHandler = (fn: Function) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
+};
+
+export const generatePdf = async (html: string) => {
+  const browser = await puppeteer.launch({
+    headless: true
+  });
+
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: "networkidle0" });
+
+  const buffer = await page.pdf({
+    format: "A4",
+    printBackground: true
+  });
+
+  await browser.close();
+  return buffer;
 };
