@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "../../api/http";
 const SuccessPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,8 +15,49 @@ const SuccessPage = () => {
     mobile: mobile || ""
   });
   useEffect(() => {
+    const checkAuthAndRedirect = async () => {
+      try {
+        const API = import.meta.env.VITE_API_URL;
+        const me = await axios.get(`${API}/auth/me`, {
+          withCredentials: true
+        });
+        
+        // If user is authenticated, check their profile status
+        if (me?.data?.success) {
+          const user = me.data.data;
+          
+          // Check if onboarding is completed
+          if (user?.isOnboardingCompleted) {
+            // Check if profile is approved (handle both isApproved and profileReviewStatus)
+            const isApproved = user?.isApproved === true || 
+                              user?.profileReviewStatus === "approved";
+            
+            if (isApproved) {
+              // Profile is approved, redirect to dashboard
+              navigate("/userdashboard", { replace: true });
+            } else {
+              // Profile is pending approval, redirect to review page
+              navigate("/onboarding/review", { replace: true });
+            }
+          } else {
+            // Onboarding not completed, go to onboarding
+            navigate("/onboarding/user", { replace: true });
+          }
+          return;
+        }
+      } catch (err) {
+        // User not authenticated or error occurred
+        if (err?.response?.status === 401) {
+          // Not authenticated, check if we have state data
+          if (!userData.name && !userData.email && !userData.mobile) {
+            navigate("/signup");
+          }
+        }
+      }
+    };
+
     if (!userData.name && !userData.email && !userData.mobile) {
-      navigate("/signup");
+      checkAuthAndRedirect();
     }
   }, [userData, navigate]);
   const handleCompleteProfile = () => {

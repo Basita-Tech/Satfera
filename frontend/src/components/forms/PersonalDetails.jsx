@@ -1082,7 +1082,7 @@ const PersonalDetails = ({
 
           {}
           <div className="pt-6 flex justify-between items-center gap-4">
-            <button type="button" onClick={handlePrevious} className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition">
+            <button type="button" onClick={handlePrevious} disabled className="w-full sm:w-1/2 bg-white text-[#D4A052] border border-[#D4A052] py-3 rounded-xl font-semibold hover:bg-[#FDF8EF] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white">
               Previous
             </button>
 

@@ -70,10 +70,49 @@ export const forgotUsername = async formData => {
 export const loginUser = async formData => {
   try {
     const response = await axios.post(`${API}/auth/login`, formData);
-    return response.data;
+    const data = response?.data || {};
+    const status = response?.status;
+
+    const messageText = (data?.message || "").toLowerCase();
+    const otpPending =
+      status === 202 ||
+      data?.reason === "OTP_VERIFICATION_PENDING" ||
+      data?.requiresOtpVerification ||
+      messageText.includes("verify your email") ||
+      messageText.includes("verification pending");
+
+    if (otpPending) {
+      return {
+        success: false,
+        message: data?.message || "Please verify your email before logging in.",
+        requiresOtpVerification: true,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber
+      };
+    }
+
+    return data;
   } catch (error) {
     const status = error?.response?.status;
     const data = error?.response?.data || {};
+    const messageText = (data?.message || "").toLowerCase();
+    const otpPending =
+      status === 202 ||
+      data?.reason === "OTP_VERIFICATION_PENDING" ||
+      data?.requiresOtpVerification ||
+      messageText.includes("verify your email") ||
+      messageText.includes("verification pending");
+
+    if (otpPending) {
+      return {
+        success: false,
+        message: data?.message || "Please verify your email before logging in.",
+        requiresOtpVerification: true,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber
+      };
+    }
+    
     if (status === 401) {
       toast.error("Invalid credentials. Please try again.");
       return {
@@ -81,13 +120,36 @@ export const loginUser = async formData => {
         message: "Invalid credentials"
       };
     }
+    
     if (status === 403) {
+      // Check if it's OTP verification pending
+      if (data.message && data.message.includes("verify your email")) {
+        return {
+          success: false,
+          message: data.message || "Verification required",
+          requiresOtpVerification: true,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber
+        };
+      }
       toast.error(data.message || "Verification required.");
       return {
         success: false,
         message: data.message || "Verification required"
       };
     }
+    
+    // Check for 202 status (Accepted but pending verification)
+    if (status === 202) {
+      return {
+        success: false,
+        message: data.message || "Please verify your email before logging in.",
+        requiresOtpVerification: true,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber
+      };
+    }
+    
     toast.error(data.message || "Login failed. Please retry.");
     return {
       success: false,

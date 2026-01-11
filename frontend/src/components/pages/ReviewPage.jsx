@@ -95,6 +95,7 @@ const ReviewPage = () => {
   const isPending = profileReviewStatus === "pending";
   const isApproved = profileReviewStatus === "approved";
   const isRejected = profileReviewStatus === "rejected";
+  const isRectification = profileReviewStatus === "rectification";
   return <div className="min-h-screen flex items-center justify-center py-8 px-4" style={{
     backgroundColor: colors.beige
   }}>
@@ -112,16 +113,16 @@ const ReviewPage = () => {
       }}>
           {}
           <div className="p-8 text-center text-black" style={{
-          background: isPending ? `linear-gradient(135deg, ${colors.gold}, ${colors.gold},` : isApproved ? `linear-gradient(135deg, ${colors.green}, #2ecc71)` : `linear-gradient(135deg, ${colors.orange}, #c0392b)`
+          background: isPending ? `linear-gradient(135deg, ${colors.gold}, ${colors.gold},` : isApproved ? `linear-gradient(135deg, ${colors.green}, #2ecc71)` : isRectification ? `linear-gradient(135deg, #f39c12, #e67e22)` : `linear-gradient(135deg, ${colors.orange}, #c0392b)`
         }}>
             <div className="flex justify-center mb-4">
-              {isPending ? <Clock size={64} className="animate-pulse" /> : isApproved ? <CheckCircle size={64} /> : <AlertCircle size={64} />}
+              {isPending ? <Clock size={64} className="animate-pulse" /> : isApproved ? <CheckCircle size={64} /> : isRectification ? <AlertCircle size={64} className="animate-pulse" /> : <AlertCircle size={64} />}
             </div>
             <h2 className="text-3xl font-bold mb-2">
-              {isPending ? "Profile Under Review" : isApproved ? "Profile Approved! 🎉" : "Review Required"}
+              {isPending ? "Profile Under Review" : isApproved ? "Profile Approved! 🎉" : isRectification ? "Profile Updates Required" : "Review Required"}
             </h2>
             <p className="text-lg opacity-90">
-              {isPending ? "Your profile is being reviewed by our team" : isApproved ? "You're all set to start connecting!" : "Please review the feedback below"}
+              {isPending ? "Your profile is being reviewed by our team" : isApproved ? "You're all set to start connecting!" : isRectification ? "Please update your profile based on admin feedback" : "Please review the feedback below"}
             </p>
           </div>
 
@@ -210,6 +211,41 @@ const ReviewPage = () => {
                     </p>
                   </div>
                 </>}
+
+              {isRectification && <>
+                  <p className="text-gray-700 leading-relaxed mb-4">
+                    Our admin team has reviewed your profile and identified some areas that need updates.
+                    Please review the feedback below and make the necessary changes.
+                  </p>
+                  <div className="p-4 rounded-lg mt-4 bg-orange-50 border-l-4" style={{
+                borderColor: "#f39c12"
+              }}>
+                    <p className="font-semibold mb-2" style={{
+                  color: "#f39c12"
+                }}>
+                      📝 Admin Feedback
+                    </p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {reviewNotes || "Please review and update your profile details."}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg mt-4" style={{
+                backgroundColor: "#fffbf0",
+                border: `1px solid #f39c12`
+              }}>
+                    <p className="font-semibold mb-2" style={{
+                  color: "#f39c12"
+                }}>
+                      What to do next?
+                    </p>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      <li>✓ Click "Edit Profile" button below</li>
+                      <li>✓ Make the requested changes</li>
+                      <li>✓ Review all information for accuracy</li>
+                      <li>✓ Submit your profile for review again</li>
+                    </ul>
+                  </div>
+                </>}
             </div>
 
             {}
@@ -276,19 +312,17 @@ const ReviewPage = () => {
                 Go to Dashboard <ArrowRight size={20} />
               </button>}
 
-            {isRejected && <>
-                <button onClick={() => navigate("/onboarding/user?step=personal")} className="flex-1 py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition" style={{
-              backgroundColor: colors.gold
-            }}>
-                  Update Profile <ArrowRight size={20} />
-                </button>
-                <button onClick={handleRetryClick} className="flex-1 py-3 rounded-lg font-semibold border-2 hover:bg-gray-50 transition" style={{
-              borderColor: colors.gold,
-              color: colors.gold
-            }}>
-                  Refresh Status
-                </button>
-              </>}
+            {isRejected && <button onClick={() => navigate("/onboarding/user?step=personal")} className="w-full py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition" style={{
+            backgroundColor: colors.gold
+          }}>
+                Update Profile <ArrowRight size={20} />
+              </button>}
+
+            {isRectification && <button onClick={() => navigate("/onboarding/user?step=personal")} className="w-full py-3 rounded-lg font-semibold text-white flex items-center justify-center gap-2 hover:brightness-90 transition" style={{
+            backgroundColor: "#f39c12"
+          }}>
+                Edit Profile <ArrowRight size={20} />
+              </button>}
 
             {isPending && <>
                 <button onClick={handleRetryClick} className="flex-1 py-3 rounded-lg font-semibold text-white hover:brightness-90 transition" style={{

@@ -152,6 +152,23 @@ const LoginForm = () => {
     };
     try {
       const response = await loginUser(payload);
+      
+      if (response?.requiresOtpVerification) {
+        navigate("/verify-otp", {
+          state: {
+            email: response.email || payload.email,
+            phoneNumber: response.phoneNumber || payload.phoneNumber,
+            fromLogin: true
+          }
+        });
+        return;
+      }
+
+      if (!response?.success) {
+        setError(response?.message || "Invalid credentials. Please try again.");
+        return;
+      }
+
       await handleAuthResponse(response);
     } catch (err) {
       console.error("Login error:", err);

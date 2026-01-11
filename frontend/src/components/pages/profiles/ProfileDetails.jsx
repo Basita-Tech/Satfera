@@ -533,12 +533,19 @@ function PersonalDetailsSection({
   formatAgeFromDob,
   canShowFullAddress
 }) {
-  const fullAddress = profile?.personal?.full_address;
+  // Prefer top-level address; fallback to personal.full_address
+  const address = profile?.address || profile?.personal?.full_address || null;
   const formattedFullAddress = useMemo(() => {
-    if (!fullAddress) return null;
-    const parts = [fullAddress.street1, fullAddress.street2, fullAddress.city, fullAddress.state, fullAddress.zipCode].filter(Boolean);
+    if (!address) return null;
+    const parts = [
+      address.street1,
+      address.street2,
+      address.city,
+      address.state,
+      address.zipCode
+    ].filter(Boolean);
     return parts.length ? parts.join(", ") : null;
-  }, [fullAddress]);
+  }, [address]);
   return <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
       <h3 className="text-lg font-semibold text-[#222] mb-4 flex items-center gap-2">
         <User className="text-[#C8A227]" size={20} />
@@ -558,7 +565,17 @@ function PersonalDetailsSection({
         {profile?.personal?.subCaste && <DetailRow icon={<User className="text-[#C8A227]" size={18} />} label="Subcaste" value={profile.personal.subCaste} />}
         {profile?.personal?.country && <DetailRow icon={<MapPin className="text-[#C8A227]" size={18} />} label="Country" value={profile.personal.country} />}
         {profile?.personal?.city && profile?.personal?.state && <DetailRow icon={<MapPin className="text-[#C8A227]" size={18} />} label="Current Location" value={`${capitalize(profile.personal.city)}, ${profile.personal.state}`} />}
-        {canShowFullAddress && formattedFullAddress && <DetailRow icon={<MapPin className="text-[#C8A227]" size={18} />} label="Full Address (shared after mutual acceptance)" value={formattedFullAddress} />}
+        {canShowFullAddress && formattedFullAddress && (
+          <DetailRow
+            icon={<MapPin className="text-[#C8A227]" size={18} />}
+            label="Full Address"
+            value={
+              address?.isYourHome
+                ? `${formattedFullAddress} • Home`
+                : formattedFullAddress
+            }
+          />
+        )}
         {profile?.personal?.nationality && <DetailRow icon={<User className="text-[#C8A227]" size={18} />} label="Nationality" value={profile.personal.nationality} />}
         {profile?.personal?.astrologicalSign && <DetailRow icon={<Star className="text-[#C8A227]" size={18} />} label="Zodiac Sign" value={profile.personal.astrologicalSign} />}
         {profile?.personal?.dosh && <DetailRow icon={<Heart className="text-[#C8A227]" size={18} />} label="Dosh" value={profile.personal.dosh} />}

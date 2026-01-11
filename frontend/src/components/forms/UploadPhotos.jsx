@@ -24,6 +24,7 @@ const UploadPhotos = ({
     optional2: null,
     governmentId: null
   });
+  const [selectedFileNames, setSelectedFileNames] = useState({});
   const initialPhotosState = {
     compulsory1: null,
     compulsory2: null,
@@ -100,6 +101,12 @@ const UploadPhotos = ({
     const file = e.target.files[0];
     if (!file) return;
 
+    // Clear previous filename immediately when new file is selected
+    setSelectedFileNames(prev => {
+      const updated = { ...prev };
+      delete updated[type];
+      return updated;
+    });
  
     if (type === "governmentId") {
       const { validateGovernmentID } = await import("../../utils/fileValidation");
@@ -113,10 +120,14 @@ const UploadPhotos = ({
         ...prev,
         [type]: file
       }));
+      // Set filename only after successful validation
+      setSelectedFileNames(prev => ({
+        ...prev,
+        [type]: file.name
+      }));
       const isPdf = file.type === "application/pdf";
       const fileType = isPdf ? "PDF" : "Photo";
       toast.success(`${fileType} validated successfully`);
-      e.target.value = "";
       return;
     }
 
@@ -129,7 +140,7 @@ const UploadPhotos = ({
       return;
     }
 
-    // Show cropper for image files
+    // Show cropper for image files - don't set filename yet
     const reader = new FileReader();
     reader.onload = (ev) => {
       setImageToCrop(ev.target.result);
@@ -137,7 +148,6 @@ const UploadPhotos = ({
       setCropperOpen(true);
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
   }, []);
 
   const handleCropSave = useCallback(async (croppedBase64) => {
@@ -162,6 +172,13 @@ const UploadPhotos = ({
         ...prev,
         [currentCropPhotoType]: croppedFile
       }));
+
+      // Clear the filename from UI after successful crop and save
+      setSelectedFileNames(prev => {
+        const updated = { ...prev };
+        delete updated[currentCropPhotoType];
+        return updated;
+      });
 
       toast.success(`Photo cropped successfully!`);
       
@@ -381,6 +398,7 @@ const UploadPhotos = ({
           hint
         }) => {
           const previewSrc = photos[key] ? previews[key] : uploadedUrls[key] || null;
+          const selectedFileName = selectedFileNames[key];
           return <div key={key}>
                 <label htmlFor={key} className="block font-semibold text-gray-800 mb-1">
                   {label} <span className="text-red-500">*</span>
@@ -390,56 +408,121 @@ const UploadPhotos = ({
                   Supported formats: JPG, PNG — Max size:{" "}
                   <span className="font-semibold">2 MB</span>
                 </p>
+                {selectedFileName && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8 16.5a2 2 0 01-2-2V9a2 2 0 012-2h4a2 2 0 012 2v3.5a2 2 0 01-2 2H8zm6-9a1 1 0 00-1-1H7a1 1 0 00-1 1v3a1 1 0 001 1h6a1 1 0 001-1V7.5zm-6 7a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-medium text-blue-700 flex-1">{selectedFileName}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFileNames(prev => {
+                          const updated = { ...prev };
+                          delete updated[key];
+                          return updated;
+                        });
+                        setPhotos(prev => ({
+                          ...prev,
+                          [key]: null
+                        }));
+                        document.getElementById(key).value = '';
+                      }}
+                      className="text-white bg-orange-400 hover:bg-orange-500 rounded-full w-6 h-6 flex items-center justify-center font-bold transition flex-shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 {previewSrc && <img src={previewSrc} alt={label} className="mt-2 h-24 w-24 object-cover rounded-lg border" />}
               </div>;
         })}
 
           {}
+          {/* Government ID Section */}
           <div>
             <label htmlFor="governmentId" className="block font-semibold text-gray-800 mb-1">
               Candidate Government ID Card{" "}
               <span className="text-red-500">*</span>
             </label>
             <input id="governmentId" type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => handlePhotoChange(e, "governmentId")} className="w-full p-2 border rounded-lg" />
+
             <p className="text-xs text-gray-500 mt-1">
               Supported: JPG, PNG, PDF — Max size:{" "}
               <span className="font-semibold">5 MB (PDF)</span> or{" "}
               <span className="font-semibold">2 MB (Image)</span>
             </p>
 
-            {}
-            {photos.governmentId && photos.governmentId.type.startsWith("image/") && <img src={previews.governmentId} alt="Selected Government ID" className="mt-2 h-24 w-24 object-cover rounded-lg border" />}
+            {/* Show selected file name (before upload) */}
+            {selectedFileNames.governmentId && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium text-blue-700 flex-1">{selectedFileNames.governmentId}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFileNames(prev => {
+                      const updated = { ...prev };
+                      delete updated.governmentId;
+                      return updated;
+                    });
+                    setPhotos(prev => ({
+                      ...prev,
+                      governmentId: null
+                    }));
+                    document.getElementById("governmentId").value = '';
+                  }}
+                  className="text-white bg-orange-400 hover:bg-orange-500 rounded-full w-6 h-6 flex items-center justify-center font-bold transition flex-shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
-            {}
-            {photos.governmentId && photos.governmentId.type === "application/pdf" && <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-blue-800">
-                      {photos.governmentId.name}
-                    </p>
-                    <p className="text-xs text-blue-600">
-                      {(photos.governmentId.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                </div>}
+            {/* Show preview for selected image (not PDF) */}
+            {!selectedFileNames.governmentId && photos.governmentId && photos.governmentId.type.startsWith("image/") && (
+              <img src={previews.governmentId} alt="Selected Government ID" className="mt-2 h-24 w-24 object-cover rounded-lg border" />
+            )}
 
-            {}
-            {!photos.governmentId && uploadedUrls.governmentId && !uploadedUrls.governmentId.includes(".pdf") && <img src={uploadedUrls.governmentId} alt="Government ID" className="mt-2 h-24 w-24 object-cover rounded-lg border" />}
+            {/* Show PDF indicator for selected PDF */}
+            {!selectedFileNames.governmentId && photos.governmentId && photos.governmentId.type === "application/pdf" && (
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-blue-800">
+                    {photos.governmentId.name}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {(photos.governmentId.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+            )}
 
-            {}
-            {!photos.governmentId && uploadedUrls.governmentId && uploadedUrls.governmentId.includes(".pdf") && <a href={uploadedUrls.governmentId} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg text-green-700 hover:bg-green-100 transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-sm font-medium">View Uploaded PDF</span>
-                </a>}
+            {/* Show uploaded image (only when no new file is selected) */}
+            {!selectedFileNames.governmentId && !photos.governmentId && uploadedUrls.governmentId && !uploadedUrls.governmentId.includes(".pdf") && (
+              <img src={uploadedUrls.governmentId} alt="Government ID" className="mt-2 h-24 w-24 object-cover rounded-lg border" />
+            )}
+
+            {/* Show uploaded PDF link (only when no new file is selected) */}
+            {!selectedFileNames.governmentId && !photos.governmentId && uploadedUrls.governmentId && uploadedUrls.governmentId.includes(".pdf") && (
+              <a href={uploadedUrls.governmentId} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg text-green-700 hover:bg-green-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium">View Uploaded PDF</span>
+              </a>
+            )}
           </div>
 
           {}
           {["optional1", "optional2"].map((key, idx) => {
           const previewSrc = photos[key] ? previews[key] : uploadedUrls[key] || null;
+          const selectedFileName = selectedFileNames[key];
           return <div key={key}>
                 <label htmlFor={key} className="block font-semibold text-[#1f1e1d] mb-1">
                   Optional Photo {idx + 1}
@@ -447,6 +530,32 @@ const UploadPhotos = ({
                 <input id={key} type="file" accept="image/*" onChange={e => handlePhotoChange(e, key)} className="w-full p-2 border rounded-lg" />
                 <p className="text-xs text-gray-500 mt-1">
                   Supported: JPG, PNG — Max size:{" "}
+                                  {selectedFileName && (
+                                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                                      <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8 16.5a2 2 0 01-2-2V9a2 2 0 012-2h4a2 2 0 012 2v3.5a2 2 0 01-2 2H8zm6-9a1 1 0 00-1-1H7a1 1 0 00-1 1v3a1 1 0 001 1h6a1 1 0 001-1V7.5zm-6 7a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="text-sm font-medium text-blue-700 flex-1">{selectedFileName}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedFileNames(prev => {
+                                            const updated = { ...prev };
+                                            delete updated[key];
+                                            return updated;
+                                          });
+                                          setPhotos(prev => ({
+                                            ...prev,
+                                            [key]: null
+                                          }));
+                                          document.getElementById(key).value = '';
+                                        }}
+                                        className="text-white bg-orange-400 hover:bg-orange-500 rounded-full w-6 h-6 flex items-center justify-center font-bold transition flex-shrink-0"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  )}
                   <span className="font-semibold">2 MB</span>
                 </p>
                 {previewSrc && <img src={previewSrc} alt={`Optional ${idx + 1}`} className="mt-2 h-24 w-24 object-cover rounded-lg border" />}

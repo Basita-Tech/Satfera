@@ -5,7 +5,7 @@ import { StatCard } from "../../StatCard";
 import { ProfileCard } from "../../ProfileCard";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { getUserProfileDetails, getMatches, getUserPhotos, downloadUserPdf } from "../../../api/auth";
+import { getUserProfileDetails, getMatches, getUserPhotos, downloadUserPdf, getOnboardingStatus } from "../../../api/auth";
 import usePhotoUpload from "../../../hooks/usePhotoUpload";
 import toast from "react-hot-toast";
 export function Dashboard({
@@ -37,6 +37,7 @@ export function Dashboard({
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [existingPhotos, setExistingPhotos] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const recommendationsSectionRef = useRef(null);
   const mapPhotos = photosData => {
     const mappedPhotos = {};
@@ -52,21 +53,79 @@ export function Dashboard({
         setIsLoading(true);
       }
       try {
-        const [userRes, photosRes] = await Promise.all([getUserProfileDetails(), getUserPhotos()]);
-        if (userRes?.success) {
-          setUser(userRes.data);
+        const [userRes, photosRes, onboardingRes] = await Promise.all([
+          getUserProfileDetails(), 
+          getUserPhotos(),
+          getOnboardingStatus()
+        ]);
+        
+        // First check if user data exists
+        if (!userRes?.success || !userRes?.data) {
+          toast.error("Unable to load profile data");
+          navigate("/login", { replace: true });
+          return;
         }
+
+        const userData = userRes.data;
+        const onboardingData = onboardingRes?.data?.data;
+
+        // Check if onboarding is not completed using onboarding status API
+        const requiredSteps = ["personal", "family", "education", "profession", "health", "expectation", "photos"];
+        const completedSteps = onboardingData?.completedSteps || [];
+        const isOnboardingComplete = requiredSteps.every(step => completedSteps.includes(step));
+
+        if (!isOnboardingComplete && !userData.isOnboardingCompleted) {
+          toast.error("Please complete your profile first");
+          navigate("/onboarding/user", { replace: true });
+          return;
+        }
+
+        // Check if profile is approved using profileReviewStatus from onboarding API
+        const profileStatus = onboardingData?.profileReviewStatus;
+        const isApproved = userData.isApproved === true || 
+                          profileStatus === "approved";
+        
+        if (!isApproved) {
+          // Check if it's pending or rejected
+          if (profileStatus === "pending") {
+            toast.error("Your profile is pending approval");
+          } else if (profileStatus === "rejected") {
+            toast.error("Your profile was rejected. Please update and resubmit");
+          } else {
+            toast.error("Your profile needs approval");
+          }
+          navigate("/onboarding/review", { replace: true });
+          return;
+        }
+
+        // Profile is approved and onboarding completed - allow dashboard access
+        setUser(userData);
+        
         if (photosRes?.success && photosRes?.data) {
           setExistingPhotos(mapPhotos(photosRes.data));
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        // Check if it's a 403 forbidden error
+        if (error?.response?.status === 403) {
+          toast.error(error.response?.data?.message || "Profile approval required");
+          navigate("/onboarding/review", { replace: true });
+          return;
+        }
+        // Check if it's a 401 unauthorized error
+        if (error?.response?.status === 401) {
+          toast.error("Please login to continue");
+          navigate("/login", { replace: true });
+          return;
+        }
+        // Handle other errors
+        toast.error("Failed to load dashboard. Please try again.");
       } finally {
         setIsLoading(false);
       }
     }
     fetchDashboardData();
-  }, [id, location.pathname]);
+  }, [id, location.pathname, navigate]);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,7 +153,9 @@ export function Dashboard({
             profession: userData.profession || userData.occupation || userData.professional?.Occupation,
             image: userData.closerPhoto?.url,
             compatibility: match?.scoreDetail?.score || userData.compatibility,
-            status: userData.connectionStatus || null
+            // include robust status and address from either match or user
+            status: userData.connectionStatus || match?.status || userData.status || null,
+            address: userData.address || match?.address || null
           };
         });
         setRecommendations(mapped);
@@ -161,9 +222,11 @@ export function Dashboard({
       <div className="bg-white rounded-[20px] p-4 md:p-6 lg:p-8 shadow-sm">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
           <div className="relative w-24 h-24 md:w-28 md:h-28 shrink-0">
-            <img src={user?.closerPhotoUrl || "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=400&q=80"} alt="Your Profile" id="dashboard-photo" className="w-full h-full rounded-xl border border-gray-200 shadow-sm object-cover" onError={e => {
+            {!imageLoaded && user?.closerPhotoUrl && <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl animate-pulse" />}
+            <img src={user?.closerPhotoUrl || "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=400&q=80"} alt="Your Profile" id="dashboard-photo" className={`w-full h-full rounded-xl border border-gray-200 shadow-sm object-cover transition-opacity ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} onLoad={() => setImageLoaded(true)} onError={e => {
             console.error("Image failed to load:", e.target.src);
             e.target.src = "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=400&q=80";
+            setImageLoaded(true);
           }} />
             <label htmlFor="dashboard-upload" className="absolute bottom-1 right-1 bg-[#C8A227] p-2 rounded-full shadow-md cursor-pointer hover:bg-[#B49520] border border-white flex items-center justify-center" title="Upload new photo">
               <Camera className="w-4 h-4 text-white" />
@@ -313,19 +376,42 @@ export function Dashboard({
             Failed to load recommendations.
           </div>}
 
-        {!recommendationsLoading && !recommendationsError && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {filteredRecommendations.map(profile => <ProfileCard key={profile.id} {...profile} variant="browse" onView={() => navigate(`/userdashboard/profile/${profile.id}`)} onSendRequest={onSendRequest} onAddToCompare={onAddToCompare} onRemoveCompare={onRemoveCompare} isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false} isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some(sid => String(sid) === String(profile.id)) : false} onToggleShortlist={onToggleShortlist} />)}
+        {!recommendationsLoading && !recommendationsError && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {filteredRecommendations.map(profile => (
+              <ProfileCard
+                key={profile.id}
+                {...profile}
+                variant="browse"
+                onView={() =>
+                  navigate(`/userdashboard/profile/${profile.id}`, {
+                    state: {
+                      profileId: profile.id,
+                      status: profile.status,
+                      address: profile.address
+                    }
+                  })
+                }
+                onSendRequest={onSendRequest}
+                onAddToCompare={onAddToCompare}
+                onRemoveCompare={onRemoveCompare}
+                isInCompare={Array.isArray(compareProfiles) ? compareProfiles.map(String).includes(String(profile.id || profile._id || profile.userId)) : false}
+                isShortlisted={Array.isArray(shortlistedIds) ? shortlistedIds.some(sid => String(sid) === String(profile.id)) : false}
+                onToggleShortlist={onToggleShortlist}
+              />
+            ))}
             {filteredRecommendations.length === 0 && <div className="col-span-full text-center py-8 text-muted-foreground">
                 No matches found. Try updating your preferences.
               </div>}
-          </div>}
+          </div>
+        )}
 
         {!recommendationsLoading && totalMatches > 0 && <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 bg-white rounded-xl p-4 shadow-sm">
             <div className="text-sm text-gray-600">
               Page {currentPage} of {totalPages}
             </div>
 
-            <div className="flex items-center gap-2">
+            {totalPages > 1 && <div className="flex items-center gap-2">
               <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} style={{
             backgroundColor: "white",
             borderColor: "#d1d5db",
@@ -402,7 +488,7 @@ export function Dashboard({
                 Next
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </div>
+            </div>}
 
             <div className="text-sm text-gray-600">
               Total: {totalMatches} profiles

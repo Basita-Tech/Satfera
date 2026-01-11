@@ -190,7 +190,7 @@ export function Browse({
               Page {currentPage} of {totalPages}
             </div>
 
-            <div className="flex items-center gap-2">
+            {totalPages > 1 && <div className="flex items-center gap-2">
               <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} style={{
             backgroundColor: 'white',
             borderColor: '#d1d5db',
@@ -267,7 +267,7 @@ export function Browse({
                 Next
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </div>
+            </div>}
 
             <div className="text-sm text-gray-600">
               Total: {totalProfiles} profiles

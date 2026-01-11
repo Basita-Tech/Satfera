@@ -13,7 +13,8 @@ const VerifyOTP = () => {
     email,
     name,
     mobile,
-    countryCode
+    countryCode,
+    fromLogin
   } = location.state || {};
   const [emailOtp, setEmailOtp] = useState(Array(6).fill(""));
   const [emailCountdown, setEmailCountdown] = useState(OTP_VALID_TIME);
@@ -36,8 +37,11 @@ const VerifyOTP = () => {
     }
   }, [email]);
   useEffect(() => {
-    if (!email) navigate("/signup");
-  }, [email, navigate]);
+    if (!email) {
+      // If coming from login, redirect to login, otherwise to signup
+      navigate(fromLogin ? "/login" : "/signup");
+    }
+  }, [email, navigate, fromLogin]);
   useEffect(() => {
     if (emailCountdown > 0 && !isEmailVerified && !isLocked) {
       const t = setInterval(() => setEmailCountdown(p => p - 1), 1000);
@@ -235,13 +239,18 @@ const VerifyOTP = () => {
 
       <div className="min-h-screen w-full bg-[#F9F7F5] flex items-center justify-center py-8 px-4">
         <div className="bg-[#FBFAF7] shadow-2xl rounded-3xl w-full max-w-md p-6 sm:p-8">
-          <Link to="/signup" className="inline-block mb-4 px-3 py-2 bg-[#D4A052] text-white rounded-md font-medium">
+          <Link to={fromLogin ? "/login" : "/signup"} className="inline-block mb-4 px-3 py-2 bg-[#D4A052] text-white rounded-md font-medium">
             ← Back
           </Link>
 
-          <h3 className="text-center text-xl font-semibold mb-4">
-            Verify Email OTP
-          </h3>
+          <div className="text-center mb-4">
+            <h3 className="text-xl font-semibold mb-2">
+              {fromLogin ? "Email Verification Required" : "Verify Email OTP"}
+            </h3>
+            {fromLogin && <p className="text-sm text-gray-600">
+              Your account is not verified. Please verify your email to continue.
+            </p>}
+          </div>
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
