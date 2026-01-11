@@ -39,7 +39,7 @@ export interface IUser extends Document {
   planExpiry?: Date;
   reviewedAt?: Date;
   reviewNotes?: string;
-  pushToken: string;
+  pushToken?: string;
 }
 
 const sanitizeString = (value: string): string => {
@@ -231,7 +231,7 @@ const userSchema: Schema = new Schema(
     isVisible: { type: Boolean, default: true },
     reviewedAt: { type: Date },
     reviewNotes: { type: String },
-    pushToken: { type: String, required: true, unique: true }
+    pushToken: { type: String,  unique: true }
   },
   {
     timestamps: true,
